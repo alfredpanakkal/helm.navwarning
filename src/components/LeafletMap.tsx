@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { NavWarning, NavAreaId } from '../types';
-import { Search, MapPin, Locate, Copy, ExternalLink, Activity, Database } from 'lucide-react';
+import { Search, MapPin, Locate, Copy, Activity, Database, Maximize2, RefreshCw } from 'lucide-react';
 import { getLeafletLatLng } from '../utils/coordinateParser';
 
 interface LeafletMapProps {
@@ -21,15 +21,17 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
   const [activeWarning, setActiveWarning] = useState<NavWarning | null>(null);
   const [filterSeverity, setFilterSeverity] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [mobilePanel, setMobilePanel] = useState<'none' | 'list' | 'detail'>('none');
 
+  // Initialize Leaflet Map
   useEffect(() => {
     if (!mapRef.current) return;
 
     if (!leafletInstance.current) {
       const map = L.map(mapRef.current, {
-        center: [25, 20],
-        zoom: 3,
+        center: [20, 10],
+        zoom: 2,
         zoomControl: false,
         attributionControl: true,
         worldCopyJump: true,
@@ -60,36 +62,73 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     };
   }, []);
 
+  // Filter warnings based on severity, NAVAREA, and search text
   const filteredWarnings = warnings.filter(w => {
-    if (filterSeverity === 'all') return true;
-    if (filterSeverity === 'critical') return w.extraction_confidence === 1;
-    if (filterSeverity === 'high') return w.extraction_confidence < 1 && w.extraction_confidence >= 0.8;
-    if (filterSeverity === 'moderate') return w.extraction_confidence < 0.8 && w.extraction_confidence >= 0.5;
-    return w.extraction_confidence < 0.5;
+    // Navarea filter
+    if (selectedNavArea !== 'ALL' && w.navarea !== selectedNavArea) return false;
+
+    // Severity filter
+    if (filterSeverity === 'critical' && w.extraction_confidence < 1) return false;
+    if (filterSeverity === 'high' && (w.extraction_confidence >= 1 || w.extraction_confidence < 0.8)) return false;
+    if (filterSeverity === 'moderate' && (w.extraction_confidence >= 0.8 || w.extraction_confidence < 0.5)) return false;
+    if (filterSeverity === 'low' && w.extraction_confidence >= 0.5) return false;
+
+    // Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchId = w.source_warning_id.toLowerCase().includes(q);
+      const matchArea = w.area_text?.toLowerCase().includes(q);
+      const matchText = w.raw_text?.toLowerCase().includes(q);
+      const matchNavArea = `navarea ${w.navarea}`.toLowerCase().includes(q);
+      return matchId || matchArea || matchText || matchNavArea;
+    }
+
+    return true;
   });
 
   const hiddenCount = warnings.length - filteredWarnings.length;
 
+  // Auto-frame map bounds around active warnings
+  const autoFrameMap = (activeList: NavWarning[]) => {
+    if (!leafletInstance.current) return;
+
+    const validCoords: L.LatLngExpression[] = activeList
+      .map(w => getLeafletLatLng(w.spatial))
+      .filter(([lat, lng]) => lat !== 0 || lng !== 0);
+
+    if (validCoords.length > 0) {
+      const bounds = L.latLngBounds(validCoords);
+      if (bounds.isValid()) {
+        leafletInstance.current.fitBounds(bounds, {
+          padding: [50, 50],
+          maxZoom: 6,
+          animate: true,
+        });
+      }
+    }
+  };
+
+  // Render markers & auto-fit framing whenever warnings or filters update
   useEffect(() => {
     if (!leafletInstance.current || !layersGroup.current) return;
-    
+
     const layers = layersGroup.current;
     layers.clearLayers();
 
     const activeWarnings = filteredWarnings.filter(w => w.status === 'active');
-    
+
     activeWarnings.forEach(w => {
       const coords = getLeafletLatLng(w.spatial);
 
       const icon = L.divIcon({
         className: 'nw-marker-wrap',
         html: `<div class="nw-marker ${w.extraction_confidence === 1 ? 'sev-critical' : 'sev-high'}"></div>`,
-        iconSize: [16,16],
-        iconAnchor: [8,8],
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
       });
 
-      const m = L.marker(coords, {icon}).addTo(layers);
-      
+      const m = L.marker(coords, { icon }).addTo(layers);
+
       m.bindPopup(`
         <div style="min-width:200px">
           <div style="font-size:10px; color:var(--color-gw-accent); margin-bottom:4px">${w.source_warning_id} · NAVAREA ${w.navarea}</div>
@@ -97,43 +136,79 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <div style="font-size:11px; color:var(--color-gw-primary); background:var(--color-gw-bg); padding:3px 6px; border-radius:4px; display:inline-block">${coords[0].toFixed(2)}, ${coords[1].toFixed(2)}</div>
         </div>
       `);
-      
-      m.on('click', () => setActiveWarning(w));
+
+      m.on('click', () => {
+        setActiveWarning(w);
+        onSelectWarning(w);
+      });
     });
-  }, [warnings, filterSeverity]);
+
+    // Auto-fit framing when dataset or filter changes
+    autoFrameMap(activeWarnings);
+  }, [warnings, filterSeverity, selectedNavArea, searchQuery]);
+
+  // Handle invalidateSize when mobile drawer toggles
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      leafletInstance.current?.invalidateSize();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [mobilePanel]);
 
   const handleLocate = (w: NavWarning) => {
     setActiveWarning(w);
+    onSelectWarning(w);
     const coords = getLeafletLatLng(w.spatial);
-    leafletInstance.current?.setView(coords, Math.max(leafletInstance.current.getZoom(), 5), {animate: true});
+    leafletInstance.current?.setView(coords, Math.max(leafletInstance.current.getZoom(), 6), { animate: true });
   };
 
   return (
-    <div className="relative h-[calc(100vh-140px)] min-h-[500px] sm:min-h-[600px] border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden bg-gw-bg isolate">
+    <div className="relative h-[calc(100vh-140px)] min-h-[480px] sm:min-h-[600px] border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden bg-gw-bg isolate">
       <div id="map" ref={mapRef} className="absolute inset-0 grayscale contrast-105 brightness-105 z-0"></div>
-      
-      {/* Top Overlay */}
+
+      {/* Top Overlay Controls */}
       <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-start pointer-events-none z-[400] gap-2">
-        
-        {/* Search */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard pointer-events-auto w-full sm:w-[280px] md:w-[300px]">
-          <Search className="w-4 h-4 text-gw-accent shrink-0" />
-          <input 
-            type="text" 
-            placeholder="Search ID, area, coords..." 
-            className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-gw-primary placeholder:text-gw-accent" 
-          />
+
+        {/* Search & Auto Frame Toolbar */}
+        <div className="flex items-center gap-2 pointer-events-auto w-full sm:w-auto">
+          <div className="flex items-center gap-2 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard flex-1 sm:w-[280px] md:w-[320px]">
+            <Search className="w-4 h-4 text-gw-accent shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search ID, area, coords..."
+              className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-gw-primary placeholder:text-gw-accent"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-xs text-gw-accent hover:text-gw-primary font-bold px-1"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => autoFrameMap(filteredWarnings)}
+            title="Auto-frame map bounds to fit all warnings"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard transition-all hover:bg-gw-primary hover:text-gw-bg shrink-0 min-h-[40px]"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Auto Frame</span>
+          </button>
         </div>
 
         {/* Mobile Toggle Controls */}
         <div className="flex lg:hidden items-center justify-between gap-2 pointer-events-auto">
-          <button 
+          <button
             onClick={() => setMobilePanel(mobilePanel === 'list' ? 'none' : 'list')}
             className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard transition-all min-h-[40px] ${mobilePanel === 'list' ? 'bg-gw-primary text-gw-bg' : 'bg-white/95 text-gw-primary'}`}
           >
-            <span>Warnings ({warnings.length})</span>
+            <span>Warnings ({filteredWarnings.length})</span>
           </button>
-          <button 
+          <button
             onClick={() => setMobilePanel(mobilePanel === 'detail' ? 'none' : 'detail')}
             className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard transition-all min-h-[40px] ${mobilePanel === 'detail' ? 'bg-gw-primary text-gw-bg' : 'bg-white/95 text-gw-primary'}`}
           >
@@ -166,8 +241,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] px-1.5 py-0.5 bg-gw-primary text-gw-bg rounded font-bold">{filteredWarnings.length}</span>
-            <button 
-              onClick={() => setMobilePanel('none')} 
+            <button
+              onClick={() => setMobilePanel('none')}
               aria-label="Close mobile list panel"
               className="lg:hidden text-gw-primary font-bold text-base px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
             >
@@ -175,20 +250,19 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </button>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-1 p-2.5 border-b border-gw-secondary">
-          {['all', 'critical', 'high', 'moderate', 'low', 'info'].map(sev => (
-            <button 
+          {['all', 'critical', 'high', 'moderate', 'low'].map(sev => (
+            <button
               key={sev}
               onClick={() => setFilterSeverity(sev)}
               aria-label={`Filter severity ${sev}`}
-              className={`flex items-center gap-1 px-2 py-1 bg-transparent border border-gw-secondary rounded text-[10px] uppercase font-bold transition-all hover:border-gw-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${filterSeverity === sev ? 'bg-gw-primary text-gw-bg border-gw-primary' : ''}`}
+              className={`flex items-center gap-1 px-2 py-1 bg-transparent border border-gw-secondary rounded text-[10px] uppercase font-bold transition-all hover:border-gw-accent ${filterSeverity === sev ? 'bg-gw-primary text-gw-bg border-gw-primary' : ''}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full border border-current ${
                 sev === 'all' || sev === 'critical' ? 'bg-gw-primary' :
                 sev === 'high' ? 'bg-gw-tertiary' :
-                sev === 'moderate' ? 'bg-gw-accent' :
-                sev === 'low' ? 'bg-gw-secondary' : 'bg-white'
+                sev === 'moderate' ? 'bg-gw-accent' : 'bg-gw-secondary'
               }`}></span>
               {sev}
             </button>
@@ -197,7 +271,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
         <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
           {filteredWarnings.map(w => (
-            <div 
+            <div
               key={w.warning_id}
               onClick={() => {
                 handleLocate(w);
@@ -248,9 +322,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </div>
               <div className="text-base sm:text-lg font-bold leading-snug">{activeWarning.issued_text.substring(0, 40)}...</div>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-3.5 space-y-4 no-scrollbar">
-              
+
               <div>
                 <div className="text-[10px] font-bold tracking-widest uppercase text-gw-accent mb-1.5">PARSED GEOMETRY · {activeWarning.spatial.geometries[0]?.type}</div>
                 <div className="grid grid-cols-2 gap-2">
@@ -287,7 +361,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
 
             <div className="flex gap-2 p-3 border-t-2 border-gw-primary">
-              <button 
+              <button
                 onClick={() => {
                   handleLocate(activeWarning);
                   setMobilePanel('none');
@@ -296,7 +370,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               >
                 <Locate className="w-3.5 h-3.5" /> Locate
               </button>
-              <button 
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(activeWarning.raw_text);
+                }}
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-transparent border border-gw-secondary rounded text-[10px] font-bold uppercase transition-all hover:bg-gw-primary hover:text-gw-bg min-h-[40px]"
               >
                 <Copy className="w-3.5 h-3.5" /> Copy
@@ -306,23 +383,22 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         )}
       </aside>
 
-      {/* Bottom Overlay */}
+      {/* Bottom Overlay Info */}
       <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4 flex justify-between items-center pointer-events-none z-[400]">
-        
         <div className="bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard pointer-events-auto flex items-center gap-3 px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs">
           <div className="flex items-center gap-1">
             <Activity className="w-3 h-3 text-gw-accent" />
-            <span>SYNC:</span>
-            <span className="font-bold">2m 14s</span>
+            <span>DISPLAY:</span>
+            <span className="font-bold">{filteredWarnings.length} Warnings</span>
           </div>
           <div className="flex items-center gap-1">
             <Database className="w-3 h-3 text-gw-accent" />
-            <span>GEN:</span>
-            <span className="font-bold">0247</span>
+            <span>FRAME:</span>
+            <span className="font-bold">Auto</span>
           </div>
         </div>
-
       </div>
     </div>
   );
 };
+
