@@ -136,7 +136,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       const m = L.marker(coords, { icon }).addTo(layers);
 
       m.on('click', () => {
-        setActiveWarning(w);
         onSelectWarning(w);
       });
     });

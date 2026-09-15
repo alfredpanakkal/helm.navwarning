@@ -8,6 +8,7 @@ interface HeaderProps {
   activeCount: number;
   onRefreshPipeline?: () => void;
   isRefreshing?: boolean;
+  onOpenConsole?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeCount,
   onRefreshPipeline,
   isRefreshing,
+  onOpenConsole,
 }) => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
@@ -100,6 +102,18 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
               <span className="text-[10px] sm:text-xs font-bold text-gw-bg">{activeCount} Active</span>
             </div>
+
+            {onOpenConsole && (
+              <button
+                onClick={onOpenConsole}
+                aria-label="Open CLI console terminal"
+                title="Open Live Execution Terminal Console"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-zinc-900 text-emerald-400 font-mono font-bold text-xs uppercase tracking-wider rounded border border-emerald-500/50 hover:bg-black transition-all active:scale-95 min-h-[36px]"
+              >
+                <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">CLI Console</span>
+              </button>
+            )}
 
             <button
               onClick={onRefreshPipeline}
