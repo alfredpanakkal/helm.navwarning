@@ -186,7 +186,7 @@ export default function App() {
   const activeCount = warnings.filter((w) => w.status === 'active').length;
 
   return (
-    <div className="min-h-screen bg-gw-bg text-gw-primary font-mono selection:bg-gw-primary selection:text-gw-bg relative pb-12">
+    <div className="min-h-screen bg-gw-bg text-gw-primary font-mono selection:bg-gw-primary selection:text-gw-bg relative pb-20 md:pb-6">
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
