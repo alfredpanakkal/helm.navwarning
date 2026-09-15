@@ -1,5 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavWarning } from '../types';
+import { EcdisFeatureEditor } from './EcdisFeatureEditor';
+import { extractEcdisIntermediateLayer } from '../utils/coordinateParser';
 import {
   ShieldCheck,
   Globe,
@@ -12,7 +14,9 @@ import {
   Code,
   Tag,
   ExternalLink,
+  Edit3,
 } from 'lucide-react';
+
 
 interface WarningDetailModalProps {
   warning: NavWarning | null;
@@ -174,6 +178,21 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({ warning,
             </div>
           </div>
 
+          {/* ECDIS Manual Update Officer Editor */}
+          <div className="space-y-3 pt-2 border-t-2 border-gw-primary">
+            <div className="flex items-center justify-between text-xs font-bold text-gw-primary uppercase tracking-wider">
+              <span className="flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-gw-primary" />
+                <span>ECDIS Manual Update Intermediate Layer (IMO MSC.232 / MSC.530)</span>
+              </span>
+            </div>
+            <EcdisFeatureEditor
+              warningId={warning.source_warning_id || warning.warning_id}
+              navarea={warning.navarea}
+              rawText={warning.raw_text}
+            />
+          </div>
+
           {/* GeoJSON Preview */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs font-bold text-gw-primary uppercase tracking-wider">
@@ -182,16 +201,17 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({ warning,
                 <span>GeoJSON Export Representation</span>
               </span>
               <button
-                onClick={() => copyToClipboard(JSON.stringify(warning.spatial.geometries, null, 2))}
+                onClick={() => copyToClipboard(JSON.stringify(extractEcdisIntermediateLayer(warning.source_warning_id || warning.warning_id, warning.navarea, warning.raw_text), null, 2))}
                 className="text-gw-accent hover:text-gw-primary text-[11px] font-mono font-bold uppercase"
               >
                 Copy GeoJSON
               </button>
             </div>
             <pre className="bg-gw-primary text-gw-secondary p-3 rounded-xl font-mono text-[11px] max-h-40 overflow-y-auto">
-              {JSON.stringify(warning.spatial.geometries, null, 2)}
+              {JSON.stringify(extractEcdisIntermediateLayer(warning.source_warning_id || warning.warning_id, warning.navarea, warning.raw_text), null, 2)}
             </pre>
           </div>
+
         </div>
 
         {/* Modal Footer */}

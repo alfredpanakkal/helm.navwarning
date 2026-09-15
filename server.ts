@@ -11,6 +11,7 @@ import {
 } from './src/data/sourcesRegistry.js';
 import { parseCoordinatesDeterministic } from './src/utils/coordinateParser.js';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact, NavAreaId } from './src/types.js';
+import scrapeNavwarnHandler from './api/scrape-navwarn.js';
 
 // In-memory persistent state for server runtime
 let sourcesDb: SourceRegistryItem[] = [...INITIAL_SOURCES_REGISTRY];
@@ -521,6 +522,9 @@ Instructions:
       res.status(500).json({ error: err.message || 'Failed to fetch from FreeOpenAPI' });
     }
   });
+
+  // Vercel Cron Scraper Route Integration
+  app.all('/api/scrape-navwarn', scrapeNavwarnHandler);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {

@@ -1,4 +1,17 @@
-import { BoundingBox, NavAreaId, SpatialData, SpatialGeometry, SpatialCircle } from '../types';
+import {
+  BoundingBox,
+  NavAreaId,
+  SpatialData,
+  SpatialGeometry,
+  SpatialCircle,
+  EcdisIntermediateLayer,
+  EcdisPointFeature,
+  GeometryIntent,
+  FeatureInference,
+  FeatureConfidence,
+  FeatureRoleHint
+} from '../types';
+
 
 export const NAVAREA_BOUNDS: Record<NavAreaId, BoundingBox> = {
   I: { minLat: 48, maxLat: 75, minLng: -30, maxLng: 30 },
@@ -245,3 +258,290 @@ export function getLeafletLatLng(spatial: SpatialData | undefined | null): [numb
   }
   return [0, 0];
 }
+
+/**
+ * Checks if a [lat, lng] point lies within the declared NAVAREA boundary (with 0.5° buffer).
+ */
+
+export function isPointInNavArea(
+  lat: number,
+  lng: number,
+  navarea: NavAreaId | string | null,
+  bufferDeg = 0.5
+): boolean {
+  if (!navarea || !NAVAREA_BOUNDS[navarea as NavAreaId]) return true; // Default fallback if NAVAREA unlisted
+  const b = NAVAREA_BOUNDS[navarea as NavAreaId];
+
+  const minLat = b.minLat - bufferDeg;
+  const maxLat = b.maxLat + bufferDeg;
+  let minLng = b.minLng - bufferDeg;
+  let maxLng = b.maxLng + bufferDeg;
+
+  if (lat < minLat || lat > maxLat) return false;
+
+  // Handle Pacific / Anti-Meridian wraparound (e.g., minLng > maxLng)
+  if (minLng > maxLng) {
+    return lng >= minLng || lng <= maxLng;
+  }
+  return lng >= minLng && lng <= maxLng;
+}
+
+/**
+ * Executes WWNWS 4-Way Inference Test for unsigned coordinate pairs.
+ */
+export function testFourWayInference(
+  latVal: number,
+  lngVal: number,
+  navarea: NavAreaId | string | null
+): {
+  coords: [number, number];
+  inference: FeatureInference;
+  confidence: FeatureConfidence;
+  errors: string[];
+} {
+  const candidates: { signLat: number; signLng: number; coords: [number, number] }[] = [
+    { signLat: 1, signLng: 1, coords: [lngVal, latVal] },
+    { signLat: 1, signLng: -1, coords: [-lngVal, latVal] },
+    { signLat: -1, signLng: 1, coords: [lngVal, -latVal] },
+    { signLat: -1, signLng: -1, coords: [-lngVal, -latVal] },
+  ];
+
+  const validMatches = candidates.filter(c =>
+    isPointInNavArea(c.coords[1], c.coords[0], navarea)
+  );
+
+  if (validMatches.length === 1) {
+    return {
+      coords: validMatches[0].coords,
+      inference: 'inferred',
+      confidence: 'verified',
+      errors: [],
+    };
+  }
+
+  // Zero or >1 matches: Never guess silently!
+  return {
+    coords: [0, 0],
+    inference: 'explicit',
+    confidence: 'rejected',
+    errors: ['COORD_UNSIGNED_AMBIGUOUS'],
+  };
+}
+
+/**
+ * Classifies Geometry Intent based on source text language.
+ */
+export function classifyGeometryIntent(
+  rawText: string,
+  featureCount: number,
+  isRangedArea: boolean
+): GeometryIntent {
+  if (isRangedArea) return 'area';
+
+  const text = rawText.toUpperCase();
+
+  const areaRegex = /BOUNDED BY|AREA BOUNDED|BOUNDED WITHIN|AREA BETWEEN|WITHIN LIMITS|FOUR CORNERS|POLYGON|QUADRILATERAL|AREA ENCLOSED|REGION BOUNDED/i;
+  if (areaRegex.test(text)) return 'area';
+
+  const routeRegex = /FROM .* TO|ROUTE BETWEEN|TRACKLINE|ALONG TRACK|LINE JOINING|WAYPOINTS|TRANSIT ROUTE|LINE CONNECTING/i;
+  if (routeRegex.test(text)) return 'route';
+
+  const pointsRegex = /DRIFTING|WRECK|SHOAL|LIGHT UNLIT|BUOY OFF STATION|HAZARD AT|SINGLE POSITION|BUOY MOORED|OBJECT/i;
+  if (pointsRegex.test(text) || featureCount === 1) return 'points';
+
+  if (featureCount >= 3) return 'area';
+  if (featureCount === 2) return 'route';
+
+  return 'unknown';
+}
+
+/**
+ * Main NAVWARN Extraction Engine:
+ * Converts raw navigational warning text into an IMO ECDIS-Ready Intermediate Layer GeoJSON FeatureCollection.
+ */
+export function extractEcdisIntermediateLayer(
+  warningId: string,
+  navarea: NavAreaId | string | null,
+  rawText: string
+): EcdisIntermediateLayer {
+  const features: EcdisPointFeature[] = [];
+  let isRangedArea = false;
+
+  // 1. Ranged Bounds Extractor (e.g. LAT 55-10N TO 55-20N, LON 003-10E TO 003-40E)
+  const rangePattern = /LAT(?:ITUDE)?S?\s*(\d{1,2})[-°\s](\d{1,2}(?:\.\d+)?)\s*([NS])?\s*(?:TO|AND|-|\s+)\s*(\d{1,2})[-°\s](\d{1,2}(?:\.\d+)?)\s*([NS])?[\s,]+LON(?:GITUDE)?S?\s*(\d{1,3})[-°\s](\d{1,2}(?:\.\d+)?)\s*([EW])?\s*(?:TO|AND|-|\s+)\s*(\d{1,3})[-°\s](\d{1,2}(?:\.\d+)?)\s*([EW])?/i;
+  const rangeMatch = rawText.match(rangePattern);
+
+  if (rangeMatch) {
+    isRangedArea = true;
+    const lat1Deg = parseFloat(rangeMatch[1]);
+    const lat1Min = parseFloat(rangeMatch[2]);
+    const lat1Dir = (rangeMatch[3] || 'N').toUpperCase();
+
+    const lat2Deg = parseFloat(rangeMatch[4]);
+    const lat2Min = parseFloat(rangeMatch[5]);
+    const lat2Dir = (rangeMatch[6] || lat1Dir).toUpperCase();
+
+    const lon1Deg = parseFloat(rangeMatch[7]);
+    const lon1Min = parseFloat(rangeMatch[8]);
+    const lon1Dir = (rangeMatch[9] || 'E').toUpperCase();
+
+    const lon2Deg = parseFloat(rangeMatch[10]);
+    const lon2Min = parseFloat(rangeMatch[11]);
+    const lon2Dir = (rangeMatch[12] || lon1Dir).toUpperCase();
+
+    const lat1 = dmsToDecimal(lat1Deg, lat1Min, 0, lat1Dir);
+    const lat2 = dmsToDecimal(lat2Deg, lat2Min, 0, lat2Dir);
+    const lon1 = dmsToDecimal(lon1Deg, lon1Min, 0, lon1Dir);
+    const lon2 = dmsToDecimal(lon2Deg, lon2Min, 0, lon2Dir);
+
+    // Create 4 corner Point features in clockwise sequence
+    const corners: [number, number][] = [
+      [lon1, lat1],
+      [lon2, lat1],
+      [lon2, lat2],
+      [lon1, lat2],
+    ];
+
+    corners.forEach((coord, idx) => {
+      const isInside = isPointInNavArea(coord[1], coord[0], navarea);
+      features.push({
+        type: 'Feature',
+        id: `feat-${warningId}-corner-${idx + 1}-${Math.random().toString(36).substr(2, 6)}`,
+        geometry: {
+          type: 'Point',
+          coordinates: coord,
+        },
+        properties: {
+          sequence_index: idx + 1,
+          raw_text: rangeMatch[0],
+          inference: 'explicit',
+          confidence: isInside ? 'verified' : 'partial',
+          modification_state: 'original',
+          user_notes: '',
+          errors: isInside ? [] : ['COORD_OUTSIDE_NAVAREA'],
+          role_hint: 'vertex',
+        },
+      });
+    });
+  } else {
+    // 2. Standard Point Extractor
+    // Global regex matching coordinate pairs with or without direction letters
+    const coordPairRegex = /(?:LAT|LATITUDE|POSITION|POS)?\s*(\d{1,3})[-°\s](\d{1,2}(?:\.\d+)?)['′"]?\s*([NS])?[\s,]+(?:LON|LONGITUDE)?\s*(\d{1,3})[-°\s](\d{1,2}(?:\.\d+)?)['′"]?\s*([EW])?/gi;
+
+    let match: RegExpExecArray | null;
+    let sequenceIndex = 1;
+
+    while ((match = coordPairRegex.exec(rawText)) !== null) {
+      const rawSnippet = match[0];
+      const latDeg = parseFloat(match[1]);
+      const latMin = parseFloat(match[2]);
+      const latDir = match[3] ? match[3].toUpperCase() : null;
+
+      const lonDeg = parseFloat(match[4]);
+      const lonMin = parseFloat(match[5]);
+      const lonDir = match[6] ? match[6].toUpperCase() : null;
+
+      // Mathematical Limits Validation
+      if (latDeg > 90 || lonDeg > 180 || latMin >= 60 || lonMin >= 60) {
+        features.push({
+          type: 'Feature',
+          id: `feat-${warningId}-${sequenceIndex}-${Math.random().toString(36).substr(2, 6)}`,
+          geometry: {
+            type: 'Point',
+            coordinates: [0, 0],
+          },
+          properties: {
+            sequence_index: sequenceIndex++,
+            raw_text: rawSnippet,
+            inference: 'explicit',
+            confidence: 'rejected',
+            modification_state: 'original',
+            user_notes: '',
+            errors: ['COORD_MALFORMED'],
+            role_hint: null,
+          },
+        });
+        continue;
+      }
+
+      let coords: [number, number];
+      let inference: FeatureInference = 'explicit';
+      let confidence: FeatureConfidence = 'verified';
+      let errors: string[] = [];
+
+      if (latDir && lonDir) {
+        // Explicit N/S/E/W
+        const lat = dmsToDecimal(latDeg, latMin, 0, latDir);
+        const lng = dmsToDecimal(lonDeg, lonMin, 0, lonDir);
+        coords = [lng, lat];
+
+        const isInside = isPointInNavArea(lat, lng, navarea);
+        if (!isInside) {
+          confidence = 'partial';
+          errors.push('COORD_OUTSIDE_NAVAREA');
+        }
+      } else {
+        // Unsigned Coordinate Pair -> Execute 4-Way Inference Test
+        const testRes = testFourWayInference(
+          latDeg + latMin / 60,
+          lonDeg + lonMin / 60,
+          navarea
+        );
+        coords = testRes.coords;
+        inference = testRes.inference;
+        confidence = testRes.confidence;
+        errors = testRes.errors;
+      }
+
+      features.push({
+        type: 'Feature',
+        id: `feat-${warningId}-${sequenceIndex}-${Math.random().toString(36).substr(2, 6)}`,
+        geometry: {
+          type: 'Point',
+          coordinates: coords,
+        },
+        properties: {
+          sequence_index: sequenceIndex++,
+          raw_text: rawSnippet,
+          inference,
+          confidence,
+          modification_state: 'original',
+          user_notes: '',
+          errors,
+          role_hint: null,
+        },
+      });
+    }
+  }
+
+  // Deduplicate identical points if standard parsing produced identical pairs
+  const uniqueFeatures: EcdisPointFeature[] = [];
+  features.forEach((feat, idx) => {
+    feat.properties.sequence_index = idx + 1;
+    uniqueFeatures.push(feat);
+  });
+
+  const intent = classifyGeometryIntent(rawText, uniqueFeatures.length, isRangedArea);
+
+  // Set role_hints if intent is route or area
+  if (intent === 'route' && uniqueFeatures.length >= 2) {
+    uniqueFeatures.forEach((f, idx) => {
+      if (idx === 0) f.properties.role_hint = 'start';
+      else if (idx === uniqueFeatures.length - 1) f.properties.role_hint = 'end';
+      else f.properties.role_hint = 'intermediate';
+    });
+  } else if (intent === 'area') {
+    uniqueFeatures.forEach(f => {
+      f.properties.role_hint = 'vertex';
+    });
+  }
+
+  return {
+    warningId,
+    navarea: navarea || null,
+    editable: true,
+    geometry_intent: intent,
+    features: uniqueFeatures,
+  };
+}
+

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { NavWarning } from '../types';
-import { FileText, Sparkles, CheckCircle2, AlertTriangle, Copy, ArrowRight } from 'lucide-react';
+import { EcdisFeatureEditor } from './EcdisFeatureEditor';
+import { FileText, Sparkles, CheckCircle2, AlertTriangle, Copy, ArrowRight, Edit3 } from 'lucide-react';
+
 
 interface ManualParserViewProps {
   onParseManual: (rawText: string, navarea: string) => Promise<NavWarning>;
@@ -166,21 +168,13 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     </div>
 
                     <div>
-                      <span className="text-gw-accent uppercase font-bold text-[10px]">Extracted Spatial Features:</span>
-                      <div className="bg-white p-3 rounded border border-gw-primary font-mono text-[11px] text-gw-primary space-y-1 mt-1">
-                        {parsedResult.spatial.geometries.map((g, gIdx) => (
-                          <div key={gIdx} className="flex justify-between font-bold">
-                            <span>
-                              [{g.type}] {g.label || 'Geometry Feature'}
-                            </span>
-                            <span className="text-gw-accent">
-                              {g.type === 'Circle' ? `${g.radius_nm} NM Radius` : `${g.coordinates.length} vertices`}
-                            </span>
-                          </div>
-                        ))}
-                        {parsedResult.spatial.geometries.length === 0 && (
-                          <span className="text-gw-accent italic">No spatial coordinates detected in raw text</span>
-                        )}
+                      <span className="text-gw-accent uppercase font-bold text-[10px]">IMO ECDIS Intermediate Layer (MSC.232 Manual Update):</span>
+                      <div className="mt-2">
+                        <EcdisFeatureEditor
+                          warningId={parsedResult.source_warning_id || parsedResult.warning_id}
+                          navarea={parsedResult.navarea}
+                          rawText={parsedResult.raw_text}
+                        />
                       </div>
                     </div>
                   </div>
@@ -192,6 +186,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     <span>Inspect in Full Data Bank & Map</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
+
                 </div>
               ))}
             </div>

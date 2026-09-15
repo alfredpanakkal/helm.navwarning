@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavWarning } from '../types';
-import { Database, AlertTriangle, Layers, MapPin, Filter, Download, Search } from 'lucide-react';
+import { Database, AlertTriangle, Layers, MapPin, Filter, Download, Search, ChevronDown, ChevronUp, Locate, Calendar } from 'lucide-react';
 import { formatSpatialCoordinates } from '../utils/coordinateParser';
 
 interface DataBankProps {
@@ -10,11 +10,41 @@ interface DataBankProps {
 
 export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  
+  const [selectedNavArea, setSelectedNavArea] = useState('ALL');
+  const [selectedSeverity, setSelectedSeverity] = useState('ALL');
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedCards(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const filteredWarnings = warnings.filter(w => {
+    if (selectedNavArea !== 'ALL' && w.navarea !== selectedNavArea) return false;
+    if (selectedStatus !== 'ALL' && w.status !== selectedStatus.toLowerCase()) return false;
+    if (selectedSeverity === 'critical' && w.extraction_confidence < 1) return false;
+    if (selectedSeverity === 'high' && (w.extraction_confidence >= 1 || w.extraction_confidence < 0.8)) return false;
+
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      const matchId = w.source_warning_id.toLowerCase().includes(q);
+      const matchText = w.issued_text.toLowerCase().includes(q);
+      const matchArea = `navarea ${w.navarea}`.toLowerCase().includes(q);
+      const matchStatus = w.status.toLowerCase().includes(q);
+      return matchId || matchText || matchArea || matchStatus;
+    }
+
+    return true;
+  });
+
   const activeCount = warnings.filter(w => w.status === 'active').length;
-  
+
   return (
-    <div className="flex flex-col gap-6 sm:gap-8">
+    <div className="flex flex-col gap-6 sm:gap-8 font-mono">
       {/* Stat Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
         <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all shadow-hard shadow-hard-hover">
@@ -71,34 +101,45 @@ export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
       {/* Filter Bar */}
       <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white border-2 border-gw-primary rounded-xl">
         <div className="flex-1 min-w-[200px] flex items-center gap-2 bg-gw-bg border border-gw-secondary rounded px-3 py-2 focus-within:border-gw-primary">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gw-accent shrink-0">
-            <path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>
-          </svg>
+          <Search className="w-4 h-4 text-gw-accent shrink-0" />
           <input 
             type="text" 
-            placeholder="Search records..." 
-            className="bg-transparent border-none outline-none text-xs sm:text-sm w-full"
+            placeholder="Search records by ID, text, area..." 
+            className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-gw-primary placeholder:text-gw-accent"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="text-xs text-gw-accent hover:text-gw-primary font-bold">
+              ✕
+            </button>
+          )}
         </div>
         
         <div className="grid grid-cols-2 sm:flex items-center gap-2">
           <div className="relative flex items-center">
-            <select className="w-full appearance-none bg-gw-bg border border-gw-secondary rounded pl-2.5 pr-7 py-2 text-xs cursor-pointer outline-none focus:border-gw-primary min-h-[38px]">
-              <option>All NAVAREAs</option>
-              <option>NAVAREA I</option>
-              <option>NAVAREA II</option>
-              <option>NAVAREA XI</option>
+            <select 
+              value={selectedNavArea}
+              onChange={(e) => setSelectedNavArea(e.target.value)}
+              className="w-full appearance-none bg-gw-bg border border-gw-secondary rounded pl-2.5 pr-7 py-2 text-xs font-bold cursor-pointer outline-none focus:border-gw-primary min-h-[38px]"
+            >
+              <option value="ALL">All NAVAREAs</option>
+              <option value="I">NAVAREA I</option>
+              <option value="II">NAVAREA II</option>
+              <option value="XI">NAVAREA XI</option>
             </select>
             <div className="absolute right-2.5 w-1.5 h-1.5 border-r-2 border-b-2 border-gw-primary rotate-45 pointer-events-none"></div>
           </div>
           
           <div className="relative flex items-center">
-            <select className="w-full appearance-none bg-gw-bg border border-gw-secondary rounded pl-2.5 pr-7 py-2 text-xs cursor-pointer outline-none focus:border-gw-primary min-h-[38px]">
-              <option>All Severities</option>
-              <option>Critical</option>
-              <option>High</option>
+            <select 
+              value={selectedSeverity}
+              onChange={(e) => setSelectedSeverity(e.target.value)}
+              className="w-full appearance-none bg-gw-bg border border-gw-secondary rounded pl-2.5 pr-7 py-2 text-xs font-bold cursor-pointer outline-none focus:border-gw-primary min-h-[38px]"
+            >
+              <option value="ALL">All Severities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
             </select>
             <div className="absolute right-2.5 w-1.5 h-1.5 border-r-2 border-b-2 border-gw-primary rotate-45 pointer-events-none"></div>
           </div>
@@ -106,27 +147,35 @@ export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
 
         <div className="flex items-center gap-2">
           <div className="relative flex-1 sm:flex-none items-center">
-            <select className="w-full appearance-none bg-gw-bg border border-gw-secondary rounded pl-2.5 pr-7 py-2 text-xs cursor-pointer outline-none focus:border-gw-primary min-h-[38px]">
-              <option>All Status</option>
-              <option>Active</option>
-              <option>Expiring</option>
+            <select 
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full appearance-none bg-gw-bg border border-gw-secondary rounded pl-2.5 pr-7 py-2 text-xs font-bold cursor-pointer outline-none focus:border-gw-primary min-h-[38px]"
+            >
+              <option value="ALL">All Status</option>
+              <option value="active">Active</option>
+              <option value="expiring">Expiring</option>
             </select>
             <div className="absolute right-2.5 w-1.5 h-1.5 border-r-2 border-b-2 border-gw-primary rotate-45 pointer-events-none"></div>
           </div>
           
-          <button className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gw-bg border border-gw-secondary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:border-gw-primary hover:text-gw-bg transition-colors min-h-[38px]">
+          <button 
+            onClick={() => {
+              setSearchTerm('');
+              setSelectedNavArea('ALL');
+              setSelectedSeverity('ALL');
+              setSelectedStatus('ALL');
+            }}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gw-bg border border-gw-secondary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:border-gw-primary hover:text-gw-bg transition-colors min-h-[38px]"
+          >
             <Filter className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Filters</span>
-          </button>
-          <button className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gw-bg border border-gw-secondary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:border-gw-primary hover:text-gw-bg transition-colors min-h-[38px]">
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden sm:inline">Reset</span>
           </button>
         </div>
       </div>
 
       {/* Empty State Banner */}
-      {warnings.length === 0 && (
+      {filteredWarnings.length === 0 && (
         <div className="p-8 text-center bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl space-y-3 shadow-sm">
           <div className="w-12 h-12 rounded-full bg-gw-bg border border-gw-primary text-gw-primary flex items-center justify-center mx-auto">
             <Search className="w-6 h-6" />
@@ -140,33 +189,118 @@ export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
 
       {/* Mobile Card List (visible on mobile < md) */}
       <div className="block md:hidden space-y-3">
-        {warnings.map((w, idx) => (
-          <div 
-            key={idx}
-            onClick={() => onLocate(w)}
-            className="p-4 bg-white border-2 border-gw-primary rounded-xl shadow-hard transition-all active:scale-[0.99]"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-bold text-xs">{w.source_warning_id}</span>
-              <span className="inline-flex items-center px-2 py-0.5 bg-gw-bg border border-gw-secondary rounded text-[10px] font-bold">
-                NA {w.navarea}
-              </span>
-            </div>
-            <div className="text-xs font-bold mb-2 line-clamp-2 leading-snug">{w.issued_text}</div>
-            <div className="flex flex-wrap items-center justify-between text-[11px] text-gw-accent pt-2 border-t border-gw-secondary gap-2">
-              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{w.issued_date}</span>
-              <div className="flex items-center gap-2">
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${w.extraction_confidence === 1 ? 'bg-gw-primary' : 'bg-gw-tertiary'}`}>
-                  {w.extraction_confidence === 1 ? 'HIGH CONF' : 'MOD CONF'}
-                </span>
-                <span className="flex items-center gap-1 font-bold uppercase text-[10px]">
-                  <span className={`w-1.5 h-1.5 rounded-full ${w.status === 'active' ? 'bg-green-600' : 'bg-amber-600'}`}></span>
-                  {w.status}
-                </span>
+        {filteredWarnings.map((w, idx) => {
+          const cardId = w.warning_id || w.source_warning_id || `card-${idx}`;
+          const isExpanded = !!expandedCards[cardId];
+          const isCritical = w.extraction_confidence === 1;
+
+          return (
+            <div 
+              key={cardId}
+              className="bg-white border-2 border-gw-primary rounded-xl overflow-hidden shadow-hard transition-all"
+            >
+              {/* Primary Visible Header */}
+              <div className="p-3.5 flex items-center justify-between gap-2 bg-white">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-bold text-xs text-gw-primary truncate">
+                    {w.source_warning_id}
+                  </span>
+
+                  {/* Severity Badge */}
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white shrink-0 ${isCritical ? 'bg-gw-primary' : 'bg-gw-tertiary'}`}>
+                    {isCritical ? 'CRITICAL' : 'HIGH'}
+                  </span>
+                </div>
+
+                {/* Always Visible Actions: Locate & Expand */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onLocate(w);
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-gw-primary text-gw-bg rounded text-[10px] font-bold uppercase transition-colors hover:bg-gw-accent"
+                    title="Locate on Map"
+                  >
+                    <Locate className="w-3 h-3" />
+                    <span>Locate</span>
+                  </button>
+
+                  <button
+                    onClick={(e) => toggleExpand(cardId, e)}
+                    className="p-1.5 bg-gw-bg border border-gw-secondary rounded text-gw-primary hover:bg-gw-primary hover:text-gw-bg transition-colors"
+                    aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
+                  >
+                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
+
+              {/* Primary Short Text Preview */}
+              <div className="px-3.5 pb-3 text-xs font-bold text-gw-primary line-clamp-2 leading-snug border-b border-gw-secondary/40">
+                {w.issued_text}
+              </div>
+
+              {/* Expandable Secondary Metadata Panel */}
+              {isExpanded && (
+                <div className="p-3.5 bg-gw-bg/60 border-t border-gw-secondary space-y-3 text-xs animate-in fade-in duration-150">
+                  {/* NAVAREA & Status Row */}
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">NAVAREA Region</span>
+                      <span className="font-bold text-gw-primary inline-block px-2 py-0.5 bg-white border border-gw-secondary rounded">
+                        NAVAREA {w.navarea}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">Status</span>
+                      <span className="flex items-center gap-1.5 font-bold uppercase text-gw-primary mt-1">
+                        <span className={`w-2 h-2 rounded-full ${w.status === 'active' ? 'bg-green-600' : 'bg-amber-600'}`}></span>
+                        <span className={w.status === 'active' ? 'text-green-600' : 'text-amber-600'}>{w.status}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Coordinates & Issued Date */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">Parsed Coordinates</span>
+                      <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-gw-accent shrink-0" />
+                        <span className="truncate">{formatSpatialCoordinates(w.spatial)}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">Issued Date</span>
+                      <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-gw-accent shrink-0" />
+                        <span>{w.issued_date}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Full Text Snippet */}
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">Full Issued Message</span>
+                    <div className="p-2.5 bg-white border border-gw-secondary rounded text-[11px] text-gw-primary font-mono leading-relaxed max-h-36 overflow-y-auto no-scrollbar">
+                      {w.issued_text}
+                    </div>
+                  </div>
+
+                  {/* Confidence Score & Audit Info */}
+                  <div className="flex justify-between items-center text-[10px] pt-1">
+                    <span className="text-gw-accent font-bold">Extraction Confidence:</span>
+                    <span className="font-bold text-gw-primary bg-white px-2 py-0.5 rounded border border-gw-secondary">
+                      {(w.extraction_confidence * 100).toFixed(0)}% Match
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Desktop / Tablet Grid Table (hidden on mobile < md) */}
@@ -175,7 +309,7 @@ export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
           <div>ID</div><div>AREA</div><div>TITLE</div><div>SEVERITY</div><div>COORDS</div><div>ISSUED</div><div>STATUS</div><div className="sticky right-0 bg-gw-primary text-right pr-2">ACTION</div>
         </div>
         <div className="min-w-[900px] max-h-[520px] overflow-y-auto no-scrollbar">
-          {warnings.map((w, idx) => (
+          {filteredWarnings.map((w, idx) => (
             <div 
               key={idx} 
               className="grid grid-cols-[140px_80px_1fr_90px_130px_110px_90px_60px] p-3.5 border-b border-gw-secondary text-xs items-center gap-3 hover:bg-gw-bg transition-colors cursor-pointer group"
@@ -219,3 +353,4 @@ export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
     </div>
   );
 };
+

@@ -175,3 +175,41 @@ export interface BoundingBox {
   minLng: number;
   maxLng: number;
 }
+
+// ==========================================
+// IMO ECDIS-Ready Intermediate Layer Schema
+// ==========================================
+
+export type GeometryIntent = 'points' | 'area' | 'route' | 'unknown';
+export type FeatureInference = 'explicit' | 'inferred';
+export type FeatureConfidence = 'verified' | 'partial' | 'rejected';
+export type FeatureModificationState = 'original' | 'edited' | 'inserted' | 'deleted';
+export type FeatureRoleHint = 'vertex' | 'start' | 'end' | 'intermediate' | null;
+
+export interface EcdisPointFeature {
+  type: 'Feature';
+  id: string; // uuid for manual editing
+  geometry: {
+    type: 'Point';
+    coordinates: [number, number]; // [lon, lat] in decimal degrees (WGS 84)
+  };
+  properties: {
+    sequence_index: number;
+    raw_text: string;
+    inference: FeatureInference;
+    confidence: FeatureConfidence;
+    modification_state: FeatureModificationState;
+    user_notes: string;
+    errors: string[];
+    role_hint: FeatureRoleHint;
+  };
+}
+
+export interface EcdisIntermediateLayer {
+  warningId: string;
+  navarea: NavAreaId | string | null;
+  editable: true;
+  geometry_intent: GeometryIntent;
+  features: EcdisPointFeature[];
+}
+
