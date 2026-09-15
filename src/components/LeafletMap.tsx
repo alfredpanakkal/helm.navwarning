@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet.markercluster';
 import { NavWarning, NavAreaId } from '../types';
 import { Search, MapPin, Locate, Copy, Activity, Database, Maximize2, RefreshCw } from 'lucide-react';
 import { getLeafletLatLng } from '../utils/coordinateParser';
@@ -17,12 +20,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletInstance = useRef<L.Map | null>(null);
-  const layersGroup = useRef<L.LayerGroup | null>(null);
+  const layersGroup = useRef<L.MarkerClusterGroup | null>(null);
 
-  const [activeWarning, setActiveWarning] = useState<NavWarning | null>(null);
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [mobilePanel, setMobilePanel] = useState<'none' | 'list' | 'detail'>('none');
+  const [mobilePanel, setMobilePanel] = useState<'none' | 'list'>('none');
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -50,7 +52,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         opacity: 0.9,
       }).addTo(map);
 
-      layersGroup.current = L.layerGroup().addTo(map);
+      layersGroup.current = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+      }).addTo(map);
       leafletInstance.current = map;
     }
 
@@ -129,14 +135,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       const m = L.marker(coords, { icon }).addTo(layers);
 
-      m.bindPopup(`
-        <div style="min-width:200px">
-          <div style="font-size:10px; color:var(--color-gw-accent); margin-bottom:4px">${w.source_warning_id} · NAVAREA ${w.navarea}</div>
-          <div style="font-weight:700; margin-bottom:6px; font-size:13px">${w.issued_text.substring(0, 40)}...</div>
-          <div style="font-size:11px; color:var(--color-gw-primary); background:var(--color-gw-bg); padding:3px 6px; border-radius:4px; display:inline-block">${coords[0].toFixed(2)}, ${coords[1].toFixed(2)}</div>
-        </div>
-      `);
-
       m.on('click', () => {
         setActiveWarning(w);
         onSelectWarning(w);
@@ -154,13 +152,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     }, 200);
     return () => clearTimeout(timer);
   }, [mobilePanel]);
-
-  const handleLocate = (w: NavWarning) => {
-    setActiveWarning(w);
-    onSelectWarning(w);
-    const coords = getLeafletLatLng(w.spatial);
-    leafletInstance.current?.setView(coords, Math.max(leafletInstance.current.getZoom(), 6), { animate: true });
-  };
 
   return (
     <div className="relative h-[calc(100vh-140px)] min-h-[480px] sm:min-h-[600px] border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden bg-gw-bg isolate">
@@ -207,13 +198,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard transition-all min-h-[40px] ${mobilePanel === 'list' ? 'bg-gw-primary text-gw-bg' : 'bg-white/95 text-gw-primary'}`}
           >
             <span>Warnings ({filteredWarnings.length})</span>
-          </button>
-          <button
-            onClick={() => setMobilePanel(mobilePanel === 'detail' ? 'none' : 'detail')}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard transition-all min-h-[40px] ${mobilePanel === 'detail' ? 'bg-gw-primary text-gw-bg' : 'bg-white/95 text-gw-primary'}`}
-          >
-            <span>Inspector</span>
-            {activeWarning && <span className="w-2 h-2 rounded-full bg-green-400"></span>}
           </button>
         </div>
 
@@ -274,10 +258,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <div
               key={w.warning_id}
               onClick={() => {
-                handleLocate(w);
-                if (window.innerWidth < 1024) setMobilePanel('detail');
+                onSelectWarning(w);
               }}
-              className={`p-3 bg-gw-bg border border-gw-secondary border-l-4 rounded cursor-pointer transition-all hover:translate-x-0.5 ${activeWarning?.warning_id === w.warning_id ? 'border-r-gw-primary border-t-gw-primary border-b-gw-primary shadow-[2px_2px_0_var(--color-gw-tertiary)]' : ''} ${
+              className={`p-3 bg-gw-bg border border-gw-secondary border-l-4 rounded cursor-pointer transition-all hover:translate-x-0.5 ${
                 w.extraction_confidence === 1 ? 'border-l-gw-primary' : 'border-l-gw-tertiary'
               }`}
             >
@@ -294,93 +277,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
           ))}
         </div>
-      </aside>
-
-      {/* Right Panel - Detail View */}
-      <aside className={`absolute top-[60px] sm:top-[70px] right-3 sm:right-4 bottom-[60px] sm:bottom-[70px] w-[calc(100%-24px)] sm:w-[340px] bg-white border-2 border-gw-primary rounded-lg shadow-2xl pointer-events-auto z-[1000] lg:z-[400] flex-col ${mobilePanel === 'detail' ? 'flex' : 'hidden lg:flex'}`}>
-        {!activeWarning ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
-            <div className="flex justify-end w-full lg:hidden">
-              <button onClick={() => setMobilePanel('none')} className="text-gw-primary font-bold text-base px-2">✕</button>
-            </div>
-            <div className="w-12 h-12 border-2 border-dashed border-gw-accent rounded-full flex items-center justify-center text-gw-accent">
-              <Activity className="w-6 h-6" />
-            </div>
-            <div className="text-xs sm:text-sm text-gw-accent">Select a warning to inspect its full record, parsed geometry, and provenance.</div>
-          </div>
-        ) : (
-          <div className="flex flex-col h-full">
-            <div className="p-3.5 border-b-2 border-gw-primary">
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-xs text-gw-accent">{activeWarning.source_warning_id} · NAVAREA {activeWarning.navarea}</span>
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>{activeWarning.status}
-                  </span>
-                  <button onClick={() => setMobilePanel('none')} className="lg:hidden text-gw-primary font-bold text-base px-2">✕</button>
-                </div>
-              </div>
-              <div className="text-base sm:text-lg font-bold leading-snug">{activeWarning.issued_text.substring(0, 40)}...</div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-3.5 space-y-4 no-scrollbar">
-
-              <div>
-                <div className="text-[10px] font-bold tracking-widest uppercase text-gw-accent mb-1.5">PARSED GEOMETRY · {activeWarning.spatial.geometries[0]?.type}</div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-gw-bg border border-gw-secondary rounded p-2">
-                    <div className="text-[10px] text-gw-accent mb-0.5">COORDINATES</div>
-                    <div className="text-xs font-bold text-gw-primary">Available</div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-[10px] font-bold tracking-widest uppercase text-gw-accent mb-1.5">RAW SOURCE TEXT · {activeWarning.extraction_method.toUpperCase()}</div>
-                <div className="text-xs text-gw-primary leading-relaxed p-2.5 bg-gw-bg border border-gw-secondary border-l-4 border-l-gw-primary rounded">
-                  {activeWarning.raw_text}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-[10px] font-bold tracking-widest uppercase text-gw-accent mb-1.5">METADATA</div>
-                <div className="flex justify-between py-1 text-xs border-b border-dashed border-gw-secondary last:border-0">
-                  <span className="text-gw-accent">Issued</span>
-                  <span className="font-bold">{activeWarning.issued_date}</span>
-                </div>
-                <div className="flex justify-between py-1 text-xs border-b border-dashed border-gw-secondary last:border-0">
-                  <span className="text-gw-accent">Publisher</span>
-                  <span className="font-bold">{activeWarning.publisher_id}</span>
-                </div>
-                <div className="flex justify-between py-1 text-xs border-b border-dashed border-gw-secondary last:border-0">
-                  <span className="text-gw-accent">Extraction</span>
-                  <span className="font-bold">{activeWarning.extraction_method}</span>
-                </div>
-              </div>
-
-            </div>
-
-            <div className="flex gap-2 p-3 border-t-2 border-gw-primary">
-              <button
-                onClick={() => {
-                  handleLocate(activeWarning);
-                  setMobilePanel('none');
-                }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-transparent border border-gw-secondary rounded text-[10px] font-bold uppercase transition-all hover:bg-gw-primary hover:text-gw-bg min-h-[40px]"
-              >
-                <Locate className="w-3.5 h-3.5" /> Locate
-              </button>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(activeWarning.raw_text);
-                }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-transparent border border-gw-secondary rounded text-[10px] font-bold uppercase transition-all hover:bg-gw-primary hover:text-gw-bg min-h-[40px]"
-              >
-                <Copy className="w-3.5 h-3.5" /> Copy
-              </button>
-            </div>
-          </div>
-        )}
       </aside>
 
       {/* Bottom Overlay Info */}

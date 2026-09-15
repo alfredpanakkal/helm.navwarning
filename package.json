@@ -22,6 +22,7 @@
     "firebase": "^12.19.0",
     "jszip": "^3.10.2",
     "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "papaparse": "^5.7.0",
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
+    "@types/leaflet.markercluster": "^1.5.6",
     "@types/node": "^22.14.0",
     "@types/papaparse": "^5.5.2",
     "@vercel/node": "^13.0.1",
