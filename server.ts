@@ -12,6 +12,12 @@ import {
 import { parseCoordinatesDeterministic } from './src/utils/coordinateParser.js';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact, NavAreaId } from './src/types.js';
 import scrapeNavwarnHandler from './api/scrape-navwarn.js';
+import {
+  checkSupabaseHealth,
+  syncWarningsToSupabase,
+  syncArtifactsToSupabase,
+  syncGenerationsToSupabase,
+} from './src/lib/supabaseServer.js';
 
 // In-memory persistent state for server runtime
 let sourcesDb: SourceRegistryItem[] = [...INITIAL_SOURCES_REGISTRY];
@@ -106,199 +112,205 @@ async function startServer() {
         return res.status(400).json({ error: 'No verified and enabled sources found to refresh' });
       }
 
-      const results = [];
+      const results = await Promise.all(
+        targetSources.map(async (src) => {
+          const requestId = crypto.randomUUID();
+          const now = new Date();
+          const timestampIso = now.toISOString();
 
-      for (const src of targetSources) {
-        const requestId = crypto.randomUUID();
-        const now = new Date();
-        const timestampIso = now.toISOString();
+          // 1. Check lease
+          if (sourceLeases[src.source_id]) {
+            return { source_id: src.source_id, status: 'skipped', reason: 'Lease active' };
+          }
 
-        // 1. Check lease
-        if (sourceLeases[src.source_id]) {
-          results.push({ source_id: src.source_id, status: 'skipped', reason: 'Lease active' });
-          continue;
-        }
+          // Acquire lease
+          sourceLeases[src.source_id] = { lockedAt: timestampIso, requestId };
 
-        // Acquire lease
-        sourceLeases[src.source_id] = { lockedAt: timestampIso, requestId };
-
-        try {
-          const genId = `gen-${src.publisher_id}-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-          const artifactId = `art-${src.publisher_id}-${Date.now()}`;
-          const year = now.getFullYear();
-          const month = String(now.getMonth() + 1).padStart(2, '0');
-          const day = String(now.getDate()).padStart(2, '0');
-          const artifactPath = `gs://navwarn-evidence/archive/${src.source_id}/${year}/${month}/${day}/${src.publisher_id}_run_${now.valueOf()}.${src.format}`;
-
-          let rawPayloadText = '';
-          let contentType = src.format === 'html' ? 'text/html' : src.format === 'pdf' ? 'application/pdf' : 'application/json';
-          let httpStatus = 200;
-
-          // Attempt real fetch from source entrypoint URL with timeout
           try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const genId = `gen-${src.publisher_id}-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+            const artifactId = `art-${src.publisher_id}-${Date.now()}`;
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const artifactPath = `gs://navwarn-evidence/archive/${src.source_id}/${year}/${month}/${day}/${src.publisher_id}_run_${now.valueOf()}.${src.format}`;
 
-            const fetchUrl = (src.entrypoints && src.entrypoints.length > 0) ? src.entrypoints[0] : src.discovery_url;
-            const fetchRes = await fetch(fetchUrl, {
-              signal: controller.signal,
-              headers: {
-                'User-Agent': 'NavWarn-Maritime-Scraper/1.0 (+https://navwarn.local/bot)',
-                'Accept': 'text/html,application/xhtml+xml,application/xml,text/plain,application/json',
-              },
-            });
-            clearTimeout(timeoutId);
-            httpStatus = fetchRes.status;
+            let rawPayloadText = '';
+            let contentType = src.format === 'html' ? 'text/html' : src.format === 'pdf' ? 'application/pdf' : 'application/json';
+            let httpStatus = 200;
 
-            if (fetchRes.ok) {
-              const text = await fetchRes.text();
-              if (text && text.trim().length > 0) {
-                // Strip HTML tags if present to help the regex coordinate parser
-                rawPayloadText = text.replace(/<[^>]*>?/gm, ' ');
+            // Attempt real fetch from source entrypoint URL with timeout
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+              const fetchUrl = (src.entrypoints && src.entrypoints.length > 0) ? src.entrypoints[0] : src.discovery_url;
+              const fetchRes = await fetch(fetchUrl, {
+                signal: controller.signal,
+                headers: {
+                  'User-Agent': 'NavWarn-Maritime-Scraper/1.0 (+https://navwarn.local/bot)',
+                  'Accept': 'text/html,application/xhtml+xml,application/xml,text/plain,application/json',
+                },
+              });
+              clearTimeout(timeoutId);
+              httpStatus = fetchRes.status;
+
+              if (fetchRes.ok) {
+                const text = await fetchRes.text();
+                if (text && text.trim().length > 0) {
+                  // Strip HTML tags if present to help the regex coordinate parser
+                  rawPayloadText = text.replace(/<[^>]*>?/gm, ' ');
+                }
               }
+            } catch (fetchErr) {
+              console.warn(`Scraper fetch warning for source ${src.source_id}:`, fetchErr);
             }
-          } catch (fetchErr) {
-            console.warn(`Scraper fetch warning for source ${src.source_id}:`, fetchErr);
-          }
 
-          // Fallback payload if fetch returned empty or failed
-          if (!rawPayloadText) {
-            const sampleNoticeId = `NAV-${src.navareas[0]}-2026-${Math.floor(100 + Math.random() * 800)}`;
-            const sampleLat = Math.floor(20 + Math.random() * 30);
-            const sampleLng = Math.floor(10 + Math.random() * 50);
-            rawPayloadText = JSON.stringify(
-              {
-                source_id: src.source_id,
-                publisher: src.publisher_name,
-                discovery_url: src.discovery_url,
-                fetched_at: timestampIso,
-                publication_kind: src.publication_semantics,
-                navareas: src.navareas,
-                status: 'VERIFIED_SUCCESS',
-                sample_notices: [
-                  {
-                    id: sampleNoticeId,
-                    raw_text: `NAVAREA ${src.navareas[0]} ${sampleNoticeId}. MARITIME SAFETY WARNING. UNEXPLODED ORDNANCE / DRILLING OPERATIONS REPORTED AT POSITION ${sampleLat}-15.4N ${sampleLng}-22.8E. SHIPS ADVISER TO NAVIGATE WITH CAUTION.`,
-                  },
-                ],
-              },
-              null,
-              2
-            );
-          }
+            // Fallback payload if fetch returned empty or failed
+            if (!rawPayloadText) {
+              const sampleNoticeId = `NAV-${src.navareas[0]}-2026-${Math.floor(100 + Math.random() * 800)}`;
+              const sampleLat = Math.floor(20 + Math.random() * 30);
+              const sampleLng = Math.floor(10 + Math.random() * 50);
+              rawPayloadText = JSON.stringify(
+                {
+                  source_id: src.source_id,
+                  publisher: src.publisher_name,
+                  discovery_url: src.discovery_url,
+                  fetched_at: timestampIso,
+                  publication_kind: src.publication_semantics,
+                  navareas: src.navareas,
+                  status: 'VERIFIED_SUCCESS',
+                  sample_notices: [
+                    {
+                      id: sampleNoticeId,
+                      raw_text: `NAVAREA ${src.navareas[0]} ${sampleNoticeId}. MARITIME SAFETY WARNING. UNEXPLODED ORDNANCE / DRILLING OPERATIONS REPORTED AT POSITION ${sampleLat}-15.4N ${sampleLng}-22.8E. SHIPS ADVISER TO NAVIGATE WITH CAUTION.`,
+                    },
+                  ],
+                },
+                null,
+                2
+              );
+            }
 
-          const hash = crypto.createHash('sha256').update(rawPayloadText).digest('hex');
+            const hash = crypto.createHash('sha256').update(rawPayloadText).digest('hex');
 
-          // Save raw artifact to Evidence Locker DB
-          const artifactObj: RawArtifact = {
-            artifact_id: artifactId,
-            source_id: src.source_id,
-            timestamp: timestampIso,
-            path: artifactPath,
-            content_type: contentType,
-            content_hash: hash,
-            size_bytes: Buffer.byteLength(rawPayloadText),
-            preview_text: rawPayloadText.slice(0, 350) + (rawPayloadText.length > 350 ? '...' : ''),
-            full_content: rawPayloadText,
-          };
-          artifactsDb.unshift(artifactObj);
-
-          // Extract candidate notices from scraped raw text if applicable
-          const deterministicSpatial = parseCoordinatesDeterministic(rawPayloadText, (src.navareas[0] as NavAreaId) || 'I');
-          
-          if (deterministicSpatial.geometries.length > 0) {
-            const newScrapedWarningId = `warn-${src.publisher_id}-${now.getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
-            const newWarn: NavWarning = {
-              schema_version: 1,
-              warning_id: newScrapedWarningId,
-              publisher_id: src.publisher_id,
+            // Save raw artifact to Evidence Locker DB
+            const artifactObj: RawArtifact = {
+              artifact_id: artifactId,
               source_id: src.source_id,
-              navarea: (src.navareas[0] as NavAreaId) || 'I',
-              series: `NAVAREA ${src.navareas[0]}`,
-              source_warning_id: `${Math.floor(100 + Math.random() * 800)}/${now.getFullYear()}`,
-              warning_number: `${Math.floor(100 + Math.random() * 800)}`,
-              warning_year: now.getFullYear(),
-              issued_at: timestampIso,
-              issued_date: now.toISOString().split('T')[0],
-              issued_time_precision: 'day',
-              issued_text: now.toISOString().split('T')[0],
-              valid_from: timestampIso,
-              valid_to: null,
-              cancelled_at: null,
-              status: 'active',
-              status_basis: 'listed_in_complete_in_force_publication',
-              area_text: `${src.publisher_name} Ingested Area Notice`,
-              original_language: 'en',
-              raw_text: rawPayloadText.slice(0, 500),
-              translated_text: null,
-              spatial: deterministicSpatial,
-              supersedes: [],
-              cancels: [],
-              source_url: src.discovery_url,
-              raw_artifact_ref: artifactPath,
+              timestamp: timestampIso,
+              path: artifactPath,
+              content_type: contentType,
               content_hash: hash,
-              parser_version: 'deterministic-v1',
-              extraction_method: 'deterministic',
-              extraction_confidence: 0.95,
-              first_seen_at: timestampIso,
-              last_seen_at: timestampIso,
-              not_in_force_observed_at: null,
-              generation_id: genId,
-              validation: {
-                identity: 'passed',
-                dates: 'passed',
-                geometry: deterministicSpatial.validation_status,
-              },
+              size_bytes: Buffer.byteLength(rawPayloadText),
+              preview_text: rawPayloadText.slice(0, 350) + (rawPayloadText.length > 350 ? '...' : ''),
+              full_content: rawPayloadText,
             };
+            artifactsDb.unshift(artifactObj);
 
-            // Upsert into warnings database
-            warningsDb.unshift(newWarn);
-          }
+            // Extract candidate notices from scraped raw text if applicable
+            const deterministicSpatial = parseCoordinatesDeterministic(rawPayloadText, (src.navareas[0] as NavAreaId) || 'I');
+            
+            if (deterministicSpatial.geometries.length > 0) {
+              const newScrapedWarningId = `warn-${src.publisher_id}-${now.getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+              const newWarn: NavWarning = {
+                schema_version: 1,
+                warning_id: newScrapedWarningId,
+                publisher_id: src.publisher_id,
+                source_id: src.source_id,
+                navarea: (src.navareas[0] as NavAreaId) || 'I',
+                series: `NAVAREA ${src.navareas[0]}`,
+                source_warning_id: `${Math.floor(100 + Math.random() * 800)}/${now.getFullYear()}`,
+                warning_number: `${Math.floor(100 + Math.random() * 800)}`,
+                warning_year: now.getFullYear(),
+                issued_at: timestampIso,
+                issued_date: now.toISOString().split('T')[0],
+                issued_time_precision: 'day',
+                issued_text: now.toISOString().split('T')[0],
+                valid_from: timestampIso,
+                valid_to: null,
+                cancelled_at: null,
+                status: 'active',
+                status_basis: 'listed_in_complete_in_force_publication',
+                area_text: `${src.publisher_name} Ingested Area Notice`,
+                original_language: 'en',
+                raw_text: rawPayloadText.slice(0, 500),
+                translated_text: null,
+                spatial: deterministicSpatial,
+                supersedes: [],
+                cancels: [],
+                source_url: src.discovery_url,
+                raw_artifact_ref: artifactPath,
+                content_hash: hash,
+                parser_version: 'deterministic-v1',
+                extraction_method: 'deterministic',
+                extraction_confidence: 0.95,
+                first_seen_at: timestampIso,
+                last_seen_at: timestampIso,
+                not_in_force_observed_at: null,
+                generation_id: genId,
+                validation: {
+                  identity: 'passed',
+                  dates: 'passed',
+                  geometry: deterministicSpatial.validation_status,
+                },
+              };
 
-          // Get updated warnings for this source
-          const existingForSource = warningsDb.filter((w) => w.source_id === src.source_id);
-
-          // Touch existing active warnings last_seen_at
-          existingForSource.forEach((w) => {
-            if (w.status === 'active') {
-              w.last_seen_at = timestampIso;
+              // Upsert into warnings database
+              warningsDb.unshift(newWarn);
             }
-          });
 
-          // Stage a generation document
-          const generationObj: IngestionGeneration = {
-            generation_id: genId,
-            source_id: src.source_id,
-            created_at: timestampIso,
-            publication_kind: src.publication_semantics,
-            parsed_count: existingForSource.length,
-            active_count: existingForSource.filter((w) => w.status === 'active').length,
-            explicit_cancellations: [],
-            completeness_status: 'verified',
-            evidence_hash: hash,
-            artifact_ref: artifactPath,
-            validation_issues: [],
-          };
-          generationsDb.unshift(generationObj);
+            // Get updated warnings for this source
+            const existingForSource = warningsDb.filter((w) => w.source_id === src.source_id);
 
-          // Atomically update source health and published_generation pointer
-          src.health.last_run_at = timestampIso;
-          src.health.last_success_at = timestampIso;
-          src.health.status = 'ok';
-          src.health.active_warnings_count = existingForSource.filter((w) => w.status === 'active').length;
-          src.published_generation_id = genId;
+            // Touch existing active warnings last_seen_at
+            existingForSource.forEach((w) => {
+              if (w.status === 'active') {
+                w.last_seen_at = timestampIso;
+              }
+            });
 
-          results.push({
-            source_id: src.source_id,
-            status: 'success',
-            generation_id: genId,
-            artifact_ref: artifactPath,
-            parsed_count: existingForSource.length,
-          });
-        } finally {
-          delete sourceLeases[src.source_id];
-        }
-      }
+            // Stage a generation document
+            const generationObj: IngestionGeneration = {
+              generation_id: genId,
+              source_id: src.source_id,
+              created_at: timestampIso,
+              publication_kind: src.publication_semantics,
+              parsed_count: existingForSource.length,
+              active_count: existingForSource.filter((w) => w.status === 'active').length,
+              explicit_cancellations: [],
+              completeness_status: 'verified',
+              evidence_hash: hash,
+              artifact_ref: artifactPath,
+              validation_issues: [],
+            };
+            generationsDb.unshift(generationObj);
+
+            // Atomically update source health and published_generation pointer
+            src.health.last_run_at = timestampIso;
+            src.health.last_success_at = timestampIso;
+            src.health.status = 'ok';
+            src.health.active_warnings_count = existingForSource.filter((w) => w.status === 'active').length;
+            src.published_generation_id = genId;
+
+            return {
+              source_id: src.source_id,
+              status: 'success',
+              generation_id: genId,
+              artifact_ref: artifactPath,
+              parsed_count: existingForSource.length,
+            };
+          } finally {
+            delete sourceLeases[src.source_id];
+          }
+        })
+      );
+
+      // Background sync collected datasets to Supabase storage
+      Promise.all([
+        syncWarningsToSupabase(warningsDb),
+        syncArtifactsToSupabase(artifactsDb),
+        syncGenerationsToSupabase(generationsDb),
+      ]).catch((err) => console.warn('Supabase sync warning:', err));
 
       res.json({
         success: true,
@@ -308,6 +320,46 @@ async function startServer() {
     } catch (err: any) {
       console.error('Pipeline execution error:', err);
       res.status(500).json({ error: err.message || 'Pipeline execution failed' });
+    }
+  });
+
+  // Supabase Database Connection & Storage Status
+  app.get('/api/supabase/status', async (req, res) => {
+    try {
+      const health = await checkSupabaseHealth();
+      res.json({
+        ...health,
+        localCounts: {
+          warnings: warningsDb.length,
+          sources: sourcesDb.length,
+          generations: generationsDb.length,
+          artifacts: artifactsDb.length,
+        },
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Supabase check failed' });
+    }
+  });
+
+  // Explicit Manual Supabase Sync
+  app.post('/api/supabase/sync', async (req, res) => {
+    try {
+      const [wOk, aOk, gOk] = await Promise.all([
+        syncWarningsToSupabase(warningsDb),
+        syncArtifactsToSupabase(artifactsDb),
+        syncGenerationsToSupabase(generationsDb),
+      ]);
+      res.json({
+        success: true,
+        synced: { warnings: wOk, artifacts: aOk, generations: gOk },
+        counts: {
+          warnings: warningsDb.length,
+          artifacts: artifactsDb.length,
+          generations: generationsDb.length,
+        },
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Supabase manual sync failed' });
     }
   });
 

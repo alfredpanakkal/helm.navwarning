@@ -33,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'manual', label: 'Manual Parser', icon: <Terminal className="w-4 h-4" /> },
     { id: 'audit', label: 'Audit Log', icon: <FileText className="w-4 h-4" /> },
     { id: 'evidence', label: 'Evidence Locker', icon: <FileText className="w-4 h-4" /> },
-    { id: 'drive', label: 'Drive Backup', icon: <HardDrive className="w-4 h-4" /> },
+    { id: 'supabase', label: 'Supabase Hub', icon: <Database className="w-4 h-4" /> },
   ];
 
   const allTabs: { id: TabType; label: string; badge?: number }[] = [
@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'imports', label: 'Bulk Import' },
     { id: 'audit', label: 'Audit Log' },
     { id: 'evidence', label: 'Evidence' },
-    { id: 'drive', label: 'Backup' },
+    { id: 'supabase', label: 'Supabase Server' },
   ];
 
   return (

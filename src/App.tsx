@@ -9,7 +9,7 @@ import { ManualParserView } from './components/ManualParserView';
 import { CsvUploaderView } from './components/CsvUploaderView';
 import { GenerationInspectorView } from './components/GenerationInspectorView';
 import { EvidenceLockerView } from './components/EvidenceLockerView';
-import { DriveBackupView } from './components/DriveBackupView';
+import { SupabaseStatusView } from './components/SupabaseStatusView';
 import { WarningDetailModal } from './components/WarningDetailModal';
 import { PipelineConsoleModal, ConsoleLogEntry } from './components/PipelineConsoleModal';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from './types';
@@ -38,7 +38,7 @@ export type TabType =
   | 'manual'
   | 'audit'
   | 'evidence'
-  | 'drive';
+  | 'supabase';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('map');
@@ -351,9 +351,9 @@ export default function App() {
           <EvidenceLockerView artifacts={artifacts} />
         </div>
 
-        {/* Google Drive Backup */}
-        <div className={activeTab === 'drive' ? 'block' : 'hidden'}>
-          <DriveBackupView warnings={warnings} artifacts={artifacts} generations={generations} />
+        {/* Supabase Server Database Hub */}
+        <div className={activeTab === 'supabase' ? 'block' : 'hidden'}>
+          <SupabaseStatusView warnings={warnings} artifacts={artifacts} generations={generations} />
         </div>
       </main>
 

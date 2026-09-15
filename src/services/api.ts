@@ -86,3 +86,42 @@ export async function parseManualWarning(rawText: string, navarea?: string): Pro
   }
   return await res.json();
 }
+
+export async function fetchSupabaseStatus(): Promise<{
+  connected: boolean;
+  url: string | null;
+  counts: { warnings: number; sources: number; generations: number; artifacts: number };
+  localCounts: { warnings: number; sources: number; generations: number; artifacts: number };
+  error?: string;
+}> {
+  try {
+    const res = await fetch('/api/supabase/status');
+    if (!res.ok) throw new Error('Failed to fetch Supabase status');
+    return await res.json();
+  } catch (err: any) {
+    return {
+      connected: false,
+      url: null,
+      counts: { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
+      localCounts: { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
+      error: err.message || String(err),
+    };
+  }
+}
+
+export async function triggerSupabaseSync(): Promise<{
+  success: boolean;
+  synced: { warnings: boolean; artifacts: boolean; generations: boolean };
+  counts: { warnings: number; artifacts: number; generations: number };
+}> {
+  const res = await fetch('/api/supabase/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to trigger Supabase sync');
+  }
+  return await res.json();
+}
+
