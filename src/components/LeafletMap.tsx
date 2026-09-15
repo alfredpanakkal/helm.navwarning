@@ -60,13 +60,23 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     };
   }, []);
 
+  const filteredWarnings = warnings.filter(w => {
+    if (filterSeverity === 'all') return true;
+    if (filterSeverity === 'critical') return w.extraction_confidence === 1;
+    if (filterSeverity === 'high') return w.extraction_confidence < 1 && w.extraction_confidence >= 0.8;
+    if (filterSeverity === 'moderate') return w.extraction_confidence < 0.8 && w.extraction_confidence >= 0.5;
+    return w.extraction_confidence < 0.5;
+  });
+
+  const hiddenCount = warnings.length - filteredWarnings.length;
+
   useEffect(() => {
     if (!leafletInstance.current || !layersGroup.current) return;
     
     const layers = layersGroup.current;
     layers.clearLayers();
 
-    const activeWarnings = warnings.filter(w => w.status === 'active');
+    const activeWarnings = filteredWarnings.filter(w => w.status === 'active');
     
     activeWarnings.forEach(w => {
       const coords = getLeafletLatLng(w.spatial);
@@ -144,12 +154,25 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       </div>
 
       {/* Left Panel - Active Warnings */}
-      <aside className={`absolute top-[60px] sm:top-[70px] left-3 sm:left-4 bottom-[60px] sm:bottom-[70px] w-[calc(100%-24px)] sm:w-[320px] bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard pointer-events-auto z-[450] lg:z-[400] flex-col ${mobilePanel === 'list' ? 'flex' : 'hidden lg:flex'}`}>
+      <aside className={`absolute top-[60px] sm:top-[70px] left-3 sm:left-4 bottom-[60px] sm:bottom-[70px] w-[calc(100%-24px)] sm:w-[320px] bg-white border-2 border-gw-primary rounded-lg shadow-2xl pointer-events-auto z-[1000] lg:z-[400] flex-col ${mobilePanel === 'list' ? 'flex' : 'hidden lg:flex'}`}>
         <div className="flex justify-between items-center p-3.5 border-b border-gw-secondary">
-          <div className="font-bold text-sm sm:text-base uppercase tracking-wider">Active Warnings</div>
+          <div className="font-bold text-sm sm:text-base uppercase tracking-wider flex items-center gap-2">
+            <span>Active Warnings</span>
+            {hiddenCount > 0 && (
+              <span className="text-[10px] font-mono text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded font-bold border border-amber-300">
+                ({hiddenCount} hidden)
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] px-1.5 py-0.5 bg-gw-primary text-gw-bg rounded">{warnings.length}</span>
-            <button onClick={() => setMobilePanel('none')} className="lg:hidden text-gw-primary font-bold text-base px-2">✕</button>
+            <span className="text-[10px] px-1.5 py-0.5 bg-gw-primary text-gw-bg rounded font-bold">{filteredWarnings.length}</span>
+            <button 
+              onClick={() => setMobilePanel('none')} 
+              aria-label="Close mobile list panel"
+              className="lg:hidden text-gw-primary font-bold text-base px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+            >
+              ✕
+            </button>
           </div>
         </div>
         
@@ -158,7 +181,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <button 
               key={sev}
               onClick={() => setFilterSeverity(sev)}
-              className={`flex items-center gap-1 px-2 py-1 bg-transparent border border-gw-secondary rounded text-[10px] uppercase font-bold transition-all hover:border-gw-accent ${filterSeverity === sev ? 'bg-gw-primary text-gw-bg border-gw-primary' : ''}`}
+              aria-label={`Filter severity ${sev}`}
+              className={`flex items-center gap-1 px-2 py-1 bg-transparent border border-gw-secondary rounded text-[10px] uppercase font-bold transition-all hover:border-gw-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${filterSeverity === sev ? 'bg-gw-primary text-gw-bg border-gw-primary' : ''}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full border border-current ${
                 sev === 'all' || sev === 'critical' ? 'bg-gw-primary' :
@@ -172,7 +196,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
-          {warnings.map(w => (
+          {filteredWarnings.map(w => (
             <div 
               key={w.warning_id}
               onClick={() => {
@@ -199,7 +223,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       </aside>
 
       {/* Right Panel - Detail View */}
-      <aside className={`absolute top-[60px] sm:top-[70px] right-3 sm:right-4 bottom-[60px] sm:bottom-[70px] w-[calc(100%-24px)] sm:w-[340px] bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard pointer-events-auto z-[450] lg:z-[400] flex-col ${mobilePanel === 'detail' ? 'flex' : 'hidden lg:flex'}`}>
+      <aside className={`absolute top-[60px] sm:top-[70px] right-3 sm:right-4 bottom-[60px] sm:bottom-[70px] w-[calc(100%-24px)] sm:w-[340px] bg-white border-2 border-gw-primary rounded-lg shadow-2xl pointer-events-auto z-[1000] lg:z-[400] flex-col ${mobilePanel === 'detail' ? 'flex' : 'hidden lg:flex'}`}>
         {!activeWarning ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
             <div className="flex justify-end w-full lg:hidden">

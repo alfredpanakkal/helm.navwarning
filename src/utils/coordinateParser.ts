@@ -192,10 +192,14 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
  */
 export function findFirstPoint(coords: any): [number, number] | null {
   if (!coords || !Array.isArray(coords) || coords.length === 0) return null;
-  if (typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+  if (typeof coords[0] === 'number' && typeof coords[1] === 'number' && !isNaN(coords[0]) && !isNaN(coords[1])) {
     return [coords[0], coords[1]];
   }
-  return findFirstPoint(coords[0]);
+  for (const item of coords) {
+    const pt = findFirstPoint(item);
+    if (pt) return pt;
+  }
+  return null;
 }
 
 /**

@@ -64,8 +64,11 @@ export const Header: React.FC<HeaderProps> = ({
             return (
               <button
                 key={tab.id}
+                role="tab"
+                aria-selected={isActive}
+                aria-label={`${tab.label} tab`}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-2.5 sm:px-3 py-2 font-bold text-xs sm:text-xs tracking-wider uppercase border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap min-h-[40px] ${
+                className={`px-2.5 sm:px-3 py-2 font-bold text-xs sm:text-xs tracking-wider uppercase border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap min-h-[40px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
                   isActive
                     ? 'text-gw-bg border-gw-bg'
                     : 'text-gw-accent border-transparent hover:text-gw-bg'
@@ -98,7 +101,8 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onRefreshPipeline}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gw-bg text-gw-primary font-bold text-xs uppercase tracking-wider rounded border border-gw-bg transition-all hover:bg-gw-secondary hover:-translate-y-px active:translate-y-0 disabled:opacity-50 group whitespace-nowrap min-h-[40px]"
+            aria-label="Refresh ingestion pipeline"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gw-bg text-gw-primary font-bold text-xs uppercase tracking-wider rounded border border-gw-bg transition-all hover:bg-gw-secondary hover:-translate-y-px active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg disabled:opacity-50 group whitespace-nowrap min-h-[40px]"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : 'group-active:animate-spin'}`}>
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>

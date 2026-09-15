@@ -75,38 +75,50 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-gw-primary">
-            <thead className="bg-gw-bg text-gw-accent font-mono uppercase text-[10px] border-b border-gw-secondary">
-              <tr>
-                <th className="py-3 px-4">Generation ID</th>
-                <th className="py-3 px-4">Source ID</th>
-                <th className="py-3 px-4">Created At</th>
-                <th className="py-3 px-4">Parsed / Active</th>
-                <th className="py-3 px-4">Evidence Hash</th>
-                <th className="py-3 px-4">Completeness</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gw-secondary font-mono text-[11px]">
-              {generations.map((gen) => (
-                <tr key={gen.generation_id} className="hover:bg-gw-bg transition-colors">
-                  <td className="py-3 px-4 font-bold text-gw-primary">{gen.generation_id}</td>
-                  <td className="py-3 px-4 text-gw-primary font-bold">{gen.source_id}</td>
-                  <td className="py-3 px-4 text-gw-accent">{gen.created_at.replace('T', ' ').slice(0, 19)}</td>
-                  <td className="py-3 px-4 text-gw-primary font-bold">
-                    {gen.parsed_count} / {gen.active_count}
-                  </td>
-                  <td className="py-3 px-4 text-gw-accent truncate max-w-[120px]" title={gen.evidence_hash}>
-                    {gen.evidence_hash.slice(0, 16)}...
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="bg-green-100 text-green-800 border border-green-300 px-2 py-0.5 rounded font-mono text-[10px] font-bold uppercase">
-                      {gen.completeness_status}
-                    </span>
-                  </td>
+          {generations.length === 0 ? (
+            <div className="p-8 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-gw-bg border border-gw-primary text-gw-accent flex items-center justify-center mx-auto">
+                <Activity className="w-6 h-6" />
+              </div>
+              <div className="text-xs font-bold text-gw-primary uppercase tracking-wider">No Audit Generation Logs Found</div>
+              <p className="text-xs text-gw-accent max-w-sm mx-auto">
+                Run the pipeline worker from the Pipeline or Sources view to generate immutable audit pointer records.
+              </p>
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs text-gw-primary">
+              <thead className="bg-gw-bg text-gw-accent font-mono uppercase text-[10px] border-b border-gw-secondary">
+                <tr>
+                  <th className="py-3 px-4">Generation ID</th>
+                  <th className="py-3 px-4">Source ID</th>
+                  <th className="py-3 px-4">Created At</th>
+                  <th className="py-3 px-4">Parsed / Active</th>
+                  <th className="py-3 px-4">Evidence Hash</th>
+                  <th className="py-3 px-4">Completeness</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gw-secondary font-mono text-[11px]">
+                {generations.map((gen) => (
+                  <tr key={gen.generation_id} className="hover:bg-gw-bg transition-colors">
+                    <td className="py-3 px-4 font-bold text-gw-primary">{gen.generation_id}</td>
+                    <td className="py-3 px-4 text-gw-primary font-bold">{gen.source_id}</td>
+                    <td className="py-3 px-4 text-gw-accent">{gen.created_at.replace('T', ' ').slice(0, 19)}</td>
+                    <td className="py-3 px-4 text-gw-primary font-bold">
+                      {gen.parsed_count} / {gen.active_count}
+                    </td>
+                    <td className="py-3 px-4 text-gw-accent truncate max-w-[120px]" title={gen.evidence_hash}>
+                      {gen.evidence_hash.slice(0, 16)}...
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="bg-green-100 text-green-800 border border-green-300 px-2 py-0.5 rounded font-mono text-[10px] font-bold uppercase">
+                        {gen.completeness_status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

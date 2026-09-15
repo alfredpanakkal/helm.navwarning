@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavWarning } from '../types';
 import {
   ShieldCheck,
@@ -20,6 +20,16 @@ interface WarningDetailModalProps {
 }
 
 export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({ warning, onClose }) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   if (!warning) return null;
 
   const copyToClipboard = (text: string) => {

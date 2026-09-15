@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavWarning } from '../types';
-import { Database, AlertTriangle, Layers, MapPin, Filter, Download } from 'lucide-react';
+import { Database, AlertTriangle, Layers, MapPin, Filter, Download, Search } from 'lucide-react';
 import { formatSpatialCoordinates } from '../utils/coordinateParser';
 
 interface DataBankProps {
@@ -125,6 +125,19 @@ export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
         </div>
       </div>
 
+      {/* Empty State Banner */}
+      {warnings.length === 0 && (
+        <div className="p-8 text-center bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl space-y-3 shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-gw-bg border border-gw-primary text-gw-primary flex items-center justify-center mx-auto">
+            <Search className="w-6 h-6" />
+          </div>
+          <div className="text-xs font-bold text-gw-primary uppercase tracking-wider">No Navigational Warnings Found</div>
+          <p className="text-xs text-gw-accent max-w-sm mx-auto">
+            No active warnings match your search or filter criteria. Try clearing search filters, selecting a different NAVAREA, or running an ingestion cycle.
+          </p>
+        </div>
+      )}
+
       {/* Mobile Card List (visible on mobile < md) */}
       <div className="block md:hidden space-y-3">
         {warnings.map((w, idx) => (
@@ -159,7 +172,7 @@ export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
       {/* Desktop / Tablet Grid Table (hidden on mobile < md) */}
       <div className="hidden md:block bg-white border-2 border-gw-primary rounded-2xl overflow-hidden overflow-x-auto">
         <div className="min-w-[900px] grid grid-cols-[140px_80px_1fr_90px_130px_110px_90px_60px] p-3.5 bg-gw-primary text-gw-bg text-[10px] font-bold tracking-widest uppercase gap-3">
-          <div>ID</div><div>AREA</div><div>TITLE</div><div>SEVERITY</div><div>COORDS</div><div>ISSUED</div><div>STATUS</div><div></div>
+          <div>ID</div><div>AREA</div><div>TITLE</div><div>SEVERITY</div><div>COORDS</div><div>ISSUED</div><div>STATUS</div><div className="sticky right-0 bg-gw-primary text-right pr-2">ACTION</div>
         </div>
         <div className="min-w-[900px] max-h-[520px] overflow-y-auto no-scrollbar">
           {warnings.map((w, idx) => (
@@ -186,8 +199,16 @@ export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
                 <span className={`w-1.5 h-1.5 rounded-full ${w.status === 'active' ? 'bg-green-600' : 'bg-amber-600'}`}></span>
                 <span className={w.status === 'active' ? 'text-green-600' : 'text-amber-600'}>{w.status}</span>
               </div>
-              <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-gw-primary hover:text-gw-bg transition-colors">
+              <div className="sticky right-0 bg-white group-hover:bg-gw-bg flex justify-end gap-1 pr-1 transition-colors">
+                <button 
+                  aria-label={`Locate warning ${w.source_warning_id} on map`}
+                  title={`Locate warning ${w.source_warning_id} on map`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onLocate(w);
+                  }}
+                  className="w-7 h-7 flex items-center justify-center rounded border border-gw-secondary hover:bg-gw-primary hover:text-gw-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+                >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
                 </button>
               </div>

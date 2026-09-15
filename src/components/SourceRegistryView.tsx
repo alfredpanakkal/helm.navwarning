@@ -29,6 +29,16 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
 }) => {
   const [selectedSourceForChecklist, setSelectedSourceForChecklist] = useState<SourceRegistryItem | null>(null);
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedSourceForChecklist(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const verifiedCount = sources.filter((s) => s.verification.status === 'verified').length;
   const unverifiedCount = sources.filter((s) => s.verification.status === 'unverified').length;
 
@@ -137,7 +147,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                     </td>
 
                     <td className="py-3 px-4 uppercase text-[11px]">
-                      <span className="bg-gw-bg text-gw-primary px-2 py-0.5 rounded border border-gw-secondary font-bold">{src.format}</span>
+                      <span className="text-gw-primary font-bold tracking-wider text-[11px]">{src.format}</span>
                     </td>
 
                     <td className="py-3 px-4 text-[11px] text-gw-accent">
@@ -151,8 +161,8 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                           <span>Verified</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 text-amber-700 font-bold uppercase text-[11px]">
-                          <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        <div className="flex items-center gap-1 text-amber-900 bg-amber-100 border border-amber-400 px-2 py-0.5 rounded font-bold uppercase text-[10px] w-fit">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
                           <span>Unverified</span>
                         </div>
                       )}
@@ -210,7 +220,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
               </button>
             </div>
 
-            <div className="space-y-2.5 text-xs text-gw-primary max-h-80 overflow-y-auto">
+            <div className="space-y-2.5 text-xs text-gw-primary max-h-[60vh] overflow-y-auto pr-1">
               <div className="p-3 bg-gw-bg rounded-lg border border-gw-primary flex items-start gap-2.5">
                 <ShieldCheck className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
                 <div>

@@ -546,12 +546,18 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
   const [activeImportTab, setActiveImportTab] = useState<'file' | 'api'>('file');
 
+  const handleTabSwitch = (tab: 'file' | 'api') => {
+    setActiveImportTab(tab);
+    setParsedWarnings([]);
+    setError(null);
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
       <div className="flex border-b-2 border-gw-primary gap-2">
         <button
-          onClick={() => setActiveImportTab('file')}
-          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
+          onClick={() => handleTabSwitch('file')}
+          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
             activeImportTab === 'file'
               ? 'border-gw-primary text-gw-primary bg-white'
               : 'border-transparent text-gw-accent hover:text-gw-primary'
@@ -560,8 +566,8 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
           File Upload (CSV, GPX, ZIP)
         </button>
         <button
-          onClick={() => setActiveImportTab('api')}
-          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
+          onClick={() => handleTabSwitch('api')}
+          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
             activeImportTab === 'api'
               ? 'border-gw-primary text-gw-primary bg-white'
               : 'border-transparent text-gw-accent hover:text-gw-primary'

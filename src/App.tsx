@@ -49,6 +49,7 @@ export default function App() {
   const [generations, setGenerations] = useState<IngestionGeneration[]>(INITIAL_GENERATIONS);
   const [artifacts, setArtifacts] = useState<RawArtifact[]>(INITIAL_ARTIFACTS);
   const [isPipelineRefreshing, setIsPipelineRefreshing] = useState(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
 
   // Initial Data Fetch with Fallback
   useEffect(() => {
@@ -65,8 +66,10 @@ export default function App() {
         if (apiWarnings.length > 0) setWarnings(apiWarnings);
         if (apiGens.length > 0) setGenerations(apiGens);
         if (apiArts.length > 0) setArtifacts(apiArts);
+        setIsOfflineMode(false);
       } catch (err) {
         console.warn('Backend API offline, using local state:', err);
+        setIsOfflineMode(true);
       }
     }
     loadData();
@@ -191,6 +194,14 @@ export default function App() {
         onRefreshPipeline={() => handleTriggerRefresh()}
         isRefreshing={isPipelineRefreshing}
       />
+      {isOfflineMode && (
+        <div className="bg-amber-100 border-b-2 border-amber-600 px-4 py-2 text-xs font-mono font-bold text-amber-900 flex items-center justify-between shadow-xs">
+          <div className="max-w-[1600px] mx-auto w-full flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span>
+            <span>OFFLINE MODE ACTIVE — Server API unavailable. Operating on synchronized local client store.</span>
+          </div>
+        </div>
+      )}
       <DisclaimerBanner />
 
       <main className="relative z-10 max-w-[1600px] mx-auto p-3 sm:p-6 md:p-8">
