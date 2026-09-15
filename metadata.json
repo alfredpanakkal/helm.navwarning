@@ -1,0 +1,6 @@
+{
+  "name": "NavWarn Ingestion Engine & Data Bank",
+  "description": "Automated ingestion pipeline, nautical warning dataset, spatial geometry parser, and OpenSeaMap view for NAVAREA navigational warnings.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
