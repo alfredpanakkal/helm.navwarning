@@ -32,9 +32,11 @@ import scrapeNavwarnHandler from './api/scrape-navwarn.js';
 import { securityHeadersMiddleware } from './server/securityHeaders.js';
 import {
   checkSupabaseHealth,
+  getSupabaseClient,
   syncWarningsToSupabase,
   syncArtifactsToSupabase,
   syncGenerationsToSupabase,
+  syncSourcesToSupabase,
 } from './src/lib/supabaseServer.js';
 
 // In-memory persistent state for server runtime
@@ -556,14 +558,15 @@ ${rawPayloadText.slice(0, 2500)}
 
       // Step 4: Storage - Await sync and update generation completeness status if sync fails
       let syncOk = true;
-      if (process.env.SUPABASE_URL) {
+      if (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) {
         try {
-          const [wOk, aOk, gOk] = await Promise.all([
+          const [wRes, aRes, gRes, sRes] = await Promise.all([
             syncWarningsToSupabase(warningsDb),
             syncArtifactsToSupabase(artifactsDb),
             syncGenerationsToSupabase(generationsDb),
+            syncSourcesToSupabase(sourcesDb),
           ]);
-          syncOk = wOk && aOk && gOk;
+          syncOk = wRes.success && aRes.success && gRes.success && sRes.success;
         } catch (syncErr) {
           console.error('Supabase sync failed during pipeline run:', syncErr);
           syncOk = false;
@@ -611,22 +614,98 @@ ${rawPayloadText.slice(0, 2500)}
   // Explicit Manual Supabase Sync
   app.post('/api/supabase/sync', requireAdminAuth, async (req, res) => {
     try {
-      const [wOk, aOk, gOk] = await Promise.all([
+      const client = getSupabaseClient();
+      if (!client) {
+        return res.status(400).json({
+          error: 'Supabase URL or API Key is missing in server environment variables. Please verify your secrets configuration.',
+        });
+      }
+
+      const [wRes, aRes, gRes, sRes] = await Promise.all([
         syncWarningsToSupabase(warningsDb),
         syncArtifactsToSupabase(artifactsDb),
         syncGenerationsToSupabase(generationsDb),
+        syncSourcesToSupabase(sourcesDb),
       ]);
+
+      const errors = [wRes.error, aRes.error, gRes.error, sRes.error].filter(Boolean);
+
+      if (errors.length > 0) {
+        return res.status(400).json({
+          error: `Database Sync Failed: ${errors.join(' | ')}. Please ensure the required database tables exist in Supabase by running the DDL setup script below.`,
+        });
+      }
+
       res.json({
         success: true,
-        synced: { warnings: wOk, artifacts: aOk, generations: gOk },
+        synced: { warnings: wRes.success, artifacts: aRes.success, generations: gRes.success, sources: sRes.success },
         counts: {
           warnings: warningsDb.length,
           artifacts: artifactsDb.length,
           generations: generationsDb.length,
+          sources: sourcesDb.length,
         },
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Supabase manual sync failed' });
+    }
+  });
+
+  // Gemini Integration Diagnostic & Test Key Endpoint (Admin Protected)
+  app.post('/api/admin/test-gemini', requireAdminAuth, async (req, res) => {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey || !apiKey.trim()) {
+        return res.json({
+          success: false,
+          hasKey: false,
+          error: 'GEMINI_API_KEY environment variable is missing on the server. Please ensure GEMINI_API_KEY is configured in your Settings > Secrets.',
+        });
+      }
+
+      const ai = getGeminiClient();
+      if (!ai) {
+        return res.json({
+          success: false,
+          hasKey: false,
+          error: 'Failed to instantiate GoogleGenAI client on server.',
+        });
+      }
+
+      const userPrompt =
+        typeof req.body?.prompt === 'string' && req.body.prompt.trim()
+          ? req.body.prompt.trim()
+          : "System verification: confirm 'Gemini API operational check passed' and state current system readiness in 1 short sentence.";
+
+      const startTime = Date.now();
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: userPrompt,
+        config: {
+          temperature: 0.2,
+        },
+      });
+
+      const durationMs = Date.now() - startTime;
+      const responseText = response.text || 'No text content returned from Gemini model.';
+
+      res.json({
+        success: true,
+        hasKey: true,
+        model: 'gemini-3.8-flash',
+        latency_ms: durationMs,
+        response: responseText,
+        prompt_used: userPrompt,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      console.warn('[Gemini Diagnostic Error]', err);
+      res.status(400).json({
+        success: false,
+        hasKey: true,
+        error: err.message || String(err),
+        timestamp: new Date().toISOString(),
+      });
     }
   });
 

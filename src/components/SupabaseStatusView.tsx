@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Database, ShieldCheck, RefreshCw, Download, CheckCircle2, AlertTriangle, Server, Key, Layers, FileCode, Copy, Check } from 'lucide-react';
+import { Database, ShieldCheck, RefreshCw, Download, CheckCircle2, AlertTriangle, Server, Key, Layers, FileCode, Copy, Check, Bot, Sparkles, Send, Terminal, Zap, Lock } from 'lucide-react';
 import { NavWarning, IngestionGeneration, RawArtifact } from '../types';
-import { fetchSupabaseStatus, triggerSupabaseSync } from '../services/api';
+import { fetchSupabaseStatus, triggerSupabaseSync, testGeminiIntegration } from '../services/api';
 
 interface SupabaseStatusViewProps {
   warnings: NavWarning[];
@@ -27,6 +27,22 @@ export const SupabaseStatusView: React.FC<SupabaseStatusViewProps> = ({
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [copiedSql, setCopiedSql] = useState(false);
 
+  // Gemini Test State
+  const [geminiPrompt, setGeminiPrompt] = useState<string>(
+    "System verification: confirm 'Gemini API operational check passed' and state current system readiness in 1 short sentence."
+  );
+  const [isTestingGemini, setIsTestingGemini] = useState(false);
+  const [geminiResult, setGeminiResult] = useState<{
+    success: boolean;
+    hasKey: boolean;
+    model?: string;
+    latency_ms?: number;
+    response?: string;
+    prompt_used?: string;
+    timestamp?: string;
+    error?: string;
+  } | null>(null);
+
   const loadStatus = async () => {
     setIsLoading(true);
     const data = await fetchSupabaseStatus();
@@ -37,6 +53,23 @@ export const SupabaseStatusView: React.FC<SupabaseStatusViewProps> = ({
   useEffect(() => {
     loadStatus();
   }, []);
+
+  const handleTestGemini = async () => {
+    setIsTestingGemini(true);
+    try {
+      const res = await testGeminiIntegration(geminiPrompt);
+      setGeminiResult(res);
+    } catch (err: any) {
+      setGeminiResult({
+        success: false,
+        hasKey: false,
+        error: err.message || String(err),
+        timestamp: new Date().toISOString(),
+      });
+    } finally {
+      setIsTestingGemini(false);
+    }
+  };
 
   const handleManualSync = async () => {
     setIsSyncing(true);
@@ -115,6 +148,21 @@ CREATE TABLE IF NOT EXISTS public.ingestion_generations (
   evidence_hash TEXT,
   artifact_ref TEXT
 );
+
+CREATE TABLE IF NOT EXISTS public.sources_registry (
+  source_id TEXT PRIMARY KEY,
+  publisher_id TEXT NOT NULL,
+  publisher_name TEXT NOT NULL,
+  navareas JSONB,
+  scope TEXT,
+  discovery_url TEXT NOT NULL,
+  format TEXT NOT NULL,
+  publication_semantics TEXT NOT NULL,
+  enabled BOOLEAN DEFAULT true,
+  verification JSONB,
+  health JSONB,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 `;
 
   const handleCopySql = () => {
@@ -183,9 +231,33 @@ CREATE TABLE IF NOT EXISTS public.ingestion_generations (
           </button>
         </div>
 
+        {status?.error && !status.connected && (
+          <div className="p-3.5 bg-amber-50 border border-amber-300 text-amber-900 rounded-lg text-xs font-mono space-y-1">
+            <div className="font-bold flex items-center gap-1.5 text-amber-950">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Supabase Connection Detail / Table Status:</span>
+            </div>
+            <p className="text-amber-800">{status.error}</p>
+            {status.error.includes('does not exist') && (
+              <p className="text-amber-900 font-sans text-xs mt-1 font-semibold">
+                👉 Fix: Copy the SQL DDL schema below and run it in your Supabase SQL Editor to create the missing database tables.
+              </p>
+            )}
+          </div>
+        )}
+
         {syncMessage && (
-          <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded text-xs font-mono">
+          <div className={`p-3 rounded text-xs font-mono border ${
+            syncMessage.startsWith('Sync Error') || syncMessage.includes('Forbidden') || syncMessage.includes('Failed')
+              ? 'bg-red-50 border-red-300 text-red-900'
+              : 'bg-emerald-50 border-emerald-300 text-emerald-900'
+          }`}>
             {syncMessage}
+            {syncMessage.includes('Forbidden') && (
+              <div className="mt-1 font-sans text-xs text-red-800 font-semibold">
+                👉 Click the Lock icon (🔒) in the header to authenticate as Admin, then try syncing again.
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -223,6 +295,143 @@ CREATE TABLE IF NOT EXISTS public.ingestion_generations (
           </div>
           <div className="text-[10px] text-gw-accent mt-1">Evidence Locker Blobs</div>
         </div>
+      </div>
+
+      {/* Gemini AI Integration Test Module (Admin Password Protected) */}
+      <div className="bg-white border-2 border-gw-primary rounded-2xl p-6 shadow-hard space-y-5">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b-2 border-gw-secondary pb-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Bot className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-base sm:text-lg font-bold text-gw-primary uppercase tracking-wider">
+                Gemini AI Integration Test Module
+              </h2>
+              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-900 border border-indigo-300 rounded text-[10px] font-mono font-bold flex items-center gap-1">
+                <Lock className="w-3 h-3 text-indigo-700" /> ADMIN GATE
+              </span>
+            </div>
+            <p className="text-xs text-gw-accent max-w-3xl leading-relaxed">
+              Verify server-side Gemini model connectivity (<code className="font-mono bg-zinc-100 px-1 rounded text-zinc-900">gemini-3.8-flash</code>) and test if the <code className="font-mono bg-zinc-100 px-1 rounded text-zinc-900">GEMINI_API_KEY</code> secret is operational.
+            </p>
+          </div>
+
+          <button
+            onClick={handleTestGemini}
+            disabled={isTestingGemini}
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg border-2 border-indigo-700 shadow-md transition-all active:scale-95 disabled:opacity-50 shrink-0"
+          >
+            {isTestingGemini ? (
+              <RefreshCw className="w-4 h-4 animate-spin text-white" />
+            ) : (
+              <Sparkles className="w-4 h-4 text-indigo-200" />
+            )}
+            <span>{isTestingGemini ? 'Testing Gemini API...' : 'Test Gemini Integration'}</span>
+          </button>
+        </div>
+
+        {/* Prompt Input Control */}
+        <div className="space-y-2">
+          <label className="block text-xs font-bold text-gw-primary uppercase tracking-wider flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Terminal className="w-3.5 h-3.5 text-gw-accent" />
+              <span>Diagnostic Test Prompt</span>
+            </span>
+            <span className="text-[10px] font-normal text-gw-accent font-mono">Model: gemini-3.8-flash</span>
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={geminiPrompt}
+              onChange={(e) => setGeminiPrompt(e.target.value)}
+              placeholder="Enter test prompt for Gemini API..."
+              className="flex-1 px-3 py-2 bg-gw-bg border border-gw-primary rounded text-xs font-mono text-gw-primary focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              onClick={handleTestGemini}
+              disabled={isTestingGemini || !geminiPrompt.trim()}
+              className="px-4 py-2 bg-gw-primary text-gw-bg hover:bg-gw-tertiary rounded font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Execute</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Results Box */}
+        {geminiResult ? (
+          <div className={`p-4 rounded-xl border-2 font-mono text-xs space-y-3 ${
+            geminiResult.success
+              ? 'bg-emerald-50/70 border-emerald-400 text-emerald-950'
+              : 'bg-amber-50/80 border-amber-400 text-amber-950'
+          }`}>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 pb-2">
+              <div className="flex items-center gap-2 font-bold">
+                {geminiResult.success ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                )}
+                <span className="uppercase tracking-wider">
+                  {geminiResult.success ? 'Gemini API Operational' : 'Gemini API Verification Error'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 text-[11px] text-zinc-700">
+                {geminiResult.model && (
+                  <span className="bg-white/80 px-2 py-0.5 rounded border border-zinc-300">
+                    Model: <strong>{geminiResult.model}</strong>
+                  </span>
+                )}
+                {geminiResult.latency_ms !== undefined && (
+                  <span className="bg-white/80 px-2 py-0.5 rounded border border-zinc-300 flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
+                    <span>{geminiResult.latency_ms}ms</span>
+                  </span>
+                )}
+                {geminiResult.timestamp && (
+                  <span className="text-[10px] text-zinc-500">
+                    {new Date(geminiResult.timestamp).toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {geminiResult.success && geminiResult.response ? (
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider">
+                  Model Generated Response Output:
+                </div>
+                <div className="bg-zinc-950 text-emerald-400 p-3.5 rounded-lg border border-zinc-800 leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">
+                  {geminiResult.response}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="font-bold text-amber-900">
+                  {geminiResult.error}
+                </div>
+                {!geminiResult.hasKey && (
+                  <p className="text-xs font-sans text-amber-950 leading-relaxed font-semibold bg-amber-100/80 p-2.5 rounded border border-amber-300">
+                    👉 <strong>How to fix:</strong> Your app uses server-side Gemini integration. Go to your AI Studio application <strong>Settings &gt; Secrets</strong> menu and define <code className="bg-white px-1.5 py-0.5 rounded border border-amber-400 text-amber-900 font-mono">GEMINI_API_KEY</code>.
+                  </p>
+                )}
+                {geminiResult.error?.includes('Forbidden') && (
+                  <p className="text-xs font-sans text-red-900 font-semibold bg-red-100 p-2.5 rounded border border-red-300">
+                    🔒 <strong>Admin Access Required:</strong> Click the Lock icon in the header to authenticate as Admin before executing test requests.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono text-zinc-600 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-500" />
+              <span>Click "Test Gemini Integration" to perform a real-time server API operational check.</span>
+            </div>
+            <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Status: Ready</span>
+          </div>
+        )}
       </div>
 
       {/* Database Schema & Quick Export Options */}

@@ -188,3 +188,30 @@ export async function triggerSupabaseSync(): Promise<{
   return await res.json();
 }
 
+export async function testGeminiIntegration(prompt?: string): Promise<{
+  success: boolean;
+  hasKey: boolean;
+  model?: string;
+  latency_ms?: number;
+  response?: string;
+  prompt_used?: string;
+  timestamp?: string;
+  error?: string;
+}> {
+  const res = await fetch('/api/admin/test-gemini', {
+    method: 'POST',
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ prompt }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return {
+      success: false,
+      hasKey: data.hasKey ?? false,
+      error: data.error || 'Failed to trigger Gemini API verification',
+      timestamp: new Date().toISOString(),
+    };
+  }
+  return data;
+}
+

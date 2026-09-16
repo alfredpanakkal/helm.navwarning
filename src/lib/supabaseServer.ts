@@ -2,30 +2,42 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from '../types';
 
 let supabaseClient: SupabaseClient | null = null;
+let lastUsedUrl = '';
+let lastUsedKey = '';
 
 export function getSupabaseClient(): SupabaseClient | null {
-  if (supabaseClient) return supabaseClient;
-
-  const url = process.env.SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key =
     process.env.SUPABASE_SECRET_KEY ||
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_PUBLISHABLE_KEY ||
-    process.env.VITE_SUPABASE_ANON_KEY;
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  if (url && key) {
-    try {
-      supabaseClient = createClient(url, key, {
-        auth: { persistSession: false },
-      });
-      return supabaseClient;
-    } catch (err) {
-      console.warn('Failed to initialize Supabase client:', err);
-      return null;
-    }
+  if (!url || !key) {
+    supabaseClient = null;
+    return null;
   }
 
-  return null;
+  // If client exists and config hasn't changed, reuse it
+  if (supabaseClient && url === lastUsedUrl && key === lastUsedKey) {
+    return supabaseClient;
+  }
+
+  try {
+    supabaseClient = createClient(url, key, {
+      auth: { persistSession: false },
+    });
+    lastUsedUrl = url;
+    lastUsedKey = key;
+    return supabaseClient;
+  } catch (err) {
+    console.warn('Failed to initialize Supabase client:', err);
+    supabaseClient = null;
+    return null;
+  }
 }
 
 export async function checkSupabaseHealth(): Promise<{
@@ -43,7 +55,7 @@ export async function checkSupabaseHealth(): Promise<{
   if (!client) {
     return {
       connected: false,
-      url: process.env.SUPABASE_URL || null,
+      url: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || null,
       counts: { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
       error: 'Supabase URL or Key not configured in environment variables',
     };
@@ -57,30 +69,39 @@ export async function checkSupabaseHealth(): Promise<{
       client.from('raw_artifacts').select('artifact_id', { count: 'exact', head: true }),
     ]);
 
+    const errors: string[] = [];
+    if (warnRes.error) errors.push(`nav_warnings: ${warnRes.error.message}`);
+    if (srcRes.error) errors.push(`sources_registry: ${srcRes.error.message}`);
+    if (genRes.error) errors.push(`ingestion_generations: ${genRes.error.message}`);
+    if (artRes.error) errors.push(`raw_artifacts: ${artRes.error.message}`);
+
+    const isConnected = errors.length === 0;
+
     return {
-      connected: !warnRes.error,
-      url: process.env.SUPABASE_URL || null,
+      connected: isConnected,
+      url: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || null,
       counts: {
         warnings: warnRes.count || 0,
         sources: srcRes.count || 0,
         generations: genRes.count || 0,
         artifacts: artRes.count || 0,
       },
-      error: warnRes.error ? warnRes.error.message : undefined,
+      error: isConnected ? undefined : errors.join(' | '),
     };
   } catch (err: any) {
     return {
       connected: false,
-      url: process.env.SUPABASE_URL || null,
+      url: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || null,
       counts: { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
       error: err.message || String(err),
     };
   }
 }
 
-export async function syncWarningsToSupabase(warnings: NavWarning[]): Promise<boolean> {
+export async function syncWarningsToSupabase(warnings: NavWarning[]): Promise<{ success: boolean; error?: string }> {
   const client = getSupabaseClient();
-  if (!client || warnings.length === 0) return false;
+  if (!client) return { success: false, error: 'Supabase client not initialized' };
+  if (warnings.length === 0) return { success: true };
 
   try {
     const payload = warnings.map((w) => ({
@@ -104,19 +125,20 @@ export async function syncWarningsToSupabase(warnings: NavWarning[]): Promise<bo
 
     const { error } = await client.from('nav_warnings').upsert(payload, { onConflict: 'warning_id' });
     if (error) {
-      console.warn('Supabase warnings upsert warning:', error.message);
-      return false;
+      console.warn('Supabase warnings upsert error:', error.message);
+      return { success: false, error: `nav_warnings: ${error.message}` };
     }
-    return true;
-  } catch (err) {
+    return { success: true };
+  } catch (err: any) {
     console.warn('Supabase syncWarnings exception:', err);
-    return false;
+    return { success: false, error: err.message || String(err) };
   }
 }
 
-export async function syncArtifactsToSupabase(artifacts: RawArtifact[]): Promise<boolean> {
+export async function syncArtifactsToSupabase(artifacts: RawArtifact[]): Promise<{ success: boolean; error?: string }> {
   const client = getSupabaseClient();
-  if (!client || artifacts.length === 0) return false;
+  if (!client) return { success: false, error: 'Supabase client not initialized' };
+  if (artifacts.length === 0) return { success: true };
 
   try {
     const payload = artifacts.map((a) => ({
@@ -132,19 +154,20 @@ export async function syncArtifactsToSupabase(artifacts: RawArtifact[]): Promise
 
     const { error } = await client.from('raw_artifacts').upsert(payload, { onConflict: 'artifact_id' });
     if (error) {
-      console.warn('Supabase raw_artifacts upsert warning:', error.message);
-      return false;
+      console.warn('Supabase raw_artifacts upsert error:', error.message);
+      return { success: false, error: `raw_artifacts: ${error.message}` };
     }
-    return true;
-  } catch (err) {
+    return { success: true };
+  } catch (err: any) {
     console.warn('Supabase syncArtifacts exception:', err);
-    return false;
+    return { success: false, error: err.message || String(err) };
   }
 }
 
-export async function syncGenerationsToSupabase(generations: IngestionGeneration[]): Promise<boolean> {
+export async function syncGenerationsToSupabase(generations: IngestionGeneration[]): Promise<{ success: boolean; error?: string }> {
   const client = getSupabaseClient();
-  if (!client || generations.length === 0) return false;
+  if (!client) return { success: false, error: 'Supabase client not initialized' };
+  if (generations.length === 0) return { success: true };
 
   try {
     const payload = generations.map((g) => ({
@@ -161,12 +184,45 @@ export async function syncGenerationsToSupabase(generations: IngestionGeneration
 
     const { error } = await client.from('ingestion_generations').upsert(payload, { onConflict: 'generation_id' });
     if (error) {
-      console.warn('Supabase ingestion_generations upsert warning:', error.message);
-      return false;
+      console.warn('Supabase ingestion_generations upsert error:', error.message);
+      return { success: false, error: `ingestion_generations: ${error.message}` };
     }
-    return true;
-  } catch (err) {
+    return { success: true };
+  } catch (err: any) {
     console.warn('Supabase syncGenerations exception:', err);
-    return false;
+    return { success: false, error: err.message || String(err) };
+  }
+}
+
+export async function syncSourcesToSupabase(sources: SourceRegistryItem[]): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) return { success: false, error: 'Supabase client not initialized' };
+  if (sources.length === 0) return { success: true };
+
+  try {
+    const payload = sources.map((s) => ({
+      source_id: s.source_id,
+      publisher_id: s.publisher_id,
+      publisher_name: s.publisher_name,
+      navareas: s.navareas,
+      scope: s.scope,
+      discovery_url: s.discovery_url,
+      format: s.format,
+      publication_semantics: s.publication_semantics,
+      enabled: s.enabled,
+      verification: s.verification,
+      health: s.health,
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { error } = await client.from('sources_registry').upsert(payload, { onConflict: 'source_id' });
+    if (error) {
+      console.warn('Supabase sources_registry upsert error:', error.message);
+      return { success: false, error: `sources_registry: ${error.message}` };
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.warn('Supabase syncSources exception:', err);
+    return { success: false, error: err.message || String(err) };
   }
 }
