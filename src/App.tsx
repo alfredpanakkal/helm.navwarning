@@ -44,6 +44,16 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('map');
   const [selectedWarning, setSelectedWarning] = useState<NavWarning | null>(null);
 
+  // Admin Access Gate State
+  const [isAdminMode, setIsAdminModeState] = useState<boolean>(() => {
+    return localStorage.getItem('helm_admin_mode') === 'true';
+  });
+
+  const setIsAdminMode = (val: boolean) => {
+    setIsAdminModeState(val);
+    localStorage.setItem('helm_admin_mode', String(val));
+  };
+
   // Core Data Bank State
   const [warnings, setWarnings] = useState<NavWarning[]>(INITIAL_WARNINGS);
   const [sources, setSources] = useState<SourceRegistryItem[]>(INITIAL_SOURCES_REGISTRY);
@@ -271,6 +281,8 @@ export default function App() {
         onRefreshPipeline={() => handleTriggerRefresh()}
         isRefreshing={isPipelineRefreshing}
         onOpenConsole={() => setIsConsoleOpen(true)}
+        isAdminMode={isAdminMode}
+        setIsAdminMode={setIsAdminMode}
       />
       {isOfflineMode && (
         <div className="bg-amber-100 border-b-2 border-amber-600 px-4 py-2 text-xs font-mono font-bold text-amber-900 flex items-center justify-between shadow-xs">
@@ -315,10 +327,45 @@ export default function App() {
           />
         </div>
 
+        {/* Admin Access Gate fallback for locked operational views */}
+        {!isAdminMode && ['workspace', 'imports', 'manual', 'audit', 'evidence', 'supabase'].includes(activeTab) && (
+          <div className="bg-white border-2 border-gw-primary rounded-2xl p-8 sm:p-12 text-center max-w-xl mx-auto my-12 shadow-hard space-y-4">
+            <div className="w-12 h-12 rounded-full bg-gw-bg border-2 border-gw-primary text-gw-primary flex items-center justify-center mx-auto">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold text-gw-primary uppercase tracking-wider">Administrative Gate Active</h2>
+              <p className="text-xs text-gw-accent leading-relaxed">
+                This operational tool is restricted to administrative sessions. Unlock Admin Mode in the navigation bar header to view and interact with pipeline ingestion, manual parsing, bulk imports, audit logs, and Supabase server settings.
+              </p>
+            </div>
+            <div className="pt-2 flex justify-center gap-3">
+              <button
+                onClick={() => setActiveTab('map')}
+                className="px-4 py-2 border border-gw-secondary text-gw-accent hover:text-gw-primary rounded text-xs font-bold uppercase"
+              >
+                Return to Map
+              </button>
+              <button
+                onClick={() => setIsAdminMode(true)}
+                className="px-5 py-2 bg-gw-primary text-gw-bg font-bold text-xs uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-tertiary transition-all"
+              >
+                Unlock Admin Tools
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Workspace Ingestion Pipeline */}
-        <div className={activeTab === 'workspace' ? 'block' : 'hidden'}>
+        <div className={isAdminMode && activeTab === 'workspace' ? 'block' : 'hidden'}>
           <WorkspaceView
             sources={sources}
+            warnings={warnings}
+            generations={generations}
+            supabaseConnected={!isOfflineMode}
             onNavigate={(tab) => setActiveTab(tab)}
             onTriggerRefresh={handleTriggerRefresh}
             isRefreshing={isPipelineRefreshing}
@@ -326,12 +373,12 @@ export default function App() {
         </div>
 
         {/* Bulk CSV / GPX / S-124 ZIP Import */}
-        <div className={activeTab === 'imports' ? 'block' : 'hidden'}>
+        <div className={isAdminMode && activeTab === 'imports' ? 'block' : 'hidden'}>
           <CsvUploaderView onCommitWarnings={handleCommitWarnings} />
         </div>
 
         {/* Manual Warning Parser & Override */}
-        <div className={activeTab === 'manual' ? 'block' : 'hidden'}>
+        <div className={isAdminMode && activeTab === 'manual' ? 'block' : 'hidden'}>
           <ManualParserView
             onParseManual={handleParseManual}
             onSelectWarning={(w) => {
@@ -342,17 +389,17 @@ export default function App() {
         </div>
 
         {/* Generation Audit Log & Atomic Pointers */}
-        <div className={activeTab === 'audit' ? 'block' : 'hidden'}>
+        <div className={isAdminMode && activeTab === 'audit' ? 'block' : 'hidden'}>
           <GenerationInspectorView generations={generations} sources={sources} />
         </div>
 
         {/* Evidence Locker Object Storage */}
-        <div className={activeTab === 'evidence' ? 'block' : 'hidden'}>
+        <div className={isAdminMode && activeTab === 'evidence' ? 'block' : 'hidden'}>
           <EvidenceLockerView artifacts={artifacts} />
         </div>
 
         {/* Supabase Server Database Hub */}
-        <div className={activeTab === 'supabase' ? 'block' : 'hidden'}>
+        <div className={isAdminMode && activeTab === 'supabase' ? 'block' : 'hidden'}>
           <SupabaseStatusView warnings={warnings} artifacts={artifacts} generations={generations} />
         </div>
       </main>

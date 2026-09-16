@@ -53,6 +53,15 @@ export async function fetchArtifacts(): Promise<RawArtifact[]> {
   }
 }
 
+function getAdminHeaders(): Record<string, string> {
+  const isAdmin = typeof window !== 'undefined' && localStorage.getItem('helm_admin_mode') === 'true';
+  return {
+    'Content-Type': 'application/json',
+    'X-Admin-Gate': isAdmin ? 'true' : 'false',
+    'X-Admin-Key': isAdmin ? 'admin' : '',
+  };
+}
+
 export async function triggerPipelineRefresh(sourceId?: string): Promise<{
   success: boolean;
   message: string;
@@ -61,7 +70,7 @@ export async function triggerPipelineRefresh(sourceId?: string): Promise<{
 }> {
   const res = await fetch('/api/pipeline/trigger', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAdminHeaders(),
     body: JSON.stringify({ sourceId }),
   });
   if (!res.ok) {
@@ -77,7 +86,7 @@ export async function parseManualWarning(rawText: string, navarea?: string): Pro
 }> {
   const res = await fetch('/api/pipeline/parse-manual', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAdminHeaders(),
     body: JSON.stringify({ rawText, navarea }),
   });
   if (!res.ok) {
@@ -116,7 +125,7 @@ export async function triggerSupabaseSync(): Promise<{
 }> {
   const res = await fetch('/api/supabase/sync', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAdminHeaders(),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

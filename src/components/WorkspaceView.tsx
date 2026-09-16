@@ -1,10 +1,14 @@
 import React from 'react';
-import { Activity, Database, MapPin, Zap, AlertCircle, FileText, CheckCircle2, ArrowRight, Upload, Edit3, Shield, Archive, HardDrive } from 'lucide-react';
-import { SourceRegistryItem } from '../types';
+import { Activity, Database, MapPin, Zap, AlertCircle, FileText, CheckCircle2, ArrowRight, Upload, Edit3, Shield, Archive, HardDrive, RefreshCw, AlertTriangle, Check, RotateCw, X } from 'lucide-react';
+import { SourceRegistryItem, NavWarning, IngestionGeneration } from '../types';
 import { TabType } from '../App';
+import { computeAttentionRequired, STATUS_LOOKUP, UnifiedStatusType } from '../utils/statusModel';
 
 interface WorkspaceViewProps {
   sources?: SourceRegistryItem[];
+  warnings?: NavWarning[];
+  generations?: IngestionGeneration[];
+  supabaseConnected?: boolean;
   onNavigate?: (tab: TabType) => void;
   onTriggerRefresh?: () => void;
   isRefreshing?: boolean;
@@ -25,110 +29,205 @@ const MOCK_LOGS = [
 
 export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   sources = [],
+  warnings = [],
+  generations = [],
+  supabaseConnected = true,
   onNavigate,
   onTriggerRefresh,
   isRefreshing,
 }) => {
+  const attentionItems = computeAttentionRequired(sources, warnings, generations, supabaseConnected);
+  const activeSourcesCount = sources.filter((s) => s.enabled).length;
+
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
-      
-      {/* Quick Action Hub Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-        <button
-          onClick={() => onNavigate?.('sources')}
-          className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
-              <Database className="w-4 h-4 text-gw-primary" />
-            </div>
-            <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-gw-primary">Candidate Sources</div>
-            <div className="text-[10px] text-gw-accent mt-0.5">{sources.length} Registered Feeds</div>
-          </div>
-        </button>
 
-        <button
-          onClick={() => onNavigate?.('manual')}
-          className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
-              <Edit3 className="w-4 h-4 text-gw-primary" />
+      {/* 1. Attention Required Card (Top Summary if issues exist) */}
+      {attentionItems.length > 0 && (
+        <div className="bg-amber-50/90 border-2 border-amber-300 rounded-xl p-4 sm:p-5 shadow-sm">
+          <div className="flex items-center justify-between pb-3 border-b border-amber-200">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 bg-amber-500 text-white rounded flex items-center justify-center font-bold">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-amber-950 text-sm sm:text-base">Attention Required ({attentionItems.length})</h3>
+                <p className="text-xs text-amber-800">Items requiring verification, sync, or parameter adjustment.</p>
+              </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
           </div>
-          <div>
-            <div className="text-sm font-bold text-gw-primary">Manual Parser</div>
-            <div className="text-[10px] text-gw-accent mt-0.5">Regex & Gemini LLM</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-3">
+            {attentionItems.slice(0, 4).map((item) => (
+              <div
+                key={item.id}
+                className="bg-white border border-amber-200 rounded-lg p-3 flex items-start justify-between gap-3 shadow-2xs"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-1.5 py-0.5 text-[10px] font-bold uppercase rounded border ${STATUS_LOOKUP[item.status].badgeClass}`}>
+                      {STATUS_LOOKUP[item.status].symbol} {STATUS_LOOKUP[item.status].label}
+                    </span>
+                    <span className="font-bold text-xs text-slate-900">{item.title}</span>
+                  </div>
+                  <p className="text-xs text-slate-600 line-clamp-1">{item.reason}</p>
+                </div>
+                {item.actionTab && (
+                  <button
+                    onClick={() => onNavigate?.(item.actionTab as TabType)}
+                    className="shrink-0 text-xs font-bold text-gw-primary hover:text-gw-accent underline"
+                  >
+                    {item.actionLabel || 'View'}
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
-        </button>
+        </div>
+      )}
 
-        <button
-          onClick={() => onNavigate?.('imports')}
-          className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
-              <Upload className="w-4 h-4 text-gw-primary" />
-            </div>
-            <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
+      {/* 2. Compressed Status Strip & Quick Actions */}
+      <div className="bg-white border-2 border-gw-primary rounded-xl p-3 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-gw-primary">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gw-bg border border-gw-secondary rounded-lg">
+            <span className="text-emerald-600 font-bold">● ✓</span>
+            <span>Registered Feeds:</span>
+            <span className="text-gw-primary">{activeSourcesCount}/{sources.length} Active</span>
           </div>
-          <div>
-            <div className="text-sm font-bold text-gw-primary">Bulk Imports</div>
-            <div className="text-[10px] text-gw-accent mt-0.5">CSV, GPX, S-124 ZIP</div>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gw-bg border border-gw-secondary rounded-lg">
+            <span className="text-emerald-600 font-bold">● ✓</span>
+            <span>Active NAVWARNs:</span>
+            <span className="text-gw-primary">{warnings.filter((w) => w.status === 'active').length} Published</span>
           </div>
-        </button>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gw-bg border border-gw-secondary rounded-lg">
+            <span className={supabaseConnected ? 'text-emerald-600 font-bold' : 'text-red-600 font-bold'}>
+              {supabaseConnected ? '● ✓' : '● ✕'}
+            </span>
+            <span>Supabase Database:</span>
+            <span className={supabaseConnected ? 'text-emerald-700 font-bold' : 'text-red-700 font-bold'}>
+              {supabaseConnected ? 'Connected' : 'Offline / Unreachable'}
+            </span>
+          </div>
+        </div>
 
-        <button
-          onClick={() => onNavigate?.('audit')}
-          className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
-              <Shield className="w-4 h-4 text-gw-primary" />
-            </div>
-            <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-gw-primary">Audit Pointer Log</div>
-            <div className="text-[10px] text-gw-accent mt-0.5">Generations & History</div>
-          </div>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={onTriggerRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-gw-primary text-gw-secondary font-bold text-xs uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-accent transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{isRefreshing ? 'Running Ingestion...' : 'Trigger Pipeline Run'}</span>
+          </button>
+        </div>
+      </div>
 
-        <button
-          onClick={() => onNavigate?.('evidence')}
-          className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
-              <Archive className="w-4 h-4 text-gw-primary" />
-            </div>
-            <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-gw-primary">Evidence Locker</div>
-            <div className="text-[10px] text-gw-accent mt-0.5">SHA-256 Raw Artifacts</div>
-          </div>
-        </button>
+      {/* 3. NAVWARN Candidate Discovery (Primary Position) & Action Grid */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-gw-primary flex items-center gap-2">
+            <Database className="w-4 h-4 text-gw-accent" />
+            Candidate Discovery & Ingestion Tools
+          </h2>
+          <span className="text-xs text-gw-accent font-bold">Primary Actions</span>
+        </div>
 
-        <button
-          onClick={() => onNavigate?.('drive')}
-          className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
-              <HardDrive className="w-4 h-4 text-gw-primary" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          <button
+            onClick={() => onNavigate?.('sources')}
+            className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
+                <Database className="w-4 h-4 text-gw-primary" />
+              </div>
+              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
             </div>
-            <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-gw-primary">Drive Backup</div>
-            <div className="text-[10px] text-gw-accent mt-0.5">Cloud Export & Sync</div>
-          </div>
-        </button>
+            <div>
+              <div className="text-sm font-bold text-gw-primary">Candidate Sources</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">{sources.length} Registered Feeds</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => onNavigate?.('manual')}
+            className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
+                <Edit3 className="w-4 h-4 text-gw-primary" />
+              </div>
+              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-gw-primary">Manual Parser</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">Regex &amp; Gemini LLM</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => onNavigate?.('imports')}
+            className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
+                <Upload className="w-4 h-4 text-gw-primary" />
+              </div>
+              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-gw-primary">Bulk Imports</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">CSV, GPX, S-124 ZIP</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => onNavigate?.('audit')}
+            className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
+                <Shield className="w-4 h-4 text-gw-primary" />
+              </div>
+              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-gw-primary">Audit Pointer Log</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">Generations &amp; History</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => onNavigate?.('evidence')}
+            className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
+                <Archive className="w-4 h-4 text-gw-primary" />
+              </div>
+              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-gw-primary">Evidence Locker</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">SHA-256 Raw Artifacts</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => onNavigate?.('supabase')}
+            className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
+                <HardDrive className="w-4 h-4 text-gw-primary" />
+              </div>
+              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-gw-primary">Supabase Server</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">Storage &amp; Sync Status</div>
+            </div>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 sm:gap-8">

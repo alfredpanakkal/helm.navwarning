@@ -265,7 +265,18 @@ export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
                   {/* Coordinates & Issued Date */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
                     <div>
-                      <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">Parsed Coordinates</span>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="text-[10px] font-bold uppercase text-gw-accent">Parsed Coordinates</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(formatSpatialCoordinates(w.spatial));
+                          }}
+                          className="text-[10px] text-gw-primary hover:text-gw-accent font-bold uppercase underline"
+                        >
+                          Copy Coords
+                        </button>
+                      </div>
                       <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-gw-accent shrink-0" />
                         <span className="truncate">{formatSpatialCoordinates(w.spatial)}</span>
@@ -283,9 +294,20 @@ export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
 
                   {/* Full Text Snippet */}
                   <div>
-                    <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">Full Issued Message</span>
+                    <div className="flex justify-between items-center mb-0.5">
+                      <span className="text-[10px] font-bold uppercase text-gw-accent">Full Raw Telemetry</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(w.raw_text || w.issued_text);
+                        }}
+                        className="text-[10px] text-gw-primary hover:text-gw-accent font-bold uppercase underline"
+                      >
+                        Copy Raw Telemetry
+                      </button>
+                    </div>
                     <div className="p-2.5 bg-white border border-gw-secondary rounded text-[11px] text-gw-primary font-mono leading-relaxed max-h-36 overflow-y-auto no-scrollbar">
-                      {w.issued_text}
+                      {w.raw_text || w.issued_text}
                     </div>
                   </div>
 

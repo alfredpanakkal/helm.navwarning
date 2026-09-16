@@ -151,19 +151,27 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                     </td>
 
                     <td className="py-3 px-4 text-[11px] text-gw-accent">
-                      {src.poll_interval_minutes}m (stale {src.stale_after_minutes}m)
+                      <div>{src.poll_interval_minutes}m interval</div>
+                      <div className="text-[10px] text-gw-accent font-bold">stale after {src.stale_after_minutes}m</div>
                     </td>
 
                     <td className="py-3 px-4">
-                      {isVerified ? (
-                        <div className="flex items-center gap-1.5 text-green-700 font-bold uppercase text-[11px]">
-                          <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          <span>Verified</span>
+                      {src.health?.status === 'stale' ? (
+                        <div className="flex items-center gap-1 text-slate-900 bg-slate-100 border border-slate-400 px-2 py-0.5 rounded font-bold uppercase text-[10px] w-fit">
+                          <span>◌ Stale</span>
+                        </div>
+                      ) : src.health?.status === 'error' ? (
+                        <div className="flex items-center gap-1 text-red-900 bg-red-100 border border-red-400 px-2 py-0.5 rounded font-bold uppercase text-[10px] w-fit">
+                          <span>✕ Failed</span>
+                        </div>
+                      ) : isVerified ? (
+                        <div className="flex items-center gap-1.5 text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded font-bold uppercase text-[10px] w-fit">
+                          <span>✓ Verified</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1 text-amber-900 bg-amber-100 border border-amber-400 px-2 py-0.5 rounded font-bold uppercase text-[10px] w-fit">
                           <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
-                          <span>Unverified</span>
+                          <span>⚠ Unverified</span>
                         </div>
                       )}
                     </td>

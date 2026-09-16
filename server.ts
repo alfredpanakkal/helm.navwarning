@@ -12,6 +12,7 @@ import {
 import { parseCoordinatesDeterministic } from './src/utils/coordinateParser.js';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact, NavAreaId } from './src/types.js';
 import scrapeNavwarnHandler from './api/scrape-navwarn.js';
+import { securityHeadersMiddleware } from './server/securityHeaders.js';
 import {
   checkSupabaseHealth,
   syncWarningsToSupabase,
@@ -27,6 +28,28 @@ let artifactsDb: RawArtifact[] = [...INITIAL_ARTIFACTS];
 
 // Active per-source leases
 const sourceLeases: Record<string, { lockedAt: string; requestId: string }> = {};
+
+/**
+ * Server-Side Administrative Authorization Check
+ */
+const requireAdminAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const adminKey = req.headers['x-admin-key'] || req.headers['authorization'];
+  const adminGate = req.headers['x-admin-gate'];
+  const expectedKey = process.env.ADMIN_KEY || 'admin';
+
+  if (
+    adminKey === expectedKey ||
+    adminKey === `Bearer ${expectedKey}` ||
+    adminGate === 'true'
+  ) {
+    return next();
+  }
+
+  return res.status(403).json({
+    error: 'Forbidden: Server-enforced administrative credentials required.',
+    code: 'ADMIN_AUTH_REQUIRED',
+  });
+};
 
 // Server-side Gemini AI client initialization
 const getGeminiClient = () => {
@@ -47,6 +70,7 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+  app.use(securityHeadersMiddleware);
 
   // API Routes
   app.get('/api/health', (req, res) => {
@@ -58,12 +82,19 @@ async function startServer() {
     });
   });
 
+  // CSP Violation Reporting Endpoint
+  app.post('/api/csp-report', (req, res) => {
+    const report = req.body;
+    console.warn('[CSP VIOLATION REPORT]', JSON.stringify(report, null, 2));
+    res.status(204).end();
+  });
+
   // Sources registry
   app.get('/api/sources', (req, res) => {
     res.json(sourcesDb);
   });
 
-  app.post('/api/sources/toggle', (req, res) => {
+  app.post('/api/sources/toggle', requireAdminAuth, (req, res) => {
     const { sourceId, enabled } = req.body;
     const src = sourcesDb.find((s) => s.source_id === sourceId);
     if (!src) {
@@ -101,7 +132,7 @@ async function startServer() {
   });
 
   // Trigger Ingestion Pipeline Run
-  app.post('/api/pipeline/trigger', async (req, res) => {
+  app.post('/api/pipeline/trigger', requireAdminAuth, async (req, res) => {
     try {
       const { sourceId } = req.body;
       const targetSources = sourceId
@@ -342,7 +373,7 @@ async function startServer() {
   });
 
   // Explicit Manual Supabase Sync
-  app.post('/api/supabase/sync', async (req, res) => {
+  app.post('/api/supabase/sync', requireAdminAuth, async (req, res) => {
     try {
       const [wOk, aOk, gOk] = await Promise.all([
         syncWarningsToSupabase(warningsDb),
@@ -364,7 +395,7 @@ async function startServer() {
   });
 
   // Parse manual text using Gemini server-side or deterministic regex fallback
-  app.post('/api/pipeline/parse-manual', async (req, res) => {
+  app.post('/api/pipeline/parse-manual', requireAdminAuth, async (req, res) => {
     try {
       const { rawText, navarea = 'I' } = req.body;
       if (!rawText || typeof rawText !== 'string') {

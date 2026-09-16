@@ -4,8 +4,17 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 import { NavWarning, NavAreaId } from '../types';
-import { Search, MapPin, Locate, Copy, Activity, Database, Maximize2, RefreshCw } from 'lucide-react';
+import { Search, MapPin, Locate, Copy, Activity, Database, Maximize2, RefreshCw, Compass } from 'lucide-react';
 import { getLeafletLatLng } from '../utils/coordinateParser';
+import { formatCoordinates } from '../utils/statusModel';
+
+/**
+ * CANONICAL SPATIAL STORAGE DOCUMENTATION:
+ * All spatial geometry coordinates in Helm.Warning are stored canonically in
+ * WGS84 Decimal Degrees as [longitude, latitude] arrays inside `SpatialData.geometries`.
+ * The UI coordinate toggle converts these canonical values into 'DD' (Decimal Degrees)
+ * or 'DMS' (Degrees Minutes Seconds) for navigator convenience.
+ */
 
 interface LeafletMapProps {
   warnings: NavWarning[];
@@ -25,6 +34,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [mobilePanel, setMobilePanel] = useState<'none' | 'list'>('none');
+  const [coordFormat, setCoordFormat] = useState<'DD' | 'DMS'>('DD');
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -187,6 +197,15 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           >
             <Maximize2 className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Auto Frame</span>
+          </button>
+
+          <button
+            onClick={() => setCoordFormat((prev) => (prev === 'DD' ? 'DMS' : 'DD'))}
+            title="Toggle coordinate display format between Decimal Degrees (DD) and Degrees Minutes Seconds (DMS)"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard transition-all hover:bg-gw-primary hover:text-gw-bg shrink-0 min-h-[40px]"
+          >
+            <Compass className="w-3.5 h-3.5 text-gw-accent" />
+            <span>Format: {coordFormat}</span>
           </button>
         </div>
 
