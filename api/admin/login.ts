@@ -36,12 +36,11 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   const expectedKey = (process.env.ADMIN_KEY || '33f8379ef7f98c0774e6e35dfbb856c54695385c9f34ed8a27691b6943dd1a2e').trim();
 
   if (typeof passcode === 'string' && safeCompare(passcode.trim(), expectedKey)) {
-    const sessionToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = Date.now() + 8 * 60 * 60 * 1000;
 
     return res.status(200).json({
       status: 'ok',
-      token: sessionToken,
+      token: expectedKey,
       expiresAt,
     });
   }
