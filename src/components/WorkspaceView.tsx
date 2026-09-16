@@ -10,6 +10,8 @@ interface WorkspaceViewProps {
   generations?: IngestionGeneration[];
   supabaseConnected?: boolean;
   onNavigate?: (tab: TabType) => void;
+  onNavigateWithFilter?: (tab: TabType, filter?: string) => void;
+  onSelectWarning?: (warning: NavWarning) => void;
   onTriggerRefresh?: () => void;
   isRefreshing?: boolean;
 }
@@ -33,6 +35,8 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   generations = [],
   supabaseConnected = true,
   onNavigate,
+  onNavigateWithFilter,
+  onSelectWarning,
   onTriggerRefresh,
   isRefreshing,
 }) => {
@@ -71,14 +75,24 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   </div>
                   <p className="text-xs text-slate-600 line-clamp-1">{item.reason}</p>
                 </div>
-                {item.actionTab && (
+                {item.warningId && onSelectWarning ? (
+                  <button
+                    onClick={() => {
+                      const warn = warnings.find((w) => w.warning_id === item.warningId);
+                      if (warn) onSelectWarning(warn);
+                    }}
+                    className="shrink-0 px-2.5 py-1 bg-gw-primary text-gw-bg hover:bg-gw-accent rounded text-xs font-bold transition-all"
+                  >
+                    Fix Now →
+                  </button>
+                ) : item.actionTab ? (
                   <button
                     onClick={() => onNavigate?.(item.actionTab as TabType)}
                     className="shrink-0 text-xs font-bold text-gw-primary hover:text-gw-accent underline"
                   >
                     {item.actionLabel || 'View'}
                   </button>
-                )}
+                ) : null}
               </div>
             ))}
           </div>
@@ -88,17 +102,28 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
       {/* 2. Compressed Status Strip & Quick Actions */}
       <div className="bg-white border-2 border-gw-primary rounded-xl p-3 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-gw-primary">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gw-bg border border-gw-secondary rounded-lg">
+          <button
+            onClick={() => onNavigateWithFilter ? onNavigateWithFilter('sources', 'unverified') : onNavigate?.('sources')}
+            title="View sources (filtered to unverified if any)"
+            className="flex items-center gap-2 px-3 py-1.5 bg-gw-bg hover:bg-gw-secondary border border-gw-secondary rounded-lg transition-colors cursor-pointer"
+          >
             <span className="text-emerald-600 font-bold">● ✓</span>
             <span>Registered Feeds:</span>
             <span className="text-gw-primary">{activeSourcesCount}/{sources.length} Active</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gw-bg border border-gw-secondary rounded-lg">
+          </button>
+          <button
+            onClick={() => onNavigateWithFilter ? onNavigateWithFilter('databank', 'unverified') : onNavigate?.('databank')}
+            title="Jump to candidate warnings requiring verification"
+            className="flex items-center gap-2 px-3 py-1.5 bg-gw-bg hover:bg-gw-secondary border border-gw-secondary rounded-lg transition-colors cursor-pointer"
+          >
             <span className="text-emerald-600 font-bold">● ✓</span>
             <span>Active NAVWARNs:</span>
             <span className="text-gw-primary">{warnings.filter((w) => w.status === 'active').length} Published</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gw-bg border border-gw-secondary rounded-lg">
+          </button>
+          <button
+            onClick={() => onNavigate?.('supabase')}
+            className="flex items-center gap-2 px-3 py-1.5 bg-gw-bg hover:bg-gw-secondary border border-gw-secondary rounded-lg transition-colors cursor-pointer"
+          >
             <span className={supabaseConnected ? 'text-emerald-600 font-bold' : 'text-red-600 font-bold'}>
               {supabaseConnected ? '● ✓' : '● ✕'}
             </span>
@@ -106,7 +131,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             <span className={supabaseConnected ? 'text-emerald-700 font-bold' : 'text-red-700 font-bold'}>
               {supabaseConnected ? 'Connected' : 'Offline / Unreachable'}
             </span>
-          </div>
+          </button>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

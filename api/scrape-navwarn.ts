@@ -29,12 +29,35 @@ export function extractWarnings(text: string, sourceId: string, navarea: string)
     });
 }
 
+function safeCompare(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) {
+    crypto.timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
 export default async function scrapeNavwarnHandler(req: Request, res: Response) {
   const authHeader = req.headers.authorization;
+  const adminKey = req.headers['x-admin-key'];
   const cronSecret = process.env.CRON_SECRET;
+  const expectedKey = process.env.ADMIN_KEY;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  if (!expectedKey) {
+    return res.status(500).json({ error: 'Server configuration error: ADMIN_KEY environment variable is not set.' });
+  }
+
+  const cleanAuth = typeof authHeader === 'string' ? authHeader.replace(/^Bearer\s+/i, '').trim() : '';
+  const cleanKey = typeof adminKey === 'string' ? adminKey.trim() : '';
+
+  const isCronValid = Boolean(cronSecret && authHeader === `Bearer ${cronSecret}`);
+  const isAuthValid = safeCompare(cleanAuth, expectedKey) || safeCompare(cleanKey, expectedKey);
+
+  if (!isCronValid && !isAuthValid) {
+    return res.status(401).json({ error: 'Unauthorized: Valid administrative key required.' });
   }
 
   if (!supabase) {

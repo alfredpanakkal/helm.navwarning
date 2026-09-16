@@ -1,15 +1,32 @@
 import express from 'express';
 import path from 'path';
 import crypto from 'crypto';
+import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
+
+dotenv.config();
+
+/**
+ * Enforces presence of ADMIN_KEY environment variable.
+ * Refuses to fall back to hardcoded secrets or default string literals.
+ */
+function getRequiredAdminKey(): string {
+  const key = process.env.ADMIN_KEY;
+  if (!key) {
+    throw new Error('CRITICAL: ADMIN_KEY environment variable is not set. Refusing to start server without administrative key.');
+  }
+  return key;
+}
 import {
   INITIAL_SOURCES_REGISTRY,
   INITIAL_WARNINGS,
   INITIAL_GENERATIONS,
   INITIAL_ARTIFACTS,
 } from './src/data/sourcesRegistry.js';
-import { parseCoordinatesDeterministic } from './src/utils/coordinateParser.js';
+import { parseCoordinatesDeterministic, parseWithFallback } from './src/utils/coordinateParser.js';
+import { fetchWithRetry } from './src/utils/fetchWithRetry.js';
+import { validateLLMOutput } from './src/schemas/navWarningSchema.js';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact, NavAreaId } from './src/types.js';
 import scrapeNavwarnHandler from './api/scrape-navwarn.js';
 import { securityHeadersMiddleware } from './server/securityHeaders.js';
@@ -30,24 +47,65 @@ let artifactsDb: RawArtifact[] = [...INITIAL_ARTIFACTS];
 const sourceLeases: Record<string, { lockedAt: string; requestId: string }> = {};
 
 /**
+ * Constant-Time String Comparison using crypto.timingSafeEqual
+ * Prevents timing side-channel attacks during key/token verification.
+ */
+function safeCompare(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+
+  if (bufA.length !== bufB.length) {
+    // Perform dummy timing safe comparison to prevent length timing leaks
+    crypto.timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+// Active server-side short-lived admin session tokens
+const activeAdminSessions = new Map<string, { expiresAt: number }>();
+
+const isSessionTokenValid = (token: string): boolean => {
+  if (!token) return false;
+  const session = activeAdminSessions.get(token);
+  if (!session) return false;
+  if (Date.now() > session.expiresAt) {
+    activeAdminSessions.delete(token);
+    return false;
+  }
+  return true;
+};
+
+/**
  * Server-Side Administrative Authorization Check
+ * Uses constant-time crypto.timingSafeEqual for security.
  */
 const requireAdminAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const adminKey = req.headers['x-admin-key'] || req.headers['authorization'];
-  const adminGate = req.headers['x-admin-gate'];
-  const expectedKey = process.env.ADMIN_KEY || 'admin';
+  const adminHeader = req.headers['x-admin-token'] || req.headers['x-admin-key'] || req.headers['authorization'];
+  const cleanToken = typeof adminHeader === 'string' ? adminHeader.replace(/^Bearer\s+/i, '').trim() : '';
+  const expectedKey = getRequiredAdminKey();
 
-  if (
-    adminKey === expectedKey ||
-    adminKey === `Bearer ${expectedKey}` ||
-    adminGate === 'true'
-  ) {
+  if (!cleanToken) {
+    return res.status(403).json({
+      error: 'Forbidden: Missing administrative session token.',
+      code: 'ADMIN_AUTH_REQUIRED',
+    });
+  }
+
+  // 1. Verify against active short-lived session tokens
+  if (isSessionTokenValid(cleanToken)) {
+    return next();
+  }
+
+  // 2. Verify against environment key using constant-time comparison
+  if (safeCompare(cleanToken, expectedKey)) {
     return next();
   }
 
   return res.status(403).json({
-    error: 'Forbidden: Server-enforced administrative credentials required.',
-    code: 'ADMIN_AUTH_REQUIRED',
+    error: 'Forbidden: Invalid or expired administrative session token.',
+    code: 'ADMIN_AUTH_INVALID',
   });
 };
 
@@ -66,6 +124,9 @@ const getGeminiClient = () => {
 };
 
 async function startServer() {
+  // Validate ADMIN_KEY presence immediately on boot
+  getRequiredAdminKey();
+
   const app = express();
   const PORT = 3000;
 
@@ -87,6 +148,52 @@ async function startServer() {
     const report = req.body;
     console.warn('[CSP VIOLATION REPORT]', JSON.stringify(report, null, 2));
     res.status(204).end();
+  });
+
+  // Admin Login Endpoint (Verifies password server-side using constant-time timingSafeEqual)
+  app.post('/api/admin/login', (req, res) => {
+    const { passcode } = req.body;
+    const expectedKey = getRequiredAdminKey();
+
+    if (typeof passcode === 'string' && safeCompare(passcode.trim(), expectedKey)) {
+      // Issue a secure 32-byte short-lived session token (valid for 8 hours)
+      const sessionToken = crypto.randomBytes(32).toString('hex');
+      const expiresAt = Date.now() + 8 * 60 * 60 * 1000;
+      activeAdminSessions.set(sessionToken, { expiresAt });
+
+      return res.json({
+        status: 'ok',
+        token: sessionToken,
+        expiresAt,
+      });
+    }
+
+    return res.status(401).json({
+      error: 'Invalid administrative passkey.',
+      code: 'INVALID_CREDENTIALS',
+    });
+  });
+
+  // Admin Logout Endpoint
+  app.post('/api/admin/logout', (req, res) => {
+    const adminHeader = req.headers['x-admin-token'] || req.headers['x-admin-key'] || req.headers['authorization'];
+    const cleanToken = typeof adminHeader === 'string' ? adminHeader.replace(/^Bearer\s+/i, '').trim() : '';
+    if (cleanToken) {
+      activeAdminSessions.delete(cleanToken);
+    }
+    res.json({ status: 'ok' });
+  });
+
+  // Admin Verification Endpoint
+  app.get('/api/admin/verify', (req, res) => {
+    const adminHeader = req.headers['x-admin-token'] || req.headers['x-admin-key'] || req.headers['authorization'];
+    const cleanToken = typeof adminHeader === 'string' ? adminHeader.replace(/^Bearer\s+/i, '').trim() : '';
+    const expectedKey = getRequiredAdminKey();
+
+    if (cleanToken && (isSessionTokenValid(cleanToken) || safeCompare(cleanToken, expectedKey))) {
+      return res.json({ status: 'ok', authenticated: true });
+    }
+    return res.status(401).json({ status: 'unauthenticated', authenticated: false });
   });
 
   // Sources registry
@@ -143,6 +250,8 @@ async function startServer() {
         return res.status(400).json({ error: 'No verified and enabled sources found to refresh' });
       }
 
+      const newGenIds: string[] = [];
+
       const results = await Promise.all(
         targetSources.map(async (src) => {
           const requestId = crypto.randomUUID();
@@ -159,6 +268,7 @@ async function startServer() {
 
           try {
             const genId = `gen-${src.publisher_id}-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+            newGenIds.push(genId);
             const artifactId = `art-${src.publisher_id}-${Date.now()}`;
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -168,61 +278,81 @@ async function startServer() {
             let rawPayloadText = '';
             let contentType = src.format === 'html' ? 'text/html' : src.format === 'pdf' ? 'application/pdf' : 'application/json';
             let httpStatus = 200;
+            let fetchSucceeded = false;
 
-            // Attempt real fetch from source entrypoint URL with timeout
+            // Step 1: Attempt fetch with retry and 10s timeout
+            let fetchErrorMessage = '';
             try {
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), 2000);
-
               const fetchUrl = (src.entrypoints && src.entrypoints.length > 0) ? src.entrypoints[0] : src.discovery_url;
-              const fetchRes = await fetch(fetchUrl, {
-                signal: controller.signal,
-                headers: {
-                  'User-Agent': 'NavWarn-Maritime-Scraper/1.0 (+https://navwarn.local/bot)',
-                  'Accept': 'text/html,application/xhtml+xml,application/xml,text/plain,application/json',
+              const fetchRes = await fetchWithRetry(
+                fetchUrl,
+                {
+                  headers: {
+                    'User-Agent': 'NavWarn-Maritime-Scraper/1.0 (+https://navwarn.local/bot)',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml,text/plain,application/json',
+                  },
                 },
-              });
-              clearTimeout(timeoutId);
+                1, // 1 retry = 2 attempts total
+                10000 // 10s timeout for slow gov sites
+              );
+
               httpStatus = fetchRes.status;
 
               if (fetchRes.ok) {
                 const text = await fetchRes.text();
                 if (text && text.trim().length > 0) {
-                  // Strip HTML tags if present to help the regex coordinate parser
+                  // Strip HTML tags if present to help parsing
                   rawPayloadText = text.replace(/<[^>]*>?/gm, ' ');
+                  fetchSucceeded = true;
+                } else {
+                  fetchErrorMessage = `HTTP 200 returned empty payload body`;
                 }
+              } else {
+                fetchErrorMessage = `HTTP ${fetchRes.status} ${fetchRes.statusText || 'Error'}`;
               }
-            } catch (fetchErr) {
-              console.warn(`Scraper fetch warning for source ${src.source_id}:`, fetchErr);
+            } catch (fetchErr: any) {
+              fetchErrorMessage = fetchErr?.message || 'Network fetch error or timeout';
+              console.warn(`Scraper fetch warning for source ${src.source_id}:`, fetchErrorMessage);
             }
 
-            // Fallback payload if fetch returned empty or failed
-            if (!rawPayloadText) {
-              const sampleNoticeId = `NAV-${src.navareas[0]}-2026-${Math.floor(100 + Math.random() * 800)}`;
-              const sampleLat = Math.floor(20 + Math.random() * 30);
-              const sampleLng = Math.floor(10 + Math.random() * 50);
-              rawPayloadText = JSON.stringify(
-                {
-                  source_id: src.source_id,
-                  publisher: src.publisher_name,
-                  discovery_url: src.discovery_url,
-                  fetched_at: timestampIso,
-                  publication_kind: src.publication_semantics,
-                  navareas: src.navareas,
-                  status: 'VERIFIED_SUCCESS',
-                  sample_notices: [
-                    {
-                      id: sampleNoticeId,
-                      raw_text: `NAVAREA ${src.navareas[0]} ${sampleNoticeId}. MARITIME SAFETY WARNING. UNEXPLODED ORDNANCE / DRILLING OPERATIONS REPORTED AT POSITION ${sampleLat}-15.4N ${sampleLng}-22.8E. SHIPS ADVISER TO NAVIGATE WITH CAUTION.`,
-                    },
-                  ],
-                },
-                null,
-                2
-              );
+            // Track total runs
+            src.health.total_runs_count = (src.health.total_runs_count || 0) + 1;
+            src.health.last_run_at = timestampIso;
+
+            // Phase 1 Rule 1: Kill Fallback Masking.
+            // Dead source = skip + log + flag in health tracker. NEVER write fake data to warningsDb!
+            if (!fetchSucceeded || !rawPayloadText) {
+              src.health.consecutive_failures = (src.health.consecutive_failures || 0) + 1;
+              src.health.last_error = fetchErrorMessage;
+
+              if (src.health.consecutive_failures >= 3) {
+                src.health.status = 'error';
+                console.error(`⚠️ Source ${src.source_id} down ${src.health.consecutive_failures}+ runs — check manually (${fetchErrorMessage})`);
+              } else {
+                src.health.status = 'warning';
+              }
+
+              console.log(`\n--- [PIPELINE RUN FAILED: ${src.source_id}] ---`);
+              console.log('[STAGE 1 - FETCH FAILED]', `Source: ${src.source_id} | Reason: ${fetchErrorMessage} | Fake data injection SUPPRESSED.`);
+
+              return {
+                source_id: src.source_id,
+                status: 'failed',
+                reason: fetchErrorMessage,
+              };
             }
+
+            // Fetch succeeded! Update health
+            src.health.consecutive_failures = 0;
+            src.health.status = 'ok';
+            src.health.last_success_at = timestampIso;
+            src.health.last_error = undefined;
 
             const hash = crypto.createHash('sha256').update(rawPayloadText).digest('hex');
+            const hashExists = artifactsDb.some((a) => a.content_hash === hash);
+
+            console.log(`\n--- [PIPELINE RUN: ${src.source_id}] ---`);
+            console.log('[STAGE 1 - FETCH]', `Source: ${src.source_id} | Status: ${httpStatus} | Payload Length: ${rawPayloadText.length}`);
 
             // Save raw artifact to Evidence Locker DB
             const artifactObj: RawArtifact = {
@@ -238,17 +368,107 @@ async function startServer() {
             };
             artifactsDb.unshift(artifactObj);
 
-            // Extract candidate notices from scraped raw text if applicable
-            const deterministicSpatial = parseCoordinatesDeterministic(rawPayloadText, (src.navareas[0] as NavAreaId) || 'I');
-            
-            if (deterministicSpatial.geometries.length > 0) {
-              const newScrapedWarningId = `warn-${src.publisher_id}-${now.getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+            // Step 2 & 3: Parse with Fallback + Auto-Escalate to Gemini LLM with Zod validation
+            const currentNavarea = (src.navareas[0] as NavAreaId) || 'I';
+            const fallbackResult = parseWithFallback(rawPayloadText, currentNavarea);
+            let spatialData = fallbackResult.regexResult;
+            let extractionMethod: 'deterministic' | 'llm_assisted' = 'deterministic';
+
+            console.log('[STAGE 2 - PARSE]', `Regex Geometries Count: ${spatialData.geometries.length} | Needs Gemini Parse: ${fallbackResult.needsGeminiParse}`);
+
+            if (fallbackResult.needsGeminiParse) {
+              src.health.llm_fallback_count = (src.health.llm_fallback_count || 0) + 1;
+              const ai = getGeminiClient();
+              if (ai) {
+                try {
+                  const prompt = `Analyze raw maritime warning text for NAVAREA ${currentNavarea} and extract structured fields and geometries.
+Raw text:
+"""
+${rawPayloadText.slice(0, 2500)}
+"""`;
+                  const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: prompt,
+                    config: {
+                      temperature: 0,
+                      responseMimeType: 'application/json',
+                      responseSchema: {
+                        type: Type.OBJECT,
+                        properties: {
+                          series: { type: Type.STRING },
+                          warning_number: { type: Type.STRING },
+                          area_text: { type: Type.STRING },
+                          geometries: {
+                            type: Type.ARRAY,
+                            items: {
+                              type: Type.OBJECT,
+                              properties: {
+                                type: { type: Type.STRING },
+                                coordinates: { type: Type.STRING },
+                                radius_nm: { type: Type.NUMBER },
+                                label: { type: Type.STRING },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  });
+
+                  if (response.text) {
+                    const rawLlmJson = JSON.parse(response.text);
+                    const validatedOutput = validateLLMOutput(rawLlmJson);
+
+                    if (validatedOutput && validatedOutput.geometries && validatedOutput.geometries.length > 0) {
+                      extractionMethod = 'llm_assisted';
+                      const parsedGeoms = validatedOutput.geometries
+                        .map((g: any) => {
+                          try {
+                            return {
+                              type: g.type,
+                              coordinates: typeof g.coordinates === 'string' ? JSON.parse(g.coordinates) : g.coordinates,
+                              radius_nm: g.radius_nm,
+                              label: g.label || 'LLM Auto-Extracted Spatial Feature',
+                            };
+                          } catch {
+                            return null;
+                          }
+                        })
+                        .filter(Boolean);
+
+                      if (parsedGeoms.length > 0) {
+                        spatialData = {
+                          geometries: parsedGeoms,
+                          circles: parsedGeoms
+                            .filter((g: any) => g.type === 'Circle')
+                            .map((g: any) => ({
+                              center: g.coordinates as [number, number],
+                              radius_nm: g.radius_nm || 5,
+                              label: g.label,
+                            })),
+                          raw_coordinate_text: [rawPayloadText.slice(0, 100)],
+                          validation_status: 'passed',
+                        };
+                      }
+                    }
+                  }
+                } catch (llmErr) {
+                  console.warn(`Auto LLM fallback parse warning for ${src.source_id}:`, llmErr);
+                }
+              }
+            }
+
+            console.log('[STAGE 3 - DEDUP]', `Content Hash: ${hash.slice(0, 12)}... | Duplicate Artifact Previously Seen: ${hashExists}`);
+
+            let newScrapedWarningId: string | null = null;
+            if (spatialData.geometries.length > 0) {
+              newScrapedWarningId = `warn-${src.publisher_id}-${now.getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
               const newWarn: NavWarning = {
                 schema_version: 1,
                 warning_id: newScrapedWarningId,
                 publisher_id: src.publisher_id,
                 source_id: src.source_id,
-                navarea: (src.navareas[0] as NavAreaId) || 'I',
+                navarea: currentNavarea,
                 series: `NAVAREA ${src.navareas[0]}`,
                 source_warning_id: `${Math.floor(100 + Math.random() * 800)}/${now.getFullYear()}`,
                 warning_number: `${Math.floor(100 + Math.random() * 800)}`,
@@ -266,15 +486,15 @@ async function startServer() {
                 original_language: 'en',
                 raw_text: rawPayloadText.slice(0, 500),
                 translated_text: null,
-                spatial: deterministicSpatial,
+                spatial: spatialData,
                 supersedes: [],
                 cancels: [],
                 source_url: src.discovery_url,
                 raw_artifact_ref: artifactPath,
                 content_hash: hash,
-                parser_version: 'deterministic-v1',
-                extraction_method: 'deterministic',
-                extraction_confidence: 0.95,
+                parser_version: extractionMethod === 'llm_assisted' ? 'gemini-2.5-flash-v1' : 'deterministic-v1',
+                extraction_method: extractionMethod,
+                extraction_confidence: extractionMethod === 'llm_assisted' ? 0.92 : 0.95,
                 first_seen_at: timestampIso,
                 last_seen_at: timestampIso,
                 not_in_force_observed_at: null,
@@ -282,7 +502,7 @@ async function startServer() {
                 validation: {
                   identity: 'passed',
                   dates: 'passed',
-                  geometry: deterministicSpatial.validation_status,
+                  geometry: spatialData.validation_status,
                 },
               };
 
@@ -300,6 +520,8 @@ async function startServer() {
               }
             });
 
+            console.log('[STAGE 4 - STORAGE]', `Written Warning ID: ${newScrapedWarningId || 'None (no geoms)'} | Total Warnings for Source: ${existingForSource.length}`);
+
             // Stage a generation document
             const generationObj: IngestionGeneration = {
               generation_id: genId,
@@ -316,10 +538,6 @@ async function startServer() {
             };
             generationsDb.unshift(generationObj);
 
-            // Atomically update source health and published_generation pointer
-            src.health.last_run_at = timestampIso;
-            src.health.last_success_at = timestampIso;
-            src.health.status = 'ok';
             src.health.active_warnings_count = existingForSource.filter((w) => w.status === 'active').length;
             src.published_generation_id = genId;
 
@@ -336,16 +554,34 @@ async function startServer() {
         })
       );
 
-      // Background sync collected datasets to Supabase storage
-      Promise.all([
-        syncWarningsToSupabase(warningsDb),
-        syncArtifactsToSupabase(artifactsDb),
-        syncGenerationsToSupabase(generationsDb),
-      ]).catch((err) => console.warn('Supabase sync warning:', err));
+      // Step 4: Storage - Await sync and update generation completeness status if sync fails
+      let syncOk = true;
+      if (process.env.SUPABASE_URL) {
+        try {
+          const [wOk, aOk, gOk] = await Promise.all([
+            syncWarningsToSupabase(warningsDb),
+            syncArtifactsToSupabase(artifactsDb),
+            syncGenerationsToSupabase(generationsDb),
+          ]);
+          syncOk = wOk && aOk && gOk;
+        } catch (syncErr) {
+          console.error('Supabase sync failed during pipeline run:', syncErr);
+          syncOk = false;
+        }
+
+        if (!syncOk) {
+          newGenIds.forEach((gid) => {
+            const gen = generationsDb.find((g) => g.generation_id === gid);
+            if (gen) {
+              gen.completeness_status = 'sync_failed';
+            }
+          });
+        }
+      }
 
       res.json({
         success: true,
-        message: `Pipeline ingestion completed for ${results.length} source(s). Atomic pointers updated.`,
+        message: `Pipeline ingestion completed for ${results.length} source(s). Sync status: ${syncOk ? 'verified' : 'sync_failed'}.`,
         results,
       });
     } catch (err: any) {

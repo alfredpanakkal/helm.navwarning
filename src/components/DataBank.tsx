@@ -6,14 +6,18 @@ import { formatSpatialCoordinates } from '../utils/coordinateParser';
 interface DataBankProps {
   warnings: NavWarning[];
   onLocate: (warning: NavWarning) => void;
+  onVerifyWarning?: (warningId: string) => void;
+  initialStatusFilter?: string;
 }
 
-export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
+export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate, onVerifyWarning, initialStatusFilter = 'ALL' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNavArea, setSelectedNavArea] = useState('ALL');
   const [selectedSeverity, setSelectedSeverity] = useState('ALL');
-  const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [selectedStatus, setSelectedStatus] = useState(initialStatusFilter);
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  const [swipeOffset, setSwipeOffset] = useState<Record<string, number>>({});
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   const toggleExpand = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -212,14 +216,27 @@ export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
                   </span>
                 </div>
 
-                {/* Always Visible Actions: Locate & Expand */}
+                {/* Always Visible Actions: Verify, Locate & Expand */}
                 <div className="flex items-center gap-1 shrink-0">
+                  {onVerifyWarning && (w.status === 'unverified' || w.extraction_confidence < 1) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onVerifyWarning(w.warning_id);
+                      }}
+                      className="flex items-center gap-1 px-2 py-1.5 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase transition-colors hover:bg-emerald-700"
+                      title="Quick Verify"
+                    >
+                      ✓ Verify
+                    </button>
+                  )}
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onLocate(w);
                     }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 bg-gw-primary text-gw-bg rounded text-[10px] font-bold uppercase transition-colors hover:bg-gw-accent"
+                    className="flex items-center gap-1 px-2 py-1.5 bg-gw-primary text-gw-bg rounded text-[10px] font-bold uppercase transition-colors hover:bg-gw-accent"
                     title="Locate on Map"
                   >
                     <Locate className="w-3 h-3" />
@@ -356,6 +373,19 @@ export const DataBank: React.FC<DataBankProps> = ({ warnings, onLocate }) => {
                 <span className={w.status === 'active' ? 'text-green-600' : 'text-amber-600'}>{w.status}</span>
               </div>
               <div className="sticky right-0 bg-white group-hover:bg-gw-bg flex justify-end gap-1 pr-1 transition-colors">
+                {onVerifyWarning && (w.status === 'unverified' || w.extraction_confidence < 1) && (
+                  <button
+                    aria-label={`Quick verify warning ${w.source_warning_id}`}
+                    title="Quick Verify candidate (no edits needed)"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onVerifyWarning(w.warning_id);
+                    }}
+                    className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold uppercase transition-colors flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                  >
+                    ✓ Verify
+                  </button>
+                )}
                 <button 
                   aria-label={`Locate warning ${w.source_warning_id} on map`}
                   title={`Locate warning ${w.source_warning_id} on map`}

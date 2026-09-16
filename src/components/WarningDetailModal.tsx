@@ -21,9 +21,22 @@ import {
 interface WarningDetailModalProps {
   warning: NavWarning | null;
   onClose: () => void;
+  onVerify?: (warningId: string) => void;
+  onNext?: () => void;
+  onPrevious?: () => void;
+  hasNext?: boolean;
+  hasPrevious?: boolean;
 }
 
-export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({ warning, onClose }) => {
+export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
+  warning,
+  onClose,
+  onVerify,
+  onNext,
+  onPrevious,
+  hasNext,
+  hasPrevious,
+}) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -215,23 +228,61 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({ warning,
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t-2 border-gw-primary flex items-center justify-between bg-gw-bg">
-          <a
-            href={warning.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gw-primary hover:underline text-xs flex items-center gap-1 font-mono font-bold uppercase"
-          >
-            <span>Official Source Document</span>
-            <ExternalLink className="w-4 h-4" />
-          </a>
+        <div className="p-4 border-t-2 border-gw-primary flex flex-wrap items-center justify-between gap-3 bg-gw-bg">
+          <div className="flex items-center gap-2">
+            <a
+              href={warning.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gw-primary hover:underline text-xs flex items-center gap-1 font-mono font-bold uppercase"
+            >
+              <span>Official Source Document</span>
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
 
-          <button
-            onClick={onClose}
-            className="bg-gw-primary hover:bg-gw-accent text-gw-secondary font-bold text-xs uppercase tracking-wider px-5 py-2 rounded transition-all shadow-sm"
-          >
-            Close Provenance
-          </button>
+          <div className="flex items-center gap-2">
+            {hasPrevious && onPrevious && (
+              <button
+                onClick={onPrevious}
+                className="bg-white border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase px-3 py-2 rounded transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+              >
+                ← Prev
+              </button>
+            )}
+
+            {onVerify && (
+              <button
+                onClick={() => {
+                  onVerify(warning.warning_id);
+                  if (hasNext && onNext) {
+                    onNext();
+                  }
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider px-4 py-2 rounded transition-all shadow-sm flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Verify Candidate</span>
+              </button>
+            )}
+
+            {hasNext && onNext && (
+              <button
+                onClick={onNext}
+                className="bg-gw-primary hover:bg-gw-accent text-gw-secondary font-bold text-xs uppercase px-3 py-2 rounded transition-all shadow-2xs flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+              >
+                <span>Next</span>
+                <span>→</span>
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              className="bg-white border border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase tracking-wider px-4 py-2 rounded transition-all shadow-2xs ml-2"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

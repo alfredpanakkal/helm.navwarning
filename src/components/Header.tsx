@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TabType } from '../App';
-import { Map, Database, Upload, Radio, MoreHorizontal, Terminal, Activity, FileText, HardDrive, RefreshCw, X, Lock, Unlock, Key, ShieldCheck } from 'lucide-react';
+import { Map, Database, Upload, Radio, MoreHorizontal, Terminal, Activity, FileText, HardDrive, RefreshCw, X, Lock, Unlock, Key, ShieldCheck, Loader2 } from 'lucide-react';
+import { adminLogin, adminLogout } from '../services/api';
 
 interface HeaderProps {
   activeTab: TabType;
@@ -76,20 +77,30 @@ export const Header: React.FC<HeaderProps> = ({
 
   const visibleTabs = isAdminMode ? [...publicTabs, ...adminTabs] : publicTabs;
 
-  const handleUnlockAdmin = (e: React.FormEvent) => {
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const handleUnlockAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple demo administrative passcode or quick toggle
-    if (adminPasscode.trim() === 'admin' || adminPasscode.trim() === 'admin123' || adminPasscode.trim() === '') {
-      setIsAdminMode(true);
-      setShowAdminModal(false);
-      setAdminPasscode('');
-      setPasscodeError(false);
-    } else {
+    setIsLoggingIn(true);
+    setPasscodeError(false);
+    try {
+      const res = await adminLogin(adminPasscode.trim());
+      if (res.success) {
+        setIsAdminMode(true);
+        setShowAdminModal(false);
+        setAdminPasscode('');
+      } else {
+        setPasscodeError(true);
+      }
+    } catch {
       setPasscodeError(true);
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleLockAdmin = () => {
+  const handleLockAdmin = async () => {
+    await adminLogout();
     setIsAdminMode(false);
     if (adminTabs.some((t) => t.id === activeTab)) {
       setActiveTab('map');
@@ -146,10 +157,14 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Status & Action Buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gw-tertiary border border-gw-primary rounded text-xs">
+            <button 
+              onClick={() => setActiveTab('databank')}
+              title="Jump to active NAVWARNs in Data Bank"
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-gw-tertiary hover:bg-gw-tertiary/80 border border-gw-primary rounded text-xs transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg"
+            >
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
               <span className="text-[10px] sm:text-xs font-bold text-gw-bg">{activeCount} Active</span>
-            </div>
+            </button>
 
             {/* Admin Gate Toggle Button */}
             {isAdminMode ? (
@@ -324,7 +339,7 @@ export const Header: React.FC<HeaderProps> = ({
             <form onSubmit={handleUnlockAdmin} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gw-accent uppercase tracking-wider block">
-                  Admin Access Code (Demo default: <code className="font-mono text-gw-primary">admin</code>)
+                  Admin Access Key / Passport
                 </label>
                 <div className="relative">
                   <Key className="w-4 h-4 text-gw-accent absolute left-3 top-2.5" />
@@ -335,13 +350,13 @@ export const Header: React.FC<HeaderProps> = ({
                       setAdminPasscode(e.target.value);
                       setPasscodeError(false);
                     }}
-                    placeholder="Enter admin code or press unlock"
+                    placeholder="Enter admin key"
                     className="w-full pl-9 pr-3 py-2 bg-gw-bg border border-gw-secondary focus:border-gw-primary rounded font-mono text-xs focus:outline-none"
                     autoFocus
                   />
                 </div>
                 {passcodeError && (
-                  <p className="text-[10px] text-red-600 font-mono mt-1">Invalid code. Try "admin" or leave blank.</p>
+                  <p className="text-[10px] text-red-600 font-mono mt-1">Authentication failed. Check ADMIN_KEY.</p>
                 )}
               </div>
 
@@ -355,9 +370,11 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gw-primary text-gw-bg font-bold text-xs uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-tertiary transition-all"
+                  disabled={isLoggingIn}
+                  className="px-5 py-2 bg-gw-primary text-gw-bg font-bold text-xs uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-tertiary transition-all flex items-center gap-2 disabled:opacity-50"
                 >
-                  Unlock Admin Mode
+                  {isLoggingIn && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isLoggingIn ? 'Authenticating...' : 'Unlock Admin Mode'}</span>
                 </button>
               </div>
             </form>

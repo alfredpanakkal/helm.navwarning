@@ -64,7 +64,13 @@ export const GenerationsView: React.FC<GenerationsViewProps> = ({ generations })
                   </td>
 
                   <td className="py-3 px-4">
-                    <div className="flex items-center gap-1 text-green-700 font-bold text-[11px] uppercase">
+                    <div
+                      className={`flex items-center gap-1 font-bold text-[11px] uppercase ${
+                        gen.completeness_status === 'sync_failed' || gen.completeness_status === 'failed'
+                          ? 'text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-300'
+                          : 'text-green-700'
+                      }`}
+                    >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>{gen.completeness_status}</span>
                     </div>

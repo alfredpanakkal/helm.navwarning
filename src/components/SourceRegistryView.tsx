@@ -19,6 +19,7 @@ interface SourceRegistryViewProps {
   onToggleSource: (sourceId: string, enabled: boolean) => void;
   onTriggerRefresh: (sourceId: string) => void;
   isRefreshing: boolean;
+  initialFilter?: string;
 }
 
 export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
@@ -26,8 +27,10 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
   onToggleSource,
   onTriggerRefresh,
   isRefreshing,
+  initialFilter,
 }) => {
   const [selectedSourceForChecklist, setSelectedSourceForChecklist] = useState<SourceRegistryItem | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>(initialFilter === 'unverified' ? 'unverified' : 'ALL');
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -107,16 +110,25 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
               <tr>
                 <th className="py-3 px-4">NAVAREA</th>
                 <th className="py-3 px-4">Coordinator / Publisher</th>
-                <th className="py-3 px-4">Semantics</th>
-                <th className="py-3 px-4">Format</th>
-                <th className="py-3 px-4">Poll Interval</th>
-                <th className="py-3 px-4">Verification</th>
+                <th className="py-3 px-4">Semantics & Format</th>
+                <th className="py-3 px-4">LLM Fallback Rate</th>
+                <th className="py-3 px-4">Health & Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gw-secondary font-mono">
-              {sources.map((src) => {
-                const isVerified = src.verification.status === 'verified';
+              {sources
+                .filter((s) => {
+                  if (filterStatus === 'unverified') return s.verification.status === 'unverified';
+                  if (filterStatus === 'verified') return s.verification.status === 'verified';
+                  return true;
+                })
+                .map((src) => {
+                  const isVerified = src.verification.status === 'verified';
+                  const totalRuns = src.health?.total_runs_count || 0;
+                  const llmRuns = src.health?.llm_fallback_count || 0;
+                  const llmRate = totalRuns > 0 ? ((llmRuns / totalRuns) * 100).toFixed(0) : '0';
+
                 return (
                   <tr key={src.source_id} className="hover:bg-gw-bg transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-gw-primary">
@@ -141,18 +153,21 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                     </td>
 
                     <td className="py-3 px-4 text-[11px]">
-                      <span className="bg-gw-bg text-gw-primary px-2 py-0.5 rounded border border-gw-primary font-bold uppercase">
-                        {src.publication_semantics}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="bg-gw-bg text-gw-primary px-2 py-0.5 rounded border border-gw-primary font-bold uppercase text-[10px]">
+                          {src.publication_semantics}
+                        </span>
+                        <span className="text-gw-primary font-bold tracking-wider text-[11px] uppercase">
+                          [{src.format}]
+                        </span>
+                      </div>
                     </td>
 
-                    <td className="py-3 px-4 uppercase text-[11px]">
-                      <span className="text-gw-primary font-bold tracking-wider text-[11px]">{src.format}</span>
-                    </td>
-
-                    <td className="py-3 px-4 text-[11px] text-gw-accent">
-                      <div>{src.poll_interval_minutes}m interval</div>
-                      <div className="text-[10px] text-gw-accent font-bold">stale after {src.stale_after_minutes}m</div>
+                    <td className="py-3 px-4 text-[11px]">
+                      <div className="font-bold text-gw-primary">{llmRate}%</div>
+                      <div className="text-[10px] text-gw-accent font-bold">
+                        {llmRuns}/{totalRuns} runs
+                      </div>
                     </td>
 
                     <td className="py-3 px-4">
@@ -161,8 +176,15 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                           <span>◌ Stale</span>
                         </div>
                       ) : src.health?.status === 'error' ? (
-                        <div className="flex items-center gap-1 text-red-900 bg-red-100 border border-red-400 px-2 py-0.5 rounded font-bold uppercase text-[10px] w-fit">
-                          <span>✕ Failed</span>
+                        <div>
+                          <div className="flex items-center gap-1 text-red-900 bg-red-100 border border-red-400 px-2 py-0.5 rounded font-bold uppercase text-[10px] w-fit">
+                            <span>✕ Failed</span>
+                          </div>
+                          {src.health.last_error && (
+                            <div className="text-[10px] text-red-700 font-bold mt-0.5 truncate max-w-[140px]" title={src.health.last_error}>
+                              {src.health.last_error}
+                            </div>
+                          )}
                         </div>
                       ) : isVerified ? (
                         <div className="flex items-center gap-1.5 text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded font-bold uppercase text-[10px] w-fit">

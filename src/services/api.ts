@@ -53,13 +53,67 @@ export async function fetchArtifacts(): Promise<RawArtifact[]> {
   }
 }
 
+export async function adminLogin(passcode: string): Promise<{ success: boolean; token?: string; error?: string }> {
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passcode }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, error: data.error || 'Invalid admin credentials' };
+    }
+    if (data.token) {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('helm_admin_token', data.token);
+        localStorage.removeItem('helm_admin_passcode'); // Remove legacy raw passcode if any exists
+        localStorage.setItem('helm_admin_mode', 'true');
+      }
+      return { success: true, token: data.token };
+    }
+    return { success: false, error: 'No token returned' };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Login request failed' };
+  }
+}
+
+export async function adminLogout(): Promise<void> {
+  try {
+    const token = typeof window !== 'undefined' ? sessionStorage.getItem('helm_admin_token') : null;
+    if (token) {
+      await fetch('/api/admin/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Admin-Token': token,
+        },
+      }).catch(() => {});
+    }
+  } finally {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('helm_admin_token');
+      localStorage.removeItem('helm_admin_passcode');
+      localStorage.setItem('helm_admin_mode', 'false');
+    }
+  }
+}
+
 function getAdminHeaders(): Record<string, string> {
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('helm_admin_token') : null;
   const isAdmin = typeof window !== 'undefined' && localStorage.getItem('helm_admin_mode') === 'true';
-  return {
+
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'X-Admin-Gate': isAdmin ? 'true' : 'false',
-    'X-Admin-Key': isAdmin ? 'admin' : '',
   };
+
+  if (token) {
+    headers['X-Admin-Token'] = token;
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return headers;
 }
 
 export async function triggerPipelineRefresh(sourceId?: string): Promise<{

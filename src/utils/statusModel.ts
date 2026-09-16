@@ -64,6 +64,7 @@ export interface AttentionItem {
   status: UnifiedStatusType;
   actionLabel?: string;
   actionTab?: string;
+  warningId?: string;
 }
 
 /**
@@ -133,7 +134,8 @@ export function computeAttentionRequired(
         reason: `Extraction confidence is ${(w.extraction_confidence * 100).toFixed(0)}%. Manual verification recommended.`,
         status: 'unverified',
         actionLabel: 'Inspect Warning',
-        actionTab: 'manual',
+        actionTab: 'databank',
+        warningId: w.warning_id,
       });
     }
 
@@ -147,6 +149,7 @@ export function computeAttentionRequired(
         status: 'failed',
         actionLabel: 'Edit Geometry',
         actionTab: 'databank',
+        warningId: w.warning_id,
       });
     }
   });

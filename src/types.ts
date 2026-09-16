@@ -52,6 +52,9 @@ export interface SourceRegistryItem {
     last_success_at: string | null;
     status: 'ok' | 'warning' | 'error' | 'stale' | 'idle';
     active_warnings_count: number;
+    consecutive_failures?: number;
+    total_runs_count?: number;
+    llm_fallback_count?: number;
     last_error?: string;
   };
   published_generation_id: string | null;
@@ -151,7 +154,7 @@ export interface IngestionGeneration {
   parsed_count: number;
   active_count: number;
   explicit_cancellations: string[];
-  completeness_status: 'verified' | 'unverified' | 'failed';
+  completeness_status: 'verified' | 'unverified' | 'failed' | 'sync_failed';
   evidence_hash: string;
   artifact_ref: string;
   validation_issues: string[];

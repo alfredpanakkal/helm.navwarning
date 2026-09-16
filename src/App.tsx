@@ -13,6 +13,7 @@ import { SupabaseStatusView } from './components/SupabaseStatusView';
 import { WarningDetailModal } from './components/WarningDetailModal';
 import { PipelineConsoleModal, ConsoleLogEntry } from './components/PipelineConsoleModal';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from './types';
+import { ShieldCheck, RefreshCw } from 'lucide-react';
 import {
   INITIAL_WARNINGS,
   INITIAL_SOURCES_REGISTRY,
@@ -113,8 +114,45 @@ export default function App() {
   }, []);
 
   // Handlers for state updates across views
+  // Filter state for navigation deep linking
+  const [dataBankStatusFilter, setDataBankStatusFilter] = useState<string>('ALL');
+  const [sourcesFilterStatus, setSourcesFilterStatus] = useState<string>('ALL');
+
+  const handleNavigateWithFilter = (tab: TabType, filterStatus?: string) => {
+    if (tab === 'databank' && filterStatus) {
+      setDataBankStatusFilter(filterStatus);
+    }
+    if (tab === 'sources' && filterStatus) {
+      setSourcesFilterStatus(filterStatus);
+    }
+    setActiveTab(tab);
+  };
+
+  const handleVerifyWarning = (warningId: string) => {
+    setWarnings((prev) =>
+      prev.map((w) =>
+        w.warning_id === warningId || w.source_warning_id === warningId
+          ? {
+              ...w,
+              status: 'active',
+              extraction_confidence: 1.0,
+              validation: { ...w.validation, geometry: 'passed' },
+            }
+          : w
+      )
+    );
+  };
+
+  const unverifiedCandidates = warnings.filter(
+    (w) => w.status === 'unverified' || (w.extraction_confidence && w.extraction_confidence < 0.8)
+  );
+  const currentUnverifiedIndex = selectedWarning
+    ? unverifiedCandidates.findIndex((w) => w.warning_id === selectedWarning.warning_id)
+    : -1;
+
   const handleCommitWarnings = (newWarnings: NavWarning[]) => {
     setWarnings((prev) => [...newWarnings, ...prev]);
+    setDataBankStatusFilter('unverified');
     setActiveTab('databank');
   };
 
@@ -310,6 +348,8 @@ export default function App() {
         <div className={activeTab === 'databank' ? 'block' : 'hidden'}>
           <DataBank
             warnings={warnings}
+            initialStatusFilter={dataBankStatusFilter}
+            onVerifyWarning={handleVerifyWarning}
             onLocate={(w) => {
               setSelectedWarning(w);
               setActiveTab('map');
@@ -321,6 +361,7 @@ export default function App() {
         <div className={activeTab === 'sources' ? 'block' : 'hidden'}>
           <SourceRegistryView
             sources={sources}
+            initialFilter={sourcesFilterStatus}
             onToggleSource={handleToggleSource}
             onTriggerRefresh={handleTriggerRefresh}
             isRefreshing={isPipelineRefreshing}
@@ -367,6 +408,8 @@ export default function App() {
             generations={generations}
             supabaseConnected={!isOfflineMode}
             onNavigate={(tab) => setActiveTab(tab)}
+            onNavigateWithFilter={handleNavigateWithFilter}
+            onSelectWarning={(w) => setSelectedWarning(w)}
             onTriggerRefresh={handleTriggerRefresh}
             isRefreshing={isPipelineRefreshing}
           />
@@ -404,11 +447,60 @@ export default function App() {
         </div>
       </main>
 
+      {/* Persistent Floating Action Button (FAB) for Map & Data Bank views */}
+      {(activeTab === 'map' || activeTab === 'databank') && (
+        <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[900] flex items-center gap-2 bg-gw-primary/95 text-gw-bg p-1.5 rounded-full shadow-2xl border-2 border-gw-accent backdrop-blur-md">
+          {unverifiedCandidates.length > 0 ? (
+            <>
+              <button
+                onClick={() => setSelectedWarning(unverifiedCandidates[0])}
+                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                title="Verify next candidate in queue directly"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Verify Next ({unverifiedCandidates.length})</span>
+              </button>
+              <button
+                onClick={() => handleTriggerRefresh()}
+                disabled={isPipelineRefreshing}
+                className="p-2.5 bg-gw-tertiary hover:bg-gw-tertiary/80 text-gw-bg rounded-full text-xs font-bold uppercase transition-all shadow-md active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg"
+                title="Ingest Now — Trigger pipeline sync"
+              >
+                <RefreshCw className={`w-4 h-4 ${isPipelineRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => handleTriggerRefresh()}
+              disabled={isPipelineRefreshing}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gw-bg text-gw-primary hover:bg-gw-secondary rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+              title="Ingest Now — Trigger pipeline sync"
+            >
+              <RefreshCw className={`w-4 h-4 ${isPipelineRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isPipelineRefreshing ? 'Ingesting...' : 'Ingest Now'}</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Warning Provenance Detail Modal */}
       {selectedWarning && (
         <WarningDetailModal
           warning={selectedWarning}
           onClose={() => setSelectedWarning(null)}
+          onVerify={() => handleVerifyWarning(selectedWarning.warning_id)}
+          onNext={
+            currentUnverifiedIndex >= 0 && currentUnverifiedIndex < unverifiedCandidates.length - 1
+              ? () => setSelectedWarning(unverifiedCandidates[currentUnverifiedIndex + 1])
+              : undefined
+          }
+          onPrevious={
+            currentUnverifiedIndex > 0
+              ? () => setSelectedWarning(unverifiedCandidates[currentUnverifiedIndex - 1])
+              : undefined
+          }
+          hasNext={currentUnverifiedIndex >= 0 && currentUnverifiedIndex < unverifiedCandidates.length - 1}
+          hasPrevious={currentUnverifiedIndex > 0}
         />
       )}
 

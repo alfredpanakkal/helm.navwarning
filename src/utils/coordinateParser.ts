@@ -545,3 +545,34 @@ export function extractEcdisIntermediateLayer(
   };
 }
 
+/**
+ * Executes deterministic coordinate parsing with a confidence check.
+ * If regex finds 0 coordinates/geometries in a non-empty text payload (>100 chars),
+ * flags the result for LLM auto-escalation.
+ */
+export function parseWithFallback(rawText: string, navarea: NavAreaId | string) {
+  const regexResult = parseCoordinatesDeterministic(rawText, navarea as NavAreaId);
+
+  // Confidence check: did regex find anything plausible?
+  const looksIncomplete =
+    regexResult.geometries.length === 0 &&
+    regexResult.circles.length === 0 &&
+    rawText.trim().length > 100;
+
+  if (looksIncomplete) {
+    return {
+      source: 'llm_fallback' as const,
+      needsGeminiParse: true,
+      rawText,
+      regexResult,
+    };
+  }
+
+  return {
+    source: 'regex' as const,
+    needsGeminiParse: false,
+    regexResult,
+  };
+}
+
+
