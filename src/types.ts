@@ -216,3 +216,46 @@ export interface EcdisIntermediateLayer {
   features: EcdisPointFeature[];
 }
 
+export interface PipelineEvent {
+  timestamp: string;
+  stage: 'FETCH' | 'PARSE' | 'EXTRACT' | 'CHECK' | 'SAVE' | 'DONE' | 'ERROR';
+  source_id?: string;
+  message: string;
+  details?: string;
+}
+
+export interface PipelineRunRecord {
+  run_id: string;
+  source_id_target?: string;
+  started_at: string;
+  finished_at?: string;
+  status: 'RUNNING' | 'SUCCESS' | 'FAILED' | 'PARTIAL';
+  sources_processed: number;
+  records_found: number;
+  records_stored: number;
+  records_updated: number;
+  records_unchanged: number;
+  records_failed: number;
+  events: PipelineEvent[];
+  error?: string;
+}
+
+export interface PipelineSystemStatus {
+  pipeline: 'READY' | 'RUNNING' | 'ERROR' | 'UNAVAILABLE';
+  database: 'CONNECTED' | 'UNAVAILABLE' | 'OFFLINE';
+  sources_enabled_count: number;
+  sources_total_count: number;
+  last_run: {
+    run_id: string;
+    finished_at: string;
+    status: 'SUCCESS' | 'FAILED' | 'PARTIAL';
+    found?: number;
+    stored?: number;
+  } | null;
+  current_job: {
+    run_id: string;
+    target: string;
+    started_at: string;
+  } | null;
+}
+

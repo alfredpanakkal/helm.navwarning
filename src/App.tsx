@@ -167,32 +167,29 @@ export default function App() {
     setIsConsoleOpen(true);
     setIsPipelineRefreshing(true);
 
-    addConsoleLog(
-      'cmd',
-      `exec navwarn-pipeline ${sourceId ? `--source=${sourceId}` : '--source=all'} --mode=live`
-    );
-    addConsoleLog('info', 'Starting background scraper & ingestion pipeline sequence...');
-
-    const startTime = Date.now();
+    addConsoleLog('cmd', `run ${sourceId || ''}`);
+    addConsoleLog('info', `Triggering pipeline ingestion for ${sourceId ? `source ${sourceId}` : 'all enabled sources'}...`);
 
     try {
-      addConsoleLog(
-        'fetch',
-        sourceId
-          ? `Connecting to discovery endpoint for source: ${sourceId}`
-          : `Dispatching parallel HTTP requests to active NAVAREA discovery feeds...`
-      );
-
       const result = await triggerPipelineRefresh(sourceId);
 
-      addConsoleLog('parser', `Payload received. Parsing spatial geometries & computing SHA256 hashes...`);
-      if (result.newGenerationId) {
-        addConsoleLog('info', `Recorded generation ID: ${result.newGenerationId}`);
+      // Render real events emitted by backend engine
+      if (result.run && Array.isArray(result.run.events)) {
+        for (const ev of result.run.events) {
+          const levelMap: Record<string, ConsoleLogEntry['level']> = {
+            FETCH: 'fetch',
+            PARSE: 'parser',
+            EXTRACT: 'parser',
+            CHECK: 'info',
+            SAVE: 'supabase',
+            DONE: 'success',
+            ERROR: 'error',
+          };
+          addConsoleLog(levelMap[ev.stage] || 'info', `[${ev.stage}] ${ev.message}`, ev.details);
+        }
       }
 
-      addConsoleLog('supabase', `Persisting updated warning notices to database...`);
-
-      // Reload updated collections
+      // Reload updated collections from server
       const [apiSources, apiWarnings, apiGens, apiArts] = await Promise.all([
         fetchSources(),
         fetchWarnings(),
@@ -205,45 +202,57 @@ export default function App() {
       if (apiGens.length > 0) setGenerations(apiGens);
       if (apiArts.length > 0) setArtifacts(apiArts);
 
-      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-      addConsoleLog(
-        'success',
-        `Pipeline refresh completed in ${duration}s. Synchronized active warnings count: ${
-          result.parsedCount ?? apiWarnings.length
-        }.`,
-        result
-      );
-    } catch (err: any) {
-      addConsoleLog('warn', `Express API offline/unreachable: ${err?.message || err}. Running client-side deterministic pipeline execution...`);
+      if (result.run) {
+        // Collect all extracted NAV warning numbers across results
+        const allExtractedNavWarningNumbers = (result.results || [])
+          .flatMap((r: any) => r.parsed_warning_numbers || [])
+          .filter(Boolean);
 
-      const now = new Date().toISOString();
-      const targetList = sourceId
-        ? sources.filter((s) => s.source_id === sourceId)
-        : sources.filter((s) => s.enabled);
+        const failedSourceResults = (result.results || []).filter((r: any) => r.status === 'failed');
 
-      for (const src of targetList) {
-        addConsoleLog('fetch', `[${src.source_id}] Fetching endpoint ${src.discovery_url} (${src.format.toUpperCase()})`);
-        addConsoleLog('parser', `[${src.source_id}] Parsed NAVAREA ${src.navareas.join(', ')} notices. Confidence: 0.95`);
-        addConsoleLog('supabase', `[${src.source_id}] Saved raw artifact & synced records into database table nav_warnings.`);
+        if (failedSourceResults.length > 0) {
+          const failureDetails = failedSourceResults
+            .map((f: any) => `• Source [${f.source_id}] (${f.publisher_name || 'Authority'}): ${f.reason || 'Execution failed'}`)
+            .join('\n');
+
+          addConsoleLog(
+            'error',
+            `PIPELINE FAILURE DETECTED: ${failedSourceResults.length} source(s) failed during execution.`,
+            `DETAILED FAILURE DIAGNOSTICS:\n\n${failureDetails}\n\nTroubleshooting Instructions:\n1. Verify target source URL accessibility and SSL certificates.\n2. Confirm endpoint query parameters and payload format.\n3. Check server rate limits or network connectivity.`
+          );
+        }
+
+        const summaryMsg =
+          `PIPELINE RUN ${result.run.run_id} SUMMARY (${result.run.status})\n\n` +
+          `• Status             ${result.run.status}\n` +
+          `• Records Found      ${result.run.records_found}\n` +
+          `• Records Stored     ${result.run.records_stored}\n` +
+          `• Records Updated    ${result.run.records_updated}\n` +
+          `• Records Unchanged  ${result.run.records_unchanged}\n` +
+          `• Records Failed     ${result.run.records_failed}\n\n` +
+          `PARSED NAV WARNING NUMBER(S):\n` +
+          (allExtractedNavWarningNumbers.length > 0
+            ? Array.from(new Set(allExtractedNavWarningNumbers)).map((num: any) => `  - NAVWARN #${num}`).join('\n')
+            : `  (No NAV warning numbers extracted)`);
+
+        addConsoleLog(
+          result.run.status === 'SUCCESS' ? 'success' : result.run.status === 'PARTIAL' ? 'warn' : 'error',
+          summaryMsg
+        );
+      } else {
+        addConsoleLog('success', result.message || 'Pipeline execution completed.');
       }
-
-      setSources((prev) =>
-        prev.map((s) =>
-          !sourceId || s.source_id === sourceId
-            ? {
-                ...s,
-                health: { ...s.health, last_run_at: now, last_success_at: now, status: 'ok' },
-              }
-            : s
-        )
-      );
-
-      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    } catch (err: any) {
       addConsoleLog(
-        'success',
-        `Client local pipeline execution finished in ${duration}s. Synchronized ${targetList.length} sources successfully.`
+        'error',
+        `PIPELINE EXECUTION FAILED: ${err?.message || 'Server or network error'}.`,
+        `Context & Diagnostics:\n` +
+        `• Target: Ingestion Pipeline Trigger (/api/pipeline/trigger)\n` +
+        `• Failure Reason: ${err?.message || 'Network disconnected or endpoint returned HTTP error'}\n` +
+        `• Required Action: Ensure server process is active and valid administrative key is provided.`
       );
     } finally {
+
       setIsPipelineRefreshing(false);
     }
   };
@@ -515,6 +524,9 @@ export default function App() {
         onTriggerRefresh={handleTriggerRefresh}
         isRefreshing={isPipelineRefreshing}
         onClearLogs={() => setConsoleLogs([])}
+        warnings={warnings}
+        sources={sources}
+        addConsoleLog={addConsoleLog}
       />
     </div>
   );

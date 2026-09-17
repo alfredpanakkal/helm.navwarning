@@ -1,4 +1,4 @@
-export const LAST_UPDATED = import.meta.env.VITE_APP_BUILD_TIME || new Date().toISOString();
+export const LAST_UPDATED = ((import.meta as any).env?.VITE_APP_BUILD_TIME as string) || new Date().toISOString();
 
 /**
  * Formats an ISO string date into Indian Standard Time (Asia/Kolkata):

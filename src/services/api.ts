@@ -1,4 +1,11 @@
-import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from '../types';
+import {
+  NavWarning,
+  SourceRegistryItem,
+  IngestionGeneration,
+  RawArtifact,
+  PipelineSystemStatus,
+  PipelineRunRecord,
+} from '../types';
 
 export async function fetchSources(): Promise<SourceRegistryItem[]> {
   try {
@@ -50,6 +57,34 @@ export async function fetchArtifacts(): Promise<RawArtifact[]> {
   } catch (err) {
     console.warn('API fetchArtifacts error:', err);
     return [];
+  }
+}
+
+export async function fetchPipelineStatus(): Promise<PipelineSystemStatus> {
+  try {
+    const res = await fetch('/api/pipeline/status');
+    if (!res.ok) throw new Error('Failed to fetch pipeline status');
+    return await res.json();
+  } catch (err: any) {
+    return {
+      pipeline: 'UNAVAILABLE',
+      database: 'UNAVAILABLE',
+      sources_enabled_count: 0,
+      sources_total_count: 0,
+      last_run: null,
+      current_job: null,
+    };
+  }
+}
+
+export async function fetchLastPipelineRun(): Promise<PipelineRunRecord | null> {
+  try {
+    const res = await fetch('/api/pipeline/last');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.run || null;
+  } catch (err) {
+    return null;
   }
 }
 
@@ -119,8 +154,7 @@ function getAdminHeaders(): Record<string, string> {
 export async function triggerPipelineRefresh(sourceId?: string): Promise<{
   success: boolean;
   message: string;
-  newGenerationId?: string;
-  parsedCount?: number;
+  run?: PipelineRunRecord;
 }> {
   const res = await fetch('/api/pipeline/trigger', {
     method: 'POST',
