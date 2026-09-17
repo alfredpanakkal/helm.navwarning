@@ -311,7 +311,7 @@ CREATE TABLE IF NOT EXISTS public.sources_registry (
               </span>
             </div>
             <p className="text-xs text-gw-accent max-w-3xl leading-relaxed">
-              Verify server-side Gemini model connectivity (<code className="font-mono bg-zinc-100 px-1 rounded text-zinc-900">gemini-3.8-flash</code>) and test if the <code className="font-mono bg-zinc-100 px-1 rounded text-zinc-900">GEMINI_API_KEY</code> secret is operational.
+              Verify server-side Gemini model connectivity (<code className="font-mono bg-zinc-100 px-1 rounded text-zinc-900">gemini-2.5-flash-lite</code>) and test if the <code className="font-mono bg-zinc-100 px-1 rounded text-zinc-900">GEMINI_API_KEY</code> secret is operational.
             </p>
           </div>
 
@@ -336,7 +336,7 @@ CREATE TABLE IF NOT EXISTS public.sources_registry (
               <Terminal className="w-3.5 h-3.5 text-gw-accent" />
               <span>Diagnostic Test Prompt</span>
             </span>
-            <span className="text-[10px] font-normal text-gw-accent font-mono">Model: gemini-3.8-flash</span>
+            <span className="text-[10px] font-normal text-gw-accent font-mono">Model: gemini-2.5-flash-lite</span>
           </label>
           <div className="flex gap-2">
             <input
