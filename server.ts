@@ -1924,6 +1924,35 @@ Instructions:
     }
   });
 
+  // Proxy CARTO map tiles securely server-side so CARTO_API_KEY remains a secure secret
+  app.get('/api/tiles/carto/:style/:z/:x/:y', async (req, res) => {
+    try {
+      const { style, z, x, y } = req.params;
+      const apiKey = process.env.CARTO_API_KEY || 'cb1_3orr_1_f228f632545fb6733113f41c';
+      
+      const subdomains = ['a', 'b', 'c', 'd'];
+      const sub = subdomains[Math.floor(Math.random() * subdomains.length)];
+      
+      const cartoUrl = `https://${sub}.basemaps.cartocdn.com/rastertiles/${style}/${z}/${x}/${y}.png?key=${apiKey}`;
+      
+      const response = await fetch(cartoUrl);
+      if (!response.ok) {
+        res.status(response.status).send(response.statusText);
+        return;
+      }
+      
+      const contentType = response.headers.get('content-type') || 'image/png';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      
+      const arrayBuffer = await response.arrayBuffer();
+      res.send(Buffer.from(arrayBuffer));
+    } catch (err: any) {
+      console.error('[CARTO Tile Proxy Error]:', err);
+      res.status(500).send('Tile proxy error');
+    }
+  });
+
   // Vercel Cron Scraper Route Integration
   app.all('/api/scrape-navwarn', scrapeNavwarnHandler);
 

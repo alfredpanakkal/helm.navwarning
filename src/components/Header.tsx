@@ -7,7 +7,6 @@ interface HeaderProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   activeCount: number;
-  onOpenConsole?: () => void;
   isAdminMode: boolean;
   setIsAdminMode: (admin: boolean) => void;
 }
@@ -16,7 +15,6 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   activeCount,
-  onOpenConsole,
   isAdminMode,
   setIsAdminMode,
 }) => {
@@ -180,18 +178,6 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Lock className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Admin Access</span>
-              </button>
-            )}
-
-            {isAdminMode && onOpenConsole && (
-              <button
-                onClick={onOpenConsole}
-                aria-label="Open CLI console terminal"
-                title="Open Live Execution Terminal Console"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-zinc-900 text-emerald-400 font-mono font-bold text-xs uppercase tracking-wider rounded border border-emerald-500/50 hover:bg-black transition-all active:scale-95 min-h-[36px]"
-              >
-                <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden sm:inline">CLI Console</span>
               </button>
             )}
           </div>

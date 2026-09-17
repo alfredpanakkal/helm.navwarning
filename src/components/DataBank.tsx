@@ -50,7 +50,6 @@ interface DataBankProps {
   onCommitWarnings?: (newWarnings: NavWarning[]) => void;
   sources?: SourceRegistryItem[];
   isOfflineMode?: boolean;
-  onOpenConsole?: () => void;
   onNavigate?: (tab: any) => void;
 }
 
@@ -1679,7 +1678,6 @@ export const DataBank: React.FC<DataBankProps> = ({
             onCommitWarnings([newWarn]);
           }
         }}
-        onOpenConsole={onOpenConsole}
       />
     </div>
   );

@@ -12,7 +12,6 @@ import { GenerationInspectorView } from './components/GenerationInspectorView';
 import { EvidenceLockerView } from './components/EvidenceLockerView';
 import { SupabaseStatusView } from './components/SupabaseStatusView';
 import { WarningDetailModal } from './components/WarningDetailModal';
-import { PipelineConsoleModal, ConsoleLogEntry } from './components/PipelineConsoleModal';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from './types';
 import { ShieldCheck, RefreshCw } from 'lucide-react';
 import {
@@ -66,32 +65,6 @@ export default function App() {
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
-
-  // Terminal Console State
-  const [isConsoleOpen, setIsConsoleOpen] = useState(false);
-  const [consoleLogs, setConsoleLogs] = useState<ConsoleLogEntry[]>([
-    {
-      id: 'log-init',
-      timestamp: new Date().toLocaleTimeString(),
-      level: 'info',
-      message: 'NAVWARN CLI Pipeline Environment loaded. Ready for ingestion runs.',
-    },
-  ]);
-
-  const addConsoleLog = (
-    level: ConsoleLogEntry['level'],
-    message: string,
-    details?: any
-  ) => {
-    const newEntry: ConsoleLogEntry = {
-      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      timestamp: new Date().toLocaleTimeString(),
-      level,
-      message,
-      details,
-    };
-    setConsoleLogs((prev) => [...prev, newEntry]);
-  };
 
   const loadData = async () => {
     setIsLoadingData(true);
@@ -182,30 +155,9 @@ export default function App() {
   };
 
   const handleTriggerRefresh = async (sourceId?: string) => {
-    setIsConsoleOpen(true);
     setIsPipelineRefreshing(true);
-
-    addConsoleLog('cmd', `run ${sourceId || ''}`);
-    addConsoleLog('info', `Triggering pipeline ingestion for ${sourceId ? `source ${sourceId}` : 'all enabled sources'}...`);
-
     try {
-      const result = await triggerPipelineRefresh(sourceId);
-
-      // Render real events emitted by backend engine
-      if (result.run && Array.isArray(result.run.events)) {
-        for (const ev of result.run.events) {
-          const levelMap: Record<string, ConsoleLogEntry['level']> = {
-            FETCH: 'fetch',
-            PARSE: 'parser',
-            EXTRACT: 'parser',
-            CHECK: 'info',
-            SAVE: 'supabase',
-            DONE: 'success',
-            ERROR: 'error',
-          };
-          addConsoleLog(levelMap[ev.stage] || 'info', `[${ev.stage}] ${ev.message}`, ev.details);
-        }
-      }
+      await triggerPipelineRefresh(sourceId);
 
       // Reload updated collections from server
       const [apiSources, apiWarnings, apiGens, apiArts] = await Promise.all([
@@ -219,58 +171,9 @@ export default function App() {
       if (apiWarnings.length > 0) setWarnings(apiWarnings);
       if (apiGens.length > 0) setGenerations(apiGens);
       if (apiArts.length > 0) setArtifacts(apiArts);
-
-      if (result.run) {
-        // Collect all extracted NAV warning numbers across results
-        const allExtractedNavWarningNumbers = (result.results || [])
-          .flatMap((r: any) => r.parsed_warning_numbers || [])
-          .filter(Boolean);
-
-        const failedSourceResults = (result.results || []).filter((r: any) => r.status === 'failed');
-
-        if (failedSourceResults.length > 0) {
-          const failureDetails = failedSourceResults
-            .map((f: any) => `• Source [${f.source_id}] (${f.publisher_name || 'Authority'}): ${f.reason || 'Execution failed'}`)
-            .join('\n');
-
-          addConsoleLog(
-            'error',
-            `PIPELINE FAILURE DETECTED: ${failedSourceResults.length} source(s) failed during execution.`,
-            `DETAILED FAILURE DIAGNOSTICS:\n\n${failureDetails}\n\nTroubleshooting Instructions:\n1. Verify target source URL accessibility and SSL certificates.\n2. Confirm endpoint query parameters and payload format.\n3. Check server rate limits or network connectivity.`
-          );
-        }
-
-        const summaryMsg =
-          `PIPELINE RUN ${result.run.run_id} SUMMARY (${result.run.status})\n\n` +
-          `• Status             ${result.run.status}\n` +
-          `• Records Found      ${result.run.records_found}\n` +
-          `• Records Stored     ${result.run.records_stored}\n` +
-          `• Records Updated    ${result.run.records_updated}\n` +
-          `• Records Unchanged  ${result.run.records_unchanged}\n` +
-          `• Records Failed     ${result.run.records_failed}\n\n` +
-          `PARSED NAV WARNING NUMBER(S):\n` +
-          (allExtractedNavWarningNumbers.length > 0
-            ? Array.from(new Set(allExtractedNavWarningNumbers)).map((num: any) => `  - NAVWARN #${num}`).join('\n')
-            : `  (No NAV warning numbers extracted)`);
-
-        addConsoleLog(
-          result.run.status === 'SUCCESS' ? 'success' : result.run.status === 'PARTIAL' ? 'warn' : 'error',
-          summaryMsg
-        );
-      } else {
-        addConsoleLog('success', result.message || 'Pipeline execution completed.');
-      }
     } catch (err: any) {
-      addConsoleLog(
-        'error',
-        `PIPELINE EXECUTION FAILED: ${err?.message || 'Server or network error'}.`,
-        `Context & Diagnostics:\n` +
-        `• Target: Ingestion Pipeline Trigger (/api/pipeline/trigger)\n` +
-        `• Failure Reason: ${err?.message || 'Network disconnected or endpoint returned HTTP error'}\n` +
-        `• Required Action: Ensure server process is active and valid administrative key is provided.`
-      );
+      console.error('Pipeline trigger error:', err);
     } finally {
-
       setIsPipelineRefreshing(false);
     }
   };
@@ -344,7 +247,6 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         activeCount={activeCount}
-        onOpenConsole={() => setIsConsoleOpen(true)}
         isAdminMode={isAdminMode}
         setIsAdminMode={setIsAdminMode}
       />
@@ -411,7 +313,6 @@ export default function App() {
             onCommitWarnings={handleCommitWarnings}
             sources={sources}
             isOfflineMode={isOfflineMode}
-            onOpenConsole={() => setIsConsoleOpen(true)}
             onNavigate={(tab) => setActiveTab(tab)}
           />
         </div>
@@ -549,18 +450,7 @@ export default function App() {
         />
       )}
 
-      {/* CLI Pipeline Console Modal */}
-      <PipelineConsoleModal
-        isOpen={isConsoleOpen}
-        onClose={() => setIsConsoleOpen(false)}
-        logs={consoleLogs}
-        onTriggerRefresh={handleTriggerRefresh}
-        isRefreshing={isPipelineRefreshing}
-        onClearLogs={() => setConsoleLogs([])}
-        warnings={warnings}
-        sources={sources}
-        addConsoleLog={addConsoleLog}
-      />
+
     </div>
   );
 }

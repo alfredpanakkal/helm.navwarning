@@ -32,7 +32,6 @@ interface IngestionProcedureModalProps {
   onTriggerRefresh?: (sourceId?: string) => Promise<void>;
   isRefreshing?: boolean;
   onCommitWarning?: (warning: NavWarning) => void;
-  onOpenConsole?: () => void;
 }
 
 const SAMPLE_BULLETINS = [
@@ -84,7 +83,6 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
   onTriggerRefresh,
   isRefreshing = false,
   onCommitWarning,
-  onOpenConsole,
 }) => {
   const [activeTab, setActiveTab] = useState<'procedure' | 'simulator' | 'sources'>('procedure');
   const [simText, setSimText] = useState(SAMPLE_BULLETINS[0].text);
@@ -387,15 +385,6 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                     >
                       Test Parser Simulator
                     </button>
-                    {onOpenConsole && (
-                      <button
-                        onClick={onOpenConsole}
-                        className="px-3.5 py-2 bg-gw-primary text-white text-xs font-bold uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-tertiary transition-all flex items-center gap-1.5"
-                      >
-                        <Terminal className="w-3.5 h-3.5" />
-                        CLI Console
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
