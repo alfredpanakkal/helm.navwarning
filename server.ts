@@ -24,7 +24,8 @@ import {
   INITIAL_GENERATIONS,
   INITIAL_ARTIFACTS,
 } from './src/data/sourcesRegistry.js';
-import { parseCoordinatesDeterministic, parseWithFallback } from './src/utils/coordinateParser.js';
+import { parseCoordinatesDeterministic, parseWithFallback, NAVAREA_BOUNDS } from './src/utils/coordinateParser.js';
+import { parseMarkdownToWarnings } from './src/utils/markdownParser.js';
 import { fetchWithRetry } from './src/utils/fetchWithRetry.js';
 import { validateLLMOutput } from './src/schemas/navWarningSchema.js';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact, NavAreaId, PipelineEvent, PipelineRunRecord } from './src/types.js';
@@ -68,7 +69,6 @@ async function hydrateDatabaseFromSupabase(): Promise<void> {
     const { data: warningsData, error: wErr } = await client
       .from('nav_warnings')
       .select('*')
-      .order('issued_at', { ascending: false })
       .limit(2000);
 
     if (wErr) {
@@ -78,7 +78,86 @@ async function hydrateDatabaseFromSupabase(): Promise<void> {
 
     if (warningsData && warningsData.length > 0) {
       console.log(`[Data Pipeline] Successfully hydrated ${warningsData.length} live navigational warnings from Supabase!`);
-      warningsDb = warningsData as unknown as NavWarning[];
+      warningsDb = warningsData.map((w: any) => {
+        // Ensure spatial data is populated if direct lat/lng coordinates exist
+        let spatial = w.spatial;
+        if (
+          (!spatial || !spatial.geometries || spatial.geometries.length === 0) &&
+          w.latitude != null &&
+          w.longitude != null &&
+          !isNaN(Number(w.latitude)) &&
+          !isNaN(Number(w.longitude))
+        ) {
+          spatial = {
+            geometries: [
+              {
+                type: 'Point',
+                coordinates: [Number(w.longitude), Number(w.latitude)],
+                label: w.title || w.warning_id,
+              },
+            ],
+            circles: [],
+            raw_coordinate_text: [`${w.latitude}, ${w.longitude}`],
+            validation_status: 'passed',
+          };
+        }
+
+        return {
+          schema_version: 1,
+          warning_id: w.warning_id,
+          publisher_id: w.publisher_id || 'ccg-canada',
+          source_id: w.source_id || 'ccg-navareas-map',
+          navarea: w.navarea || 'XVII',
+          series: w.series || 'A',
+          source_warning_id: w.source_warning_id || w.warning_id,
+          warning_number: w.warning_number || w.warning_id,
+          warning_year: w.warning_year || new Date().getFullYear(),
+          issued_at: w.issued_at || w.issued_date || new Date().toISOString(),
+          issued_date: w.issued_date || (w.issued_at ? w.issued_at.slice(0, 10) : new Date().toISOString().slice(0, 10)),
+          issued_time_precision: 'day',
+          issued_text: w.issued_text || w.issued_date || '',
+          valid_from: w.valid_from || null,
+          valid_to: w.valid_until || w.valid_to || null,
+          cancelled_at: null,
+          status: w.status || 'active',
+          status_basis: w.status_basis || 'listed_in_complete_in_force_publication',
+          area_text: w.area_text || '',
+          original_language: 'en',
+          raw_text: w.raw_text || '',
+          translated_text: null,
+          spatial: spatial || {
+            geometries: [],
+            circles: [],
+            raw_coordinate_text: [],
+            validation_status: 'not_present',
+          },
+          supersedes: [],
+          cancels: [],
+          title: w.title || null,
+          authority: w.authority || 'Canadian Coast Guard',
+          latitude: w.latitude != null ? Number(w.latitude) : null,
+          longitude: w.longitude != null ? Number(w.longitude) : null,
+          valid_until: w.valid_until || null,
+          validity: w.validity || null,
+          charts: w.charts || null,
+          categories: w.categories || null,
+          web_link: w.web_link || null,
+          source_url: w.source_url || '',
+          raw_artifact_ref: '',
+          content_hash: '',
+          parser_version: 'v2.0',
+          extraction_method: (w.extraction_method as any) || 'deterministic',
+          first_seen_at: w.created_at || new Date().toISOString(),
+          last_seen_at: w.updated_at || new Date().toISOString(),
+          not_in_force_observed_at: null,
+          generation_id: w.generation_id || 'gen-auto',
+          validation: {
+            identity: 'valid',
+            dates: 'valid',
+            geometry: spatial?.geometries?.length ? 'valid' : 'pending',
+          },
+        } as NavWarning;
+      });
     }
 
     const { data: sourcesData } = await client.from('source_registry').select('*');
@@ -176,10 +255,26 @@ const getGeminiClient = () => {
   });
 };
 
+function normalizeGeminiModel(requestedModel?: string): string {
+  if (!requestedModel) return 'gemini-3.1-flash-lite';
+  const clean = requestedModel.replace(/^models\//, '').trim();
+  // Map deprecated 2.5, 2.0, 1.5, or obsolete model names to modern supported model
+  if (
+    clean.includes('2.5') ||
+    clean.includes('2.0') ||
+    clean.includes('1.5') ||
+    clean === 'gemini-pro'
+  ) {
+    return 'gemini-3.1-flash-lite';
+  }
+  return clean;
+}
+
 async function generateContentWithRetry(ai: any, prompt: string, model: string, schema?: any) {
+  let targetModel = normalizeGeminiModel(model);
   let attempt = 0;
   const maxRetries = 1;
-  const delayMs = 2000; // 2 seconds per retry to respect Vercel/Serverless timeout limits
+  const delayMs = 1500;
 
   while (attempt <= maxRetries) {
     try {
@@ -190,16 +285,29 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
       }
 
       const response = await ai.models.generateContent({
-        model: model,
+        model: targetModel,
         contents: prompt,
         config: config
       });
       return response;
     } catch (err: any) {
-      const is503 = err?.status === 503 || err?.message?.includes('503') || err?.message?.includes('High demand') || err?.message?.includes('UNAVAILABLE');
+      const is503 = err?.status === 503 || err?.message?.includes('503') || err?.message?.includes('high demand') || err?.message?.includes('UNAVAILABLE');
+      const is404 = err?.status === 404 || err?.message?.includes('404') || err?.message?.includes('no longer available') || err?.message?.includes('NOT_FOUND');
+
+      if (is404 && targetModel !== 'gemini-3.1-flash-lite') {
+        console.warn(`[Gemini API] Model ${targetModel} unavailable (${err?.message || '404'}). Falling back to gemini-3.1-flash-lite.`);
+        targetModel = 'gemini-3.1-flash-lite';
+        continue;
+      }
+
       if (attempt < maxRetries && is503) {
-        console.warn(`[Gemini API] 503 Unavailable. Retrying in ${delayMs / 1000}s... (Attempt ${attempt + 1}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        if (targetModel !== 'gemini-3.1-flash-lite') {
+          console.warn(`[Gemini API] 503 high demand on ${targetModel}. Retrying with gemini-3.1-flash-lite...`);
+          targetModel = 'gemini-3.1-flash-lite';
+        } else {
+          console.warn(`[Gemini API] 503 Unavailable. Retrying in ${delayMs / 1000}s... (Attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
         attempt++;
       } else {
         throw err;
@@ -595,7 +703,7 @@ ${rawPayloadText.slice(0, 2500)}
                   const response = await generateContentWithRetry(
                     ai, 
                     prompt, 
-                    'gemini-2.5-flash-lite', 
+                    'gemini-3.1-flash-lite', 
                     schema
                   );
 
@@ -702,7 +810,7 @@ ${rawPayloadText.slice(0, 2500)}
                 source_url: src.discovery_url,
                 raw_artifact_ref: artifactPath,
                 content_hash: hash,
-                parser_version: extractionMethod === 'llm_assisted' ? 'gemini-2.5-flash-lite-v1' : 'deterministic-v1',
+                parser_version: extractionMethod === 'llm_assisted' ? 'gemini-3.1-flash-lite-v1' : 'deterministic-v1',
                 extraction_method: extractionMethod,
                 extraction_confidence: extractionMethod === 'llm_assisted' ? 0.92 : 0.95,
                 first_seen_at: timestampIso,
@@ -903,6 +1011,654 @@ ${rawPayloadText.slice(0, 2500)}
     }
   });
 
+  // Save specific warnings to Supabase (from Markdown, CSV, or manual paste)
+  app.post('/api/supabase/save-warnings', async (req, res) => {
+    try {
+      const client = getSupabaseClient();
+      const rawWarnings = req.body?.warnings;
+      if (!Array.isArray(rawWarnings) || rawWarnings.length === 0) {
+        return res.status(400).json({ error: 'warnings array is required and must not be empty' });
+      }
+
+      if (!client) {
+        return res.status(400).json({
+          error: 'Supabase is not configured on the server. Please check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY.',
+        });
+      }
+
+      const rowsToUpsert = rawWarnings.map((w: any) => {
+        const warningId = String(w.source_warning_id || w.warning_number || w.warning_id || '').trim();
+        const sourceId = String(w.source_id || 'manual-markdown-import').trim();
+        
+        let directLat: number | null = w.latitude != null && !isNaN(Number(w.latitude)) ? Number(w.latitude) : null;
+        let directLng: number | null = w.longitude != null && !isNaN(Number(w.longitude)) ? Number(w.longitude) : null;
+
+        if (directLat == null && w.spatial?.geometries?.length > 0) {
+          const pt = w.spatial.geometries[0];
+          if (pt.type === 'Point' && Array.isArray(pt.coordinates) && pt.coordinates.length >= 2) {
+            directLng = Number(pt.coordinates[0]);
+            directLat = Number(pt.coordinates[1]);
+          }
+        }
+
+        return {
+          source_id: sourceId,
+          warning_id: warningId,
+          title: w.title ? String(w.title).trim() : null,
+          raw_text: String(w.raw_text || '').trim(),
+          issued_date: w.issued_date || new Date().toISOString().slice(0, 10),
+          navarea: String(w.navarea || 'IV').trim(),
+          area_text: w.area_text ? String(w.area_text).trim() : null,
+          sub_area: w.sub_area ? String(w.sub_area).trim() : null,
+          authority: w.authority ? String(w.authority).trim() : null,
+          source_url: w.source_url || w.web_link || null,
+          risk_level: w.risk_level || null,
+          extraction_method: w.extraction_method || 'deterministic',
+          generation_id: w.generation_id || `gen-md-${Date.now()}`,
+          issued_text: w.issued_text || w.issued_date || null,
+          latitude: directLat,
+          longitude: directLng,
+          valid_until: w.valid_until || w.valid_to || null,
+          validity: w.validity || null,
+          charts: w.charts ? String(w.charts).trim() : null,
+          categories: w.categories ? String(w.categories).trim() : null,
+          web_link: w.web_link || w.source_url || null,
+        };
+      });
+
+      // Deduplicate rows within the batch
+      const dedupeMap = new Map<string, typeof rowsToUpsert[0]>();
+      for (const row of rowsToUpsert) {
+        const key = `${row.source_id}:::${row.warning_id.toLowerCase()}`;
+        if (!dedupeMap.has(key)) {
+          dedupeMap.set(key, row);
+        }
+      }
+      const uniqueRows = Array.from(dedupeMap.values());
+
+      // Batch in chunks of 100
+      const BATCH_SIZE = 100;
+      let totalSaved = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < uniqueRows.length; i += BATCH_SIZE) {
+        const chunk = uniqueRows.slice(i, i + BATCH_SIZE);
+        
+        let { error } = await client
+          .from('nav_warnings')
+          .upsert(chunk, { onConflict: 'source_id,warning_id' });
+
+        if (error && error.message.includes('conflict')) {
+          const fallbackRes = await client
+            .from('nav_warnings')
+            .upsert(chunk, { onConflict: 'warning_id' });
+          error = fallbackRes.error;
+        }
+
+        if (error) {
+          console.warn(`[Supabase Save Batch Error]:`, error.message);
+          errors.push(error.message);
+        } else {
+          totalSaved += chunk.length;
+        }
+      }
+
+      // Also merge saved warnings into in-memory server database so all views see them instantly
+      for (const rawW of rawWarnings) {
+        const existsIdx = warningsDb.findIndex(
+          (item) => item.source_id === rawW.source_id && (item.source_warning_id === rawW.source_warning_id || item.warning_id === rawW.warning_id)
+        );
+        if (existsIdx >= 0) {
+          warningsDb[existsIdx] = { ...warningsDb[existsIdx], ...rawW };
+        } else {
+          warningsDb.unshift(rawW);
+        }
+      }
+
+      res.json({
+        success: totalSaved > 0 || uniqueRows.length === 0,
+        savedCount: totalSaved,
+        total: uniqueRows.length,
+        errors: errors.length > 0 ? errors : undefined,
+      });
+    } catch (err: any) {
+      console.error('[Supabase Save Warnings Error]', err);
+      res.status(500).json({ error: err.message || 'Failed to save warnings to Supabase' });
+    }
+  });
+
+  // Parse Markdown endpoint using deterministic parser or Gemini AI
+  app.post('/api/pipeline/parse-markdown', async (req, res) => {
+    try {
+      const { markdown, navarea = 'AUTO', aiModel = 'gemini-3.1-flash-lite' } = req.body;
+      if (!markdown || typeof markdown !== 'string') {
+        return res.status(400).json({ error: 'markdown string is required' });
+      }
+
+      // 1. Run deterministic markdown parser
+      const deterministicWarnings = parseMarkdownToWarnings(markdown, navarea as any);
+
+      // 2. If Gemini AI is configured, try enhanced multi-item extraction
+      const ai = getGeminiClient();
+      if (ai) {
+        try {
+          const prompt = `Analyze this Markdown document containing maritime navigational warnings. Extract each distinct navigational warning into structured items.
+Markdown text:
+"""
+${markdown.slice(0, 8000)}
+"""
+
+Instructions:
+1. Extract warning_id (e.g. "NAVAREA XVII 90/2026", "145/26", "0456/26"), navarea (e.g. "I", "IV", "XVII", "XVIII", "XIX", "Baltic"), title, area_text, issued_date (YYYY-MM-DD), status ("active" or "cancelled"), cancels (array of IDs), charts, authority, latitude (decimal number), longitude (decimal number), and clean description raw_text.
+2. Return an array of extracted warnings.`;
+
+          const schema = {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                warning_id: { type: Type.STRING },
+                navarea: { type: Type.STRING },
+                title: { type: Type.STRING },
+                area_text: { type: Type.STRING },
+                issued_date: { type: Type.STRING },
+                status: { type: Type.STRING },
+                cancels: { type: Type.ARRAY, items: { type: Type.STRING } },
+                charts: { type: Type.STRING },
+                authority: { type: Type.STRING },
+                latitude: { type: Type.NUMBER },
+                longitude: { type: Type.NUMBER },
+                raw_text: { type: Type.STRING },
+              },
+              required: ['warning_id', 'raw_text'],
+            },
+          };
+
+          const response = await generateContentWithRetry(ai, prompt, aiModel, schema);
+          if (response.text) {
+            const aiParsed = JSON.parse(response.text);
+            if (Array.isArray(aiParsed) && aiParsed.length > 0) {
+              const now = new Date().toISOString();
+              const mergedWarnings = aiParsed.map((item: any, idx: number) => {
+                const effectiveNavArea = (item.navarea || navarea || 'IV').replace(/NAVAREA\s+/i, '').trim();
+                const lat = item.latitude != null && !isNaN(Number(item.latitude)) ? Number(item.latitude) : null;
+                const lng = item.longitude != null && !isNaN(Number(item.longitude)) ? Number(item.longitude) : null;
+
+                const spatial = lat != null && lng != null ? {
+                  geometries: [{
+                    type: 'Point',
+                    coordinates: [lng, lat],
+                    label: item.title || item.warning_id,
+                  }],
+                  circles: [],
+                  raw_coordinate_text: [`${lat}, ${lng}`],
+                  validation_status: 'passed' as const,
+                } : {
+                  geometries: [],
+                  circles: [],
+                  raw_coordinate_text: [],
+                  validation_status: 'not_present' as const,
+                };
+
+                const isCanada = effectiveNavArea === 'XVII' || effectiveNavArea === 'XVIII';
+
+                return {
+                  schema_version: 1,
+                  warning_id: `warn-ai-${effectiveNavArea}-${Date.now()}-${idx}`,
+                  publisher_id: isCanada ? 'ccg-canada' : 'ai-markdown-parser',
+                  source_id: isCanada ? 'ccg-navareas-map' : 'markdown-import',
+                  navarea: effectiveNavArea as any,
+                  series: `NAVAREA ${effectiveNavArea}`,
+                  source_warning_id: item.warning_id,
+                  warning_number: item.warning_id,
+                  warning_year: new Date().getFullYear(),
+                  issued_at: now,
+                  issued_date: item.issued_date || now.slice(0, 10),
+                  issued_time_precision: 'day',
+                  issued_text: item.issued_date || now.slice(0, 10),
+                  valid_from: now,
+                  valid_to: null,
+                  cancelled_at: null,
+                  status: (item.status === 'cancelled' ? 'cancelled' : 'active') as any,
+                  status_basis: 'manual_user_override',
+                  area_text: item.area_text || item.title || `NAVAREA ${effectiveNavArea}`,
+                  original_language: 'en',
+                  raw_text: item.raw_text,
+                  translated_text: null,
+                  spatial,
+                  supersedes: [],
+                  cancels: item.cancels || [],
+                  title: item.title || null,
+                  authority: item.authority || (isCanada ? 'Canadian Coast Guard' : 'Maritime Safety Authority'),
+                  latitude: lat,
+                  longitude: lng,
+                  charts: item.charts || null,
+                  validity: item.status || null,
+                  source_url: 'Markdown Paste',
+                  raw_artifact_ref: `ai-md-${idx}`,
+                  content_hash: `ai-md-${Date.now()}-${idx}`,
+                  parser_version: 'gemini-ai-v1',
+                  extraction_method: 'llm_assisted',
+                  extraction_confidence: 0.98,
+                  first_seen_at: now,
+                  last_seen_at: now,
+                  not_in_force_observed_at: null,
+                  generation_id: `gen-ai-md-${Date.now()}`,
+                  validation: {
+                    identity: 'passed',
+                    dates: 'passed',
+                    geometry: spatial.validation_status,
+                  },
+                } as NavWarning;
+              });
+
+              return res.json({
+                warnings: mergedWarnings,
+                engine: 'gemini_ai',
+                count: mergedWarnings.length,
+              });
+            }
+          }
+        } catch (aiErr) {
+          console.warn('[Gemini Markdown Parse Error, using deterministic results]:', aiErr);
+        }
+      }
+
+      res.json({
+        warnings: deterministicWarnings,
+        engine: 'deterministic',
+        count: deterministicWarnings.length,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to parse markdown' });
+    }
+  });
+
+  // AI-Powered Bulk Ingestion & NAVAREA Importer (Gemini Understanding or Rejecting)
+  app.post('/api/pipeline/bulk-ingest-ai', async (req, res) => {
+    try {
+      const { rawText, navarea = 'AUTO', aiModel = 'gemini-3.1-flash-lite', strictness = 'standard' } = req.body;
+      if (!rawText || typeof rawText !== 'string' || !rawText.trim()) {
+        return res.status(400).json({ error: 'rawText string is required' });
+      }
+
+      const ai = getGeminiClient();
+      if (!ai) {
+        return res.status(400).json({
+          error: 'GEMINI_API_KEY is not configured on the server. Please ensure GEMINI_API_KEY is configured in Settings > Secrets.',
+        });
+      }
+
+      const startTime = Date.now();
+
+      const prompt = `You are a certified Maritime Safety Information (MSI) AI validator and ingest engine for the World-Wide Navigational Warning Service (WWNWS / IMO / IHO).
+Inspect and evaluate the following incoming bulk data stream (which may contain multiple navigational warnings, table dumps, bulleted notices, web scraped fragments, or non-maritime noise).
+
+BULK DATA STREAM:
+"""
+${rawText.slice(0, 14000)}
+"""
+
+Target NAVAREA hint: ${navarea || 'AUTO'}
+Strictness mode: ${strictness}
+
+CRITICAL RULES:
+1. Break down the stream into every distinct notice or block of text.
+2. For each candidate item, UNDERSTAND and ACCEPT valid navigational safety warnings, or REJECT items that are invalid, non-maritime, corrupted, or severely out of bounds.
+3. ACCEPTED:
+   - Must represent an authentic maritime navigational safety warning (e.g., aids to navigation, racon/beacon outage, firing practice, rocket launch fallout, drifting hazard, shoal/depth, seismic survey, cable work, SAR operation, in-force bulletin list).
+   - Set decision: "ACCEPTED".
+   - Set rejection_code: "NONE", rejection_reason: "".
+   - Provide a clear 1-sentence understanding_summary describing the exact nature of the hazard.
+   - Extract: warning_id (e.g., "NAVAREA XVII 90/2026"), navarea (e.g., "XVII", "IV", "I", "XVIII", "Baltic"), warning_number, warning_year, title, area_text (sub-area description), issued_date (YYYY-MM-DD), authority, charts, cancels (array of string IDs), hazard_category, risk_level ("critical", "high", "medium", "low", "info").
+   - Extract latitude and longitude in decimal degrees (e.g. 69.6233, -135.4883) if coordinates or bounding positions exist. If general in-force list or non-localized, leave null.
+4. REJECTED:
+   - Reject items that are not maritime navigational warnings (e.g. website headers, footers, cookie disclaimers, login buttons, privacy policies, unrelated articles, spam). Set rejection_code: "NON_MARITIME".
+   - Reject unparseable gibberish, binary garbage, or corrupted entries. Set rejection_code: "CORRUPT_DATA".
+   - Reject severe coordinate anomalies (e.g. latitude outside -90 to +90, or coordinates located deep inland in landlocked desert/mountains away from navigable waters). Set rejection_code: "OUT_OF_BOUNDS".
+   - Reject entries with zero actionable or intelligible navigational content. Set rejection_code: "MISSING_CRITICAL_INFO".
+   - For all rejected items, set decision: "REJECTED", and explain WHY in rejection_reason.
+5. NEEDS_REVIEW:
+   - For maritime notices that have contradictory coordinates or ambiguous date ranges, set decision: "NEEDS_REVIEW" and detail the ambiguity in rejection_reason.`;
+
+      const schema = {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            raw_snippet: { type: Type.STRING },
+            decision: { type: Type.STRING, enum: ['ACCEPTED', 'REJECTED', 'NEEDS_REVIEW'] },
+            confidence: { type: Type.NUMBER },
+            understanding_summary: { type: Type.STRING },
+            rejection_code: {
+              type: Type.STRING,
+              enum: ['NONE', 'NON_MARITIME', 'CORRUPT_DATA', 'OUT_OF_BOUNDS', 'MISSING_CRITICAL_INFO', 'EXPIRED_OR_STALE', 'DUPLICATE', 'OTHER'],
+            },
+            rejection_reason: { type: Type.STRING },
+            hazard_category: { type: Type.STRING },
+            risk_level: { type: Type.STRING, enum: ['critical', 'high', 'medium', 'low', 'info'] },
+            warning_id: { type: Type.STRING },
+            navarea: { type: Type.STRING },
+            warning_number: { type: Type.STRING },
+            warning_year: { type: Type.INTEGER },
+            title: { type: Type.STRING },
+            area_text: { type: Type.STRING },
+            issued_date: { type: Type.STRING },
+            valid_until: { type: Type.STRING },
+            authority: { type: Type.STRING },
+            charts: { type: Type.STRING },
+            cancels: { type: Type.ARRAY, items: { type: Type.STRING } },
+            latitude: { type: Type.NUMBER },
+            longitude: { type: Type.NUMBER },
+            coordinate_sanity: { type: Type.STRING, enum: ['valid', 'suspicious', 'missing'] },
+          },
+          required: ['decision', 'understanding_summary', 'rejection_code'],
+        },
+      };
+
+      const response = await generateContentWithRetry(ai, prompt, aiModel, schema);
+      if (!response.text) {
+        throw new Error('No content returned from Gemini model');
+      }
+
+      const items = JSON.parse(response.text);
+      const now = new Date();
+      const nowIso = now.toISOString();
+      const generationId = `gen-bulk-ai-${Date.now()}`;
+
+      const acceptedWarnings: NavWarning[] = [];
+      const rejectedItems: any[] = [];
+      let needsReviewCount = 0;
+
+      items.forEach((item: any, idx: number) => {
+        const decision = (item.decision || 'ACCEPTED').toUpperCase();
+
+        if (decision === 'REJECTED') {
+          rejectedItems.push({
+            id: `rej-${Date.now()}-${idx}`,
+            raw_snippet: item.raw_snippet || item.understanding_summary || `Item #${idx + 1}`,
+            decision: 'REJECTED',
+            confidence: typeof item.confidence === 'number' ? item.confidence : 0.9,
+            understanding_summary: item.understanding_summary || 'Rejected by Gemini AI safety filter',
+            rejection_code: item.rejection_code || 'OTHER',
+            rejection_reason: item.rejection_reason || 'Does not qualify as a valid maritime navigational warning.',
+            warning_id: item.warning_id || null,
+            navarea: item.navarea || null,
+            hazard_category: item.hazard_category || null,
+            timestamp: nowIso,
+          });
+          return;
+        }
+
+        if (decision === 'NEEDS_REVIEW') {
+          needsReviewCount++;
+        }
+
+        // Clean NAVAREA
+        let effectiveNavArea = (item.navarea || navarea || 'IV')
+          .replace(/NAVAREA\s+/i, '')
+          .trim();
+        if (effectiveNavArea === 'AUTO' || !effectiveNavArea) {
+          effectiveNavArea = navarea !== 'AUTO' ? navarea : 'IV';
+        }
+
+        // Coordinates
+        let lat = typeof item.latitude === 'number' && !isNaN(item.latitude) ? item.latitude : null;
+        let lng = typeof item.longitude === 'number' && !isNaN(item.longitude) ? item.longitude : null;
+
+        // Fallback to deterministic regex parsing if Gemini didn't return lat/lng
+        let spatial: any;
+        if (lat != null && lng != null) {
+          // Check bounds
+          const bounds = (NAVAREA_BOUNDS as any)[effectiveNavArea];
+          let validationStatus: 'passed' | 'out_of_bounds' | 'not_present' = 'passed';
+          if (bounds) {
+            if (lat < bounds.minLat || lat > bounds.maxLat || lng < bounds.minLng || lng > bounds.maxLng) {
+              validationStatus = 'out_of_bounds';
+            }
+          }
+          spatial = {
+            geometries: [{
+              type: 'Point',
+              coordinates: [lng, lat],
+              label: item.title || item.warning_id || `Hazard Point`,
+            }],
+            circles: [],
+            raw_coordinate_text: [`${lat}, ${lng}`],
+            validation_status: validationStatus,
+          };
+        } else {
+          // Try deterministic regex on snippet or title
+          const det = parseCoordinatesDeterministic(item.raw_snippet || item.title || '', effectiveNavArea as any);
+          if (det.geometries.length > 0) {
+            spatial = det;
+            lat = det.geometries[0].coordinates[1] as number;
+            lng = det.geometries[0].coordinates[0] as number;
+          } else {
+            spatial = {
+              geometries: [],
+              circles: [],
+              raw_coordinate_text: [],
+              validation_status: 'not_present' as const,
+            };
+          }
+        }
+
+        const isCanada = effectiveNavArea === 'XVII' || effectiveNavArea === 'XVIII';
+        const warningNum = item.warning_number || (item.warning_id ? String(item.warning_id).replace(/.*\s+/, '') : `AI-${idx + 1}`);
+        const warningYr = item.warning_year || now.getFullYear();
+
+        const warn: NavWarning = {
+          schema_version: 1,
+          warning_id: `warn-ai-${effectiveNavArea}-${warningYr}-${idx}-${Date.now().toString().slice(-6)}`,
+          publisher_id: isCanada ? 'ccg-canada' : 'bulk-ai-importer',
+          source_id: isCanada ? `ccg-navarea-${effectiveNavArea.toLowerCase()}` : 'bulk-ai-import',
+          navarea: effectiveNavArea as any,
+          series: `NAVAREA ${effectiveNavArea}`,
+          source_warning_id: item.warning_id || `${warningNum}/${warningYr}`,
+          warning_number: String(warningNum),
+          warning_year: warningYr,
+          issued_at: nowIso,
+          issued_date: item.issued_date || nowIso.slice(0, 10),
+          issued_time_precision: 'day',
+          issued_text: item.issued_date || nowIso.slice(0, 10),
+          valid_from: nowIso,
+          valid_to: item.valid_until || null,
+          cancelled_at: null,
+          status: 'active',
+          status_basis: 'manual_user_override',
+          area_text: item.area_text || item.title || `NAVAREA ${effectiveNavArea} Notice`,
+          original_language: 'en',
+          raw_text: item.raw_snippet || item.understanding_summary || `NAVAREA ${effectiveNavArea} ${warningNum}/${warningYr}`,
+          translated_text: null,
+          spatial,
+          supersedes: [],
+          cancels: item.cancels || [],
+          title: item.title || item.warning_id || null,
+          authority: item.authority || (isCanada ? 'Canadian Coast Guard' : 'Maritime Safety Authority'),
+          sub_area: item.area_text || null,
+          risk_level: item.risk_level || 'medium',
+          latitude: lat,
+          longitude: lng,
+          valid_until: item.valid_until || null,
+          charts: item.charts || null,
+          source_url: 'AI Bulk Importer',
+          raw_artifact_ref: `bulk-ai-snippet-${idx + 1}`,
+          content_hash: crypto.createHash('sha256').update(item.raw_snippet || `${idx}`).digest('hex').slice(0, 16),
+          parser_version: 'gemini-bulk-v1',
+          extraction_method: 'llm_assisted',
+          extraction_confidence: typeof item.confidence === 'number' ? item.confidence : 0.95,
+          first_seen_at: nowIso,
+          last_seen_at: nowIso,
+          not_in_force_observed_at: null,
+          generation_id: generationId,
+          validation: {
+            identity: 'passed',
+            dates: 'passed',
+            geometry: spatial.validation_status,
+          },
+          ai_triage: {
+            decision: decision as any,
+            confidence: typeof item.confidence === 'number' ? item.confidence : 0.95,
+            understanding_summary: item.understanding_summary,
+            rejection_code: item.rejection_code || 'NONE',
+            rejection_reason: item.rejection_reason || undefined,
+            hazard_category: item.hazard_category || 'General Navigational Warning',
+            risk_level: item.risk_level || 'medium',
+            coordinate_sanity: spatial.validation_status === 'passed' ? 'valid' : spatial.validation_status === 'out_of_bounds' ? 'suspicious' : 'missing',
+            original_snippet: item.raw_snippet,
+            reviewed_at: nowIso,
+          },
+        };
+
+        acceptedWarnings.push(warn);
+      });
+
+      const durationMs = Date.now() - startTime;
+
+      res.json({
+        success: true,
+        acceptedWarnings,
+        rejectedItems,
+        allEvaluations: items,
+        stats: {
+          total: items.length,
+          accepted: acceptedWarnings.length - needsReviewCount,
+          rejected: rejectedItems.length,
+          needsReview: needsReviewCount,
+          gpsCount: acceptedWarnings.filter(w => w.latitude != null && w.longitude != null).length,
+        },
+        aiModelUsed: aiModel,
+        duration_ms: durationMs,
+      });
+    } catch (err: any) {
+      console.error('[Bulk Ingest AI Error]', err);
+      res.status(500).json({ error: err.message || 'Failed to process bulk data with Gemini' });
+    }
+  });
+
+  // AI-Powered Batch Audit & Triage Endpoint
+  app.post('/api/pipeline/bulk-audit-ai', async (req, res) => {
+    try {
+      const { warnings = [], aiModel = 'gemini-3.1-flash-lite' } = req.body;
+      if (!Array.isArray(warnings) || warnings.length === 0) {
+        return res.status(400).json({ error: 'warnings array is required and must not be empty' });
+      }
+
+      const ai = getGeminiClient();
+      if (!ai) {
+        return res.status(400).json({
+          error: 'GEMINI_API_KEY is not configured. Please set GEMINI_API_KEY in Settings > Secrets.',
+        });
+      }
+
+      const startTime = Date.now();
+      const batchToAudit = warnings.slice(0, 40);
+
+      const auditSummaryList = batchToAudit.map((w, idx) => ({
+        index: idx,
+        id: w.source_warning_id || w.warning_id,
+        navarea: w.navarea,
+        title: w.title || w.area_text,
+        lat: w.latitude != null ? w.latitude : w.spatial?.geometries?.[0]?.coordinates?.[1] || null,
+        lng: w.longitude != null ? w.longitude : w.spatial?.geometries?.[0]?.coordinates?.[0] || null,
+        text_preview: (w.raw_text || '').slice(0, 300),
+      }));
+
+      const prompt = `You are a certified Maritime Safety Information (MSI) validator.
+Audit the following staged navigational warnings. For each warning, evaluate if it is a genuine maritime navigational warning, check coordinate sanity and NAVAREA consistency, and provide your understanding or rejection decision.
+
+Warnings to audit:
+${JSON.stringify(auditSummaryList, null, 2)}
+
+Instructions:
+1. For each item (by index):
+   - decision: "ACCEPTED", "REJECTED", or "NEEDS_REVIEW".
+   - rejection_code: "NONE", "NON_MARITIME", "CORRUPT_DATA", "OUT_OF_BOUNDS", "MISSING_CRITICAL_INFO", "EXPIRED_OR_STALE", "DUPLICATE", or "OTHER".
+   - rejection_reason: Explain if rejected or needs review.
+   - understanding_summary: 1 concise sentence summarizing what the notice states.
+   - hazard_category: category (e.g. Aids to Navigation, Firing, Rocket, Drifting, Cable, General).
+   - risk_level: "critical", "high", "medium", "low", or "info".
+   - coordinate_sanity: "valid", "suspicious", or "missing".
+   - confidence: 0.0 to 1.0.`;
+
+      const schema = {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            index: { type: Type.INTEGER },
+            decision: { type: Type.STRING, enum: ['ACCEPTED', 'REJECTED', 'NEEDS_REVIEW'] },
+            confidence: { type: Type.NUMBER },
+            understanding_summary: { type: Type.STRING },
+            rejection_code: { type: Type.STRING },
+            rejection_reason: { type: Type.STRING },
+            hazard_category: { type: Type.STRING },
+            risk_level: { type: Type.STRING, enum: ['critical', 'high', 'medium', 'low', 'info'] },
+            coordinate_sanity: { type: Type.STRING, enum: ['valid', 'suspicious', 'missing'] },
+          },
+          required: ['index', 'decision', 'understanding_summary'],
+        },
+      };
+
+      const response = await generateContentWithRetry(ai, prompt, aiModel, schema);
+      const auditResults = response.text ? JSON.parse(response.text) : [];
+
+      const auditMap = new Map<number, any>();
+      auditResults.forEach((r: any) => {
+        if (typeof r.index === 'number') {
+          auditMap.set(r.index, r);
+        }
+      });
+
+      const nowIso = new Date().toISOString();
+      let accepted = 0;
+      let rejected = 0;
+      let needsReview = 0;
+
+      const auditedWarnings = warnings.map((warn, idx) => {
+        const triage = auditMap.get(idx);
+        if (!triage) return warn;
+
+        const dec = triage.decision || 'ACCEPTED';
+        if (dec === 'ACCEPTED') accepted++;
+        else if (dec === 'REJECTED') rejected++;
+        else needsReview++;
+
+        return {
+          ...warn,
+          ai_triage: {
+            decision: dec,
+            confidence: triage.confidence || 0.95,
+            understanding_summary: triage.understanding_summary || 'Verified maritime warning',
+            rejection_code: triage.rejection_code || (dec === 'ACCEPTED' ? 'NONE' : 'OTHER'),
+            rejection_reason: triage.rejection_reason || undefined,
+            hazard_category: triage.hazard_category || warn.categories || 'General Notice',
+            risk_level: triage.risk_level || warn.risk_level || 'medium',
+            coordinate_sanity: triage.coordinate_sanity || 'valid',
+            reviewed_at: nowIso,
+          },
+        };
+      });
+
+      res.json({
+        success: true,
+        auditedWarnings,
+        stats: {
+          total: auditedWarnings.length,
+          accepted,
+          rejected,
+          needsReview,
+        },
+        aiModelUsed: aiModel,
+        duration_ms: Date.now() - startTime,
+      });
+    } catch (err: any) {
+      console.error('[Bulk Audit AI Error]', err);
+      res.status(500).json({ error: err.message || 'Failed to audit batch with Gemini' });
+    }
+  });
+
   // Gemini Integration Diagnostic & Test Key Endpoint (Admin Protected)
   app.post('/api/admin/test-gemini', requireAdminAuth, async (req, res) => {
     try {
@@ -930,7 +1686,7 @@ ${rawPayloadText.slice(0, 2500)}
           : "System verification: confirm 'Gemini API operational check passed' and state current system readiness in 1 short sentence.";
 
       const startTime = Date.now();
-      const response = await generateContentWithRetry(ai, userPrompt, 'gemini-2.5-flash-lite');
+      const response = await generateContentWithRetry(ai, userPrompt, 'gemini-3.1-flash-lite');
 
       const durationMs = Date.now() - startTime;
       const responseText = response.text || 'No text content returned from Gemini model.';
@@ -938,7 +1694,7 @@ ${rawPayloadText.slice(0, 2500)}
       res.json({
         success: true,
         hasKey: true,
-        model: 'gemini-2.5-flash-lite',
+        model: 'gemini-3.1-flash-lite',
         latency_ms: durationMs,
         response: responseText,
         prompt_used: userPrompt,
@@ -958,7 +1714,7 @@ ${rawPayloadText.slice(0, 2500)}
   // Parse manual text using Gemini server-side, deterministic regex, or hybrid mode
   app.post('/api/pipeline/parse-manual', requireAdminAuth, async (req, res) => {
     try {
-      const { rawText, navarea = 'I', mode = 'hybrid', aiModel = 'gemini-2.5-flash-lite' } = req.body;
+      const { rawText, navarea = 'I', mode = 'hybrid', aiModel = 'gemini-3.1-flash-lite' } = req.body;
       if (!rawText || typeof rawText !== 'string') {
         return res.status(400).json({ error: 'rawText string is required' });
       }

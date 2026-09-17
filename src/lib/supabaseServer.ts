@@ -104,29 +104,57 @@ export async function syncWarningsToSupabase(warnings: NavWarning[]): Promise<{ 
   if (warnings.length === 0) return { success: true };
 
   try {
-    const payload = warnings.map((w) => ({
-      warning_id: w.warning_id,
-      publisher_id: w.publisher_id,
-      source_id: w.source_id,
-      navarea: w.navarea,
-      source_warning_id: w.source_warning_id,
-      issued_date: w.issued_date,
-      issued_text: w.issued_text,
-      status: w.status,
-      status_basis: w.status_basis,
-      area_text: w.area_text,
-      raw_text: w.raw_text,
-      spatial: w.spatial,
-      source_url: w.source_url,
-      extraction_method: w.extraction_method,
-      generation_id: w.generation_id,
-      updated_at: new Date().toISOString(),
-    }));
+    const payload = warnings.map((w) => {
+      let lat = w.latitude != null && !isNaN(Number(w.latitude)) ? Number(w.latitude) : null;
+      let lng = w.longitude != null && !isNaN(Number(w.longitude)) ? Number(w.longitude) : null;
 
-    const { error } = await client.from('nav_warnings').upsert(payload, { onConflict: 'warning_id' });
-    if (error) {
-      console.warn('Supabase warnings upsert error:', error.message);
-      return { success: false, error: `nav_warnings: ${error.message}` };
+      if (lat == null && w.spatial?.geometries?.length > 0) {
+        const pt = w.spatial.geometries[0];
+        if (pt.type === 'Point' && Array.isArray(pt.coordinates) && pt.coordinates.length >= 2) {
+          lng = Number(pt.coordinates[0]);
+          lat = Number(pt.coordinates[1]);
+        }
+      }
+
+      return {
+        source_id: w.source_id || 'manual-import',
+        warning_id: w.source_warning_id || w.warning_number || w.warning_id,
+        title: w.title || null,
+        raw_text: w.raw_text || '',
+        issued_date: w.issued_date || new Date().toISOString().slice(0, 10),
+        navarea: w.navarea || 'IV',
+        area_text: w.area_text || null,
+        sub_area: w.sub_area || null,
+        authority: w.authority || null,
+        source_url: w.source_url || w.web_link || null,
+        risk_level: w.risk_level || null,
+        extraction_method: w.extraction_method || 'deterministic',
+        generation_id: w.generation_id || null,
+        issued_text: w.issued_text || w.issued_date || null,
+        latitude: lat,
+        longitude: lng,
+        valid_until: w.valid_until || w.valid_to || null,
+        validity: w.validity || null,
+        charts: w.charts || null,
+        categories: w.categories || null,
+        web_link: w.web_link || w.source_url || null,
+      };
+    });
+
+    // Chunk in batches of 100
+    const CHUNK_SIZE = 100;
+    for (let i = 0; i < payload.length; i += CHUNK_SIZE) {
+      const chunk = payload.slice(i, i + CHUNK_SIZE);
+      let { error } = await client.from('nav_warnings').upsert(chunk, { onConflict: 'source_id,warning_id' });
+      if (error && error.message.includes('conflict')) {
+        const fallback = await client.from('nav_warnings').upsert(chunk, { onConflict: 'warning_id' });
+        error = fallback.error;
+      }
+
+      if (error) {
+        console.warn('Supabase warnings upsert error:', error.message);
+        return { success: false, error: `nav_warnings: ${error.message}` };
+      }
     }
     return { success: true };
   } catch (err: any) {

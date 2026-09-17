@@ -95,7 +95,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     if (!leafletInstance.current) return;
 
     const validCoords: L.LatLngExpression[] = activeList
-      .map(w => getLeafletLatLng(w.spatial))
+      .map(w => getLeafletLatLng(w.spatial, w.latitude, w.longitude))
       .filter(([lat, lng]) => lat !== 0 || lng !== 0);
 
     if (validCoords.length > 0) {
@@ -120,7 +120,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     const activeWarnings = filteredWarnings.filter(w => w.status === 'active');
 
     activeWarnings.forEach(w => {
-      const coords = getLeafletLatLng(w.spatial);
+      const coords = getLeafletLatLng(w.spatial, w.latitude, w.longitude);
 
       const icon = L.divIcon({
         className: 'nw-marker-wrap',

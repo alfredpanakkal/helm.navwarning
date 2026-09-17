@@ -70,13 +70,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : "System verification: confirm 'Gemini API operational check passed' and state current system readiness in 1 short sentence.";
 
     const startTime = Date.now();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: userPrompt,
-      config: {
-        temperature: 0.2,
-      },
-    });
+    let modelName = 'gemini-3.1-flash-lite';
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: modelName,
+        contents: userPrompt,
+        config: {
+          temperature: 0.2,
+        },
+      });
+    } catch (modelErr: any) {
+      // Fallback if needed
+      modelName = 'gemini-3.8-flash';
+      response = await ai.models.generateContent({
+        model: modelName,
+        contents: userPrompt,
+        config: {
+          temperature: 0.2,
+        },
+      });
+    }
 
     const durationMs = Date.now() - startTime;
     const responseText = response.text || 'No text content returned from Gemini model.';
@@ -84,7 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       success: true,
       hasKey: true,
-      model: 'gemini-3.8-flash',
+      model: modelName,
       latency_ms: durationMs,
       response: responseText,
       prompt_used: userPrompt,

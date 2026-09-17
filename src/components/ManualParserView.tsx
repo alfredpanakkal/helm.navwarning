@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { NavWarning } from '../types';
 import { EcdisFeatureEditor } from './EcdisFeatureEditor';
-import { FileText, Sparkles, CheckCircle2, AlertTriangle, Copy, ArrowRight, Edit3 } from 'lucide-react';
-
+import { FileText, Sparkles, CheckCircle2, AlertTriangle, Copy, ArrowRight, Edit3, Database, RefreshCw } from 'lucide-react';
+import { saveImportedWarningsToSupabase } from '../services/api';
 
 interface ManualParserViewProps {
   onParseManual: (rawText: string, navarea: string, mode?: 'hybrid' | 'llm' | 'regex', aiModel?: string) => Promise<NavWarning>;
@@ -18,10 +18,39 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
   );
   const [navarea, setNavarea] = useState('I');
   const [parseMode, setParseMode] = useState<'hybrid' | 'llm' | 'regex'>('hybrid');
-  const [aiModel, setAiModel] = useState<string>('gemini-2.5-flash-lite');
+  const [aiModel, setAiModel] = useState<string>('gemini-3.1-flash-lite');
   const [isParsing, setIsParsing] = useState(false);
   const [parsedResults, setParsedResults] = useState<NavWarning[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSavingToSupabase, setIsSavingToSupabase] = useState(false);
+  const [supabaseSaveMsg, setSupabaseSaveMsg] = useState<{ success: boolean; text: string } | null>(null);
+
+  const handleSaveToSupabase = async (warnings: NavWarning[]) => {
+    if (!warnings.length) return;
+    setIsSavingToSupabase(true);
+    setSupabaseSaveMsg(null);
+    try {
+      const res = await saveImportedWarningsToSupabase(warnings);
+      if (res.success) {
+        setSupabaseSaveMsg({
+          success: true,
+          text: `Saved ${res.insertedCount} warning(s) directly to Supabase nav_warnings table!`,
+        });
+      } else {
+        setSupabaseSaveMsg({
+          success: false,
+          text: `Supabase save failed: ${res.error}`,
+        });
+      }
+    } catch (err: any) {
+      setSupabaseSaveMsg({
+        success: false,
+        text: `Error saving to Supabase: ${err.message}`,
+      });
+    } finally {
+      setIsSavingToSupabase(false);
+    }
+  };
 
   const handleParse = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,9 +133,9 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                 className="bg-gw-bg border-2 border-gw-primary text-gw-primary text-xs px-3 py-1.5 rounded font-mono font-bold focus:outline-none focus:border-gw-accent transition-colors"
                 disabled={parseMode === 'regex'}
               >
-                <option value="gemini-2.5-flash-lite">Flash Lite (Fast/Cheap)</option>
-                <option value="gemini-2.5-flash">Flash (Stable/High Capacity)</option>
-                <option value="gemini-2.5-pro">Pro (Complex reasoning)</option>
+                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Fast/Recommended)</option>
+                <option value="gemini-flash-latest">Gemini Flash Latest</option>
+                <option value="gemini-3.8-flash">Gemini 3.8 Flash (Stable)</option>
               </select>
             </div>
           </div>
@@ -155,6 +184,24 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
         {/* Extracted Output Result */}
         <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-sm">
+          {supabaseSaveMsg && (
+            <div
+              className={`p-3 rounded-lg text-xs font-bold flex items-center justify-between ${
+                supabaseSaveMsg.success
+                  ? 'bg-emerald-50 text-emerald-900 border border-emerald-400'
+                  : 'bg-red-50 text-red-900 border border-red-400'
+              }`}
+            >
+              <span>{supabaseSaveMsg.text}</span>
+              <button
+                onClick={() => setSupabaseSaveMsg(null)}
+                className="text-[11px] uppercase hover:underline ml-2"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           {parsedResults.length > 0 ? (
             <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
               {parsedResults.map((parsedResult, idx) => (
@@ -211,13 +258,25 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => onSelectWarning(parsedResult)}
-                    className="w-full bg-gw-primary hover:bg-gw-accent text-gw-secondary font-bold text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-2 mt-4 shadow-sm"
-                  >
-                    <span>Inspect in Full Data Bank & Map</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                    <button
+                      onClick={() => handleSaveToSupabase([parsedResult])}
+                      disabled={isSavingToSupabase}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-2 shadow-sm"
+                      title="Saves this warning directly to Supabase nav_warnings table"
+                    >
+                      {isSavingToSupabase ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4 text-emerald-200" />}
+                      <span>Save to Supabase</span>
+                    </button>
+
+                    <button
+                      onClick={() => onSelectWarning(parsedResult)}
+                      className="flex-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary font-bold text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <span>Inspect in Bank & Map</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
 
                 </div>
               ))}

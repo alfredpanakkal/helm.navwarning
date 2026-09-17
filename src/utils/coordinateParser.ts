@@ -295,7 +295,20 @@ export function formatSpatialCoordinates(spatial: SpatialData | undefined | null
 /**
  * Safely extracts [lat, lng] for Leaflet map markers.
  */
-export function getLeafletLatLng(spatial: SpatialData | undefined | null): [number, number] {
+export function getLeafletLatLng(
+  spatial: SpatialData | undefined | null,
+  directLat?: number | null,
+  directLng?: number | null
+): [number, number] {
+  if (
+    typeof directLat === 'number' &&
+    typeof directLng === 'number' &&
+    !isNaN(directLat) &&
+    !isNaN(directLng) &&
+    (directLat !== 0 || directLng !== 0)
+  ) {
+    return [directLat, directLng];
+  }
   if (!spatial) return [0, 0];
   if (spatial.circles && spatial.circles.length > 0 && Array.isArray(spatial.circles[0].center)) {
     const [lng, lat] = spatial.circles[0].center;

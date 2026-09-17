@@ -105,26 +105,42 @@ export const SupabaseStatusView: React.FC<SupabaseStatusViewProps> = ({
   };
 
   const sqlSchemaScript = `-- Supabase Schema Creation for Helm.Warning
--- Run this in your Supabase SQL Editor if setting up tables for the first time:
+-- Run this in your Supabase SQL Editor if setting up or updating tables:
 
 CREATE TABLE IF NOT EXISTS public.nav_warnings (
-  warning_id TEXT PRIMARY KEY,
-  publisher_id TEXT NOT NULL,
+  id UUID DEFAULT gen_random_uuid(),
+  warning_id TEXT NOT NULL,
+  publisher_id TEXT,
   source_id TEXT NOT NULL,
   navarea TEXT NOT NULL,
-  source_warning_id TEXT NOT NULL,
-  issued_date TEXT NOT NULL,
+  source_warning_id TEXT,
+  title TEXT,
+  authority TEXT,
+  issued_date TEXT,
   issued_text TEXT,
-  status TEXT NOT NULL,
+  status TEXT DEFAULT 'active',
   status_basis TEXT,
   area_text TEXT,
   raw_text TEXT,
   spatial JSONB,
+  longitude DOUBLE PRECISION,
+  latitude DOUBLE PRECISION,
+  valid_until TEXT,
+  validity TEXT,
+  charts TEXT,
+  categories TEXT,
+  web_link TEXT,
+  risk_level TEXT,
   source_url TEXT,
   extraction_method TEXT,
   generation_id TEXT,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (source_id, warning_id),
+  CONSTRAINT nav_warnings_source_id_warning_id_key UNIQUE (source_id, warning_id)
 );
+
+-- Notify PostgREST schema cache to immediately recognize the composite constraint:
+NOTIFY pgrst, 'reload schema';
 
 CREATE TABLE IF NOT EXISTS public.raw_artifacts (
   artifact_id TEXT PRIMARY KEY,
@@ -311,7 +327,7 @@ CREATE TABLE IF NOT EXISTS public.sources_registry (
               </span>
             </div>
             <p className="text-xs text-gw-accent max-w-3xl leading-relaxed">
-              Verify server-side Gemini model connectivity (<code className="font-mono bg-zinc-100 px-1 rounded text-zinc-900">gemini-2.5-flash-lite</code>) and test if the <code className="font-mono bg-zinc-100 px-1 rounded text-zinc-900">GEMINI_API_KEY</code> secret is operational.
+              Verify server-side Gemini model connectivity (<code className="font-mono bg-zinc-100 px-1 rounded text-zinc-900">gemini-3.1-flash-lite</code>) and test if the <code className="font-mono bg-zinc-100 px-1 rounded text-zinc-900">GEMINI_API_KEY</code> secret is operational.
             </p>
           </div>
 
@@ -336,7 +352,7 @@ CREATE TABLE IF NOT EXISTS public.sources_registry (
               <Terminal className="w-3.5 h-3.5 text-gw-accent" />
               <span>Diagnostic Test Prompt</span>
             </span>
-            <span className="text-[10px] font-normal text-gw-accent font-mono">Model: gemini-2.5-flash-lite</span>
+            <span className="text-[10px] font-normal text-gw-accent font-mono">Model: gemini-3.1-flash-lite</span>
           </label>
           <div className="flex gap-2">
             <input

@@ -72,6 +72,32 @@ export type StatusBasis =
   | 'manual_zip_import'
   | 'manual_gpx_import';
 
+export type TriageDecision = 'ACCEPTED' | 'REJECTED' | 'NEEDS_REVIEW';
+
+export type TriageRejectionCode =
+  | 'NONE'
+  | 'NON_MARITIME'
+  | 'CORRUPT_DATA'
+  | 'OUT_OF_BOUNDS'
+  | 'MISSING_CRITICAL_INFO'
+  | 'EXPIRED_OR_STALE'
+  | 'DUPLICATE'
+  | 'OTHER';
+
+export interface AiTriageResult {
+  decision: TriageDecision;
+  confidence: number;
+  understanding_summary: string;
+  rejection_code?: TriageRejectionCode;
+  rejection_reason?: string;
+  hazard_category?: string;
+  risk_level?: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  coordinate_sanity?: 'valid' | 'suspicious' | 'missing';
+  anomalies?: string[];
+  reviewed_at?: string;
+  original_snippet?: string;
+}
+
 export interface SpatialGeometry {
   type: 'Point' | 'Polygon' | 'LineString' | 'Circle';
   // Coordinates are [lng, lat]
@@ -125,6 +151,22 @@ export interface NavWarning {
 
   supersedes: string[];
   cancels: string[];
+
+  // Extended fields for GIS map data and CCG/Kystverket scraper feeds
+  title?: string | null;
+  authority?: string | null;
+  sub_area?: string | null;
+  risk_level?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  valid_until?: string | null;
+  validity?: string | null;
+  charts?: string | null;
+  categories?: string | null;
+  web_link?: string | null;
+
+  // AI Understanding & Triage Assessment
+  ai_triage?: AiTriageResult;
 
   source_url: string;
   raw_artifact_ref: string;

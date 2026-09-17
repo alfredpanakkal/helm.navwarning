@@ -274,7 +274,7 @@ export default function App() {
     }
   };
 
-  const handleParseManual = async (rawText: string, navarea: string, mode: 'hybrid' | 'llm' | 'regex' = 'hybrid', aiModel: string = 'gemini-2.5-flash-lite'): Promise<NavWarning> => {
+  const handleParseManual = async (rawText: string, navarea: string, mode: 'hybrid' | 'llm' | 'regex' = 'hybrid', aiModel: string = 'gemini-3.1-flash-lite'): Promise<NavWarning> => {
     try {
       const res = await parseManualWarning(rawText, navarea, mode, aiModel);
       if (res.warning) {
