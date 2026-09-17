@@ -27,6 +27,13 @@ export const MAP_PANES: Record<string, PaneDefinition> = {
 };
 
 // Base Cartography Layers
+const cartoKey = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_CARTO_API_KEY ? import.meta.env.VITE_CARTO_API_KEY : '';
+
+const getCartoUrl = (style: string) => {
+  const base = `https://{s}.basemaps.cartocdn.com/rastertiles/${style}/{z}/{x}/{y}{r}.png`;
+  return cartoKey ? `${base}?key=${cartoKey}` : base;
+};
+
 export const BASE_LAYERS: MapLayerConfig[] = [
   {
     id: 'esri-ocean',
@@ -41,7 +48,7 @@ export const BASE_LAYERS: MapLayerConfig[] = [
   {
     id: 'carto-voyager',
     name: 'CARTO Voyager',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    url: getCartoUrl('voyager'),
     type: 'base',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxZoom: 19,
@@ -51,7 +58,7 @@ export const BASE_LAYERS: MapLayerConfig[] = [
   {
     id: 'carto-dark',
     name: 'CARTO Dark All',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png',
+    url: getCartoUrl('dark_all'),
     type: 'base',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxZoom: 19,
