@@ -45,7 +45,7 @@ export async function fetchWarnings(params?: {
         // Map database row to NavWarning interface
         const liveWarnings: NavWarning[] = data.map((row: any) => {
           const rawText = row.raw_text || row.issued_text || '';
-          const spatial = parseCoordinatesDeterministic(rawText, row.navarea as any).regexResult;
+          const spatial = parseCoordinatesDeterministic(rawText, row.navarea as any);
 
           return {
             schema_version: 1,
@@ -261,6 +261,7 @@ export async function triggerPipelineRefresh(sourceId?: string): Promise<{
   success: boolean;
   message: string;
   run?: PipelineRunRecord;
+  results?: any[];
 }> {
   if (!sourceId) {
     throw new Error('A specific source/navarea must be selected to run its scraper.');
@@ -292,8 +293,11 @@ export async function triggerPipelineRefresh(sourceId?: string): Promise<{
     return {
       success: true,
       message: `Successfully triggered Supabase Edge Function: ${functionName}`,
+      results: data?.results || [],
       run: {
         run_id: `run-${Date.now()}`,
+        started_at: new Date().toISOString(),
+        finished_at: new Date().toISOString(),
         status: 'SUCCESS',
         sources_processed: 1,
         records_found: data?.inserted || 0,
