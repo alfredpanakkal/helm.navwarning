@@ -45,6 +45,7 @@ export type TabType =
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('map');
   const [selectedWarning, setSelectedWarning] = useState<NavWarning | null>(null);
+  const [isolatedWarning, setIsolatedWarning] = useState<NavWarning | null>(null);
 
   // Admin Access Gate State
   const [isAdminMode, setIsAdminModeState] = useState<boolean>(() => {
@@ -390,6 +391,8 @@ export default function App() {
             onSelectWarning={(w) => {
               setSelectedWarning(w);
             }}
+            isolatedWarning={isolatedWarning}
+            onClearIsolation={() => setIsolatedWarning(null)}
           />
         </div>
 
@@ -536,6 +539,13 @@ export default function App() {
           }
           hasNext={currentUnverifiedIndex >= 0 && currentUnverifiedIndex < unverifiedCandidates.length - 1}
           hasPrevious={currentUnverifiedIndex > 0}
+          onIsolateWarning={(w) => {
+            setIsolatedWarning(w);
+            setSelectedWarning(null);
+            setActiveTab('map');
+          }}
+          isIsolated={isolatedWarning?.warning_id === selectedWarning.warning_id}
+          onClearIsolation={() => setIsolatedWarning(null)}
         />
       )}
 
