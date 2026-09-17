@@ -20,8 +20,6 @@ import {
   CornerDownRight,
   AlertCircle,
   Layers,
-  Compass,
-  Filter,
   Sliders,
   Globe,
   Waves,
@@ -30,6 +28,8 @@ import { getLeafletLatLng } from '../utils/coordinateParser';
 import { useMapNavigation } from '../hooks/useMapNavigation';
 import { formatDecimalCoordinates } from '../utils/coordinateConversion';
 import { NAVAREA_ZONE_LIST, NAVAREA_ZONES_BY_ID } from '../utils/navareaZones';
+import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
+import { useMapLayers, WarningSeverityLevel } from '../hooks/useMapLayers';
 
 export type ScopeFilterType = 'all' | 'navarea' | 'coastal';
 
@@ -68,18 +68,29 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const leafletInstance = useRef<L.Map | null>(null);
   const [mapReady, setMapReady] = useState<L.Map | null>(null);
 
-  // Layer groups
+  // Layer references
   const baseTileLayerRef = useRef<L.TileLayer | null>(null);
-  const oceanRefLayerRef = useRef<L.TileLayer | null>(null);
+  const esriLabelsLayerRef = useRef<L.TileLayer | null>(null);
   const seamarksLayerRef = useRef<L.TileLayer | null>(null);
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
   const unclusteredGroupRef = useRef<L.LayerGroup | null>(null);
   const vectorLayersGroupRef = useRef<L.LayerGroup | null>(null);
   const jumpBeaconRef = useRef<L.Marker | null>(null);
 
-  // Basemap & Layer Toggles State
-  const [basemapType, setBasemapType] = useState<'esri_ocean' | 'osm'>('esri_ocean');
-  const [showOceanDepthLabels, setShowOceanDepthLabels] = useState<boolean>(true);
+  // Layer configuration and dynamic styling state
+  const {
+    activeBaseLayerId,
+    activeBaseLayerConfig,
+    enabledOverlays,
+    setBaseLayer,
+    toggleOverlay,
+    isOverlayEnabled,
+    isDarkBasemap,
+    getVectorStyle,
+    getCircleStyle,
+  } = useMapLayers('esri-ocean', ['esri-labels', 'openseamap']);
+
+  // Vector & Marker Toggles
   const [showPolygons, setShowPolygons] = useState<boolean>(true);
   const [enableClusters, setEnableClusters] = useState<boolean>(true);
 
@@ -90,7 +101,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Top-Right Quick-Jump Input & UI State
+  // Quick-Jump Navigation State
   const [jumpInput, setJumpInput] = useState('');
   const [jumpError, setJumpError] = useState<string | null>(null);
   const [jumpFeedback, setJumpFeedback] = useState<{
@@ -101,11 +112,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   } | null>(null);
   const [isQuickJumpExpanded, setIsQuickJumpExpanded] = useState<boolean>(true);
 
-  // Decoupled Map Navigation Hook
+  // Real-time navigation and coordinate tracking hook
   const {
     cursorState,
     copyCursorPosition,
-    jumpToCoordinates,
     parseAndJump,
     contextMenu,
     handleLayerContextMenu,
@@ -117,7 +127,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     unhideAllWarnings,
   } = useMapNavigation(mapReady);
 
-  // Helper to center and fit bounds on a warning's polygon/circle geometry
+  // Center and fit bounds on a warning geometry
   const centerOnWarningArea = useCallback((warning: NavWarning) => {
     if (!leafletInstance.current) return;
     const map = leafletInstance.current;
@@ -169,7 +179,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     }
   }, []);
 
-  // Initialize Leaflet Map Instance
+  // Initialize Map and create custom strict ordering panes
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -181,20 +191,29 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         attributionControl: true,
         worldCopyJump: true,
         minZoom: 2,
-        maxZoom: 14,
+        maxZoom: 19,
       });
 
-      // Marker cluster group
+      // Strict Leaflet Pane Architecture
+      Object.values(MAP_PANES).forEach((paneDef) => {
+        if (!map.getPane(paneDef.name)) {
+          const p = map.createPane(paneDef.name);
+          p.style.zIndex = paneDef.zIndex.toString();
+          if (paneDef.pointerEvents) {
+            p.style.pointerEvents = paneDef.pointerEvents;
+          }
+        }
+      });
+
+      // Cluster Group bound strictly to navWarnMarkerPane (z-index 600)
       clusterGroupRef.current = L.markerClusterGroup({
         showCoverageOnHover: false,
         maxClusterRadius: 50,
         spiderfyOnMaxZoom: true,
+        clusterPane: 'navWarnMarkerPane',
       }).addTo(map);
 
-      // Unclustered marker layer group
       unclusteredGroupRef.current = L.layerGroup().addTo(map);
-
-      // Vector geometry layer group
       vectorLayersGroupRef.current = L.layerGroup().addTo(map);
 
       leafletInstance.current = map;
@@ -210,7 +229,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     };
   }, []);
 
-  // Basemap Tile Layer Switcher
+  // Base Layer Synchronization (basePane: z-index 200)
   useEffect(() => {
     if (!leafletInstance.current) return;
     const map = leafletInstance.current;
@@ -220,64 +239,68 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       baseTileLayerRef.current = null;
     }
 
-    if (basemapType === 'esri_ocean') {
-      baseTileLayerRef.current = L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
-        {
-          attribution: '© Esri, GEBCO, NOAA, CHS, National Geographic',
-          maxZoom: 13,
-        }
-      ).addTo(map);
-    } else {
-      baseTileLayerRef.current = L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {
-          attribution: '© OpenStreetMap contributors',
-          maxZoom: 19,
-        }
-      ).addTo(map);
-    }
+    const cfg = activeBaseLayerConfig;
+    const layer = L.tileLayer(cfg.url, {
+      attribution: cfg.attribution,
+      maxZoom: cfg.maxZoom,
+      maxNativeZoom: cfg.maxNativeZoom,
+      subdomains: cfg.subdomains || 'abc',
+      pane: cfg.pane, // 'basePane'
+    }).addTo(map);
 
-    baseTileLayerRef.current.bringToBack();
-  }, [basemapType, mapReady]);
+    baseTileLayerRef.current = layer;
+  }, [activeBaseLayerConfig, mapReady]);
 
-  // Ocean Depth & Soundings Overlay (ESRI Ocean Reference + OpenSeaMap Seamarks)
+  // Overlay Layers Synchronization with OpenSeaMap Tile Error Handling
   useEffect(() => {
     if (!leafletInstance.current) return;
     const map = leafletInstance.current;
 
-    if (showOceanDepthLabels) {
-      if (!oceanRefLayerRef.current) {
-        oceanRefLayerRef.current = L.tileLayer(
-          'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',
-          {
-            attribution: '© Esri, Bathymetric Reference & Soundings',
-            maxZoom: 13,
-            opacity: 0.92,
-          }
-        ).addTo(map);
-      }
-      if (!seamarksLayerRef.current) {
-        seamarksLayerRef.current = L.tileLayer(
-          'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
-          {
-            attribution: '© OpenSeaMap',
-            maxZoom: 18,
-            opacity: 0.85,
-          }
-        ).addTo(map);
+    // 1. ESRI Ocean Labels & Soundings (soundingsPane: z-index 250)
+    const esriLabelsConfig = OVERLAY_LAYERS.find((l) => l.id === 'esri-labels')!;
+    if (isOverlayEnabled('esri-labels')) {
+      if (!esriLabelsLayerRef.current) {
+        esriLabelsLayerRef.current = L.tileLayer(esriLabelsConfig.url, {
+          attribution: esriLabelsConfig.attribution,
+          maxZoom: esriLabelsConfig.maxZoom,
+          maxNativeZoom: esriLabelsConfig.maxNativeZoom,
+          pane: esriLabelsConfig.pane,
+          opacity: 0.95,
+        }).addTo(map);
       }
     } else {
-      if (oceanRefLayerRef.current) {
-        map.removeLayer(oceanRefLayerRef.current);
-        oceanRefLayerRef.current = null;
+      if (esriLabelsLayerRef.current) {
+        map.removeLayer(esriLabelsLayerRef.current);
+        esriLabelsLayerRef.current = null;
       }
+    }
+
+    // 2. OpenSeaMap Seamarks (seamarksPane: z-index 300) with tile error handling
+    const osmSeamarksConfig = OVERLAY_LAYERS.find((l) => l.id === 'openseamap')!;
+    if (isOverlayEnabled('openseamap')) {
+      if (!seamarksLayerRef.current) {
+        const seamarkLayer = L.tileLayer(osmSeamarksConfig.url, {
+          attribution: osmSeamarksConfig.attribution,
+          maxZoom: osmSeamarksConfig.maxZoom,
+          pane: osmSeamarksConfig.pane,
+          opacity: 1.0,
+        });
+
+        // Handle OpenSeaMap tile loading errors without breaking map
+        seamarkLayer.on('tileerror', (e: L.TileErrorEvent) => {
+          console.warn(`[OpenSeaMap] Tile load error at z=${e.coords.z}, x=${e.coords.x}, y=${e.coords.y}`);
+        });
+
+        seamarkLayer.addTo(map);
+        seamarksLayerRef.current = seamarkLayer;
+      }
+    } else {
       if (seamarksLayerRef.current) {
         map.removeLayer(seamarksLayerRef.current);
         seamarksLayerRef.current = null;
       }
     }
-  }, [showOceanDepthLabels, mapReady]);
+  }, [enabledOverlays, isOverlayEnabled, mapReady]);
 
   // Handle Isolation Mode Camera auto-focus
   useEffect(() => {
@@ -290,14 +313,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   useEffect(() => {
     if (!mapReady) return;
 
-    const handleMapClick = () => {
-      closeContextMenu();
-    };
-
+    const handleMapClick = () => closeContextMenu();
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        closeContextMenu();
-      }
+      if (e.key === 'Escape') closeContextMenu();
     };
 
     mapReady.on('click', handleMapClick);
@@ -309,45 +327,39 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     };
   }, [mapReady, closeContextMenu]);
 
-  // Filter warnings based on: Isolation Mode, Scope, NAVAREA, Severity, Search, Hidden Set
+  // Filter warnings
   const filteredWarnings = warnings.filter((w) => {
-    // If Isolation Mode active, show only the isolated warning
     if (isolatedWarning) {
       return w.warning_id === isolatedWarning.warning_id;
     }
 
-    // 1. Scope Switcher
     if (scopeFilter === 'coastal' && !isCoastalWarning(w)) return false;
     if (scopeFilter === 'navarea' && isCoastalWarning(w)) return false;
 
-    // 2. NAVAREA Selector
     if (currentNavArea !== 'ALL' && w.navarea !== currentNavArea) return false;
 
-    // 3. Severity
     if (filterSeverity === 'critical' && w.extraction_confidence < 1) return false;
     if (filterSeverity === 'high' && (w.extraction_confidence >= 1 || w.extraction_confidence < 0.8)) return false;
     if (filterSeverity === 'moderate' && (w.extraction_confidence >= 0.8 || w.extraction_confidence < 0.5)) return false;
     if (filterSeverity === 'low' && w.extraction_confidence >= 0.5) return false;
 
-    // 4. Search Query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchId = w.source_warning_id.toLowerCase().includes(q);
-      const matchArea = w.area_text?.toLowerCase().includes(q);
-      const matchText = w.raw_text?.toLowerCase().includes(q);
-      const matchNavArea = `navarea ${w.navarea}`.toLowerCase().includes(q);
-      return matchId || matchArea || matchText || matchNavArea;
+      return (
+        w.source_warning_id.toLowerCase().includes(q) ||
+        w.area_text?.toLowerCase().includes(q) ||
+        w.raw_text?.toLowerCase().includes(q) ||
+        `navarea ${w.navarea}`.toLowerCase().includes(q)
+      );
     }
 
     return true;
   });
 
-  // Active rendered warnings (excluding items hidden via context menu)
   const renderedWarnings = filteredWarnings.filter(
     (w) => w.status === 'active' && !hiddenWarningIds.has(w.warning_id)
   );
 
-  // Auto-frame map bounds
   const autoFrameMap = useCallback((activeList: NavWarning[]) => {
     if (!leafletInstance.current) return;
 
@@ -367,7 +379,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     }
   }, []);
 
-  // Handle NAVAREA Selector Change & Camera Jump
   const handleSelectNavArea = (navAreaId: string) => {
     setCurrentNavArea(navAreaId);
     if (!leafletInstance.current) return;
@@ -382,7 +393,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     }
   };
 
-  // Render markers and vector layers
+  // Render markers and vector geometries into respective panes
   useEffect(() => {
     if (!leafletInstance.current) return;
 
@@ -394,36 +405,47 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     if (unclusteredGroup) unclusteredGroup.clearLayers();
     if (vectorGroup) vectorGroup.clearLayers();
 
-    // Target layer group for markers depending on clustering toggle
     const activeMarkerLayer = enableClusters ? clusterGroup : unclusteredGroup;
 
     renderedWarnings.forEach((w) => {
       const coords = getLeafletLatLng(w.spatial, w.latitude, w.longitude);
+      const isIsolated = isolatedWarning?.warning_id === w.warning_id;
+      const severity: WarningSeverityLevel =
+        w.extraction_confidence === 1
+          ? 'critical'
+          : w.extraction_confidence >= 0.8
+          ? 'high'
+          : 'moderate';
 
-      // Marker Icon
+      // Marker element with high-contrast palette
       const icon = L.divIcon({
         className: 'nw-marker-wrap',
-        html: `<div class="nw-marker ${w.extraction_confidence === 1 ? 'sev-critical' : 'sev-high'}"></div>`,
+        html: `<div class="nw-marker ${
+          w.extraction_confidence === 1
+            ? 'sev-critical'
+            : isDarkBasemap
+            ? 'sev-high-dark'
+            : 'sev-high'
+        }"></div>`,
         iconSize: [16, 16],
         iconAnchor: [8, 8],
       });
 
       if (activeMarkerLayer) {
-        const m = L.marker(coords, { icon }).addTo(activeMarkerLayer);
+        // Marker rendered in navWarnMarkerPane (z-index 600)
+        const m = L.marker(coords, {
+          icon,
+          pane: 'navWarnMarkerPane',
+        }).addTo(activeMarkerLayer);
 
-        // Left-click -> detail view
-        m.on('click', () => {
-          onSelectWarning(w);
-        });
-
-        // Right-click -> layer context menu
-        m.on('contextmenu', (e: L.LeafletMouseEvent) => {
-          handleLayerContextMenu(e, w, coords);
-        });
+        m.on('click', () => onSelectWarning(w));
+        m.on('contextmenu', (e: L.LeafletMouseEvent) => handleLayerContextMenu(e, w, coords));
       }
 
-      // Render vector polygons and circles if showPolygons is enabled
+      // Geometries rendered in navWarnVectorPane (z-index 400)
       if (showPolygons && vectorGroup) {
+        const polyStyle = getVectorStyle(severity, isIsolated);
+
         if (w.spatial?.geometries) {
           w.spatial.geometries.forEach((geom) => {
             if (geom.type === 'Polygon' && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
@@ -434,11 +456,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   : (geom.coordinates as any[]).map((pt) => [pt[1], pt[0]]);
 
                 const poly = L.polygon(latLngs, {
-                  color: w.extraction_confidence === 1 ? '#e11d48' : '#0284c7',
-                  fillColor: w.extraction_confidence === 1 ? '#e11d48' : '#0284c7',
-                  weight: 2,
-                  dashArray: '4, 4',
-                  fillOpacity: 0.18,
+                  ...polyStyle,
+                  pane: 'navWarnVectorPane',
                 }).addTo(vectorGroup);
 
                 poly.on('click', () => onSelectWarning(w));
@@ -446,33 +465,30 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
                 });
               } catch {
-                // Ignore malformed geometry
+                // Malformed geometry fallback
               }
             }
           });
         }
 
-        // Render circles if present
+        // Circular hazard buffers
         if (w.spatial?.circles) {
+          const circleStyle = getCircleStyle(isIsolated);
           w.spatial.circles.forEach((circ) => {
             if (circ.center && Array.isArray(circ.center) && circ.radius_nm) {
               try {
                 const center: [number, number] = [circ.center[1], circ.center[0]];
                 const radiusM = circ.radius_nm * 1852;
                 const circleLayer = L.circle(center, {
+                  ...circleStyle,
+                  pane: 'navWarnVectorPane',
                   radius: radiusM,
-                  color: '#d97706',
-                  fillColor: '#f59e0b',
-                  weight: 2,
-                  fillOpacity: 0.14,
                 }).addTo(vectorGroup);
 
                 circleLayer.on('click', () => onSelectWarning(w));
-                circleLayer.on('contextmenu', (e: L.LeafletMouseEvent) => {
-                  handleLayerContextMenu(e, w, center);
-                });
+                circleLayer.on('contextmenu', (e: L.LeafletMouseEvent) => handleLayerContextMenu(e, w, center));
               } catch {
-                // Ignore malformed circle
+                // Malformed circle fallback
               }
             }
           });
@@ -483,11 +499,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     renderedWarnings,
     enableClusters,
     showPolygons,
+    isDarkBasemap,
+    getVectorStyle,
+    getCircleStyle,
     handleLayerContextMenu,
     onSelectWarning,
+    isolatedWarning,
   ]);
 
-  // Invalidate map size on sidebar toggle
   useEffect(() => {
     const timer = setTimeout(() => {
       leafletInstance.current?.invalidateSize();
@@ -495,7 +514,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     return () => clearTimeout(timer);
   }, [isSidebarOpen]);
 
-  // Handle Jump-to-Coordinate Submission
+  // Jump-to-coordinate executor
   const handleExecuteJump = (input: string) => {
     setJumpError(null);
     if (!input.trim()) {
@@ -509,7 +528,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       return;
     }
 
-    // Place temporary visual beacon at jump target
     if (leafletInstance.current) {
       if (jumpBeaconRef.current) {
         leafletInstance.current.removeLayer(jumpBeaconRef.current);
@@ -525,7 +543,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       const beacon = L.marker([result.lat, result.lng], {
         icon: beaconIcon,
-        zIndexOffset: 1000,
+        pane: 'navWarnMarkerPane',
       }).addTo(leafletInstance.current);
 
       jumpBeaconRef.current = beacon;
@@ -537,7 +555,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         format: result.format,
       });
 
-      // Auto-remove beacon after 9 seconds
       setTimeout(() => {
         if (jumpBeaconRef.current && leafletInstance.current) {
           leafletInstance.current.removeLayer(jumpBeaconRef.current);
@@ -549,7 +566,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
   return (
     <div className="relative h-[calc(100vh-140px)] min-h-[520px] border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden bg-gw-bg isolate">
-      {/* Leaflet Map Canvas */}
+      {/* Map Canvas */}
       <div id="map" ref={mapRef} className="absolute inset-0 z-0"></div>
 
       {/* ISOLATION MODE BANNER */}
@@ -595,7 +612,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       {/* TOP-LEFT TOOLBAR: Sidebar Toggle & Search */}
       <div className="absolute top-3 sm:top-4 left-3 sm:left-4 z-[420] flex items-center gap-2 pointer-events-auto max-w-[calc(100%-24px)] sm:max-w-md">
-        {/* Sidebar Toggle */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard hover:bg-gw-primary hover:text-gw-bg transition-all shrink-0 min-h-[40px]"
@@ -608,7 +624,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <span className="sm:hidden">{renderedWarnings.length}</span>
         </button>
 
-        {/* Search Input */}
         <div className="flex items-center gap-2 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard flex-1 min-w-[160px]">
           <Search className="w-4 h-4 text-gw-accent shrink-0" />
           <input
@@ -629,10 +644,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         </div>
       </div>
 
-      {/* TOP-RIGHT MAP CONTROLS: Coordinates & Quick-Jump Card (DMM Real-Time HUD + Go-To + Nautical Basemap) */}
+      {/* TOP-RIGHT MAP CONTROLS: Coordinates, Quick-Jump & Basemap Stack */}
       <div className="absolute top-3 sm:top-4 right-3 sm:right-4 z-[440] pointer-events-auto max-w-[360px] sm:max-w-[400px] w-full sm:w-auto">
         <div className="bg-white/95 border-2 border-gw-primary rounded-xl shadow-hard overflow-hidden backdrop-blur-xs flex flex-col">
-          {/* Card Header / Real-Time Cursor Coordinate Tracker */}
+          {/* Header & Cursor Coordinate Readout */}
           <div className="p-2.5 sm:p-3 bg-gw-bg border-b border-gw-primary flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <span
@@ -652,7 +667,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </div>
             </div>
 
-            {/* One-Click Copy Button */}
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
@@ -684,17 +698,17 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 type="button"
                 onClick={() => setIsQuickJumpExpanded(!isQuickJumpExpanded)}
                 className="p-1 text-gw-accent hover:text-gw-primary rounded hover:bg-gw-secondary transition-all"
-                title={isQuickJumpExpanded ? 'Collapse navigation tools' : 'Expand navigation tools'}
+                title={isQuickJumpExpanded ? 'Collapse controls' : 'Expand controls'}
               >
                 <Sliders className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
 
-          {/* Quick-Jump Input & Nautical Basemap Toggle Body */}
+          {/* Quick-Jump & Basemap Layer Configuration */}
           {isQuickJumpExpanded && (
             <div className="p-3 space-y-2.5 text-xs bg-white">
-              {/* Go to Coordinates Input Field */}
+              {/* Go to Coordinates */}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -724,14 +738,12 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   <button
                     type="submit"
                     className="px-3 py-1.5 bg-gw-primary text-gw-bg rounded font-bold uppercase text-[11px] hover:bg-gw-tertiary transition-all shadow-xs flex items-center gap-1 shrink-0"
-                    title="Navigate to coordinates"
                   >
                     <CornerDownRight className="w-3 h-3" />
                     <span>Go</span>
                   </button>
                 </div>
 
-                {/* Validation Error */}
                 {jumpError && (
                   <div className="p-1.5 bg-rose-50 border border-rose-300 rounded text-rose-800 text-[10px] font-medium flex items-center gap-1">
                     <AlertCircle className="w-3 h-3 text-rose-600 shrink-0" />
@@ -739,7 +751,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   </div>
                 )}
 
-                {/* Feedback */}
                 {jumpFeedback && !jumpError && (
                   <div className="p-1 bg-sky-50 border border-sky-200 rounded text-sky-900 text-[10px] font-mono flex items-center justify-between">
                     <span>Focused: {jumpFeedback.nautical}</span>
@@ -750,14 +761,15 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 )}
               </form>
 
-              {/* Nautical Basemap Toggle Segment */}
+              {/* Basemap & Overlay Stacking Controls */}
               <div className="pt-2 border-t border-gw-secondary space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-gw-primary flex items-center gap-1">
                     <Waves className="w-3 h-3 text-sky-600" />
-                    <span>Basemap Layer</span>
+                    <span>Base Cartography</span>
                   </span>
                   <button
+                    type="button"
                     onClick={() => autoFrameMap(renderedWarnings)}
                     className="text-[10px] font-bold uppercase text-gw-accent hover:text-gw-primary flex items-center gap-1"
                     title="Fit viewport to all active warnings"
@@ -767,49 +779,58 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   </button>
                 </div>
 
-                {/* Basemap Switcher Buttons */}
-                <div className="grid grid-cols-2 gap-1 bg-gw-bg p-1 rounded-lg border border-gw-secondary text-[10px] font-mono font-bold">
-                  <button
-                    type="button"
-                    onClick={() => setBasemapType('esri_ocean')}
-                    className={`py-1 px-1.5 rounded text-center transition-all ${
-                      basemapType === 'esri_ocean'
-                        ? 'bg-gw-primary text-gw-bg shadow-xs'
-                        : 'text-gw-accent hover:text-gw-primary hover:bg-white'
-                    }`}
-                  >
-                    ESRI Ocean Base
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBasemapType('osm')}
-                    className={`py-1 px-1.5 rounded text-center transition-all ${
-                      basemapType === 'osm'
-                        ? 'bg-gw-primary text-gw-bg shadow-xs'
-                        : 'text-gw-accent hover:text-gw-primary hover:bg-white'
-                    }`}
-                  >
-                    OSM Standard
-                  </button>
+                {/* Base Layer Switcher */}
+                <div className="grid grid-cols-3 gap-1 bg-gw-bg p-1 rounded-lg border border-gw-secondary text-[10px] font-mono font-bold">
+                  {BASE_LAYERS.map((base) => (
+                    <button
+                      key={base.id}
+                      type="button"
+                      onClick={() => setBaseLayer(base.id)}
+                      className={`py-1 px-1 rounded text-center transition-all ${
+                        activeBaseLayerId === base.id
+                          ? 'bg-gw-primary text-gw-bg shadow-xs'
+                          : 'text-gw-accent hover:text-gw-primary hover:bg-white'
+                      }`}
+                      title={base.name}
+                    >
+                      {base.id === 'esri-ocean'
+                        ? 'ESRI Ocean'
+                        : base.id === 'carto-voyager'
+                        ? 'Voyager'
+                        : 'Dark All'}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Ocean Depth Labels & Soundings Checkbox */}
-                <label className="flex items-center gap-2 cursor-pointer pt-0.5 select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
-                  <input
-                    type="checkbox"
-                    checked={showOceanDepthLabels}
-                    onChange={(e) => setShowOceanDepthLabels(e.target.checked)}
-                    className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
-                  />
-                  <span>Ocean Depth & Sounding Labels (ESRI Ref)</span>
-                </label>
+                {/* Overlays (soundingsPane & seamarksPane) */}
+                <div className="space-y-1.5 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
+                    <input
+                      type="checkbox"
+                      checked={isOverlayEnabled('esri-labels')}
+                      onChange={() => toggleOverlay('esri-labels')}
+                      className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
+                    />
+                    <span>ESRI Ocean Labels & Soundings</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
+                    <input
+                      type="checkbox"
+                      checked={isOverlayEnabled('openseamap')}
+                      onChange={() => toggleOverlay('openseamap')}
+                      className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
+                    />
+                    <span>OpenSeaMap Seamarks</span>
+                  </label>
+                </div>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Layer Context Menu (Interception of right-click on warning markers & polygons) */}
+      {/* Layer Context Menu */}
       {contextMenu && contextMenu.isOpen && (
         <div
           style={{
@@ -819,7 +840,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           className="absolute z-[500] w-64 bg-white border-2 border-gw-primary rounded-xl shadow-2xl overflow-hidden text-xs pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
           <div className="bg-gw-primary text-gw-bg px-3 py-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[11px] truncate">
               <Navigation className="w-3.5 h-3.5 text-sky-400 shrink-0" />
@@ -835,7 +855,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </button>
           </div>
 
-          {/* Nautical Position Card */}
           <div className="p-2.5 bg-gw-bg/60 border-b border-gw-secondary">
             <div className="text-[10px] text-gw-accent uppercase font-bold flex items-center justify-between">
               <span>Anchor Coordinates</span>
@@ -851,9 +870,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
           </div>
 
-          {/* Context Action Palette */}
           <div className="p-1 space-y-0.5 bg-white">
-            {/* Copy Anchor Coordinates Action */}
             <button
               onClick={() => copyLayerLocation(contextMenu.nauticalCoordinates)}
               className="w-full flex items-center justify-between px-2.5 py-1.5 rounded hover:bg-gw-bg text-gw-primary transition-all font-medium text-left text-[11px]"
@@ -870,7 +887,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </span>
             </button>
 
-            {/* Hide From View Action */}
             {contextMenu.targetWarning && (
               <button
                 onClick={() => toggleWarningVisibility(contextMenu.targetWarning!.warning_id)}
@@ -881,7 +897,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </button>
             )}
 
-            {/* Center on Area (Triggers fitBounds on the selected geometry) */}
             {contextMenu.targetWarning && (
               <button
                 onClick={() => {
@@ -895,7 +910,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </button>
             )}
 
-            {/* View Full Warning Detail Action */}
             {contextMenu.targetWarning && (
               <button
                 onClick={() => {
@@ -915,7 +929,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       {/* COLLAPSIBLE SIDEBAR: Active Warnings & Filter Drawer */}
       {isSidebarOpen && (
         <aside className="absolute top-[64px] sm:top-[72px] left-3 sm:left-4 bottom-3 sm:bottom-4 w-[calc(100%-24px)] sm:w-[320px] md:w-[350px] bg-white border-2 border-gw-primary rounded-xl shadow-2xl pointer-events-auto z-[410] flex flex-col overflow-hidden">
-          {/* Drawer Header */}
           <div className="flex justify-between items-center p-3 border-b border-gw-secondary bg-gw-bg">
             <div className="font-bold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2 text-gw-primary">
               <Layers className="w-4 h-4 text-gw-primary" />
@@ -938,9 +951,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </button>
           </div>
 
-          {/* SIDEBAR FILTER ADDITIONS */}
+          {/* Filters & Pane Toggles */}
           <div className="p-3 border-b border-gw-secondary bg-gw-bg/40 space-y-3">
-            {/* 1. Scope Switcher (All / NAVAREA / Coastal) */}
+            {/* Scope Switcher */}
             <div className="space-y-1.5">
               <div className="text-[10px] font-bold uppercase tracking-wider text-gw-accent flex items-center justify-between">
                 <span>Scope Switcher</span>
@@ -966,7 +979,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </div>
             </div>
 
-            {/* 2. NAVAREA Selector (Dropdown with region camera jump) */}
+            {/* NAVAREA Selector */}
             <div className="space-y-1.5">
               <div className="text-[10px] font-bold uppercase tracking-wider text-gw-accent flex items-center justify-between">
                 <span>NAVAREA Selector</span>
@@ -986,10 +999,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </select>
             </div>
 
-            {/* 3. Layer Toggles (Checkboxes) */}
+            {/* Strict Pane Layer Toggles */}
             <div className="space-y-1.5 pt-1 border-t border-gw-secondary">
               <div className="text-[10px] font-bold uppercase tracking-wider text-gw-accent">
-                Layer Visibility
+                Layer Visibility & Panes
               </div>
               <div className="space-y-1 text-xs">
                 <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
@@ -999,7 +1012,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     onChange={(e) => setShowPolygons(e.target.checked)}
                     className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
                   />
-                  <span>Warning bounding polygons / areas</span>
+                  <span>Warning Polygons (navWarnVectorPane)</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
@@ -1009,22 +1022,31 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     onChange={(e) => setEnableClusters(e.target.checked)}
                     className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
                   />
-                  <span>Marker clusters</span>
+                  <span>Marker Clusters (navWarnMarkerPane)</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
                   <input
                     type="checkbox"
-                    checked={showOceanDepthLabels}
-                    onChange={(e) => setShowOceanDepthLabels(e.target.checked)}
+                    checked={isOverlayEnabled('esri-labels')}
+                    onChange={() => toggleOverlay('esri-labels')}
                     className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
                   />
-                  <span>Ocean depth & sounding labels</span>
+                  <span>Ocean Soundings (soundingsPane)</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
+                  <input
+                    type="checkbox"
+                    checked={isOverlayEnabled('openseamap')}
+                    onChange={() => toggleOverlay('openseamap')}
+                    className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
+                  />
+                  <span>OpenSeaMap Seamarks (seamarksPane)</span>
                 </label>
               </div>
             </div>
 
-            {/* Hidden Layers Reset Badge */}
             {hiddenWarningIds.size > 0 && (
               <button
                 onClick={unhideAllWarnings}
