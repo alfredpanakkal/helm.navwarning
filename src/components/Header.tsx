@@ -7,8 +7,6 @@ interface HeaderProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   activeCount: number;
-  onRefreshPipeline?: () => void;
-  isRefreshing?: boolean;
   onOpenConsole?: () => void;
   isAdminMode: boolean;
   setIsAdminMode: (admin: boolean) => void;
@@ -18,8 +16,6 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   activeCount,
-  onRefreshPipeline,
-  isRefreshing,
   onOpenConsole,
   isAdminMode,
   setIsAdminMode,
@@ -196,19 +192,6 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Terminal className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="hidden sm:inline">CLI Console</span>
-              </button>
-            )}
-
-            {isAdminMode && (
-              <button
-                onClick={onRefreshPipeline}
-                disabled={isRefreshing}
-                aria-label="Refresh ingestion pipeline"
-                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-gw-bg text-gw-primary font-bold text-xs uppercase tracking-wider rounded border border-gw-bg transition-all hover:bg-gw-secondary active:scale-95 disabled:opacity-50 min-h-[36px]"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{isRefreshing ? 'Syncing...' : 'Sync Pipeline'}</span>
-                <span className="sm:hidden">{isRefreshing ? '...' : 'Sync'}</span>
               </button>
             )}
           </div>

@@ -12,8 +12,6 @@ interface WorkspaceViewProps {
   onNavigate?: (tab: TabType) => void;
   onNavigateWithFilter?: (tab: TabType, filter?: string) => void;
   onSelectWarning?: (warning: NavWarning) => void;
-  onTriggerRefresh?: () => void;
-  isRefreshing?: boolean;
 }
 
 const MOCK_LOGS = [
@@ -37,8 +35,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   onNavigate,
   onNavigateWithFilter,
   onSelectWarning,
-  onTriggerRefresh,
-  isRefreshing,
 }) => {
   const attentionItems = computeAttentionRequired(sources, warnings, generations, supabaseConnected);
   const activeSourcesCount = sources.filter((s) => s.enabled).length;
@@ -131,17 +127,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             <span className={supabaseConnected ? 'text-emerald-700 font-bold' : 'text-red-700 font-bold'}>
               {supabaseConnected ? 'Connected' : 'Offline / Unreachable'}
             </span>
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={onTriggerRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-gw-primary text-gw-secondary font-bold text-xs uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-accent transition-all disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{isRefreshing ? 'Running Ingestion...' : 'Trigger Pipeline Run'}</span>
           </button>
         </div>
       </div>
@@ -270,13 +255,6 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-[10px] sm:text-xs text-gw-accent font-bold">LIVE METRICS</span>
-                <button
-                  onClick={onTriggerRefresh}
-                  disabled={isRefreshing}
-                  className="px-3 py-1 bg-gw-primary text-gw-secondary text-xs font-bold rounded uppercase tracking-wider hover:bg-gw-accent transition-all disabled:opacity-50 shrink-0"
-                >
-                  {isRefreshing ? 'Refreshing...' : 'Trigger Run'}
-                </button>
               </div>
             </div>
             

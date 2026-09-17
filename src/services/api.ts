@@ -24,17 +24,99 @@ export async function fetchWarnings(params?: {
   status?: string;
 }): Promise<NavWarning[]> {
   try {
+    const { supabase } = await import('../lib/supabaseClient');
+    const { parseCoordinatesDeterministic } = await import('../utils/coordinateParser');
+    const { INITIAL_WARNINGS } = await import('../data/sourcesRegistry');
+
+    if (supabase) {
+      let query = supabase.from('nav_warnings').select('*').order('created_at', { ascending: false });
+
+      if (params?.sourceId) {
+        query = query.eq('source_id', params.sourceId);
+      }
+      if (params?.navarea) {
+        query = query.eq('navarea', params.navarea);
+      }
+      // Cannot natively filter 'status' easily if it's not in the db, but we will fetch and map first.
+
+      const { data, error } = await query;
+
+      if (!error && data && data.length > 0) {
+        // Map database row to NavWarning interface
+        const liveWarnings: NavWarning[] = data.map((row: any) => {
+          const rawText = row.raw_text || row.issued_text || '';
+          const spatial = parseCoordinatesDeterministic(rawText, row.navarea as any).regexResult;
+
+          return {
+            schema_version: 1,
+            warning_id: row.warning_id || row.id,
+            publisher_id: row.source_id?.split('-')[0] || 'unknown',
+            source_id: row.source_id || 'unknown',
+            navarea: row.navarea || 'I',
+            series: row.series || 'UNKNOWN',
+            source_warning_id: row.warning_id || 'UNKNOWN',
+            warning_number: row.warning_id?.split('-')[0] || 'UNKNOWN',
+            warning_year: parseInt(row.warning_id?.split('-')[1]) || new Date().getFullYear(),
+            issued_at: row.issued_date || row.created_at || new Date().toISOString(),
+            issued_date: row.issued_date || row.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+            issued_time_precision: 'day',
+            issued_text: row.issued_text || '',
+            valid_from: row.issued_date || row.created_at || null,
+            valid_to: null,
+            cancelled_at: null,
+            status: (params?.status as any) || 'active', // Defaulting to active unless specified
+            status_basis: 'listed_in_complete_in_force_publication',
+            area_text: row.area_text || row.sub_area || 'Unknown Area',
+            original_language: 'en',
+            raw_text: rawText,
+            translated_text: null,
+            spatial: spatial,
+            supersedes: [],
+            cancels: [],
+            source_url: row.source_url || '',
+            raw_artifact_ref: row.id || '',
+            content_hash: row.id || '',
+            parser_version: '2.0',
+            extraction_method: row.extraction_method || 'llm_assisted',
+            first_seen_at: row.created_at || new Date().toISOString(),
+            last_seen_at: row.created_at || new Date().toISOString(),
+            not_in_force_observed_at: null,
+            generation_id: 'live-supabase-fetch',
+            validation: {
+              identity: 'passed',
+              dates: 'passed',
+              geometry: spatial.geometries.length > 0 ? 'passed' : 'not_present'
+            }
+          };
+        });
+
+        if (params?.status) {
+          return liveWarnings.filter(w => w.status === params.status);
+        }
+
+        return liveWarnings;
+      } else {
+        console.warn('Supabase fetch returned no data or error, falling back to local api/memory.');
+      }
+    }
+
+    // Fallback to local server API if Supabase fetch failed or returned nothing
     const query = new URLSearchParams();
     if (params?.sourceId) query.set('sourceId', params.sourceId);
     if (params?.navarea) query.set('navarea', params.navarea);
     if (params?.status) query.set('status', params.status);
 
     const res = await fetch(`/api/warnings?${query.toString()}`);
-    if (!res.ok) throw new Error('Failed to fetch warnings');
+    if (!res.ok) throw new Error('Failed to fetch warnings from local API');
     return await res.json();
   } catch (err) {
-    console.warn('API fetchWarnings error:', err);
-    return [];
+    console.warn('API fetchWarnings error, returning INITIAL_WARNINGS fallback:', err);
+    try {
+      const { INITIAL_WARNINGS } = await import('../data/sourcesRegistry');
+      return INITIAL_WARNINGS;
+    } catch {
+      return [];
+    }
   }
 }
 
@@ -180,17 +262,57 @@ export async function triggerPipelineRefresh(sourceId?: string): Promise<{
   message: string;
   run?: PipelineRunRecord;
 }> {
-  const headers = await getAdminHeaders();
-  const res = await fetch('/api/pipeline/trigger', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ sourceId }),
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || 'Failed to trigger ingestion pipeline');
+  if (!sourceId) {
+    throw new Error('A specific source/navarea must be selected to run its scraper.');
   }
-  return await res.json();
+
+  const { supabase } = await import('../lib/supabaseClient');
+  if (!supabase) throw new Error('Supabase client not initialized');
+
+  const sources = await fetchSources();
+  const source = sources.find(s => s.source_id === sourceId);
+  
+  if (!source || !source.navareas || source.navareas.length === 0) {
+     throw new Error('Source or NAVAREA mapping not found for ' + sourceId);
+  }
+
+  const navareaName = source.navareas[0].toString().toLowerCase(); // e.g. "xix"
+  const functionName = `scrape-navarea-${navareaName}`;
+
+  try {
+    const { data, error } = await supabase.functions.invoke(functionName, {
+      method: 'POST',
+      body: { sourceId }
+    });
+
+    if (error) {
+      throw new Error(`Edge Function ${functionName} failed: ` + error.message);
+    }
+
+    return {
+      success: true,
+      message: `Successfully triggered Supabase Edge Function: ${functionName}`,
+      run: {
+        run_id: `run-${Date.now()}`,
+        status: 'SUCCESS',
+        sources_processed: 1,
+        records_found: data?.inserted || 0,
+        records_stored: data?.inserted || 0,
+        records_updated: 0,
+        records_unchanged: 0,
+        records_failed: 0,
+        events: [
+          {
+            timestamp: new Date().toLocaleTimeString(),
+            stage: 'DONE',
+            message: `Edge function ${functionName} completed successfully.`
+          }
+        ]
+      }
+    };
+  } catch (err: any) {
+    throw new Error(err.message || 'Failed to trigger ingestion pipeline Edge Function');
+  }
 }
 
 export async function parseManualWarning(rawText: string, navarea?: string, mode: 'hybrid' | 'llm' | 'regex' = 'hybrid', aiModel: string = 'gemini-2.5-flash-lite'): Promise<{

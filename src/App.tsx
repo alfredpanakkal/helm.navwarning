@@ -63,6 +63,8 @@ export default function App() {
   const [artifacts, setArtifacts] = useState<RawArtifact[]>(INITIAL_ARTIFACTS);
   const [isPipelineRefreshing, setIsPipelineRefreshing] = useState(false);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
 
   // Terminal Console State
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
@@ -90,27 +92,34 @@ export default function App() {
     setConsoleLogs((prev) => [...prev, newEntry]);
   };
 
+  const loadData = async () => {
+    setIsLoadingData(true);
+    setDataError(null);
+    try {
+      const [apiSources, apiWarnings, apiGens, apiArts] = await Promise.all([
+        fetchSources(),
+        fetchWarnings(),
+        fetchGenerations(),
+        fetchArtifacts(),
+      ]);
+
+      if (apiSources.length > 0) setSources(apiSources);
+      if (apiWarnings.length > 0) setWarnings(apiWarnings);
+      if (apiGens.length > 0) setGenerations(apiGens);
+      if (apiArts.length > 0) setArtifacts(apiArts);
+
+      setIsOfflineMode(false);
+    } catch (err: any) {
+      console.warn('Backend API offline, using local state:', err);
+      setIsOfflineMode(true);
+      setDataError(err.message || 'Failed to fetch live data from Supabase. Falling back to local offline mode.');
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
   // Initial Data Fetch with Fallback
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [apiSources, apiWarnings, apiGens, apiArts] = await Promise.all([
-          fetchSources(),
-          fetchWarnings(),
-          fetchGenerations(),
-          fetchArtifacts(),
-        ]);
-
-        if (apiSources.length > 0) setSources(apiSources);
-        if (apiWarnings.length > 0) setWarnings(apiWarnings);
-        if (apiGens.length > 0) setGenerations(apiGens);
-        if (apiArts.length > 0) setArtifacts(apiArts);
-        setIsOfflineMode(false);
-      } catch (err) {
-        console.warn('Backend API offline, using local state:', err);
-        setIsOfflineMode(true);
-      }
-    }
     loadData();
   }, []);
 
@@ -326,13 +335,35 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         activeCount={activeCount}
-        onRefreshPipeline={() => handleTriggerRefresh()}
-        isRefreshing={isPipelineRefreshing}
         onOpenConsole={() => setIsConsoleOpen(true)}
         isAdminMode={isAdminMode}
         setIsAdminMode={setIsAdminMode}
       />
-      {isOfflineMode && (
+      {isLoadingData && (
+        <div className="bg-blue-100 border-b-2 border-blue-600 px-4 py-2 text-xs font-mono font-bold text-blue-900 flex items-center justify-between shadow-xs">
+          <div className="max-w-[1600px] mx-auto w-full flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+            <span>CONNECTING TO SUPABASE — Fetching latest live navigational warnings...</span>
+          </div>
+        </div>
+      )}
+      {dataError && !isLoadingData && (
+        <div className="bg-red-100 border-b-2 border-red-600 px-4 py-2 text-xs font-mono font-bold text-red-900 flex items-center justify-between shadow-xs">
+          <div className="max-w-[1600px] mx-auto w-full flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-600"></span>
+              <span>SUPABASE SYNC FAILED — {dataError}</span>
+            </div>
+            <button
+              onClick={() => loadData()}
+              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-500 transition-colors flex items-center gap-2"
+            >
+              <RefreshCw className="w-3 h-3" /> Retry Sync
+            </button>
+          </div>
+        </div>
+      )}
+      {isOfflineMode && !dataError && (
         <div className="bg-amber-100 border-b-2 border-amber-600 px-4 py-2 text-xs font-mono font-bold text-amber-900 flex items-center justify-between shadow-xs">
           <div className="max-w-[1600px] mx-auto w-full flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span>
@@ -420,8 +451,6 @@ export default function App() {
             onNavigate={(tab) => setActiveTab(tab)}
             onNavigateWithFilter={handleNavigateWithFilter}
             onSelectWarning={(w) => setSelectedWarning(w)}
-            onTriggerRefresh={handleTriggerRefresh}
-            isRefreshing={isPipelineRefreshing}
           />
         </div>
 

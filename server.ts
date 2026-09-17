@@ -140,8 +140,8 @@ const getGeminiClient = () => {
 
 async function generateContentWithRetry(ai: any, prompt: string, model: string, schema?: any) {
   let attempt = 0;
-  const maxRetries = 3;
-  const delayMs = 10000; // 10 seconds per retry (30s total)
+  const maxRetries = 1;
+  const delayMs = 2000; // 2 seconds per retry to respect Vercel/Serverless timeout limits
 
   while (attempt <= maxRetries) {
     try {
@@ -406,7 +406,7 @@ async function startServer() {
             let fetchSucceeded = false;
             let payloadBytes = 0;
 
-            // Step 1: Attempt fetch with retry and 10s timeout
+            // Step 1: Attempt fetch with 5s timeout and 0 retries to prevent Serverless/Vercel timeouts
             let fetchErrorMessage = '';
             const fetchUrl = (src.entrypoints && src.entrypoints.length > 0) ? src.entrypoints[0] : src.discovery_url;
 
@@ -426,8 +426,8 @@ async function startServer() {
                     'Accept': 'text/html,application/xhtml+xml,application/xml,text/plain,application/json',
                   },
                 },
-                1, // 1 retry
-                10000 // 10s timeout
+                0, // 0 retries to ensure fast execution
+                5000 // 5s timeout
               );
 
               httpStatus = fetchRes.status;
