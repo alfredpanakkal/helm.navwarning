@@ -53,6 +53,44 @@ let currentRunningJob: { run_id: string; target: string; started_at: string } | 
 const sourceLeases: Record<string, { lockedAt: string; requestId: string }> = {};
 
 /**
+ * Hydrates state from Supabase database upon server initialization.
+ * Eliminates reliance on hardcoded static seeds when live database records exist.
+ */
+async function hydrateDatabaseFromSupabase(): Promise<void> {
+  try {
+    const client = getSupabaseClient();
+    if (!client) {
+      console.log('[Data Pipeline] Supabase client not initialized; running with live in-memory store.');
+      return;
+    }
+
+    console.log('[Data Pipeline] Checking Supabase for live persistent maritime records...');
+    const { data: warningsData, error: wErr } = await client
+      .from('nav_warnings')
+      .select('*')
+      .order('issued_at', { ascending: false })
+      .limit(2000);
+
+    if (wErr) {
+      console.warn('[Data Pipeline] Supabase query notice:', wErr.message);
+      return;
+    }
+
+    if (warningsData && warningsData.length > 0) {
+      console.log(`[Data Pipeline] Successfully hydrated ${warningsData.length} live navigational warnings from Supabase!`);
+      warningsDb = warningsData as unknown as NavWarning[];
+    }
+
+    const { data: sourcesData } = await client.from('source_registry').select('*');
+    if (sourcesData && sourcesData.length > 0) {
+      sourcesDb = sourcesData as unknown as SourceRegistryItem[];
+    }
+  } catch (err: any) {
+    console.warn('[Data Pipeline] Hydration check completed with note:', err.message);
+  }
+}
+
+/**
  * Constant-Time String Comparison using crypto.timingSafeEqual
  * Prevents timing side-channel attacks during key/token verification.
  */
@@ -174,6 +212,9 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
 async function startServer() {
   // Validate ADMIN_KEY presence immediately on boot
   getRequiredAdminKey();
+
+  // Hydrate initial state from Supabase if configured, eliminating reliance on static seeds
+  await hydrateDatabaseFromSupabase();
 
   const app = express();
   const PORT = 3000;

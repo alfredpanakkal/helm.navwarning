@@ -403,6 +403,13 @@ export default function App() {
               setSelectedWarning(w);
               setActiveTab('map');
             }}
+            onTriggerRefresh={handleTriggerRefresh}
+            isRefreshing={isPipelineRefreshing}
+            onCommitWarnings={handleCommitWarnings}
+            sources={sources}
+            isOfflineMode={isOfflineMode}
+            onOpenConsole={() => setIsConsoleOpen(true)}
+            onNavigate={(tab) => setActiveTab(tab)}
           />
         </div>
 
