@@ -193,7 +193,7 @@ export async function triggerPipelineRefresh(sourceId?: string): Promise<{
   return await res.json();
 }
 
-export async function parseManualWarning(rawText: string, navarea?: string): Promise<{
+export async function parseManualWarning(rawText: string, navarea?: string, mode: 'hybrid' | 'llm' | 'regex' = 'hybrid'): Promise<{
   warning: NavWarning;
   extraction_method: 'deterministic' | 'llm_assisted';
 }> {
@@ -201,7 +201,7 @@ export async function parseManualWarning(rawText: string, navarea?: string): Pro
   const res = await fetch('/api/pipeline/parse-manual', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ rawText, navarea }),
+    body: JSON.stringify({ rawText, navarea, mode }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

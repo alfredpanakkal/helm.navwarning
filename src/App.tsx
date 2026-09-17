@@ -257,9 +257,9 @@ export default function App() {
     }
   };
 
-  const handleParseManual = async (rawText: string, navarea: string): Promise<NavWarning> => {
+  const handleParseManual = async (rawText: string, navarea: string, mode: 'hybrid' | 'llm' | 'regex' = 'hybrid'): Promise<NavWarning> => {
     try {
-      const res = await parseManualWarning(rawText, navarea);
+      const res = await parseManualWarning(rawText, navarea, mode);
       if (res.warning) {
         setWarnings((prev) => [res.warning, ...prev]);
         return res.warning;

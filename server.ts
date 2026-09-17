@@ -498,7 +498,7 @@ Raw text:
 ${rawPayloadText.slice(0, 2500)}
 """`;
                   const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
+                    model: 'gemini-2.5-flash-lite',
                     contents: prompt,
                     config: {
                       temperature: 0,
@@ -858,7 +858,7 @@ ${rawPayloadText.slice(0, 2500)}
 
       const startTime = Date.now();
       const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-2.5-flash-lite',
         contents: userPrompt,
         config: {
           temperature: 0.2,
@@ -871,7 +871,7 @@ ${rawPayloadText.slice(0, 2500)}
       res.json({
         success: true,
         hasKey: true,
-        model: 'gemini-3.8-flash',
+        model: 'gemini-2.5-flash-lite',
         latency_ms: durationMs,
         response: responseText,
         prompt_used: userPrompt,
@@ -888,15 +888,15 @@ ${rawPayloadText.slice(0, 2500)}
     }
   });
 
-  // Parse manual text using Gemini server-side or deterministic regex fallback
+  // Parse manual text using Gemini server-side, deterministic regex, or hybrid mode
   app.post('/api/pipeline/parse-manual', requireAdminAuth, async (req, res) => {
     try {
-      const { rawText, navarea = 'I' } = req.body;
+      const { rawText, navarea = 'I', mode = 'hybrid' } = req.body;
       if (!rawText || typeof rawText !== 'string') {
         return res.status(400).json({ error: 'rawText string is required' });
       }
 
-      // Step 1: Run deterministic regex parsing first
+      // Step 1: Run deterministic regex parsing
       const deterministicSpatial = parseCoordinatesDeterministic(rawText, navarea as NavAreaId);
 
       const manualHash = crypto.createHash('sha256').update(rawText).digest('hex').substring(0, 8).toUpperCase();
@@ -916,14 +916,15 @@ ${rawPayloadText.slice(0, 2500)}
         confidence: 0.9,
       };
 
-      // Step 2: Use Gemini if key is present to refine complex text, translation, or geometry
+      // Step 2: Use Gemini AI if mode is 'hybrid' or 'llm' and key is configured
       const ai = getGeminiClient();
-      if (ai) {
+      if (ai && mode !== 'regex') {
+
         try {
           const prompt = `Analyze this navigational warning (NAVAREA ${navarea}) text and extract structured fields.
 Raw text:
 """
-${rawText}
+${rawText.slice(0, 2500)}
 """
 
 Instructions:
@@ -933,7 +934,7 @@ Instructions:
 4. Zero inference: if ambiguous, return empty arrays.`;
 
           const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash-lite',
             contents: prompt,
             config: {
               temperature: 0,

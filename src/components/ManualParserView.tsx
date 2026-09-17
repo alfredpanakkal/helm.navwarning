@@ -5,7 +5,7 @@ import { FileText, Sparkles, CheckCircle2, AlertTriangle, Copy, ArrowRight, Edit
 
 
 interface ManualParserViewProps {
-  onParseManual: (rawText: string, navarea: string) => Promise<NavWarning>;
+  onParseManual: (rawText: string, navarea: string, mode?: 'hybrid' | 'llm' | 'regex') => Promise<NavWarning>;
   onSelectWarning: (warning: NavWarning) => void;
 }
 
@@ -17,6 +17,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
     `NAVAREA I 0145/26 NORTH SEA, FORTIES. DRILLING RIG 'VALARIS 122' ESTABLISHED IN POSITION 57-45.8N 001-12.4E. SAFETY ZONE 500 METRES RADIUS ESTABLISHED. ALL SHIPS KEEP CLEAR.`
   );
   const [navarea, setNavarea] = useState('I');
+  const [parseMode, setParseMode] = useState<'hybrid' | 'llm' | 'regex'>('hybrid');
   const [isParsing, setIsParsing] = useState(false);
   const [parsedResults, setParsedResults] = useState<NavWarning[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
       const texts = rawText.split('---').map(t => t.trim()).filter(Boolean);
       const results: NavWarning[] = [];
       for (const t of texts) {
-        const warn = await onParseManual(t, navarea);
+        const warn = await onParseManual(t, navarea, parseMode);
         results.push(warn);
       }
       setParsedResults(results);
@@ -41,6 +42,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
       setIsParsing(false);
     }
   };
+
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
@@ -64,19 +66,34 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input Form */}
         <form onSubmit={handleParse} className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-5 space-y-4 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-            <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">Target NAVAREA</label>
-            <select
-              value={navarea}
-              onChange={(e) => setNavarea(e.target.value)}
-              className="bg-gw-bg border-2 border-gw-primary text-gw-primary text-xs px-3 py-2 rounded font-mono font-bold focus:outline-none focus:border-gw-accent transition-colors"
-            >
-              {['I', 'Baltic', 'II', 'III', 'IV', 'XII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI'].map((a) => (
-                <option key={a} value={a}>
-                  NAVAREA {a}
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">Target NAVAREA</label>
+              <select
+                value={navarea}
+                onChange={(e) => setNavarea(e.target.value)}
+                className="bg-gw-bg border-2 border-gw-primary text-gw-primary text-xs px-3 py-1.5 rounded font-mono font-bold focus:outline-none focus:border-gw-accent transition-colors"
+              >
+                {['I', 'Baltic', 'II', 'III', 'IV', 'XII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI'].map((a) => (
+                  <option key={a} value={a}>
+                    NAVAREA {a}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">Engine Mode</label>
+              <select
+                value={parseMode}
+                onChange={(e) => setParseMode(e.target.value as any)}
+                className="bg-gw-bg border-2 border-gw-primary text-gw-primary text-xs px-3 py-1.5 rounded font-mono font-bold focus:outline-none focus:border-gw-accent transition-colors"
+              >
+                <option value="hybrid">✨ Hybrid (Regex + AI Fallback)</option>
+                <option value="llm">🤖 Gemini 2.5 Flash AI Direct</option>
+                <option value="regex">⚡ Deterministic Regex Only</option>
+              </select>
+            </div>
           </div>
 
           <div className="space-y-1.5">
