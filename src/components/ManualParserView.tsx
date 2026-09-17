@@ -58,6 +58,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
     setIsParsing(true);
     setErrorMsg(null);
+    setSupabaseSaveMsg(null);
     try {
       const texts = rawText.split('---').map(t => t.trim()).filter(Boolean);
       const results: NavWarning[] = [];
@@ -66,10 +67,26 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
         results.push(warn);
       }
       setParsedResults(results);
+
+      // Automatically save parsed warnings to Supabase
+      setIsSavingToSupabase(true);
+      const res = await saveImportedWarningsToSupabase(results);
+      if (res.success) {
+        setSupabaseSaveMsg({
+          success: true,
+          text: `Successfully parsed & automatically saved ${res.insertedCount} warning(s) to Supabase nav_warnings table!`,
+        });
+      } else {
+        setSupabaseSaveMsg({
+          success: false,
+          text: `Parsed successfully, but Supabase auto-save failed: ${res.error}`,
+        });
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to parse warning text');
     } finally {
       setIsParsing(false);
+      setIsSavingToSupabase(false);
     }
   };
 
