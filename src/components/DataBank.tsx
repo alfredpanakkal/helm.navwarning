@@ -28,6 +28,15 @@ import {
   Sparkles
 } from 'lucide-react';
 import { formatSpatialCoordinates } from '../utils/coordinateParser';
+import { 
+  analyzeDataset, 
+  sortAnalyzedWarnings, 
+  groupWarnings, 
+  HAZARD_CATEGORIES, 
+  HazardCategory, 
+  SmartSortMode, 
+  AnalyzedWarning 
+} from '../utils/warningAnalyzer';
 import { IngestionProcedureModal } from './IngestionProcedureModal';
 
 interface DataBankProps {
@@ -92,6 +101,9 @@ export const DataBank: React.FC<DataBankProps> = ({
   const [selectedNavArea, setSelectedNavArea] = useState(initialNavAreaFilter);
   const [selectedSeverity, setSelectedSeverity] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState(initialStatusFilter);
+  const [selectedCategory, setSelectedCategory] = useState<HazardCategory | 'ALL'>('ALL');
+  const [smartSortMode, setSmartSortMode] = useState<SmartSortMode | 'custom'>('urgency');
+  const [groupByMode, setGroupByMode] = useState<'none' | 'navarea' | 'category' | 'urgency' | 'authority'>('none');
   const [coordFilter, setCoordFilter] = useState<CoordFilterType>('ALL');
   const [isProcedureModalOpen, setIsProcedureModalOpen] = useState(false);
   
@@ -99,11 +111,23 @@ export const DataBank: React.FC<DataBankProps> = ({
   const [sortField, setSortField] = useState<SortField>('issued');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
+  // Comprehensive Dataset Analysis via warningAnalyzer
+  const datasetAnalysis = useMemo(() => analyzeDataset(warnings), [warnings]);
+  const { analyzed, analytics } = datasetAnalysis;
+
   // Shifting / Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number | 'ALL'>(25);
 
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupKey]: prev[groupKey] === false ? true : false
+    }));
+  };
 
   useEffect(() => {
     if (initialStatusFilter) {
@@ -174,20 +198,20 @@ export const DataBank: React.FC<DataBankProps> = ({
     setCurrentPage(1);
   };
 
-  // 1. Filter
-  const filteredWarnings = useMemo(() => {
-    return warnings.filter(w => {
+  // 1. Filter analyzed warnings
+  const filteredAnalyzed = useMemo(() => {
+    return analyzed.filter(item => {
+      const w = item.warning;
       if (selectedNavArea !== 'ALL' && w.navarea?.toUpperCase() !== selectedNavArea.toUpperCase()) return false;
       if (selectedStatus !== 'ALL' && w.status !== selectedStatus.toLowerCase()) return false;
+      if (selectedCategory !== 'ALL' && item.category !== selectedCategory) return false;
       if (selectedSeverity === 'critical' && w.extraction_confidence < 1) return false;
       if (selectedSeverity === 'high' && (w.extraction_confidence >= 1 || w.extraction_confidence < 0.8)) return false;
 
       if (coordFilter === 'with_coords') {
-        const hasC = (w.spatial?.geometries?.length > 0 || w.spatial?.circles?.length > 0);
-        if (!hasC) return false;
+        if (!item.hasCoordinates) return false;
       } else if (coordFilter === 'without_coords') {
-        const hasC = (w.spatial?.geometries?.length > 0 || w.spatial?.circles?.length > 0);
-        if (hasC) return false;
+        if (item.hasCoordinates) return false;
       }
 
       if (searchTerm.trim()) {
@@ -196,49 +220,64 @@ export const DataBank: React.FC<DataBankProps> = ({
         const matchText = w.issued_text.toLowerCase().includes(q);
         const matchArea = `navarea ${w.navarea}`.toLowerCase().includes(q);
         const matchStatus = w.status.toLowerCase().includes(q);
-        return matchId || matchText || matchArea || matchStatus;
+        const matchAuth = item.issuingAuthorityLabel.toLowerCase().includes(q);
+        const matchCat = item.categoryMeta.label.toLowerCase().includes(q);
+        return matchId || matchText || matchArea || matchStatus || matchAuth || matchCat;
       }
 
       return true;
     });
-  }, [warnings, selectedNavArea, selectedStatus, selectedSeverity, coordFilter, searchTerm]);
+  }, [analyzed, selectedNavArea, selectedStatus, selectedCategory, selectedSeverity, coordFilter, searchTerm]);
 
-  // 2. Sort
-  const sortedWarnings = useMemo(() => {
-    return [...filteredWarnings].sort((a, b) => {
-      let cmp = 0;
-      if (sortField === 'id') {
-        const aNum = parseInt(a.warning_number || '0', 10);
-        const bNum = parseInt(b.warning_number || '0', 10);
-        const aYr = a.warning_year || 0;
-        const bYr = b.warning_year || 0;
-        if (aYr !== bYr) {
-          cmp = aYr - bYr;
-        } else if (!isNaN(aNum) && !isNaN(bNum) && aNum !== bNum) {
-          cmp = aNum - bNum;
-        } else {
-          cmp = a.source_warning_id.localeCompare(b.source_warning_id);
+  // 2. Sort analyzed warnings
+  const sortedAnalyzed = useMemo(() => {
+    if (smartSortMode !== 'custom') {
+      return sortAnalyzedWarnings(filteredAnalyzed, smartSortMode, sortDirection);
+    } else {
+      const list = filteredAnalyzed.map(i => i.warning);
+      const sortedRaw = [...list].sort((a, b) => {
+        let cmp = 0;
+        if (sortField === 'id') {
+          const aNum = parseInt(a.warning_number || '0', 10);
+          const bNum = parseInt(b.warning_number || '0', 10);
+          const aYr = a.warning_year || 0;
+          const bYr = b.warning_year || 0;
+          if (aYr !== bYr) {
+            cmp = aYr - bYr;
+          } else if (!isNaN(aNum) && !isNaN(bNum) && aNum !== bNum) {
+            cmp = aNum - bNum;
+          } else {
+            cmp = a.source_warning_id.localeCompare(b.source_warning_id);
+          }
+        } else if (sortField === 'area') {
+          cmp = (a.navarea || '').localeCompare(b.navarea || '');
+        } else if (sortField === 'title') {
+          cmp = (a.issued_text || '').localeCompare(b.issued_text || '');
+        } else if (sortField === 'severity') {
+          cmp = (a.extraction_confidence ?? 0) - (b.extraction_confidence ?? 0);
+        } else if (sortField === 'coords') {
+          const aHas = (a.spatial?.geometries?.length > 0 || a.spatial?.circles?.length > 0) ? 1 : 0;
+          const bHas = (b.spatial?.geometries?.length > 0 || b.spatial?.circles?.length > 0) ? 1 : 0;
+          cmp = aHas - bHas;
+        } else if (sortField === 'issued') {
+          const aTime = a.issued_at ? new Date(a.issued_at).getTime() : (a.issued_date ? new Date(a.issued_date).getTime() : 0);
+          const bTime = b.issued_at ? new Date(b.issued_at).getTime() : (b.issued_date ? new Date(b.issued_date).getTime() : 0);
+          cmp = aTime - bTime;
+        } else if (sortField === 'status') {
+          cmp = (a.status || '').localeCompare(b.status || '');
         }
-      } else if (sortField === 'area') {
-        cmp = (a.navarea || '').localeCompare(b.navarea || '');
-      } else if (sortField === 'title') {
-        cmp = (a.issued_text || '').localeCompare(b.issued_text || '');
-      } else if (sortField === 'severity') {
-        cmp = (a.extraction_confidence ?? 0) - (b.extraction_confidence ?? 0);
-      } else if (sortField === 'coords') {
-        const aHas = (a.spatial?.geometries?.length > 0 || a.spatial?.circles?.length > 0) ? 1 : 0;
-        const bHas = (b.spatial?.geometries?.length > 0 || b.spatial?.circles?.length > 0) ? 1 : 0;
-        cmp = aHas - bHas;
-      } else if (sortField === 'issued') {
-        const aTime = a.issued_at ? new Date(a.issued_at).getTime() : (a.issued_date ? new Date(a.issued_date).getTime() : 0);
-        const bTime = b.issued_at ? new Date(b.issued_at).getTime() : (b.issued_date ? new Date(b.issued_date).getTime() : 0);
-        cmp = aTime - bTime;
-      } else if (sortField === 'status') {
-        cmp = (a.status || '').localeCompare(b.status || '');
-      }
-      return sortDirection === 'asc' ? cmp : -cmp;
-    });
-  }, [filteredWarnings, sortField, sortDirection]);
+        return sortDirection === 'asc' ? cmp : -cmp;
+      });
+      const map = new Map(filteredAnalyzed.map(i => [i.warning.warning_id, i]));
+      return sortedRaw.map(w => map.get(w.warning_id)!).filter(Boolean);
+    }
+  }, [filteredAnalyzed, smartSortMode, sortDirection, sortField]);
+
+  const sortedWarnings = useMemo(() => sortedAnalyzed.map(i => i.warning), [sortedAnalyzed]);
+  const groupedAnalyzed = useMemo(() => {
+    if (groupByMode === 'none') return null;
+    return groupWarnings(sortedAnalyzed, groupByMode);
+  }, [sortedAnalyzed, groupByMode]);
 
   // 3. Shifting / Pagination Math
   const pageSizeNum = pageSize === 'ALL' ? Math.max(1, sortedWarnings.length) : Number(pageSize);
@@ -441,6 +480,99 @@ export const DataBank: React.FC<DataBankProps> = ({
               <span>{isRefreshing ? 'Syncing...' : 'Sync Live Feeds'}</span>
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Executive Operational Brief Card & Category Filter Pills */}
+      <div className="bg-white border-2 border-gw-primary rounded-xl p-4 sm:p-5 shadow-xs flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-gw-secondary/60">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gw-primary text-white flex items-center justify-center shrink-0">
+              <Compass className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-gw-primary flex items-center gap-2">
+                <span>Executive Operational Brief</span>
+                <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-gw-bg border border-gw-secondary text-gw-accent">
+                  {analytics.geoReferencedPct}% GPS Georeferenced
+                </span>
+              </h2>
+              <p className="text-xs text-gw-accent mt-0.5">{analytics.operationalBrief}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-bold text-gw-primary">Group By:</span>
+            <select
+              value={groupByMode}
+              onChange={(e) => setGroupByMode(e.target.value as any)}
+              className="bg-gw-bg border border-gw-secondary rounded px-2.5 py-1 text-xs font-bold text-gw-primary outline-none focus:border-gw-primary cursor-pointer"
+            >
+              <option value="none">Flat Table View</option>
+              <option value="category">Group by Hazard Category</option>
+              <option value="navarea">Group by NAVAREA</option>
+              <option value="urgency">Group by Urgency Level</option>
+              <option value="authority">Group by Authority</option>
+            </select>
+          </div>
+        </div>
+
+        {analytics.actionableAlerts.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {analytics.actionableAlerts.map((alertText, idx) => (
+              <div key={idx} className="flex items-start gap-2 p-2.5 rounded-lg bg-gw-bg border border-gw-secondary text-xs text-gw-primary">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span className="leading-tight font-medium">{alertText}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2 pt-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-gw-accent flex items-center justify-between">
+            <span>Filter by Hazard Category ({Object.keys(HAZARD_CATEGORIES).length} Standard Classes)</span>
+            {selectedCategory !== 'ALL' && (
+              <button
+                onClick={() => setSelectedCategory('ALL')}
+                className="text-xs text-gw-primary hover:underline font-bold"
+              >
+                Clear Category Filter ✕
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => setSelectedCategory('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                selectedCategory === 'ALL'
+                  ? 'bg-gw-primary text-white border-gw-primary shadow-xs'
+                  : 'bg-gw-bg text-gw-primary border-gw-secondary hover:bg-white'
+              }`}
+            >
+              All Categories ({warnings.length})
+            </button>
+            {Object.entries(HAZARD_CATEGORIES).map(([catKey, meta]) => {
+              const count = analytics.categoryDistribution[catKey as HazardCategory] || 0;
+              const isSelected = selectedCategory === catKey;
+              return (
+                <button
+                  key={catKey}
+                  onClick={() => setSelectedCategory(catKey as HazardCategory)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                    isSelected
+                      ? 'bg-gw-primary text-white border-gw-primary shadow-xs'
+                      : meta.badgeClass + ' hover:opacity-90'
+                  }`}
+                >
+                  <span>{meta.shortLabel}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-white/70 text-gw-primary'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -779,8 +911,159 @@ export const DataBank: React.FC<DataBankProps> = ({
         )}
       </div>
 
-      {/* Mobile Card List (visible on mobile < md) */}
-      <div className="block md:hidden space-y-3">
+      {/* Smart Sort Presets Bar */}
+      <div className="flex flex-wrap items-center gap-2 p-3 bg-white border-2 border-gw-primary rounded-xl text-xs shadow-xs">
+        <span className="font-bold text-gw-accent uppercase tracking-wider text-[11px] flex items-center gap-1.5 mr-1">
+          <Sparkles className="w-3.5 h-3.5 text-gw-primary" />
+          Smart Sort Presets:
+        </span>
+        {[
+          { id: 'urgency', label: '🚨 Urgency First' },
+          { id: 'recency', label: '⏱️ Recency (Newest)' },
+          { id: 'navarea', label: '🌐 NAVAREA Sequence' },
+          { id: 'quality', label: '✨ Data Quality / Confidence' },
+          { id: 'custom', label: '📋 Standard Table Columns' },
+        ].map(preset => (
+          <button
+            key={preset.id}
+            type="button"
+            onClick={() => {
+              setSmartSortMode(preset.id as any);
+              if (preset.id !== 'custom') {
+                setSortDirection('desc');
+              }
+              setCurrentPage(1);
+            }}
+            className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all border cursor-pointer ${
+              smartSortMode === preset.id
+                ? 'bg-gw-primary text-white border-gw-primary shadow-xs'
+                : 'bg-gw-bg text-gw-primary border-gw-secondary hover:bg-white'
+            }`}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+
+      {groupByMode !== 'none' && groupedAnalyzed ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3.5 bg-white border-2 border-gw-primary rounded-xl text-xs shadow-xs">
+            <span className="font-bold text-gw-primary uppercase tracking-wider flex items-center gap-2">
+              <Layers className="w-4 h-4 text-gw-primary" />
+              Grouped View Mode: <strong className="capitalize text-gw-tertiary">{groupByMode}</strong> ({groupedAnalyzed.length} Active Groups)
+            </span>
+            <span className="text-gw-accent text-[11px]">
+              Showing {sortedWarnings.length} records structured across groups
+            </span>
+          </div>
+
+          {groupedAnalyzed.map(group => {
+            const isExpanded = expandedGroups[group.groupKey] !== false;
+            return (
+              <div key={group.groupKey} className="bg-white border-2 border-gw-primary rounded-2xl overflow-hidden shadow-xs">
+                {/* Group Header */}
+                <div
+                  onClick={() => toggleGroup(group.groupKey)}
+                  className="p-4 bg-gw-bg border-b-2 border-gw-primary/30 flex items-center justify-between cursor-pointer hover:bg-gw-secondary/20 transition-colors select-none"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gw-primary text-white flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                      {group.count}
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-gw-primary">
+                        {group.groupLabel}
+                      </h3>
+                      <p className="text-[11px] text-gw-accent font-mono mt-0.5">
+                        {group.count} warning{group.count === 1 ? '' : 's'} in this group
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-bold text-gw-primary">
+                    <span>{isExpanded ? 'Collapse Group' : 'Expand Group'}</span>
+                    <div className="p-1 rounded bg-white border border-gw-secondary text-gw-primary">
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Group Content */}
+                {isExpanded && (
+                  <div className="p-3 sm:p-4 space-y-3 bg-white">
+                    {group.items.map((analyzedItem, gIdx) => {
+                      const w = analyzedItem.warning;
+                      const cardId = w.warning_id || w.source_warning_id || `group-${group.groupKey}-${gIdx}`;
+                      const isCritical = w.extraction_confidence === 1;
+
+                      return (
+                        <div
+                          key={cardId}
+                          onClick={() => onLocate(w)}
+                          className="p-3.5 border-2 border-gw-secondary rounded-xl bg-gw-bg/30 hover:bg-white hover:border-gw-primary transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs group"
+                        >
+                          <div className="flex items-start sm:items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-white border border-gw-secondary flex items-center justify-center text-gw-primary shrink-0 font-bold text-xs font-mono">
+                              {w.navarea || 'NA'}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-black text-xs text-gw-primary group-hover:underline font-mono">
+                                  {w.source_warning_id}
+                                </span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${analyzedItem.categoryMeta.badgeClass}`}>
+                                  {analyzedItem.categoryMeta.shortLabel}
+                                </span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${isCritical ? 'bg-gw-primary' : 'bg-gw-tertiary'}`}>
+                                  {isCritical ? 'CRITICAL' : 'HIGH'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gw-primary font-medium mt-1 line-clamp-1">
+                                {w.issued_text}
+                              </p>
+                              <div className="flex items-center gap-3 text-[11px] text-gw-accent mt-1 font-mono">
+                                <span>{analyzedItem.coordinatesDisplay}</span>
+                                <span>•</span>
+                                <span>Issued: {w.issued_date}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                            {onVerifyWarning && (w.status === 'unverified' || w.extraction_confidence < 1) && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onVerifyWarning(w.warning_id);
+                                }}
+                                className="px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-emerald-700 transition-colors"
+                              >
+                                ✓ Verify
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onLocate(w);
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-primary text-white rounded-lg text-[10px] font-bold uppercase hover:bg-gw-accent transition-colors shadow-xs"
+                            >
+                              <Locate className="w-3 h-3" />
+                              <span>Locate</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <>
+          {/* Mobile Card List (visible on mobile < md) */}
+          <div className="block md:hidden space-y-3">
         {/* Mobile Shifter & Sorting Header */}
         <div className="flex items-center justify-between p-2.5 bg-white border-2 border-gw-primary rounded-xl text-xs font-bold">
           <div className="flex items-center gap-1.5">
@@ -1380,6 +1663,9 @@ export const DataBank: React.FC<DataBankProps> = ({
           )}
         </div>
       </div>
+        </>
+      )}
+
       {/* Ingestion Procedure Modal */}
       <IngestionProcedureModal
         isOpen={isProcedureModalOpen}
