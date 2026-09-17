@@ -18,6 +18,139 @@ export async function fetchSources(): Promise<SourceRegistryItem[]> {
   }
 }
 
+/**
+ * Maps a raw Supabase nav_warnings row into a fully typed and hydrated NavWarning object.
+ * Guarantees that all extended attributes (risk_level, authority, coordinates, categories, validity)
+ * are cleanly parsed and georeferenced geometries are created when lat/long are present.
+ */
+export function mapSupabaseRowToNavWarning(
+  row: any,
+  fallbackStatus: string = 'active'
+): NavWarning {
+  const rawText = row.raw_text || row.issued_text || '';
+  const navarea = (row.navarea || 'I') as any;
+  
+  // Deterministic coordinate parse from raw text
+  let spatial: any = {
+    geometries: [],
+    circles: [],
+    raw_coordinate_text: [],
+    validation_status: 'not_present',
+  };
+
+  try {
+    // If coordinateParser is available synchronously, or parse simple regex
+    const coordsMatch = rawText.match(/(\d{1,2})[-°](\d{1,2}(?:\.\d+)?)[ '"]*([NS])\s*(\d{1,3})[-°](\d{1,2}(?:\.\d+)?)[ '"]*([EW])/i);
+    if (coordsMatch) {
+      const latDeg = parseFloat(coordsMatch[1]);
+      const latMin = parseFloat(coordsMatch[2]);
+      const latDir = coordsMatch[3].toUpperCase();
+      const lngDeg = parseFloat(coordsMatch[4]);
+      const lngMin = parseFloat(coordsMatch[5]);
+      const lngDir = coordsMatch[6].toUpperCase();
+
+      let lat = latDeg + latMin / 60;
+      if (latDir === 'S') lat = -lat;
+      let lng = lngDeg + lngMin / 60;
+      if (lngDir === 'W') lng = -lng;
+
+      spatial = {
+        geometries: [
+          {
+            type: 'Point',
+            coordinates: [lng, lat],
+            label: row.title || row.warning_id || 'Extracted Point',
+          },
+        ],
+        circles: [],
+        raw_coordinate_text: [coordsMatch[0]],
+        validation_status: 'passed',
+      };
+    }
+  } catch {
+    // fallback
+  }
+
+  // If spatial has no geometries, but row has direct latitude/longitude numbers
+  const directLat = row.latitude != null && !isNaN(Number(row.latitude)) ? Number(row.latitude) : null;
+  const directLng = row.longitude != null && !isNaN(Number(row.longitude)) ? Number(row.longitude) : null;
+
+  if (spatial.geometries.length === 0 && directLat != null && directLng != null) {
+    spatial = {
+      geometries: [
+        {
+          type: 'Point',
+          coordinates: [directLng, directLat],
+          label: row.title || row.warning_id || `Point ${directLat}, ${directLng}`,
+        },
+      ],
+      circles: [],
+      raw_coordinate_text: [`${directLat}, ${directLng}`],
+      validation_status: 'passed',
+    };
+  }
+
+  const effectiveStatus = row.status || (row.validity === 'cancelled' ? 'cancelled' : fallbackStatus);
+  const issuedIso = row.issued_date || row.created_at || new Date().toISOString();
+  const issuedDateStr = row.issued_date
+    ? (row.issued_date.includes('T') ? row.issued_date.split('T')[0] : row.issued_date)
+    : (row.created_at ? row.created_at.split('T')[0] : new Date().toISOString().split('T')[0]);
+
+  return {
+    schema_version: 1,
+    warning_id: row.warning_id || row.id || `warn-${Date.now()}`,
+    publisher_id: row.publisher_id || row.source_id?.split('-')[0] || 'unknown',
+    source_id: row.source_id || 'unknown',
+    navarea: navarea,
+    series: row.series || `NAVAREA ${navarea}`,
+    source_warning_id: row.warning_id || 'UNKNOWN',
+    warning_number: row.warning_number || row.warning_id?.split('-')[0] || 'UNKNOWN',
+    warning_year: parseInt(row.warning_year || row.warning_id?.split('-')[1]) || new Date().getFullYear(),
+    issued_at: issuedIso,
+    issued_date: issuedDateStr,
+    issued_time_precision: 'day',
+    issued_text: row.issued_text || row.issued_date || '',
+    valid_from: row.valid_from || row.issued_date || row.created_at || null,
+    valid_to: row.valid_until || row.valid_to || null,
+    cancelled_at: row.cancelled_at || (effectiveStatus === 'cancelled' ? (row.updated_at || new Date().toISOString()) : null),
+    status: effectiveStatus as any,
+    status_basis: row.status_basis || 'listed_in_complete_in_force_publication',
+    area_text: row.area_text || row.sub_area || 'Unknown Navigational Area',
+    original_language: 'en',
+    raw_text: rawText,
+    translated_text: null,
+    spatial,
+    supersedes: [],
+    cancels: [],
+    title: row.title || null,
+    authority: row.authority || null,
+    sub_area: row.sub_area || row.area_text || null,
+    risk_level: row.risk_level || null,
+    latitude: directLat,
+    longitude: directLng,
+    valid_until: row.valid_until || null,
+    validity: row.validity || null,
+    charts: row.charts || null,
+    categories: row.categories || null,
+    web_link: row.web_link || row.source_url || null,
+    source_url: row.source_url || row.web_link || '',
+    raw_artifact_ref: row.id || '',
+    content_hash: row.content_hash || row.id || '',
+    parser_version: row.parser_version || '2.0',
+    extraction_method: row.extraction_method || 'deterministic',
+    extraction_confidence: row.extraction_confidence != null ? Number(row.extraction_confidence) : 0.95,
+    first_seen_at: row.created_at || new Date().toISOString(),
+    last_seen_at: row.updated_at || row.created_at || new Date().toISOString(),
+    not_in_force_observed_at: null,
+    generation_id: row.generation_id || 'live-supabase-fetch',
+    validation: {
+      identity: 'passed',
+      dates: 'passed',
+      geometry: spatial.geometries.length > 0 ? 'passed' : 'not_present',
+    },
+  };
+}
+
 export async function fetchWarnings(params?: {
   sourceId?: string;
   navarea?: string;
@@ -25,7 +158,6 @@ export async function fetchWarnings(params?: {
 }): Promise<NavWarning[]> {
   try {
     const { supabase } = await import('../lib/supabaseClient');
-    const { parseCoordinatesDeterministic } = await import('../utils/coordinateParser');
     const { INITIAL_WARNINGS } = await import('../data/sourcesRegistry');
 
     if (supabase) {
@@ -37,61 +169,17 @@ export async function fetchWarnings(params?: {
       if (params?.navarea) {
         query = query.eq('navarea', params.navarea);
       }
-      // Cannot natively filter 'status' easily if it's not in the db, but we will fetch and map first.
 
       const { data, error } = await query;
 
       if (!error && data && data.length > 0) {
-        // Map database row to NavWarning interface
-        const liveWarnings: NavWarning[] = data.map((row: any) => {
-          const rawText = row.raw_text || row.issued_text || '';
-          const spatial = parseCoordinatesDeterministic(rawText, row.navarea as any);
-
-          return {
-            schema_version: 1,
-            warning_id: row.warning_id || row.id,
-            publisher_id: row.source_id?.split('-')[0] || 'unknown',
-            source_id: row.source_id || 'unknown',
-            navarea: row.navarea || 'I',
-            series: row.series || 'UNKNOWN',
-            source_warning_id: row.warning_id || 'UNKNOWN',
-            warning_number: row.warning_id?.split('-')[0] || 'UNKNOWN',
-            warning_year: parseInt(row.warning_id?.split('-')[1]) || new Date().getFullYear(),
-            issued_at: row.issued_date || row.created_at || new Date().toISOString(),
-            issued_date: row.issued_date || row.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-            issued_time_precision: 'day',
-            issued_text: row.issued_text || '',
-            valid_from: row.issued_date || row.created_at || null,
-            valid_to: null,
-            cancelled_at: null,
-            status: (params?.status as any) || 'active', // Defaulting to active unless specified
-            status_basis: 'listed_in_complete_in_force_publication',
-            area_text: row.area_text || row.sub_area || 'Unknown Area',
-            original_language: 'en',
-            raw_text: rawText,
-            translated_text: null,
-            spatial: spatial,
-            supersedes: [],
-            cancels: [],
-            source_url: row.source_url || '',
-            raw_artifact_ref: row.id || '',
-            content_hash: row.id || '',
-            parser_version: '2.0',
-            extraction_method: row.extraction_method || 'llm_assisted',
-            first_seen_at: row.created_at || new Date().toISOString(),
-            last_seen_at: row.created_at || new Date().toISOString(),
-            not_in_force_observed_at: null,
-            generation_id: 'live-supabase-fetch',
-            validation: {
-              identity: 'passed',
-              dates: 'passed',
-              geometry: spatial.geometries.length > 0 ? 'passed' : 'not_present'
-            }
-          };
-        });
+        // Map database row to NavWarning interface with full field fidelity
+        const liveWarnings: NavWarning[] = data.map((row: any) =>
+          mapSupabaseRowToNavWarning(row, params?.status || 'active')
+        );
 
         if (params?.status) {
-          return liveWarnings.filter(w => w.status === params.status);
+          return liveWarnings.filter((w) => w.status === params.status);
         }
 
         return liveWarnings;
