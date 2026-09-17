@@ -405,3 +405,42 @@ export async function testGeminiIntegration(prompt?: string): Promise<{
   return data;
 }
 
+export async function saveImportedWarningsToSupabase(warnings: NavWarning[]): Promise<{
+  success: boolean;
+  insertedCount: number;
+  error?: string;
+}> {
+  try {
+    const { supabase } = await import('../lib/supabaseClient');
+    if (!supabase) {
+      return { success: false, insertedCount: 0, error: 'Supabase client not configured' };
+    }
+
+    const rows = warnings.map((w) => ({
+      warning_id: w.source_warning_id || w.warning_number || w.warning_id,
+      source_id: w.source_id || 'csv-upload',
+      navarea: w.navarea || 'XVII',
+      series: w.series || `NAVAREA ${w.navarea}`,
+      issued_date: w.issued_date || new Date().toISOString().split('T')[0],
+      created_at: w.issued_at || new Date().toISOString(),
+      issued_text: w.issued_text || w.issued_date,
+      raw_text: w.raw_text,
+      area_text: w.area_text,
+      sub_area: w.area_text,
+      source_url: w.source_url,
+      extraction_method: w.extraction_method || 'deterministic',
+    }));
+
+    const { error } = await supabase.from('nav_warnings').upsert(rows, { onConflict: 'warning_id' });
+    if (error) {
+      console.warn('Failed to upsert warnings to Supabase:', error.message);
+      return { success: false, insertedCount: 0, error: error.message };
+    }
+
+    return { success: true, insertedCount: rows.length };
+  } catch (err: any) {
+    console.warn('saveImportedWarningsToSupabase error:', err);
+    return { success: false, insertedCount: 0, error: err.message };
+  }
+}
+

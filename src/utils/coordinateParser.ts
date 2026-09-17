@@ -50,31 +50,61 @@ export function dmsToDecimal(deg: number, min: number, sec: number, dir: string)
 }
 
 /**
- * Parses coordinate pair strings like "55-14.2N 003-45.1E" or "55°14.2'N, 003°45.1'E"
+ * Parses coordinate pair strings like:
+ * - "69° 37.437'N 135° 29.262'W"
+ * - "69Â° 37.437'N 135Â° 29.262'W"
+ * - "55-14.2N 003-45.1E"
+ * - "69-37N 135-29W"
+ * - "71 21.06N 096 53.90W"
+ * - "64° 09.017'N 083° 22.367'W (Coral Harbour)"
+ * - "13.70, 69.84"
  */
 export function parseSingleCoordinatePair(text: string): [number, number] | null {
-  // Regex 1: DD-MM.M N/S DDD-MM.M E/W or DD-MM.MMN DDD-MM.MME
-  const pattern1 = /(\d{1,3})[-°\s](\d{1,2}(?:\.\d+)?)['′]?\s*([NS])[\s,]+(\d{1,3})[-°\s](\d{1,2}(?:\.\d+)?)['′]?\s*([EW])/i;
-  const match1 = text.match(pattern1);
+  if (!text || typeof text !== 'string') return null;
+
+  // Clean noise, artifacts, and encoding issues
+  const clean = text
+    .replace(/Â°/g, '°')
+    .replace(/&deg;/g, '°')
+    .replace(/\bPt\s*\d+:\s*/gi, '')
+    .replace(/\([^\)]+\)/g, '')
+    .trim();
+
+  // Regex 1: DD° MM.MMM' [NS] DDD° MM.MMM' [EW] or DD-MM.MM [NS] or DD MM.MM [NS] with optional seconds
+  const pattern1 = /(\d{1,3})(?:[°\s\-]|Â°)+(\d{1,2}(?:\.\d+)?)['′"]?\s*(?:(\d{1,2}(?:\.\d+)?)\s*["″]\s*)?([NS])[\s,]+(?:\bPt\s*\d+:\s*)?(\d{1,3})(?:[°\s\-]|Â°)+(\d{1,2}(?:\.\d+)?)['′"]?\s*(?:(\d{1,2}(?:\.\d+)?)\s*["″]\s*)?([EW])/i;
+  const match1 = clean.match(pattern1);
   if (match1) {
     const latDeg = parseFloat(match1[1]);
     const latMin = parseFloat(match1[2]);
-    const latDir = match1[3].toUpperCase();
-    const lngDeg = parseFloat(match1[4]);
-    const lngMin = parseFloat(match1[5]);
-    const lngDir = match1[6].toUpperCase();
+    const latSec = match1[3] ? parseFloat(match1[3]) : 0;
+    const latDir = match1[4].toUpperCase();
+    const lngDeg = parseFloat(match1[5]);
+    const lngMin = parseFloat(match1[6]);
+    const lngSec = match1[7] ? parseFloat(match1[7]) : 0;
+    const lngDir = match1[8].toUpperCase();
 
-    const lat = dmsToDecimal(latDeg, latMin, 0, latDir);
-    const lng = dmsToDecimal(lngDeg, lngMin, 0, lngDir);
+    const lat = dmsToDecimal(latDeg, latMin, latSec, latDir);
+    const lng = dmsToDecimal(lngDeg, lngMin, lngSec, lngDir);
     return [lng, lat];
   }
 
-  // Regex 2: DD MM N, DDD MM E (without minutes decimals)
-  const pattern2 = /(\d{1,2})\s+(\d{1,2})\s+([NS])[\s,]+(\d{1,3})\s+(\d{1,2})\s+([EW])/i;
-  const match2 = text.match(pattern2);
-  if (match2) {
-    const lat = dmsToDecimal(parseFloat(match2[1]), parseFloat(match2[2]), 0, match2[3].toUpperCase());
-    const lng = dmsToDecimal(parseFloat(match2[4]), parseFloat(match2[5]), 0, match2[6].toUpperCase());
+  // Regex 2: Pure decimal degrees: e.g. "69.62395, -135.48770" or "69.62395 N, 135.48770 W"
+  const patternDec = /(-?\d{1,3}\.\d+)\s*°?\s*([NS])?[\s,]+(-?\d{1,3}\.\d+)\s*°?\s*([EW])?/i;
+  const matchDec = clean.match(patternDec);
+  if (matchDec) {
+    let lat = parseFloat(matchDec[1]);
+    if (matchDec[2]?.toUpperCase() === 'S') lat = -Math.abs(lat);
+    let lng = parseFloat(matchDec[3]);
+    if (matchDec[4]?.toUpperCase() === 'W') lng = -Math.abs(lng);
+    return [Number(lng.toFixed(5)), Number(lat.toFixed(5))];
+  }
+
+  // Regex 3: DD MM N, DDD MM E (without minutes decimals)
+  const pattern3 = /(\d{1,2})\s+(\d{1,2})\s+([NS])[\s,]+(\d{1,3})\s+(\d{1,2})\s+([EW])/i;
+  const match3 = clean.match(pattern3);
+  if (match3) {
+    const lat = dmsToDecimal(parseFloat(match3[1]), parseFloat(match3[2]), 0, match3[3].toUpperCase());
+    const lng = dmsToDecimal(parseFloat(match3[4]), parseFloat(match3[5]), 0, match3[6].toUpperCase());
     return [lng, lat];
   }
 
@@ -89,10 +119,22 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
   const circles: SpatialCircle[] = [];
   const rawCoordinateText: string[] = [];
 
+  if (!rawText || typeof rawText !== 'string') {
+    return {
+      geometries: [],
+      circles: [],
+      raw_coordinate_text: [],
+      validation_status: 'not_present',
+    };
+  }
+
+  // Normalize text for encoding glitches (Â° -> °)
+  const sanitizedText = rawText.replace(/Â°/g, '°').replace(/&deg;/g, '°');
+
   // Check for circle pattern: e.g. "within 5 NM of 55-14.2N 003-45.1E" or "RADIUS 10NM CENTRED ON 24-15N 068-30E"
   const circlePattern = /(?:WITHIN|RADIUS)\s+(\d+(?:\.\d+)?)\s*(?:NM|NAUTICAL MILES)?\s*(?:OF|CENTRED ON|CENTERED ON)\s+([0-9\-\.°\s'″NS]+[EW])/gi;
   let circleMatch;
-  while ((circleMatch = circlePattern.exec(rawText)) !== null) {
+  while ((circleMatch = circlePattern.exec(sanitizedText)) !== null) {
     const radius = parseFloat(circleMatch[1]);
     const coordStr = circleMatch[2];
     const pt = parseSingleCoordinatePair(coordStr);
@@ -112,9 +154,9 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
     }
   }
 
-  // Extract all coordinate pairs found in the text
-  const globalCoordPattern = /(\d{1,3}[-°\s]\d{1,2}(?:\.\d+)?['′]?\s*[NS][\s,]+\d{1,3}[-°\s]\d{1,2}(?:\.\d+)?['′]?\s*[EW])/gi;
-  const allPairMatches = rawText.match(globalCoordPattern) || [];
+  // Extract all coordinate pairs found in the text (supporting DD° MM.MMM' [NS] DDD° MM.MMM' [EW] with any delimiters)
+  const globalCoordPattern = /(\d{1,3}(?:[°\s\-]|Â°)+\d{1,2}(?:\.\d+)?['′"]?\s*(?:(\d{1,2}(?:\.\d+)?)\s*["″]\s*)?[NS][\s,]+(?:\bPt\s*\d+:\s*)?\d{1,3}(?:[°\s\-]|Â°)+\d{1,2}(?:\.\d+)?['′"]?\s*(?:(\d{1,2}(?:\.\d+)?)\s*["″]\s*)?[EW])/gi;
+  const allPairMatches = sanitizedText.match(globalCoordPattern) || [];
   const parsedPoints: [number, number][] = [];
 
   for (const matchStr of allPairMatches) {
@@ -125,16 +167,29 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
     }
   }
 
-  // Deduplicate points
+  // Also check decimal degree pairs if no degree-minute matches were found
+  if (parsedPoints.length === 0) {
+    const decimalPattern = /(\b\d{1,2}\.\d+°?\s*[NS][\s,]+\d{1,3}\.\d+°?\s*[EW]\b)/gi;
+    const decMatches = sanitizedText.match(decimalPattern) || [];
+    for (const matchStr of decMatches) {
+      const pt = parseSingleCoordinatePair(matchStr);
+      if (pt) {
+        parsedPoints.push(pt);
+        rawCoordinateText.push(matchStr);
+      }
+    }
+  }
+
+  // Deduplicate points with precision tolerance (approx ~10 meters)
   const uniquePoints: [number, number][] = [];
   parsedPoints.forEach((pt) => {
-    if (!uniquePoints.some((u) => Math.abs(u[0] - pt[0]) < 0.0001 && Math.abs(u[1] - pt[1]) < 0.0001)) {
+    if (!uniquePoints.some((u) => Math.abs(u[0] - pt[0]) < 0.0005 && Math.abs(u[1] - pt[1]) < 0.0005)) {
       uniquePoints.push(pt);
     }
   });
 
   // If 3 or more points and text hints at area/polygon
-  const isPolygonText = /BOUNDED BY|AREA BOUNDED|JOINING|IN AREA|LINE CONNECTING|POLYGON/i.test(rawText);
+  const isPolygonText = /BOUNDED BY|AREA BOUNDED|JOINING|IN AREA|LINE CONNECTING|POLYGON|HAZARD AREA|FALLOUT/i.test(sanitizedText);
   if (uniquePoints.length >= 3 && isPolygonText) {
     // Close polygon if not closed
     const polyCoords = [...uniquePoints];
@@ -148,7 +203,7 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
       coordinates: [polyCoords],
       label: 'Affected Maritime Area',
     });
-  } else if (uniquePoints.length === 2 && /LINE|TRACK|CABLE|PIPE/i.test(rawText)) {
+  } else if (uniquePoints.length === 2 && /LINE|TRACK|CABLE|PIPE/i.test(sanitizedText)) {
     geometries.push({
       type: 'LineString',
       coordinates: uniquePoints,
@@ -162,7 +217,7 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
         geometries.push({
           type: 'Point',
           coordinates: pt,
-          label: `Point Position #${idx + 1}`,
+          label: uniquePoints.length === 1 ? 'Reported Hazard Position' : `Position #${idx + 1}`,
         });
       }
     });

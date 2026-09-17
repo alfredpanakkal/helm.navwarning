@@ -160,10 +160,18 @@ export default function App() {
     ? unverifiedCandidates.findIndex((w) => w.warning_id === selectedWarning.warning_id)
     : -1;
 
-  const handleCommitWarnings = (newWarnings: NavWarning[]) => {
+  const handleCommitWarnings = async (newWarnings: NavWarning[]) => {
     setWarnings((prev) => [...newWarnings, ...prev]);
-    setDataBankStatusFilter('unverified');
+    setDataBankStatusFilter('ALL');
     setActiveTab('databank');
+
+    // Also persist to Supabase in the background if connected
+    try {
+      const { saveImportedWarningsToSupabase } = await import('./services/api');
+      await saveImportedWarningsToSupabase(newWarnings);
+    } catch (e) {
+      console.warn('Background Supabase persistence error:', e);
+    }
   };
 
   const handleToggleSource = (sourceId: string, enabled: boolean) => {
