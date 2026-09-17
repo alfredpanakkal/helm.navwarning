@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldAlert, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { LAST_UPDATED, formatLastUpdated } from '../lib/version';
 
 export const DisclaimerBanner: React.FC = () => {
   const [expanded, setExpanded] = useState(false);
@@ -12,10 +13,15 @@ export const DisclaimerBanner: React.FC = () => {
       <div className="max-w-[1600px] mx-auto px-3 sm:px-6 md:px-8 py-1.5 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 text-xs">
         <div className="flex items-center gap-2 min-w-0">
           <ShieldAlert className="w-4 h-4 shrink-0 text-amber-400" />
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[10px] font-bold tracking-wider px-1.5 py-0.5 bg-gw-primary border border-gw-accent text-gw-bg rounded shrink-0">NOTICE</span>
-            <span className="text-gw-secondary text-[11px] sm:text-xs truncate sm:whitespace-normal">
-              Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[10px] font-bold tracking-wider px-1.5 py-0.5 bg-gw-primary border border-gw-accent text-gw-bg rounded shrink-0">NOTICE</span>
+              <span className="text-gw-secondary text-[11px] sm:text-xs truncate sm:whitespace-normal">
+                Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
+              </span>
+            </div>
+            <span className="hidden lg:inline text-zinc-400 font-mono text-[10px] shrink-0">
+              • {formatLastUpdated(LAST_UPDATED)}
             </span>
           </div>
         </div>

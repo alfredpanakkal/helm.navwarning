@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { DisclaimerBanner } from './components/DisclaimerBanner';
+import { Footer } from './components/Footer';
 import { LeafletMap } from './components/LeafletMap';
 import { DataBank } from './components/DataBank';
 import { WorkspaceView } from './components/WorkspaceView';
@@ -446,6 +447,8 @@ export default function App() {
           <SupabaseStatusView warnings={warnings} artifacts={artifacts} generations={generations} />
         </div>
       </main>
+
+      <Footer />
 
       {/* Persistent Floating Action Button (FAB) for Map & Data Bank views */}
       {(activeTab === 'map' || activeTab === 'databank') && (
