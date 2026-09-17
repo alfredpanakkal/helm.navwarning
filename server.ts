@@ -138,6 +138,39 @@ const getGeminiClient = () => {
   });
 };
 
+async function generateContentWithRetry(ai: any, prompt: string, model: string, schema?: any) {
+  let attempt = 0;
+  const maxRetries = 3;
+  const delayMs = 10000; // 10 seconds per retry (30s total)
+
+  while (attempt <= maxRetries) {
+    try {
+      const config: any = { temperature: 0 };
+      if (schema) {
+        config.responseMimeType = 'application/json';
+        config.responseSchema = schema;
+      }
+
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: prompt,
+        config: config
+      });
+      return response;
+    } catch (err: any) {
+      const is503 = err?.status === 503 || err?.message?.includes('503') || err?.message?.includes('High demand') || err?.message?.includes('UNAVAILABLE');
+      if (attempt < maxRetries && is503) {
+        console.warn(`[Gemini API] 503 Unavailable. Retrying in ${delayMs / 1000}s... (Attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        attempt++;
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
+
 async function startServer() {
   // Validate ADMIN_KEY presence immediately on boot
   getRequiredAdminKey();
@@ -497,34 +530,33 @@ Raw text:
 """
 ${rawPayloadText.slice(0, 2500)}
 """`;
-                  const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash-lite',
-                    contents: prompt,
-                    config: {
-                      temperature: 0,
-                      responseMimeType: 'application/json',
-                      responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                          series: { type: Type.STRING },
-                          warning_number: { type: Type.STRING },
-                          area_text: { type: Type.STRING },
-                          geometries: {
-                            type: Type.ARRAY,
-                            items: {
-                              type: Type.OBJECT,
-                              properties: {
-                                type: { type: Type.STRING },
-                                coordinates: { type: Type.STRING },
-                                radius_nm: { type: Type.NUMBER },
-                                label: { type: Type.STRING },
-                              },
-                            },
+                  const schema = {
+                    type: Type.OBJECT,
+                    properties: {
+                      series: { type: Type.STRING },
+                      warning_number: { type: Type.STRING },
+                      area_text: { type: Type.STRING },
+                      geometries: {
+                        type: Type.ARRAY,
+                        items: {
+                          type: Type.OBJECT,
+                          properties: {
+                            type: { type: Type.STRING },
+                            coordinates: { type: Type.STRING },
+                            radius_nm: { type: Type.NUMBER },
+                            label: { type: Type.STRING },
                           },
                         },
                       },
                     },
-                  });
+                  };
+
+                  const response = await generateContentWithRetry(
+                    ai, 
+                    prompt, 
+                    'gemini-2.5-flash-lite', 
+                    schema
+                  );
 
                   if (response.text) {
                     const rawLlmJson = JSON.parse(response.text);
@@ -857,13 +889,7 @@ ${rawPayloadText.slice(0, 2500)}
           : "System verification: confirm 'Gemini API operational check passed' and state current system readiness in 1 short sentence.";
 
       const startTime = Date.now();
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-lite',
-        contents: userPrompt,
-        config: {
-          temperature: 0.2,
-        },
-      });
+      const response = await generateContentWithRetry(ai, userPrompt, 'gemini-2.5-flash-lite');
 
       const durationMs = Date.now() - startTime;
       const responseText = response.text || 'No text content returned from Gemini model.';
@@ -891,7 +917,7 @@ ${rawPayloadText.slice(0, 2500)}
   // Parse manual text using Gemini server-side, deterministic regex, or hybrid mode
   app.post('/api/pipeline/parse-manual', requireAdminAuth, async (req, res) => {
     try {
-      const { rawText, navarea = 'I', mode = 'hybrid' } = req.body;
+      const { rawText, navarea = 'I', mode = 'hybrid', aiModel = 'gemini-2.5-flash-lite' } = req.body;
       if (!rawText || typeof rawText !== 'string') {
         return res.status(400).json({ error: 'rawText string is required' });
       }
@@ -933,38 +959,32 @@ Instructions:
 3. Extract precise coordinates, polygons, or circle parameters (lat, lng in decimal degrees [lng, lat]).
 4. Zero inference: if ambiguous, return empty arrays.`;
 
-          const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-lite',
-            contents: prompt,
-            config: {
-              temperature: 0,
-              responseMimeType: 'application/json',
-              responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                  series: { type: Type.STRING },
-                  warning_number: { type: Type.STRING },
-                  warning_year: { type: Type.INTEGER },
-                  area_text: { type: Type.STRING },
-                  issued_date: { type: Type.STRING },
-                  original_language: { type: Type.STRING },
-                  translated_text: { type: Type.STRING },
-                  geometries: {
-                    type: Type.ARRAY,
-                    items: {
-                      type: Type.OBJECT,
-                      properties: {
-                        type: { type: Type.STRING, description: 'Point, Polygon, LineString, or Circle' },
-                        coordinates: { type: Type.STRING, description: 'JSON string of coordinates array e.g. [[lng, lat]]' },
-                        radius_nm: { type: Type.NUMBER },
-                        label: { type: Type.STRING },
-                      },
-                    },
+          const schema = {
+            type: Type.OBJECT,
+            properties: {
+              series: { type: Type.STRING },
+              warning_number: { type: Type.STRING },
+              warning_year: { type: Type.INTEGER },
+              area_text: { type: Type.STRING },
+              issued_date: { type: Type.STRING },
+              original_language: { type: Type.STRING },
+              translated_text: { type: Type.STRING },
+              geometries: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    type: { type: Type.STRING, description: 'Point, Polygon, LineString, or Circle' },
+                    coordinates: { type: Type.STRING, description: 'JSON string of coordinates array e.g. [[lng, lat]]' },
+                    radius_nm: { type: Type.NUMBER },
+                    label: { type: Type.STRING },
                   },
                 },
               },
             },
-          });
+          };
+
+          const response = await generateContentWithRetry(ai, prompt, aiModel, schema);
 
           if (response.text) {
             const llmResult = JSON.parse(response.text);
@@ -1050,7 +1070,7 @@ Instructions:
         source_url: 'https://navwarn.local/manual-entry',
         raw_artifact_ref: 'local-manual-paste-session',
         content_hash: crypto.createHash('sha256').update(rawText).digest('hex'),
-        parser_version: extractedData.extraction_method === 'llm_assisted' ? 'gemini-2.5-flash-lite-v1' : 'deterministic-v1',
+        parser_version: extractedData.extraction_method === 'llm_assisted' ? `${aiModel}-v1` : 'deterministic-v1',
         extraction_method: extractedData.extraction_method,
         extraction_confidence: extractedData.confidence,
         first_seen_at: nowIso,

@@ -5,7 +5,7 @@ import { FileText, Sparkles, CheckCircle2, AlertTriangle, Copy, ArrowRight, Edit
 
 
 interface ManualParserViewProps {
-  onParseManual: (rawText: string, navarea: string, mode?: 'hybrid' | 'llm' | 'regex') => Promise<NavWarning>;
+  onParseManual: (rawText: string, navarea: string, mode?: 'hybrid' | 'llm' | 'regex', aiModel?: string) => Promise<NavWarning>;
   onSelectWarning: (warning: NavWarning) => void;
 }
 
@@ -18,6 +18,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
   );
   const [navarea, setNavarea] = useState('I');
   const [parseMode, setParseMode] = useState<'hybrid' | 'llm' | 'regex'>('hybrid');
+  const [aiModel, setAiModel] = useState<string>('gemini-2.5-flash-lite');
   const [isParsing, setIsParsing] = useState(false);
   const [parsedResults, setParsedResults] = useState<NavWarning[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
       const texts = rawText.split('---').map(t => t.trim()).filter(Boolean);
       const results: NavWarning[] = [];
       for (const t of texts) {
-        const warn = await onParseManual(t, navarea, parseMode);
+        const warn = await onParseManual(t, navarea, parseMode, aiModel);
         results.push(warn);
       }
       setParsedResults(results);
@@ -66,7 +67,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input Form */}
         <form onSubmit={handleParse} className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-5 space-y-4 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">Target NAVAREA</label>
               <select
@@ -83,15 +84,29 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">Engine Mode</label>
+              <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">Engine</label>
               <select
                 value={parseMode}
                 onChange={(e) => setParseMode(e.target.value as any)}
                 className="bg-gw-bg border-2 border-gw-primary text-gw-primary text-xs px-3 py-1.5 rounded font-mono font-bold focus:outline-none focus:border-gw-accent transition-colors"
               >
-                <option value="hybrid">✨ Hybrid (Regex + AI Fallback)</option>
-                <option value="llm">🤖 Gemini 2.5 Flash AI Direct</option>
-                <option value="regex">⚡ Deterministic Regex Only</option>
+                <option value="hybrid">✨ Hybrid</option>
+                <option value="llm">🤖 AI Direct</option>
+                <option value="regex">⚡ Regex Only</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">AI Model</label>
+              <select
+                value={aiModel}
+                onChange={(e) => setAiModel(e.target.value)}
+                className="bg-gw-bg border-2 border-gw-primary text-gw-primary text-xs px-3 py-1.5 rounded font-mono font-bold focus:outline-none focus:border-gw-accent transition-colors"
+                disabled={parseMode === 'regex'}
+              >
+                <option value="gemini-2.5-flash-lite">Flash Lite (Fast/Cheap)</option>
+                <option value="gemini-2.5-flash">Flash (Stable/High Capacity)</option>
+                <option value="gemini-2.5-pro">Pro (Complex reasoning)</option>
               </select>
             </div>
           </div>
