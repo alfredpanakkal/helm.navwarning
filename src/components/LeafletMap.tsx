@@ -4,17 +4,8 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 import { NavWarning, NavAreaId } from '../types';
-import { Search, MapPin, Locate, Copy, Activity, Database, Maximize2, RefreshCw, Compass } from 'lucide-react';
+import { Search, MapPin, Activity, Maximize2, Compass, ChevronLeft, ChevronRight, List, X } from 'lucide-react';
 import { getLeafletLatLng } from '../utils/coordinateParser';
-import { formatCoordinates } from '../utils/statusModel';
-
-/**
- * CANONICAL SPATIAL STORAGE DOCUMENTATION:
- * All spatial geometry coordinates in Helm.Warning are stored canonically in
- * WGS84 Decimal Degrees as [longitude, latitude] arrays inside `SpatialData.geometries`.
- * The UI coordinate toggle converts these canonical values into 'DD' (Decimal Degrees)
- * or 'DMS' (Degrees Minutes Seconds) for navigator convenience.
- */
 
 interface LeafletMapProps {
   warnings: NavWarning[];
@@ -33,7 +24,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [mobilePanel, setMobilePanel] = useState<'none' | 'list'>('none');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [coordFormat, setCoordFormat] = useState<'DD' | 'DMS'>('DD');
 
   // Initialize Leaflet Map
@@ -80,16 +71,13 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
   // Filter warnings based on severity, NAVAREA, and search text
   const filteredWarnings = warnings.filter(w => {
-    // Navarea filter
     if (selectedNavArea !== 'ALL' && w.navarea !== selectedNavArea) return false;
 
-    // Severity filter
     if (filterSeverity === 'critical' && w.extraction_confidence < 1) return false;
     if (filterSeverity === 'high' && (w.extraction_confidence >= 1 || w.extraction_confidence < 0.8)) return false;
     if (filterSeverity === 'moderate' && (w.extraction_confidence >= 0.8 || w.extraction_confidence < 0.5)) return false;
     if (filterSeverity === 'low' && w.extraction_confidence >= 0.5) return false;
 
-    // Search query filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchId = w.source_warning_id.toLowerCase().includes(q);
@@ -101,8 +89,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
     return true;
   });
-
-  const hiddenCount = warnings.length - filteredWarnings.length;
 
   // Auto-frame map bounds around active warnings
   const autoFrameMap = (activeList: NavWarning[]) => {
@@ -150,34 +136,43 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       });
     });
 
-    // Auto-fit framing when dataset or filter changes
     autoFrameMap(activeWarnings);
   }, [warnings, filterSeverity, selectedNavArea, searchQuery]);
 
-  // Handle invalidateSize when mobile drawer toggles
+  // Invalidate map size on sidebar toggle
   useEffect(() => {
     const timer = setTimeout(() => {
       leafletInstance.current?.invalidateSize();
-    }, 200);
+    }, 150);
     return () => clearTimeout(timer);
-  }, [mobilePanel]);
+  }, [isSidebarOpen]);
 
   return (
-    <div className="relative h-[calc(100vh-140px)] min-h-[480px] sm:min-h-[600px] border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden bg-gw-bg isolate">
+    <div className="relative h-[calc(100vh-140px)] min-h-[500px] border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden bg-gw-bg isolate">
       <div id="map" ref={mapRef} className="absolute inset-0 grayscale contrast-105 brightness-105 z-0"></div>
 
-      {/* Top Overlay Controls */}
-      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-start pointer-events-none z-[400] gap-2">
+      {/* Top Controls Toolbar */}
+      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 flex flex-wrap items-center justify-between gap-2 pointer-events-none z-[400]">
+        <div className="flex items-center gap-2 pointer-events-auto flex-1 sm:flex-initial min-w-[240px] max-w-md">
+          {/* Sidebar Toggle */}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard hover:bg-gw-primary hover:text-gw-bg transition-all shrink-0 min-h-[40px]"
+            title={isSidebarOpen ? "Collapse warnings list" : "Expand warnings list"}
+          >
+            <List className="w-4 h-4" />
+            <span className="hidden sm:inline">{isSidebarOpen ? "Hide List" : `Warnings (${filteredWarnings.length})`}</span>
+            <span className="sm:hidden">{filteredWarnings.length}</span>
+          </button>
 
-        {/* Search & Auto Frame Toolbar */}
-        <div className="flex items-center gap-2 pointer-events-auto w-full sm:w-auto">
-          <div className="flex items-center gap-2 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard flex-1 sm:w-[280px] md:w-[320px]">
+          {/* Search Input */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard flex-1 min-w-[160px]">
             <Search className="w-4 h-4 text-gw-accent shrink-0" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search ID, area, coords..."
+              placeholder="Search warnings, area, coords..."
               className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-gw-primary placeholder:text-gw-accent"
             />
             {searchQuery && (
@@ -185,134 +180,119 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 onClick={() => setSearchQuery('')}
                 className="text-xs text-gw-accent hover:text-gw-primary font-bold px-1"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
+        </div>
 
+        {/* Map View Tools */}
+        <div className="flex items-center gap-2 pointer-events-auto">
           <button
             onClick={() => autoFrameMap(filteredWarnings)}
-            title="Auto-frame map bounds to fit all warnings"
-            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard transition-all hover:bg-gw-primary hover:text-gw-bg shrink-0 min-h-[40px]"
+            title="Fit map view to all active warnings"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard hover:bg-gw-primary hover:text-gw-bg transition-all shrink-0 min-h-[40px]"
           >
             <Maximize2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Auto Frame</span>
+            <span className="hidden sm:inline">Fit Bounds</span>
           </button>
 
           <button
             onClick={() => setCoordFormat((prev) => (prev === 'DD' ? 'DMS' : 'DD'))}
-            title="Toggle coordinate display format between Decimal Degrees (DD) and Degrees Minutes Seconds (DMS)"
-            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard transition-all hover:bg-gw-primary hover:text-gw-bg shrink-0 min-h-[40px]"
+            title="Toggle coordinate format (DD/DMS)"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard hover:bg-gw-primary hover:text-gw-bg transition-all shrink-0 min-h-[40px]"
           >
             <Compass className="w-3.5 h-3.5 text-gw-accent" />
-            <span>Format: {coordFormat}</span>
+            <span>{coordFormat}</span>
           </button>
         </div>
-
-        {/* Mobile Toggle Controls */}
-        <div className="flex lg:hidden items-center justify-between gap-2 pointer-events-auto">
-          <button
-            onClick={() => setMobilePanel(mobilePanel === 'list' ? 'none' : 'list')}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard transition-all min-h-[40px] ${mobilePanel === 'list' ? 'bg-gw-primary text-gw-bg' : 'bg-white/95 text-gw-primary'}`}
-          >
-            <span>Warnings ({filteredWarnings.length})</span>
-          </button>
-        </div>
-
-        {/* Legend - Desktop & Tablet */}
-        <div className="hidden sm:block bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard pointer-events-auto px-3.5 py-2.5 min-w-[130px] text-[11px]">
-          <div className="text-[9px] font-bold uppercase tracking-widest text-gw-accent mb-1.5">SEVERITY</div>
-          <div className="flex items-center gap-2 mb-1"><span className="w-2 h-2 rounded-full border border-gw-primary bg-gw-primary"></span>Critical</div>
-          <div className="flex items-center gap-2 mb-1"><span className="w-2 h-2 rounded-full border border-gw-primary bg-gw-tertiary"></span>High</div>
-          <div className="flex items-center gap-2 mb-1"><span className="w-2 h-2 rounded-full border border-gw-primary bg-gw-accent"></span>Moderate</div>
-          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full border border-gw-primary bg-white"></span>Low/Info</div>
-        </div>
-
       </div>
 
-      {/* Left Panel - Active Warnings */}
-      <aside className={`absolute top-[60px] sm:top-[70px] left-3 sm:left-4 bottom-[60px] sm:bottom-[70px] w-[calc(100%-24px)] sm:w-[320px] bg-white border-2 border-gw-primary rounded-lg shadow-2xl pointer-events-auto z-[1000] lg:z-[400] flex-col ${mobilePanel === 'list' ? 'flex' : 'hidden lg:flex'}`}>
-        <div className="flex justify-between items-center p-3.5 border-b border-gw-secondary">
-          <div className="font-bold text-sm sm:text-base uppercase tracking-wider flex items-center gap-2">
-            <span>Active Warnings</span>
-            {hiddenCount > 0 && (
-              <span className="text-[10px] font-mono text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded font-bold border border-amber-300">
-                ({hiddenCount} hidden)
+      {/* Collapsible Left Panel - Active Warnings List */}
+      {isSidebarOpen && (
+        <aside className="absolute top-[64px] sm:top-[72px] left-3 sm:left-4 bottom-[48px] sm:bottom-[54px] w-[calc(100%-24px)] sm:w-[320px] md:w-[340px] bg-white border-2 border-gw-primary rounded-xl shadow-2xl pointer-events-auto z-[400] flex flex-col overflow-hidden">
+          <div className="flex justify-between items-center p-3 border-b border-gw-secondary bg-gw-bg/50">
+            <div className="font-bold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2">
+              <span>Active Warnings</span>
+              <span className="text-[10px] px-2 py-0.5 bg-gw-primary text-gw-bg rounded-full font-mono font-bold">
+                {filteredWarnings.length}
               </span>
+            </div>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="p-1 rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all"
+              title="Close panel"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Quick Severity Filters */}
+          <div className="flex items-center gap-1 p-2 border-b border-gw-secondary bg-white overflow-x-auto no-scrollbar">
+            {['all', 'critical', 'high', 'moderate'].map((sev) => (
+              <button
+                key={sev}
+                onClick={() => setFilterSeverity(sev)}
+                className={`px-2.5 py-1 rounded text-[10px] uppercase font-bold border transition-all shrink-0 ${
+                  filterSeverity === sev
+                    ? 'bg-gw-primary text-gw-bg border-gw-primary'
+                    : 'bg-gw-bg text-gw-primary border-gw-secondary hover:border-gw-primary'
+                }`}
+              >
+                {sev}
+              </button>
+            ))}
+          </div>
+
+          {/* Warning List Items */}
+          <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
+            {filteredWarnings.length === 0 ? (
+              <div className="text-center py-8 text-xs text-gw-accent font-mono">
+                No active warnings match search filters.
+              </div>
+            ) : (
+              filteredWarnings.map((w) => (
+                <div
+                  key={w.warning_id}
+                  onClick={() => onSelectWarning(w)}
+                  className="p-3 bg-gw-bg hover:bg-white border-2 border-gw-secondary hover:border-gw-primary rounded-lg cursor-pointer transition-all shadow-xs group"
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-mono font-bold text-gw-accent group-hover:text-gw-primary">
+                      {w.source_warning_id} · NA {w.navarea}
+                    </span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase bg-gw-primary text-gw-bg">
+                      {w.extraction_confidence === 1 ? 'CRIT' : 'HIGH'}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-gw-primary line-clamp-2 mb-1.5">
+                    {w.issued_text}
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-gw-accent font-mono">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-gw-primary" />
+                      {w.issued_date}
+                    </span>
+                    <span className="text-gw-primary font-bold group-hover:underline">
+                      View Detail →
+                    </span>
+                  </div>
+                </div>
+              ))
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] px-1.5 py-0.5 bg-gw-primary text-gw-bg rounded font-bold">{filteredWarnings.length}</span>
-            <button
-              onClick={() => setMobilePanel('none')}
-              aria-label="Close mobile list panel"
-              className="lg:hidden text-gw-primary font-bold text-base px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
+        </aside>
+      )}
 
-        <div className="flex flex-wrap gap-1 p-2.5 border-b border-gw-secondary">
-          {['all', 'critical', 'high', 'moderate', 'low'].map(sev => (
-            <button
-              key={sev}
-              onClick={() => setFilterSeverity(sev)}
-              aria-label={`Filter severity ${sev}`}
-              className={`flex items-center gap-1 px-2 py-1 bg-transparent border border-gw-secondary rounded text-[10px] uppercase font-bold transition-all hover:border-gw-accent ${filterSeverity === sev ? 'bg-gw-primary text-gw-bg border-gw-primary' : ''}`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full border border-current ${
-                sev === 'all' || sev === 'critical' ? 'bg-gw-primary' :
-                sev === 'high' ? 'bg-gw-tertiary' :
-                sev === 'moderate' ? 'bg-gw-accent' : 'bg-gw-secondary'
-              }`}></span>
-              {sev}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
-          {filteredWarnings.map(w => (
-            <div
-              key={w.warning_id}
-              onClick={() => {
-                onSelectWarning(w);
-              }}
-              className={`p-3 bg-gw-bg border border-gw-secondary border-l-4 rounded cursor-pointer transition-all hover:translate-x-0.5 ${
-                w.extraction_confidence === 1 ? 'border-l-gw-primary' : 'border-l-gw-tertiary'
-              }`}
-            >
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-[10px] text-gw-accent tracking-wide">{w.source_warning_id} · NA {w.navarea}</span>
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                  w.extraction_confidence === 1 ? 'bg-gw-primary text-gw-bg' : 'bg-gw-tertiary text-gw-bg'
-                }`}>{w.extraction_confidence === 1 ? 'CRIT' : 'HIGH'}</span>
-              </div>
-              <div className="text-xs sm:text-sm font-bold mb-1 line-clamp-2">{w.issued_text}</div>
-              <div className="flex items-center gap-3 text-[10px] text-gw-accent mt-2">
-                <span className="flex items-center gap-1"><MapPin className="w-2.5 h-2.5" />{w.issued_date}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </aside>
-
-      {/* Bottom Overlay Info */}
-      <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4 flex justify-between items-center pointer-events-none z-[400]">
-        <div className="bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard pointer-events-auto flex items-center gap-3 px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs">
-          <div className="flex items-center gap-1">
-            <Activity className="w-3 h-3 text-gw-accent" />
-            <span>DISPLAY:</span>
-            <span className="font-bold">{filteredWarnings.length} Warnings</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Database className="w-3 h-3 text-gw-accent" />
-            <span>FRAME:</span>
-            <span className="font-bold">Auto</span>
-          </div>
+      {/* Bottom Status Ribbon */}
+      <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 pointer-events-none z-[400]">
+        <div className="bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard pointer-events-auto flex items-center gap-2 px-3 py-1.5 text-[10px] sm:text-xs font-mono font-bold">
+          <Activity className="w-3.5 h-3.5 text-gw-accent" />
+          <span>Active Map Warnings: {filteredWarnings.length}</span>
         </div>
       </div>
     </div>
   );
 };
+
 

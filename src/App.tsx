@@ -459,41 +459,20 @@ export default function App() {
 
       <Footer />
 
-      {/* Persistent Floating Action Button (FAB) for Map & Data Bank views */}
-      {(activeTab === 'map' || activeTab === 'databank') && (
+      {/* Persistent Floating Action Button (FAB) for Data Bank verification (Admin Only) */}
+      {isAdminMode && activeTab === 'databank' && unverifiedCandidates.length > 0 && (
         <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[900] flex items-center gap-2 bg-gw-primary/95 text-gw-bg p-1.5 rounded-full shadow-2xl border-2 border-gw-accent backdrop-blur-md">
-          {unverifiedCandidates.length > 0 ? (
-            <>
-              <button
-                onClick={() => setSelectedWarning(unverifiedCandidates[0])}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-                title="Verify next candidate in queue directly"
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>Verify Next ({unverifiedCandidates.length})</span>
-              </button>
-              <button
-                onClick={() => handleTriggerRefresh()}
-                disabled={isPipelineRefreshing}
-                className="p-2.5 bg-gw-tertiary hover:bg-gw-tertiary/80 text-gw-bg rounded-full text-xs font-bold uppercase transition-all shadow-md active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg"
-                title="Ingest Now — Trigger pipeline sync"
-              >
-                <RefreshCw className={`w-4 h-4 ${isPipelineRefreshing ? 'animate-spin' : ''}`} />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => handleTriggerRefresh()}
-              disabled={isPipelineRefreshing}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gw-bg text-gw-primary hover:bg-gw-secondary rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
-              title="Ingest Now — Trigger pipeline sync"
-            >
-              <RefreshCw className={`w-4 h-4 ${isPipelineRefreshing ? 'animate-spin' : ''}`} />
-              <span>{isPipelineRefreshing ? 'Ingesting...' : 'Ingest Now'}</span>
-            </button>
-          )}
+          <button
+            onClick={() => setSelectedWarning(unverifiedCandidates[0])}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+            title="Verify next candidate in queue directly"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Verify Next ({unverifiedCandidates.length})</span>
+          </button>
         </div>
       )}
+
 
       {/* Warning Provenance Detail Modal */}
       {selectedWarning && (
