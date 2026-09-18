@@ -65,8 +65,8 @@ export async function checkSupabaseHealth(): Promise<{
     const [warnRes, srcRes, genRes, artRes] = await Promise.all([
       client.from('nav_warnings').select('warning_id', { count: 'exact', head: true }),
       client.from('sources_registry').select('source_id', { count: 'exact', head: true }),
-      client.from('ingestion_generations').select('generation_id', { count: 'exact', head: true }),
-      client.from('raw_artifacts').select('artifact_id', { count: 'exact', head: true }),
+      client.from('ingestion_generations').select('id', { count: 'exact', head: true }),
+      client.from('raw_artifacts').select('id', { count: 'exact', head: true }),
     ]);
 
     const errors: string[] = [];
@@ -193,18 +193,28 @@ export async function syncArtifactsToSupabase(artifacts: RawArtifact[]): Promise
   if (artifacts.length === 0) return { success: true };
 
   try {
-    const payload = artifacts.map((a) => ({
-      artifact_id: a.artifact_id,
-      source_id: a.source_id,
-      timestamp: a.timestamp,
-      path: a.path,
-      content_type: a.content_type,
-      content_hash: a.content_hash,
-      size_bytes: a.size_bytes,
-      preview_text: a.preview_text,
-    }));
+    const payload = artifacts.map((a) => {
+      const navarea =
+        (a as any).navarea ||
+        (a.source_id?.includes('navarea-') ? a.source_id.split('-')[1]?.toUpperCase() : 'GLOBAL') ||
+        'GLOBAL';
+      return {
+        id: a.artifact_id || (a as any).id,
+        artifact_id: a.artifact_id,
+        source_id: a.source_id,
+        navarea,
+        fetched_at: a.timestamp || new Date().toISOString(),
+        path: a.path,
+        content_type: a.content_type || 'text/plain',
+        content_hash: a.content_hash || '',
+        raw_text: a.preview_text || a.full_content || (a as any).raw_text || '',
+        http_status: (a as any).http_status ?? 200,
+        evidence_hash: (a as any).evidence_hash || a.content_hash || '',
+        artifact_ref: (a as any).artifact_ref || a.path || '',
+      };
+    });
 
-    const { error } = await client.from('raw_artifacts').upsert(payload, { onConflict: 'artifact_id' });
+    const { error } = await client.from('raw_artifacts').upsert(payload, { onConflict: 'id' });
     if (error) {
       console.warn('Supabase raw_artifacts upsert error:', error.message);
       return { success: false, error: `raw_artifacts: ${error.message}` };
@@ -222,19 +232,26 @@ export async function syncGenerationsToSupabase(generations: IngestionGeneration
   if (generations.length === 0) return { success: true };
 
   try {
-    const payload = generations.map((g) => ({
-      generation_id: g.generation_id,
-      source_id: g.source_id,
-      created_at: g.created_at,
-      publication_kind: g.publication_kind,
-      parsed_count: g.parsed_count,
-      active_count: g.active_count,
-      completeness_status: g.completeness_status,
-      evidence_hash: g.evidence_hash,
-      artifact_ref: g.artifact_ref,
-    }));
+    const payload = generations.map((g) => {
+      const navarea =
+        (g as any).navarea ||
+        (g.source_id?.includes('navarea-') ? g.source_id.split('-')[1]?.toUpperCase() : 'GLOBAL') ||
+        'GLOBAL';
+      return {
+        id: g.generation_id || (g as any).id,
+        navarea,
+        timestamp: g.created_at || new Date().toISOString(),
+        created_at: g.created_at || new Date().toISOString(),
+        total_warnings_found: g.parsed_count ?? (g as any).total_warnings_found ?? 0,
+        active_count: g.active_count ?? 0,
+        status: g.completeness_status || 'COMPLETE',
+        completeness_status: g.completeness_status || 'verified',
+        evidence_hash: g.evidence_hash || '',
+        artifact_ref: g.artifact_ref || '',
+      };
+    });
 
-    const { error } = await client.from('ingestion_generations').upsert(payload, { onConflict: 'generation_id' });
+    const { error } = await client.from('ingestion_generations').upsert(payload, { onConflict: 'id' });
     if (error) {
       console.warn('Supabase ingestion_generations upsert error:', error.message);
       return { success: false, error: `ingestion_generations: ${error.message}` };

@@ -195,27 +195,51 @@ CREATE TABLE IF NOT EXISTS public.raw_messages (
 NOTIFY pgrst, 'reload schema';
 
 CREATE TABLE IF NOT EXISTS public.raw_artifacts (
-  artifact_id TEXT PRIMARY KEY,
+  id TEXT PRIMARY KEY,
+  artifact_id TEXT,
   source_id TEXT NOT NULL,
-  timestamp TIMESTAMPTZ NOT NULL,
+  navarea TEXT,
+  fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   path TEXT NOT NULL,
   content_type TEXT,
   content_hash TEXT,
-  size_bytes INT,
-  preview_text TEXT
-);
-
-CREATE TABLE IF NOT EXISTS public.ingestion_generations (
-  generation_id TEXT PRIMARY KEY,
-  source_id TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL,
-  publication_kind TEXT,
-  parsed_count INT,
-  active_count INT,
-  completeness_status TEXT,
+  raw_text TEXT,
+  preview_text TEXT,
+  http_status INT DEFAULT 200,
   evidence_hash TEXT,
   artifact_ref TEXT
 );
+
+-- Backwards/forwards compatibility for raw_artifacts:
+ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS id TEXT;
+ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS artifact_id TEXT;
+ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS raw_text TEXT;
+ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS preview_text TEXT;
+ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS navarea TEXT;
+ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS fetched_at TIMESTAMPTZ;
+ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS http_status INT DEFAULT 200;
+
+CREATE TABLE IF NOT EXISTS public.ingestion_generations (
+  id TEXT PRIMARY KEY,
+  generation_id TEXT,
+  source_id TEXT,
+  navarea TEXT,
+  timestamp TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  total_warnings_found INT DEFAULT 0,
+  active_count INT DEFAULT 0,
+  status TEXT DEFAULT 'COMPLETE',
+  completeness_status TEXT DEFAULT 'verified',
+  evidence_hash TEXT,
+  artifact_ref TEXT
+);
+
+-- Backwards/forwards compatibility for ingestion_generations:
+ALTER TABLE public.ingestion_generations ADD COLUMN IF NOT EXISTS id TEXT;
+ALTER TABLE public.ingestion_generations ADD COLUMN IF NOT EXISTS generation_id TEXT;
+ALTER TABLE public.ingestion_generations ADD COLUMN IF NOT EXISTS navarea TEXT;
+ALTER TABLE public.ingestion_generations ADD COLUMN IF NOT EXISTS total_warnings_found INT;
+ALTER TABLE public.ingestion_generations ADD COLUMN IF NOT EXISTS status TEXT;
 
 CREATE TABLE IF NOT EXISTS public.sources_registry (
   source_id TEXT PRIMARY KEY,

@@ -321,17 +321,33 @@ async function callMistralFallback(prompt: string, schema?: any, specificModel?:
 }
 
 async function generateContentWithRetry(ai: any, prompt: string, model: string, schema?: any) {
-  // FIRST PRIORITY: Try Mistral (mistral-small-latest) first
-  console.log(`[AI Parsing Engine] Attempting first priority: Mistral AI (mistral-small-latest)...`);
-  const mistralRes = await callMistralFallback(prompt, schema, 'mistral-small-latest');
-  if (mistralRes && mistralRes.text) {
-    console.log(`[AI Parsing Engine] Successfully parsed using Mistral (${mistralRes.modelUsed}).`);
-    return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
+  const wantsGeminiFirst = model && model.toLowerCase().startsWith('gemini');
+
+  if (!wantsGeminiFirst) {
+    // FIRST PRIORITY: Try Mistral (mistral-small-latest or user-specified model) first
+    const mistralModel = model && model.toLowerCase().startsWith('mistral') ? model : 'mistral-small-latest';
+    console.log(`[AI Parsing Engine] Attempting first priority: Mistral AI (${mistralModel})...`);
+    const mistralRes = await callMistralFallback(prompt, schema, mistralModel);
+    if (mistralRes && mistralRes.text) {
+      console.log(`[AI Parsing Engine] Successfully parsed using Mistral (${mistralRes.modelUsed}).`);
+      return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
+    }
+    console.warn(`[AI Parsing Engine] Mistral unavailable or failed. Falling back to Gemini Flash Lite latest...`);
   }
 
-  console.warn(`[AI Parsing Engine] Mistral unavailable or failed. Falling back to Gemini Flash Lite latest...`);
+  // SECOND PRIORITY: Gemini Flash Lite latest
+  if (!ai) {
+    // If Gemini is not configured, try Mistral as last resort if not tried yet
+    if (wantsGeminiFirst) {
+      console.warn(`[AI Parsing Engine] Gemini client not configured, attempting Mistral fallback...`);
+      const mistralRes = await callMistralFallback(prompt, schema, 'mistral-small-latest');
+      if (mistralRes && mistralRes.text) {
+        return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
+      }
+    }
+    throw new Error('Gemini API client is not initialized and Mistral fallback was unavailable. Please ensure MISTRAL_API_KEY or GEMINI_API_KEY is configured.');
+  }
 
-  // SECOND PRIORITY: Gemini Flash Lite latest fallback
   let targetModel = normalizeGeminiModel(model || 'gemini-3.1-flash-lite');
   let attempt = 0;
   const maxRetries = 1;
@@ -364,6 +380,14 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
         await new Promise(resolve => setTimeout(resolve, delayMs));
         attempt++;
       } else {
+        // As a final failover if Gemini fails and Mistral hasn't been tried
+        if (wantsGeminiFirst) {
+          console.warn(`[AI Parsing Engine] Gemini failed (${err?.message}). Attempting emergency Mistral fallback...`);
+          const mistralRes = await callMistralFallback(prompt, schema, 'mistral-small-latest');
+          if (mistralRes && mistralRes.text) {
+            return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
+          }
+        }
         throw err;
       }
     }
