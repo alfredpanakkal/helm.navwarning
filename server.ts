@@ -273,13 +273,16 @@ function normalizeGeminiModel(requestedModel?: string): string {
   return clean;
 }
 
-async function callMistralFallback(prompt: string, schema?: any): Promise<{ text: string; modelUsed: string } | null> {
+async function callMistralFallback(prompt: string, schema?: any, specificModel?: string): Promise<{ text: string; modelUsed: string } | null> {
   const mistralKey = process.env.MISTRAL_API_KEY;
   if (!mistralKey) {
-    console.warn(`[Mistral Fallback] MISTRAL_API_KEY is not set. Falling back to deterministic parser.`);
+    console.warn(`[Mistral Fallback] MISTRAL_API_KEY is not set.`);
     return null;
   }
-  const models = ['mistral-small-latest', 'ministral-8b-latest', 'ministral-3b-latest', 'open-mistral-7b'];
+  let models = ['mistral-small-latest', 'ministral-8b-latest', 'ministral-3b-latest', 'open-mistral-7b', 'mistral-large-latest'];
+  if (specificModel && specificModel !== 'auto') {
+    models = [specificModel, ...models.filter(m => m !== specificModel)];
+  }
   for (const model of models) {
     try {
       console.warn(`[Mistral AI] Attempting model ${model}...`);
@@ -318,7 +321,18 @@ async function callMistralFallback(prompt: string, schema?: any): Promise<{ text
 }
 
 async function generateContentWithRetry(ai: any, prompt: string, model: string, schema?: any) {
-  let targetModel = normalizeGeminiModel(model);
+  // FIRST PRIORITY: Try Mistral (mistral-small-latest) first
+  console.log(`[AI Parsing Engine] Attempting first priority: Mistral AI (mistral-small-latest)...`);
+  const mistralRes = await callMistralFallback(prompt, schema, 'mistral-small-latest');
+  if (mistralRes && mistralRes.text) {
+    console.log(`[AI Parsing Engine] Successfully parsed using Mistral (${mistralRes.modelUsed}).`);
+    return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
+  }
+
+  console.warn(`[AI Parsing Engine] Mistral unavailable or failed. Falling back to Gemini Flash Lite latest...`);
+
+  // SECOND PRIORITY: Gemini Flash Lite latest fallback
+  let targetModel = normalizeGeminiModel(model || 'gemini-3.1-flash-lite');
   let attempt = 0;
   const maxRetries = 1;
   const delayMs = 1500;
@@ -340,46 +354,19 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
     } catch (err: any) {
       const is503 = err?.status === 503 || err?.message?.includes('503') || err?.message?.includes('high demand') || err?.message?.includes('UNAVAILABLE');
       const is404 = err?.status === 404 || err?.message?.includes('404') || err?.message?.includes('no longer available') || err?.message?.includes('NOT_FOUND');
-      const isQuota = err?.status === 429 || err?.message?.includes('RESOURCE_EXHAUSTED') || err?.message?.includes('quota') || err?.message?.includes('rate limit');
-
-      if (isQuota) {
-        console.warn(`[Gemini API] Quota or rate limit exceeded (RESOURCE_EXHAUSTED). Attempting Mistral AI fallback...`);
-        const mistralRes = await callMistralFallback(prompt, schema);
-        if (mistralRes) {
-          return mistralRes;
-        }
-        return null;
-      }
 
       if (is404 && targetModel !== 'gemini-3.1-flash-lite') {
-        console.warn(`[Gemini API] Model ${targetModel} unavailable (${err?.message || '404'}). Falling back to gemini-3.1-flash-lite.`);
         targetModel = 'gemini-3.1-flash-lite';
         continue;
       }
 
       if (attempt < maxRetries && is503) {
-        if (targetModel !== 'gemini-3.1-flash-lite') {
-          console.warn(`[Gemini API] 503 high demand on ${targetModel}. Retrying with gemini-3.1-flash-lite...`);
-          targetModel = 'gemini-3.1-flash-lite';
-        } else {
-          console.warn(`[Gemini API] 503 Unavailable. Retrying in ${delayMs / 1000}s... (Attempt ${attempt + 1}/${maxRetries})`);
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-        }
+        await new Promise(resolve => setTimeout(resolve, delayMs));
         attempt++;
       } else {
-        console.warn(`[Gemini API] Error encountered (${err?.message || err}). Attempting Mistral AI fallback...`);
-        const mistralRes = await callMistralFallback(prompt, schema);
-        if (mistralRes) {
-          return mistralRes;
-        }
         throw err;
       }
     }
-  }
-
-  const mistralRes = await callMistralFallback(prompt, schema);
-  if (mistralRes) {
-    return mistralRes;
   }
   return null;
 }
@@ -742,7 +729,12 @@ async function startServer() {
               const ai = getGeminiClient();
               if (ai) {
                 try {
-                  const prompt = `Analyze raw maritime warning text for NAVAREA ${currentNavarea} and extract structured fields and geometries.
+                  const prompt = `You are a precision maritime NAVAREA parser. Analyze the raw notice text for NAVAREA ${currentNavarea}, normalize text, and extract precise metadata and spatial geometries.
+Instructions:
+1. Identify warning number and series.
+2. Extract all geographic coordinates, radii in nautical miles (radius_nm), and geometry types (Circle, Polygon, Point).
+3. Ensure strict adherence to the requested JSON schema.
+
 Raw text:
 """
 ${rawPayloadText.slice(0, 2500)}
@@ -1796,12 +1788,14 @@ Instructions:
           ? req.body.prompt.trim()
           : "System verification: confirm 'Mistral AI operational check passed' and state current system readiness in 1 short sentence.";
 
+      const specificModel = typeof req.body?.model === 'string' ? req.body.model : 'auto';
+
       const startTime = Date.now();
-      const mistralRes = await callMistralFallback(userPrompt);
+      const mistralRes = await callMistralFallback(userPrompt, undefined, specificModel);
       const durationMs = Date.now() - startTime;
 
       if (!mistralRes || !mistralRes.text) {
-        throw new Error('No response content returned from Mistral API.');
+        throw new Error(`No response content returned from Mistral API (model: ${specificModel}).`);
       }
 
       res.json({
@@ -1852,10 +1846,12 @@ Instructions:
         confidence: 0.9,
       };
 
-      // Step 2: Use Gemini AI if mode is 'hybrid' or 'llm' and key is configured
+      // Step 2: Use Gemini/Mistral AI first for every parse attempt
       const ai = getGeminiClient();
-      if (ai && mode !== 'regex') {
+      let aiParsingFailed = false;
+      let aiErrorMsg: string | null = null;
 
+      if (ai && mode !== 'regex') {
         try {
           const prompt = `Analyze this navigational warning (NAVAREA ${navarea}) text and extract structured fields.
 Raw text:
@@ -1896,7 +1892,7 @@ Instructions:
 
           const response = await generateContentWithRetry(ai, prompt, aiModel, schema);
 
-          if (response.text) {
+          if (response && response.text) {
             const llmResult = JSON.parse(response.text);
             if (llmResult.series) extractedData.series = llmResult.series;
             if (llmResult.warning_number) {
@@ -1944,10 +1940,19 @@ Instructions:
                 };
               }
             }
+          } else {
+            throw new Error('AI returned empty response text.');
           }
-        } catch (geminiErr) {
-          console.warn('Gemini extraction warning (fallback to deterministic):', geminiErr);
+        } catch (geminiErr: any) {
+          aiParsingFailed = true;
+          aiErrorMsg = geminiErr?.message || String(geminiErr);
+          console.warn('[AI Parsing Engine] AI parsing failed. Falling back to hybrid/deterministic parsing:', aiErrorMsg);
+          // Hybrid fallback is already initialized in extractedData (deterministicSpatial + heuristic fields)
+          extractedData.extraction_method = 'deterministic';
         }
+      } else if (!ai && mode !== 'regex') {
+        aiParsingFailed = true;
+        aiErrorMsg = 'AI client not configured or missing API key.';
       }
 
       const nowIso = new Date().toISOString();
@@ -2000,6 +2005,8 @@ Instructions:
       res.json({
         warning: newWarn,
         extraction_method: extractedData.extraction_method,
+        ai_parsing_failed: aiParsingFailed,
+        ai_error: aiErrorMsg,
       });
     } catch (err: any) {
       console.error('Manual parse endpoint error:', err);

@@ -12,7 +12,6 @@ import {
   FeatureRoleHint
 } from '../types';
 
-
 export const NAVAREA_BOUNDS: Record<NavAreaId, BoundingBox> = {
   I: { minLat: 48, maxLat: 75, minLng: -30, maxLng: 30 },
   Baltic: { minLat: 53, maxLat: 66, minLng: 9, maxLng: 31 },
@@ -38,6 +37,92 @@ export const NAVAREA_BOUNDS: Record<NavAreaId, BoundingBox> = {
   XXI: { minLat: 65, maxLat: 90, minLng: 125, maxLng: -170 },
 };
 
+export type SemanticGeometryType =
+  | 'POINT'
+  | 'MULTI_POINT'
+  | 'POINT_WITH_RADIUS'
+  | 'CIRCLE'
+  | 'LINE'
+  | 'LINE_WITH_WIDTH'
+  | 'POLYGON'
+  | 'BOUNDING_BOX'
+  | 'RECTANGLE'
+  | 'SECTOR'
+  | 'ARC'
+  | 'UNKNOWN'
+  | 'PARTIAL';
+
+export type GeometryInferenceMode = 'EXPLICIT' | 'INFERRED' | 'PARTIAL' | 'UNKNOWN';
+export type GeometryConfidenceLevel = 'VERIFIED' | 'HIGH_CONFIDENCE' | 'PARTIAL' | 'AMBIGUOUS' | 'UNKNOWN';
+export type CoordinateRole =
+  | 'CENTER'
+  | 'BOUNDARY_VERTEX'
+  | 'START_POINT'
+  | 'END_POINT'
+  | 'TRACK_POINT'
+  | 'WAYPOINT'
+  | 'REFERENCE_POINT'
+  | 'HAZARD_POINT'
+  | 'ANCHOR_POINT'
+  | 'UNKNOWN';
+
+export type EscalationCondition =
+  | 'COORDINATES_PRESENT_BUT_NOT_PARSED'
+  | 'AMBIGUOUS_HEMISPHERE'
+  | 'MISSING_REQUIRED_COORDINATE'
+  | 'GEOMETRY_AMBIGUOUS'
+  | 'SPATIAL_RELATIONSHIP_UNKNOWN'
+  | 'MULTI_AREA_GROUPING_AMBIGUOUS'
+  | 'PARTIAL_GEOMETRY'
+  | 'GEOMETRY_CONFLICT'
+  | 'INVALID_GEOMETRY'
+  | 'SELF_INTERSECTION'
+  | 'OTHER_UNRESOLVED_VALIDATION_ERROR';
+
+export interface EvidenceItem {
+  rule: string;
+  matched_text?: string;
+  result?: any;
+  position_count?: number;
+}
+
+export interface CoordinateGroup {
+  group_id: string;
+  group_label?: string; // e.g. 'A', 'B', 'C', 'D'
+  coordinates: [number, number][];
+  relationship: string;
+  roles: CoordinateRole[];
+  sequence: number[];
+  evidence: EvidenceItem[];
+}
+
+export interface EnhancedSpatialGeometry extends SpatialGeometry {
+  semantic_type?: SemanticGeometryType;
+  inference_mode?: GeometryInferenceMode;
+  confidence_level?: GeometryConfidenceLevel;
+  spatial_group_id?: string;
+  group_label?: string;
+  evidence?: EvidenceItem[];
+  radius_derived?: boolean;
+  diameter_nm?: number;
+  offset_each_side_nm?: number;
+  start_bearing?: number;
+  end_bearing?: number;
+}
+
+export interface EnhancedSpatialData extends SpatialData {
+  geometries: EnhancedSpatialGeometry[];
+  spatial_groups?: CoordinateGroup[];
+  hemisphere_status?: 'EXPLICIT' | 'INFERRED_CONVENTION' | 'AMBIGUOUS_HEMISPHERE';
+  navarea_relation?: 'INSIDE' | 'OUTSIDE' | 'PARTIALLY_OUTSIDE' | 'UNKNOWN';
+  coordinate_validity?: 'VALID' | 'INVALID';
+  geometry_validation?: 'VALID' | 'INVALID' | 'SUSPICIOUS' | 'CONFLICT';
+  geometry_conflict?: boolean;
+  conflict_reason?: string;
+  escalation_triggers?: EscalationCondition[];
+  review_required?: boolean;
+}
+
 /**
  * Converts degrees, minutes, seconds and direction to decimal degrees
  */
@@ -50,19 +135,16 @@ export function dmsToDecimal(deg: number, min: number, sec: number, dir: string)
 }
 
 /**
- * Parses coordinate pair strings like:
- * - "69° 37.437'N 135° 29.262'W"
- * - "69Â° 37.437'N 135Â° 29.262'W"
- * - "55-14.2N 003-45.1E"
- * - "69-37N 135-29W"
- * - "71 21.06N 096 53.90W"
- * - "64° 09.017'N 083° 22.367'W (Coral Harbour)"
- * - "13.70, 69.84"
+ * Parses coordinate pair strings with comprehensive support for DMS, decimal, hyphenated, compact, and hemisphere rules.
+ * Never silently guesses hemispheres when missing (returns null or flags AMBIGUOUS_HEMISPHERE).
  */
-export function parseSingleCoordinatePair(text: string): [number, number] | null {
-  if (!text || typeof text !== 'string') return null;
+export function parseSingleCoordinatePair(
+  text: string,
+  globalHemisphereConvention?: { latDir: string; lonDir: string } | null
+): { lngLat: [number, number] | null; hemisphereAmbiguous: boolean; raw: string } {
+  if (!text || typeof text !== 'string') return { lngLat: null, hemisphereAmbiguous: false, raw: text };
 
-  // Clean noise, artifacts, and encoding issues
+  const raw = text;
   const clean = text
     .replace(/Â°/g, '°')
     .replace(/&deg;/g, '°')
@@ -70,54 +152,91 @@ export function parseSingleCoordinatePair(text: string): [number, number] | null
     .replace(/\([^\)]+\)/g, '')
     .trim();
 
-  // Regex 1: DD° MM.MMM' [NS] DDD° MM.MMM' [EW] or DD-MM.MM [NS] or DD MM.MM [NS] with optional seconds
+  // Pattern 1: Explicit DMS with N/S and E/W
   const pattern1 = /(\d{1,3})(?:[°\s\-]|Â°)+(\d{1,2}(?:\.\d+)?)['′"]?\s*(?:(\d{1,2}(?:\.\d+)?)\s*["″]\s*)?([NS])[\s,]+(?:\bPt\s*\d+:\s*)?(\d{1,3})(?:[°\s\-]|Â°)+(\d{1,2}(?:\.\d+)?)['′"]?\s*(?:(\d{1,2}(?:\.\d+)?)\s*["″]\s*)?([EW])/i;
   const match1 = clean.match(pattern1);
   if (match1) {
-    const latDeg = parseFloat(match1[1]);
-    const latMin = parseFloat(match1[2]);
-    const latSec = match1[3] ? parseFloat(match1[3]) : 0;
-    const latDir = match1[4].toUpperCase();
-    const lngDeg = parseFloat(match1[5]);
-    const lngMin = parseFloat(match1[6]);
-    const lngSec = match1[7] ? parseFloat(match1[7]) : 0;
-    const lngDir = match1[8].toUpperCase();
-
-    const lat = dmsToDecimal(latDeg, latMin, latSec, latDir);
-    const lng = dmsToDecimal(lngDeg, lngMin, lngSec, lngDir);
-    return [lng, lat];
+    const lat = dmsToDecimal(parseFloat(match1[1]), parseFloat(match1[2]), match1[3] ? parseFloat(match1[3]) : 0, match1[4].toUpperCase());
+    const lng = dmsToDecimal(parseFloat(match1[5]), parseFloat(match1[6]), match1[7] ? parseFloat(match1[7]) : 0, match1[8].toUpperCase());
+    return { lngLat: [lng, lat], hemisphereAmbiguous: false, raw };
   }
 
-  // Regex 2: Pure decimal degrees: e.g. "69.62395, -135.48770" or "69.62395 N, 135.48770 W"
+  // Pattern 2: Decimal degrees with optional N/S E/W
   const patternDec = /(-?\d{1,3}\.\d+)\s*°?\s*([NS])?[\s,]+(-?\d{1,3}\.\d+)\s*°?\s*([EW])?/i;
   const matchDec = clean.match(patternDec);
   if (matchDec) {
     let lat = parseFloat(matchDec[1]);
-    if (matchDec[2]?.toUpperCase() === 'S') lat = -Math.abs(lat);
+    let latDir = matchDec[2]?.toUpperCase();
     let lng = parseFloat(matchDec[3]);
-    if (matchDec[4]?.toUpperCase() === 'W') lng = -Math.abs(lng);
-    return [Number(lng.toFixed(5)), Number(lat.toFixed(5))];
+    let lonDir = matchDec[4]?.toUpperCase();
+
+    if (!latDir || !lonDir) {
+      if (globalHemisphereConvention) {
+        if (!latDir) latDir = globalHemisphereConvention.latDir;
+        if (!lonDir) lonDir = globalHemisphereConvention.lonDir;
+      } else {
+        return { lngLat: null, hemisphereAmbiguous: true, raw };
+      }
+    }
+
+    if (latDir === 'S') lat = -Math.abs(lat);
+    if (lonDir === 'W') lng = -Math.abs(lng);
+    return { lngLat: [Number(lng.toFixed(5)), Number(lat.toFixed(5))], hemisphereAmbiguous: false, raw };
   }
 
-  // Regex 3: DD MM N, DDD MM E (without minutes decimals)
-  const pattern3 = /(\d{1,2})\s+(\d{1,2})\s+([NS])[\s,]+(\d{1,3})\s+(\d{1,2})\s+([EW])/i;
+  // Pattern 3: Integer degrees + minutes without explicit symbols (e.g. 20-28N 072-28E or 20-28 072-28)
+  const pattern3 = /(\d{1,3})[-°\s]+(\d{1,2}(?:\.\d+)?)\s*([NS])?[\s,]+(\d{1,3})[-°\s]+(\d{1,2}(?:\.\d+)?)\s*([EW])?/i;
   const match3 = clean.match(pattern3);
   if (match3) {
-    const lat = dmsToDecimal(parseFloat(match3[1]), parseFloat(match3[2]), 0, match3[3].toUpperCase());
-    const lng = dmsToDecimal(parseFloat(match3[4]), parseFloat(match3[5]), 0, match3[6].toUpperCase());
-    return [lng, lat];
+    let latDeg = parseFloat(match3[1]);
+    let latMin = parseFloat(match3[2]);
+    let latDir = match3[3] ? match3[3].toUpperCase() : null;
+
+    let lonDeg = parseFloat(match3[4]);
+    let lonMin = parseFloat(match3[5]);
+    let lonDir = match3[6] ? match3[6].toUpperCase() : null;
+
+    if (!latDir || !lonDir) {
+      if (globalHemisphereConvention) {
+        if (!latDir) latDir = globalHemisphereConvention.latDir;
+        if (!lonDir) lonDir = globalHemisphereConvention.lonDir;
+      } else {
+        return { lngLat: null, hemisphereAmbiguous: true, raw };
+      }
+    }
+
+    const lat = dmsToDecimal(latDeg, latMin, 0, latDir || 'N');
+    const lng = dmsToDecimal(lonDeg, lonMin, 0, lonDir || 'E');
+    return { lngLat: [lng, lat], hemisphereAmbiguous: false, raw };
   }
 
-  return null;
+  // Check if numbers exist but hemispheres are completely missing
+  const hasNumbers = /\d{1,3}/.test(clean);
+  if (hasNumbers && !/[NS]/i.test(clean) && !/[EW]/i.test(clean)) {
+    if (globalHemisphereConvention) {
+      const fallbackCleanMatch = clean.match(/(\d{1,3})[^0-9]+(\d{1,2}(?:\.\d+)?)[\s,]+(\d{1,3})[^0-9]+(\d{1,2}(?:\.\d+)?)/);
+      if (fallbackCleanMatch) {
+        const lat = dmsToDecimal(parseFloat(fallbackCleanMatch[1]), parseFloat(fallbackCleanMatch[2]), 0, globalHemisphereConvention.latDir);
+        const lng = dmsToDecimal(parseFloat(fallbackCleanMatch[3]), parseFloat(fallbackCleanMatch[4]), 0, globalHemisphereConvention.lonDir);
+        return { lngLat: [lng, lat], hemisphereAmbiguous: false, raw };
+      }
+    }
+    return { lngLat: null, hemisphereAmbiguous: true, raw };
+  }
+
+  return { lngLat: null, hemisphereAmbiguous: false, raw };
 }
 
 /**
- * Extract circles, points, and polygons deterministically from warning text
+ * TIER 1: Evidence-based Deterministic NAVWARN Spatial Interpretation Engine
  */
-export function parseCoordinatesDeterministic(rawText: string, navarea?: NavAreaId): SpatialData {
-  const geometries: SpatialGeometry[] = [];
+export function parseCoordinatesDeterministic(rawText: string, navarea?: NavAreaId): EnhancedSpatialData {
+  const geometries: EnhancedSpatialGeometry[] = [];
   const circles: SpatialCircle[] = [];
   const rawCoordinateText: string[] = [];
+  const evidenceTrail: EvidenceItem[] = [];
+  const spatialGroups: CoordinateGroup[] = [];
+  const escalationTriggers: EscalationCondition[] = [];
 
   if (!rawText || typeof rawText !== 'string') {
     return {
@@ -125,139 +244,305 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
       circles: [],
       raw_coordinate_text: [],
       validation_status: 'not_present',
+      hemisphere_status: 'EXPLICIT',
+      navarea_relation: 'UNKNOWN',
+      coordinate_validity: 'VALID',
+      geometry_validation: 'VALID',
+      escalation_triggers: [],
     };
   }
 
-  // Normalize text for encoding glitches (Â° -> °)
   const sanitizedText = rawText.replace(/Â°/g, '°').replace(/&deg;/g, '°');
+  const upperText = sanitizedText.toUpperCase();
 
-  // Check for circle pattern: e.g. "within 5 NM of 55-14.2N 003-45.1E" or "RADIUS 10NM CENTRED ON 24-15N 068-30E"
-  const circlePattern = /(?:WITHIN|RADIUS)\s+(\d+(?:\.\d+)?)\s*(?:NM|NAUTICAL MILES)?\s*(?:OF|CENTRED ON|CENTERED ON)\s+([0-9\-\.°\s'″NS]+[EW])/gi;
-  let circleMatch;
-  while ((circleMatch = circlePattern.exec(sanitizedText)) !== null) {
-    const radius = parseFloat(circleMatch[1]);
-    const coordStr = circleMatch[2];
-    const pt = parseSingleCoordinatePair(coordStr);
-    if (pt) {
-      circles.push({
-        center: pt,
-        radius_nm: radius,
-        label: `Danger Zone (${radius} NM Radius)`,
-      });
-      geometries.push({
-        type: 'Circle',
-        coordinates: pt,
-        radius_nm: radius,
-        label: `${radius} NM Radius Area`,
-      });
-      rawCoordinateText.push(circleMatch[0]);
+  // Check for global hemisphere convention statement
+  let globalConvention: { latDir: string; lonDir: string } | null = null;
+  if (/ALL POSITIONS ARE IN NORTH AND EAST/i.test(sanitizedText)) {
+    globalConvention = { latDir: 'N', lonDir: 'E' };
+    evidenceTrail.push({ rule: 'EXPLICIT_HEMISPHERE_CONVENTION', matched_text: 'ALL POSITIONS ARE IN NORTH AND EAST' });
+  }
+
+  let hemisphereAmbiguousFound = false;
+
+  // 1. Check for Multi-Area Lettered Sub-blocks (e.g. (A), (B), (C), (D) as in NAVWARN 977/26)
+  const subAreaRegex = /\(([A-Z])\)\s*([^()]+(?:,|\s)[^()]+(?:\([^)]+\))?)/gi;
+  let subMatch;
+  let subAreaCount = 0;
+  const subBlocks: { label: string; text: string }[] = [];
+
+  while ((subMatch = subAreaRegex.exec(sanitizedText)) !== null) {
+    subAreaCount++;
+    subBlocks.push({ label: subMatch[1], text: subMatch[2] });
+  }
+
+  if (subBlocks.length > 0) {
+    evidenceTrail.push({ rule: 'MULTI_AREA_SUB_BLOCKS_DETECTED', matched_text: `Found ${subBlocks.length} lettered sub-areas` });
+    
+    for (const block of subBlocks) {
+      const coordPattern = /(\d{1,3}(?:[°\s\-]|Â°)+\d{1,2}(?:\.\d+)?[^\d,]*[NS][\s,]+\d{1,3}(?:[°\s\-]|Â°)+\d{1,2}(?:\.\d+)?[^\d,]*[EW]|\d{1,3}\.\d+\s*[NS]?[\s,]+\d{1,3}\.\d+\s*[EW]?)/gi;
+      const matches = block.text.match(coordPattern) || [];
+      const groupCoords: [number, number][] = [];
+      const groupRoles: CoordinateRole[] = [];
+
+      for (const m of matches) {
+        const parsed = parseSingleCoordinatePair(m, globalConvention);
+        if (parsed.hemisphereAmbiguous) hemisphereAmbiguousFound = true;
+        if (parsed.lngLat) {
+          groupCoords.push(parsed.lngLat);
+          groupRoles.push('BOUNDARY_VERTEX');
+          rawCoordinateText.push(m);
+        }
+      }
+
+      if (groupCoords.length >= 3) {
+        const polyCoords = [...groupCoords];
+        const first = polyCoords[0];
+        const last = polyCoords[polyCoords.length - 1];
+        if (first[0] !== last[0] || first[1] !== last[1]) {
+          polyCoords.push(first); // Close explicitly
+        }
+
+        const groupId = `group-${block.label}-${Math.random().toString(36).substr(2, 6)}`;
+        spatialGroups.push({
+          group_id: groupId,
+          group_label: block.label,
+          coordinates: polyCoords,
+          relationship: 'BOUNDED_BY',
+          roles: groupRoles,
+          sequence: polyCoords.map((_, i) => i + 1),
+          evidence: [{ rule: 'LETTERED_SUB_BLOCK_POLYGON', matched_text: `Area (${block.label})` }],
+        });
+
+        geometries.push({
+          type: 'Polygon',
+          semantic_type: 'POLYGON',
+          coordinates: [polyCoords],
+          label: `Area (${block.label})`,
+          inference_mode: 'EXPLICIT',
+          confidence_level: 'VERIFIED',
+          spatial_group_id: groupId,
+          group_label: block.label,
+          evidence: [{ rule: 'STRONG_POLYGON_INDICATOR', matched_text: 'AREAS BOUNDED BY' }],
+        });
+      }
     }
   }
 
-  // Extract all coordinate pairs found in the text (supporting DD° MM.MMM' [NS] DDD° MM.MMM' [EW] with any delimiters)
-  const globalCoordPattern = /(\d{1,3}(?:[°\s\-]|Â°)+\d{1,2}(?:\.\d+)?['′"]?\s*(?:(\d{1,2}(?:\.\d+)?)\s*["″]\s*)?[NS][\s,]+(?:\bPt\s*\d+:\s*)?\d{1,3}(?:[°\s\-]|Â°)+\d{1,2}(?:\.\d+)?['′"]?\s*(?:(\d{1,2}(?:\.\d+)?)\s*["″]\s*)?[EW])/gi;
-  const allPairMatches = sanitizedText.match(globalCoordPattern) || [];
-  const parsedPoints: [number, number][] = [];
-
-  for (const matchStr of allPairMatches) {
-    const pt = parseSingleCoordinatePair(matchStr);
-    if (pt) {
-      parsedPoints.push(pt);
-      rawCoordinateText.push(matchStr);
+  // If no multi-area lettered sub-blocks were parsed, fallback to standard geometry extraction rules
+  if (geometries.length === 0) {
+    // A. Circle / Radius
+    const circlePattern = /(?:WITHIN|RADIUS|CIRCLE OF RADIUS|EXTENDING)\s+(\d+(?:\.\d+)?)\s*(?:NM|NAUTICAL MILES)?\s*(?:OF|CENTRED ON|CENTERED ON|FROM)?\s*([0-9\-\.°\s'″NS]+[EW])/gi;
+    let circleMatch;
+    while ((circleMatch = circlePattern.exec(sanitizedText)) !== null) {
+      const radius = parseFloat(circleMatch[1]);
+      const coordStr = circleMatch[2];
+      const parsed = parseSingleCoordinatePair(coordStr, globalConvention);
+      if (parsed.hemisphereAmbiguous) hemisphereAmbiguousFound = true;
+      if (parsed.lngLat) {
+        circles.push({
+          center: parsed.lngLat,
+          radius_nm: radius,
+          label: `Danger Zone (${radius} NM Radius)`,
+        });
+        geometries.push({
+          type: 'Circle',
+          semantic_type: 'POINT_WITH_RADIUS',
+          coordinates: parsed.lngLat,
+          radius_nm: radius,
+          label: `${radius} NM Radius Area`,
+          inference_mode: 'EXPLICIT',
+          confidence_level: 'VERIFIED',
+          evidence: [{ rule: 'EXPLICIT_RADIUS_STATEMENT', matched_text: circleMatch[0] }],
+        });
+        rawCoordinateText.push(circleMatch[0]);
+        evidenceTrail.push({ rule: 'EXPLICIT_GEOMETRY_CIRCLE', matched_text: circleMatch[0] });
+      }
     }
-  }
 
-  // Also check decimal degree pairs if no degree-minute matches were found
-  if (parsedPoints.length === 0) {
-    const decimalPattern = /(\b\d{1,2}\.\d+°?\s*[NS][\s,]+\d{1,3}\.\d+°?\s*[EW]\b)/gi;
-    const decMatches = sanitizedText.match(decimalPattern) || [];
-    for (const matchStr of decMatches) {
-      const pt = parseSingleCoordinatePair(matchStr);
-      if (pt) {
-        parsedPoints.push(pt);
+    // B. Diameter Rule
+    const diameterPattern = /(?:DIAMETER|AREA OF DIAMETER|CIRCLE WITH DIAMETER)\s+(\d+(?:\.\d+)?)\s*(?:NM|NAUTICAL MILES)?/gi;
+    let diamMatch = diameterPattern.exec(sanitizedText);
+    let derivedRadius: number | undefined;
+    let diameterVal: number | undefined;
+    if (diamMatch) {
+      diameterVal = parseFloat(diamMatch[1]);
+      derivedRadius = diameterVal / 2;
+      evidenceTrail.push({ rule: 'DIAMETER_RULE_APPLIED', matched_text: diamMatch[0], result: { diameter: diameterVal, radius: derivedRadius } });
+    }
+
+    // C. Line Width / Corridor Rule
+    const corridorPattern = /(\d+(?:\.\d+)?)\s*(?:NM|NAUTICAL MILES)?\s*(?:EITHER SIDE|ON EITHER SIDE|OF THE TRACK|OF TRACK|CORRIDOR)/gi;
+    let corridorMatch = corridorPattern.exec(sanitizedText);
+    let corridorWidth: number | undefined;
+    if (corridorMatch) {
+      corridorWidth = parseFloat(corridorMatch[1]);
+      evidenceTrail.push({ rule: 'LINE_WIDTH_CORRIDOR_RULE', matched_text: corridorMatch[0], result: { offset_nm: corridorWidth } });
+    }
+
+    // D. Extract All Standard Coordinate Pairs
+    const globalCoordPattern = /(\d{1,3}(?:[°\s\-]|Â°)+\d{1,2}(?:\.\d+)?[^\d,]*[NS][\s,]+(?:\bPt\s*\d+:\s*)?\d{1,3}(?:[°\s\-]|Â°)+\d{1,2}(?:\.\d+)?[^\d,]*[EW])/gi;
+    const allPairMatches = sanitizedText.match(globalCoordPattern) || [];
+    const parsedPoints: { lngLat: [number, number]; raw: string; role: CoordinateRole }[] = [];
+
+    for (const matchStr of allPairMatches) {
+      const parsed = parseSingleCoordinatePair(matchStr, globalConvention);
+      if (parsed.hemisphereAmbiguous) hemisphereAmbiguousFound = true;
+      if (parsed.lngLat) {
+        let role: CoordinateRole = 'UNKNOWN';
+        if (/CENTRE|CENTER/i.test(matchStr) || /CENTRED ON/i.test(sanitizedText)) role = 'CENTER';
+        else if (/FROM/i.test(matchStr)) role = 'START_POINT';
+        else if (/TO/i.test(matchStr)) role = 'END_POINT';
+        else role = 'WAYPOINT';
+
+        parsedPoints.push({ lngLat: parsed.lngLat, raw: matchStr, role });
         rawCoordinateText.push(matchStr);
       }
     }
-  }
 
-  // Deduplicate points with precision tolerance (approx ~10 meters)
-  const uniquePoints: [number, number][] = [];
-  parsedPoints.forEach((pt) => {
-    if (!uniquePoints.some((u) => Math.abs(u[0] - pt[0]) < 0.0005 && Math.abs(u[1] - pt[1]) < 0.0005)) {
-      uniquePoints.push(pt);
-    }
-  });
-
-  // If 3 or more points and text hints at area/polygon
-  const isPolygonText = /BOUNDED BY|AREA BOUNDED|JOINING|IN AREA|LINE CONNECTING|POLYGON|HAZARD AREA|FALLOUT/i.test(sanitizedText);
-  if (uniquePoints.length >= 3 && isPolygonText) {
-    // Close polygon if not closed
-    const polyCoords = [...uniquePoints];
-    const first = polyCoords[0];
-    const last = polyCoords[polyCoords.length - 1];
-    if (Math.abs(first[0] - last[0]) > 0.001 || Math.abs(first[1] - last[1]) > 0.001) {
-      polyCoords.push(first);
-    }
-    geometries.push({
-      type: 'Polygon',
-      coordinates: [polyCoords],
-      label: 'Affected Maritime Area',
-    });
-  } else if (uniquePoints.length === 2 && /LINE|TRACK|CABLE|PIPE/i.test(sanitizedText)) {
-    geometries.push({
-      type: 'LineString',
-      coordinates: uniquePoints,
-      label: 'Maritime Line / Track',
-    });
-  } else {
-    // Treat remaining individual points as Point geometries
-    uniquePoints.forEach((pt, idx) => {
-      // Don't add if already part of a circle center
-      if (!circles.some((c) => Math.abs(c.center[0] - pt[0]) < 0.0001 && Math.abs(c.center[1] - pt[1]) < 0.0001)) {
-        geometries.push({
-          type: 'Point',
-          coordinates: pt,
-          label: uniquePoints.length === 1 ? 'Reported Hazard Position' : `Position #${idx + 1}`,
-        });
+    const uniquePoints: { lngLat: [number, number]; raw: string; role: CoordinateRole }[] = [];
+    parsedPoints.forEach((pt) => {
+      const isExactDup = uniquePoints.some((u) => u.lngLat[0] === pt.lngLat[0] && u.lngLat[1] === pt.lngLat[1]);
+      if (!isExactDup) {
+        uniquePoints.push(pt);
       }
     });
+
+    const rawCoordsOnly = uniquePoints.map((p) => p.lngLat);
+
+    const hasStrongPolygonIndicator = /BOUNDED BY|AREA BOUNDED BY|BOUNDARIES ARE|LIMITED BY|AREA ENCLOSED BY|WITHIN THE AREA ENCLOSED BY/i.test(upperText);
+    const hasLineIndicator = /JOINING|CONNECTING|LINE FROM|LINE BETWEEN|TRACK FROM|TRACK JOINING|ROUTE FROM|SUBMARINE CABLE|CABLE BETWEEN|PIPELINE/i.test(upperText);
+
+    if (rawCoordsOnly.length > 0) {
+      if (hasStrongPolygonIndicator && rawCoordsOnly.length >= 3) {
+        const polyCoords = [...rawCoordsOnly];
+        const first = polyCoords[0];
+        const last = polyCoords[polyCoords.length - 1];
+        if (first[0] !== last[0] || first[1] !== last[1]) {
+          polyCoords.push(first);
+        }
+        const groupId = `group-std-${Math.random().toString(36).substr(2, 6)}`;
+        spatialGroups.push({
+          group_id: groupId,
+          coordinates: polyCoords,
+          relationship: 'BOUNDED_BY',
+          roles: uniquePoints.map(p => p.role),
+          sequence: polyCoords.map((_, i) => i + 1),
+          evidence: [{ rule: 'STRONG_POLYGON_INDICATOR', matched_text: 'BOUNDED BY' }],
+        });
+        geometries.push({
+          type: 'Polygon',
+          semantic_type: 'POLYGON',
+          coordinates: [polyCoords],
+          label: 'Area Bounded by Coordinates',
+          inference_mode: 'EXPLICIT',
+          confidence_level: 'VERIFIED',
+          spatial_group_id: groupId,
+          evidence: [{ rule: 'STRONG_POLYGON_INDICATOR', matched_text: 'BOUNDED BY' }],
+        });
+      } else if (hasLineIndicator || rawCoordsOnly.length === 2) {
+        const geomType = corridorWidth ? 'LINE_WITH_WIDTH' : 'LINE';
+        const groupId = `group-line-${Math.random().toString(36).substr(2, 6)}`;
+        spatialGroups.push({
+          group_id: groupId,
+          coordinates: rawCoordsOnly,
+          relationship: 'JOINING',
+          roles: uniquePoints.map(p => p.role),
+          sequence: rawCoordsOnly.map((_, i) => i + 1),
+          evidence: [{ rule: 'EXPLICIT_LINE_INDICATOR', matched_text: 'JOINING' }],
+        });
+        geometries.push({
+          type: 'LineString',
+          semantic_type: geomType as SemanticGeometryType,
+          coordinates: rawCoordsOnly,
+          label: corridorWidth ? `Corridor (${corridorWidth} NM Wide)` : 'Line / Track / Route',
+          inference_mode: 'EXPLICIT',
+          confidence_level: 'HIGH_CONFIDENCE',
+          offset_each_side_nm: corridorWidth,
+          spatial_group_id: groupId,
+          evidence: [{ rule: 'EXPLICIT_LINE_INDICATOR' }],
+        });
+      } else if (rawCoordsOnly.length === 1) {
+        geometries.push({
+          type: 'Point',
+          semantic_type: derivedRadius ? 'POINT_WITH_RADIUS' : 'POINT',
+          coordinates: rawCoordsOnly[0],
+          radius_nm: derivedRadius,
+          label: derivedRadius ? `Point with Radius (${derivedRadius} NM)` : 'Reported Hazard Position',
+          inference_mode: 'EXPLICIT',
+          confidence_level: 'VERIFIED',
+          evidence: [{ rule: 'SINGLE_COORDINATE_POINT' }],
+        });
+      } else if (rawCoordsOnly.length > 1) {
+        geometries.push({
+          type: 'Point',
+          semantic_type: 'MULTI_POINT',
+          coordinates: rawCoordsOnly,
+          label: 'Multiple Independent Positions',
+          inference_mode: 'INFERRED',
+          confidence_level: 'PARTIAL',
+          evidence: [{ rule: 'MULTIPLE_INDEPENDENT_POINTS' }],
+        });
+      }
+    }
   }
 
-  // Validate bounds if NAVAREA provided
-  let validation_status: SpatialData['validation_status'] = 'not_present';
-  if (geometries.length > 0 || circles.length > 0) {
+  // Check Escalation Conditions
+  if (hemisphereAmbiguousFound) {
+    escalationTriggers.push('AMBIGUOUS_HEMISPHERE');
+  }
+  if (geometries.length === 0 && /\d{1,3}/.test(sanitizedText)) {
+    escalationTriggers.push('COORDINATES_PRESENT_BUT_NOT_PARSED');
+  }
+
+  // Validation & NAVAREA Relation
+  let validation_status: EnhancedSpatialData['validation_status'] = 'not_present';
+  let navareaRelation: EnhancedSpatialData['navarea_relation'] = 'INSIDE';
+  let coordinateValidity: EnhancedSpatialData['coordinate_validity'] = 'VALID';
+  let geometryValidation: EnhancedSpatialData['geometry_validation'] = 'VALID';
+
+  const allPts: [number, number][] = [];
+  spatialGroups.forEach(g => g.coordinates.forEach(c => allPts.push(c)));
+  circles.forEach(c => allPts.push(c.center));
+  geometries.forEach(g => {
+    const pt = findFirstPoint(g.coordinates);
+    if (pt) allPts.push(pt);
+  });
+
+  if (allPts.length > 0 || circles.length > 0) {
     validation_status = 'passed';
     if (navarea && NAVAREA_BOUNDS[navarea]) {
       const bounds = NAVAREA_BOUNDS[navarea];
-      const allPts: [number, number][] = [];
-      circles.forEach((c) => allPts.push(c.center));
-      geometries.forEach((g) => {
-        if (g.type === 'Point') allPts.push(g.coordinates as [number, number]);
-        if (g.type === 'LineString') (g.coordinates as [number, number][]).forEach((p) => allPts.push(p));
-        if (g.type === 'Polygon') (g.coordinates as [number, number][][])[0].forEach((p) => allPts.push(p));
-      });
-
       const outOfBounds = allPts.some(
         ([lng, lat]) => lat < bounds.minLat || lat > bounds.maxLat || lng < bounds.minLng || lng > bounds.maxLng
       );
       if (outOfBounds) {
+        navareaRelation = 'OUTSIDE';
         validation_status = 'out_of_bounds';
       }
     }
   }
 
+  if (hemisphereAmbiguousFound) {
+    coordinateValidity = 'INVALID';
+    geometryValidation = 'INVALID';
+    validation_status = 'invalid_format';
+  }
+
   return {
     geometries,
     circles,
+    spatial_groups: spatialGroups,
     raw_coordinate_text: Array.from(new Set(rawCoordinateText)),
     validation_status,
+    hemisphere_status: hemisphereAmbiguousFound ? 'AMBIGUOUS_HEMISPHERE' : 'EXPLICIT',
+    navarea_relation: navareaRelation,
+    coordinate_validity: coordinateValidity,
+    geometry_validation: geometryValidation,
+    escalation_triggers: escalationTriggers,
+    review_required: escalationTriggers.length > 0,
   };
 }
 
-/**
- * Safely find the first [lng, lat] point from any geometry coordinates array structure,
- * handling Point [lng, lat], LineString [[lng, lat], ...], Polygon [[[lng, lat], ...]], etc.
- */
 export function findFirstPoint(coords: any): [number, number] | null {
   if (!coords || !Array.isArray(coords) || coords.length === 0) return null;
   if (typeof coords[0] === 'number' && typeof coords[1] === 'number' && !isNaN(coords[0]) && !isNaN(coords[1])) {
@@ -270,9 +555,6 @@ export function findFirstPoint(coords: any): [number, number] | null {
   return null;
 }
 
-/**
- * Safely formats spatial data coordinates into a human readable "lng, lat" string.
- */
 export function formatSpatialCoordinates(spatial: SpatialData | undefined | null): string {
   if (!spatial) return 'N/A';
   if (spatial.circles && spatial.circles.length > 0 && Array.isArray(spatial.circles[0].center)) {
@@ -292,9 +574,6 @@ export function formatSpatialCoordinates(spatial: SpatialData | undefined | null
   return 'N/A';
 }
 
-/**
- * Safely extracts [lat, lng] for Leaflet map markers.
- */
 export function getLeafletLatLng(
   spatial: SpatialData | undefined | null,
   directLat?: number | null,
@@ -327,9 +606,31 @@ export function getLeafletLatLng(
   return [0, 0];
 }
 
-/**
- * Checks if a [lat, lng] point lies within the declared NAVAREA boundary (with 0.5° buffer).
- */
+export function parseWithFallback(rawText: string, navarea: NavAreaId | string) {
+  const regexResult = parseCoordinatesDeterministic(rawText, navarea as NavAreaId);
+
+  // Determine if Tier 2 escalation is needed based on escalation triggers
+  const needsEscalation =
+    regexResult.escalation_triggers &&
+    regexResult.escalation_triggers.length > 0 &&
+    (regexResult.escalation_triggers.includes('COORDINATES_PRESENT_BUT_NOT_PARSED') ||
+     regexResult.escalation_triggers.includes('AMBIGUOUS_HEMISPHERE'));
+
+  if (needsEscalation) {
+    return {
+      source: 'llm_fallback' as const,
+      needsGeminiParse: true,
+      rawText,
+      regexResult,
+    };
+  }
+
+  return {
+    source: 'regex' as const,
+    needsGeminiParse: false,
+    regexResult,
+  };
+}
 
 export function isPointInNavArea(
   lat: number,
@@ -337,7 +638,7 @@ export function isPointInNavArea(
   navarea: NavAreaId | string | null,
   bufferDeg = 0.5
 ): boolean {
-  if (!navarea || !NAVAREA_BOUNDS[navarea as NavAreaId]) return true; // Default fallback if NAVAREA unlisted
+  if (!navarea || !NAVAREA_BOUNDS[navarea as NavAreaId]) return true;
   const b = NAVAREA_BOUNDS[navarea as NavAreaId];
 
   const minLat = b.minLat - bufferDeg;
@@ -347,16 +648,12 @@ export function isPointInNavArea(
 
   if (lat < minLat || lat > maxLat) return false;
 
-  // Handle Pacific / Anti-Meridian wraparound (e.g., minLng > maxLng)
   if (minLng > maxLng) {
     return lng >= minLng || lng <= maxLng;
   }
   return lng >= minLng && lng <= maxLng;
 }
 
-/**
- * Executes WWNWS 4-Way Inference Test for unsigned coordinate pairs.
- */
 export function testFourWayInference(
   latVal: number,
   lngVal: number,
@@ -387,7 +684,6 @@ export function testFourWayInference(
     };
   }
 
-  // Zero or >1 matches: Never guess silently!
   return {
     coords: [0, 0],
     inference: 'explicit',
@@ -396,9 +692,6 @@ export function testFourWayInference(
   };
 }
 
-/**
- * Classifies Geometry Intent based on source text language.
- */
 export function classifyGeometryIntent(
   rawText: string,
   featureCount: number,
@@ -423,224 +716,74 @@ export function classifyGeometryIntent(
   return 'unknown';
 }
 
-/**
- * Main NAVWARN Extraction Engine:
- * Converts raw navigational warning text into an IMO ECDIS-Ready Intermediate Layer GeoJSON FeatureCollection.
- */
 export function extractEcdisIntermediateLayer(
   warningId: string,
   navarea: NavAreaId | string | null,
   rawText: string
 ): EcdisIntermediateLayer {
   const features: EcdisPointFeature[] = [];
-  let isRangedArea = false;
+  const parsed = parseCoordinatesDeterministic(rawText, navarea as NavAreaId);
+  let seq = 1;
 
-  // 1. Ranged Bounds Extractor (e.g. LAT 55-10N TO 55-20N, LON 003-10E TO 003-40E)
-  const rangePattern = /LAT(?:ITUDE)?S?\s*(\d{1,2})[-°\s](\d{1,2}(?:\.\d+)?)\s*([NS])?\s*(?:TO|AND|-|\s+)\s*(\d{1,2})[-°\s](\d{1,2}(?:\.\d+)?)\s*([NS])?[\s,]+LON(?:GITUDE)?S?\s*(\d{1,3})[-°\s](\d{1,2}(?:\.\d+)?)\s*([EW])?\s*(?:TO|AND|-|\s+)\s*(\d{1,3})[-°\s](\d{1,2}(?:\.\d+)?)\s*([EW])?/i;
-  const rangeMatch = rawText.match(rangePattern);
-
-  if (rangeMatch) {
-    isRangedArea = true;
-    const lat1Deg = parseFloat(rangeMatch[1]);
-    const lat1Min = parseFloat(rangeMatch[2]);
-    const lat1Dir = (rangeMatch[3] || 'N').toUpperCase();
-
-    const lat2Deg = parseFloat(rangeMatch[4]);
-    const lat2Min = parseFloat(rangeMatch[5]);
-    const lat2Dir = (rangeMatch[6] || lat1Dir).toUpperCase();
-
-    const lon1Deg = parseFloat(rangeMatch[7]);
-    const lon1Min = parseFloat(rangeMatch[8]);
-    const lon1Dir = (rangeMatch[9] || 'E').toUpperCase();
-
-    const lon2Deg = parseFloat(rangeMatch[10]);
-    const lon2Min = parseFloat(rangeMatch[11]);
-    const lon2Dir = (rangeMatch[12] || lon1Dir).toUpperCase();
-
-    const lat1 = dmsToDecimal(lat1Deg, lat1Min, 0, lat1Dir);
-    const lat2 = dmsToDecimal(lat2Deg, lat2Min, 0, lat2Dir);
-    const lon1 = dmsToDecimal(lon1Deg, lon1Min, 0, lon1Dir);
-    const lon2 = dmsToDecimal(lon2Deg, lon2Min, 0, lon2Dir);
-
-    // Create 4 corner Point features in clockwise sequence
-    const corners: [number, number][] = [
-      [lon1, lat1],
-      [lon2, lat1],
-      [lon2, lat2],
-      [lon1, lat2],
-    ];
-
-    corners.forEach((coord, idx) => {
-      const isInside = isPointInNavArea(coord[1], coord[0], navarea);
-      features.push({
-        type: 'Feature',
-        id: `feat-${warningId}-corner-${idx + 1}-${Math.random().toString(36).substr(2, 6)}`,
-        geometry: {
-          type: 'Point',
-          coordinates: coord,
-        },
-        properties: {
-          sequence_index: idx + 1,
-          raw_text: rangeMatch[0],
-          inference: 'explicit',
-          confidence: isInside ? 'verified' : 'partial',
-          modification_state: 'original',
-          user_notes: '',
-          errors: isInside ? [] : ['COORD_OUTSIDE_NAVAREA'],
-          role_hint: 'vertex',
-        },
+  if (parsed.spatial_groups && parsed.spatial_groups.length > 0) {
+    parsed.spatial_groups.forEach(g => {
+      g.coordinates.forEach(coord => {
+        const isInside = isPointInNavArea(coord[1], coord[0], navarea);
+        features.push({
+          type: 'Feature',
+          id: `feat-${warningId}-${seq}-${Math.random().toString(36).substr(2, 6)}`,
+          geometry: {
+            type: 'Point',
+            coordinates: coord,
+          },
+          properties: {
+            sequence_index: seq++,
+            raw_text: rawText.slice(0, 50),
+            inference: 'explicit',
+            confidence: isInside ? 'verified' : 'partial',
+            modification_state: 'original',
+            user_notes: '',
+            errors: isInside ? [] : ['COORD_OUTSIDE_NAVAREA'],
+            role_hint: 'vertex',
+          },
+        });
       });
     });
   } else {
-    // 2. Standard Point Extractor
-    // Global regex matching coordinate pairs with or without direction letters
-    const coordPairRegex = /(?:LAT|LATITUDE|POSITION|POS)?\s*(\d{1,3})[-°\s](\d{1,2}(?:\.\d+)?)['′"]?\s*([NS])?[\s,]+(?:LON|LONGITUDE)?\s*(\d{1,3})[-°\s](\d{1,2}(?:\.\d+)?)['′"]?\s*([EW])?/gi;
-
-    let match: RegExpExecArray | null;
-    let sequenceIndex = 1;
-
-    while ((match = coordPairRegex.exec(rawText)) !== null) {
-      const rawSnippet = match[0];
-      const latDeg = parseFloat(match[1]);
-      const latMin = parseFloat(match[2]);
-      const latDir = match[3] ? match[3].toUpperCase() : null;
-
-      const lonDeg = parseFloat(match[4]);
-      const lonMin = parseFloat(match[5]);
-      const lonDir = match[6] ? match[6].toUpperCase() : null;
-
-      // Mathematical Limits Validation
-      if (latDeg > 90 || lonDeg > 180 || latMin >= 60 || lonMin >= 60) {
+    parsed.geometries.forEach(geom => {
+      const pt = findFirstPoint(geom.coordinates);
+      if (pt) {
+        const isInside = isPointInNavArea(pt[1], pt[0], navarea);
         features.push({
           type: 'Feature',
-          id: `feat-${warningId}-${sequenceIndex}-${Math.random().toString(36).substr(2, 6)}`,
+          id: `feat-${warningId}-${seq}-${Math.random().toString(36).substr(2, 6)}`,
           geometry: {
             type: 'Point',
-            coordinates: [0, 0],
+            coordinates: pt,
           },
           properties: {
-            sequence_index: sequenceIndex++,
-            raw_text: rawSnippet,
+            sequence_index: seq++,
+            raw_text: rawText.slice(0, 50),
             inference: 'explicit',
-            confidence: 'rejected',
+            confidence: isInside ? 'verified' : 'partial',
             modification_state: 'original',
             user_notes: '',
-            errors: ['COORD_MALFORMED'],
-            role_hint: null,
+            errors: isInside ? [] : ['COORD_OUTSIDE_NAVAREA'],
+            role_hint: 'vertex',
           },
         });
-        continue;
       }
-
-      let coords: [number, number];
-      let inference: FeatureInference = 'explicit';
-      let confidence: FeatureConfidence = 'verified';
-      let errors: string[] = [];
-
-      if (latDir && lonDir) {
-        // Explicit N/S/E/W
-        const lat = dmsToDecimal(latDeg, latMin, 0, latDir);
-        const lng = dmsToDecimal(lonDeg, lonMin, 0, lonDir);
-        coords = [lng, lat];
-
-        const isInside = isPointInNavArea(lat, lng, navarea);
-        if (!isInside) {
-          confidence = 'partial';
-          errors.push('COORD_OUTSIDE_NAVAREA');
-        }
-      } else {
-        // Unsigned Coordinate Pair -> Execute 4-Way Inference Test
-        const testRes = testFourWayInference(
-          latDeg + latMin / 60,
-          lonDeg + lonMin / 60,
-          navarea
-        );
-        coords = testRes.coords;
-        inference = testRes.inference;
-        confidence = testRes.confidence;
-        errors = testRes.errors;
-      }
-
-      features.push({
-        type: 'Feature',
-        id: `feat-${warningId}-${sequenceIndex}-${Math.random().toString(36).substr(2, 6)}`,
-        geometry: {
-          type: 'Point',
-          coordinates: coords,
-        },
-        properties: {
-          sequence_index: sequenceIndex++,
-          raw_text: rawSnippet,
-          inference,
-          confidence,
-          modification_state: 'original',
-          user_notes: '',
-          errors,
-          role_hint: null,
-        },
-      });
-    }
-  }
-
-  // Deduplicate identical points if standard parsing produced identical pairs
-  const uniqueFeatures: EcdisPointFeature[] = [];
-  features.forEach((feat, idx) => {
-    feat.properties.sequence_index = idx + 1;
-    uniqueFeatures.push(feat);
-  });
-
-  const intent = classifyGeometryIntent(rawText, uniqueFeatures.length, isRangedArea);
-
-  // Set role_hints if intent is route or area
-  if (intent === 'route' && uniqueFeatures.length >= 2) {
-    uniqueFeatures.forEach((f, idx) => {
-      if (idx === 0) f.properties.role_hint = 'start';
-      else if (idx === uniqueFeatures.length - 1) f.properties.role_hint = 'end';
-      else f.properties.role_hint = 'intermediate';
-    });
-  } else if (intent === 'area') {
-    uniqueFeatures.forEach(f => {
-      f.properties.role_hint = 'vertex';
     });
   }
+
+  const intent = classifyGeometryIntent(rawText, features.length, false);
 
   return {
     warningId,
     navarea: navarea || null,
     editable: true,
     geometry_intent: intent,
-    features: uniqueFeatures,
+    features,
   };
 }
-
-/**
- * Executes deterministic coordinate parsing with a confidence check.
- * If regex finds 0 coordinates/geometries in a non-empty text payload (>100 chars),
- * flags the result for LLM auto-escalation.
- */
-export function parseWithFallback(rawText: string, navarea: NavAreaId | string) {
-  const regexResult = parseCoordinatesDeterministic(rawText, navarea as NavAreaId);
-
-  // Confidence check: did regex find anything plausible?
-  const looksIncomplete =
-    regexResult.geometries.length === 0 &&
-    regexResult.circles.length === 0 &&
-    rawText.trim().length > 100;
-
-  if (looksIncomplete) {
-    return {
-      source: 'llm_fallback' as const,
-      needsGeminiParse: true,
-      rawText,
-      regexResult,
-    };
-  }
-
-  return {
-    source: 'regex' as const,
-    needsGeminiParse: false,
-    regexResult,
-  };
-}
-
 

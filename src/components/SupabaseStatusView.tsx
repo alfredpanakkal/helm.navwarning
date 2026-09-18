@@ -75,6 +75,7 @@ export const SupabaseStatusView: React.FC<SupabaseStatusViewProps> = ({
   const [mistralPrompt, setMistralPrompt] = useState<string>(
     "System verification: confirm 'Mistral AI operational check passed' and state current system readiness in 1 short sentence."
   );
+  const [mistralModel, setMistralModel] = useState<string>('auto');
   const [isTestingMistral, setIsTestingMistral] = useState(false);
   const [mistralResult, setMistralResult] = useState<{
     success: boolean;
@@ -90,7 +91,7 @@ export const SupabaseStatusView: React.FC<SupabaseStatusViewProps> = ({
   const handleTestMistral = async () => {
     setIsTestingMistral(true);
     try {
-      const res = await testMistralIntegration(mistralPrompt);
+      const res = await testMistralIntegration(mistralPrompt, mistralModel);
       setMistralResult(res);
     } catch (err: any) {
       setMistralResult({
@@ -137,8 +138,8 @@ export const SupabaseStatusView: React.FC<SupabaseStatusViewProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const sqlSchemaScript = `-- Supabase Schema Creation for Helm.Warning
--- Run this in your Supabase SQL Editor if setting up or updating tables:
+  const sqlSchemaScript = `-- Supabase Schema Creation & Updates for Helm.Warning
+-- Run this in your Supabase SQL Editor:
 
 CREATE TABLE IF NOT EXISTS public.nav_warnings (
   id UUID DEFAULT gen_random_uuid(),
@@ -172,7 +173,25 @@ CREATE TABLE IF NOT EXISTS public.nav_warnings (
   CONSTRAINT nav_warnings_source_id_warning_id_key UNIQUE (source_id, warning_id)
 );
 
--- Notify PostgREST schema cache to immediately recognize the composite constraint:
+-- Add advanced parsing, expiry & evidence columns if not already present
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS valid_until_utc TIMESTAMPTZ;
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS is_cancelled BOOLEAN DEFAULT false;
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS cancellation_text TEXT;
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS spatial_groups JSONB;
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS evidence_trail JSONB;
+
+-- Create raw messages table for complete message payloads
+CREATE TABLE IF NOT EXISTS public.raw_messages (
+  message_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  warning_id TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  full_raw_text TEXT NOT NULL,
+  subject_header TEXT,
+  received_timestamp TIMESTAMPTZ DEFAULT NOW(),
+  checksum_sha256 TEXT
+);
+
+-- Notify PostgREST schema cache to immediately recognize updates:
 NOTIFY pgrst, 'reload schema';
 
 CREATE TABLE IF NOT EXISTS public.raw_artifacts (
@@ -513,6 +532,35 @@ CREATE TABLE IF NOT EXISTS public.sources_registry (
             )}
             <span>{isTestingMistral ? 'Testing Mistral API...' : 'Test Mistral Integration'}</span>
           </button>
+        </div>
+
+        {/* Model Selection Toggle */}
+        <div className="space-y-2">
+          <label className="block text-xs font-bold text-gw-primary uppercase tracking-wider">
+            Select Model Tier / Fallback Mode
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'auto', label: 'Auto Fallback Chain' },
+              { id: 'mistral-small-latest', label: 'mistral-small-latest (Small)' },
+              { id: 'ministral-8b-latest', label: 'ministral-8b-latest (Ministral 8B)' },
+              { id: 'ministral-3b-latest', label: 'ministral-3b-latest (Ministral 3B)' },
+              { id: 'open-mistral-7b', label: 'open-mistral-7b (7B Open)' },
+              { id: 'mistral-large-latest', label: 'mistral-large-latest (Large)' },
+            ].map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setMistralModel(m.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all border ${
+                  mistralModel === m.id
+                    ? 'bg-amber-600 text-white border-amber-700 shadow-sm'
+                    : 'bg-gw-bg text-gw-primary border-gw-secondary hover:border-gw-primary'
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Prompt Input Control */}

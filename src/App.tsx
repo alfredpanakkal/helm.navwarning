@@ -178,12 +178,12 @@ export default function App() {
     }
   };
 
-  const handleParseManual = async (rawText: string, navarea: string, mode: 'hybrid' | 'llm' | 'regex' = 'hybrid', aiModel: string = 'gemini-3.1-flash-lite'): Promise<NavWarning> => {
+  const handleParseManual = async (rawText: string, navarea: string, mode: 'hybrid' | 'llm' | 'regex' = 'hybrid', aiModel: string = 'gemini-3.1-flash-lite'): Promise<{ warning: NavWarning; ai_parsing_failed?: boolean; ai_error?: string | null }> => {
     try {
       const res = await parseManualWarning(rawText, navarea, mode, aiModel);
       if (res.warning) {
         setWarnings((prev) => [res.warning, ...prev]);
-        return res.warning;
+        return { warning: res.warning, ai_parsing_failed: res.ai_parsing_failed, ai_error: res.ai_error };
       }
     } catch (err) {
       console.warn('Manual API error, using deterministic client parser:', err);
@@ -236,7 +236,7 @@ export default function App() {
     };
 
     setWarnings((prev) => [newWarn, ...prev]);
-    return newWarn;
+    return { warning: newWarn, ai_parsing_failed: true, ai_error: 'Network connection or AI unavailable' };
   };
 
   const activeCount = warnings.filter((w) => w.status === 'active').length;

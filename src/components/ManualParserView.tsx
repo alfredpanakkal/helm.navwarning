@@ -5,7 +5,7 @@ import { FileText, Sparkles, CheckCircle2, AlertTriangle, Copy, ArrowRight, Edit
 import { saveImportedWarningsToSupabase } from '../services/api';
 
 interface ManualParserViewProps {
-  onParseManual: (rawText: string, navarea: string, mode?: 'hybrid' | 'llm' | 'regex', aiModel?: string) => Promise<NavWarning>;
+  onParseManual: (rawText: string, navarea: string, mode?: 'hybrid' | 'llm' | 'regex', aiModel?: string) => Promise<{ warning: NavWarning; ai_parsing_failed?: boolean; ai_error?: string | null }>;
   onSelectWarning: (warning: NavWarning) => void;
 }
 
@@ -24,6 +24,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSavingToSupabase, setIsSavingToSupabase] = useState(false);
   const [supabaseSaveMsg, setSupabaseSaveMsg] = useState<{ success: boolean; text: string } | null>(null);
+  const [aiFallbackModal, setAiFallbackModal] = useState<{ active: boolean; error?: string | null } | null>(null);
 
   const handleSaveToSupabase = async (warnings: NavWarning[]) => {
     if (!warnings.length) return;
@@ -59,14 +60,25 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
     setIsParsing(true);
     setErrorMsg(null);
     setSupabaseSaveMsg(null);
+    setAiFallbackModal(null);
     try {
       const texts = rawText.split('---').map(t => t.trim()).filter(Boolean);
       const results: NavWarning[] = [];
+      let anyAiFailed = false;
+      let lastAiError: string | null = null;
       for (const t of texts) {
-        const warn = await onParseManual(t, navarea, parseMode, aiModel);
-        results.push(warn);
+        const parsed = await onParseManual(t, navarea, parseMode, aiModel);
+        results.push(parsed.warning);
+        if (parsed.ai_parsing_failed) {
+          anyAiFailed = true;
+          lastAiError = parsed.ai_error || null;
+        }
       }
       setParsedResults(results);
+
+      if (anyAiFailed) {
+        setAiFallbackModal({ active: true, error: lastAiError });
+      }
 
       // Automatically save parsed warnings to Supabase
       setIsSavingToSupabase(true);
@@ -93,6 +105,42 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+      {/* AI Parsing Failed Pop-up Modal */}
+      {aiFallbackModal?.active && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white border-2 border-amber-600 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gw-primary uppercase tracking-wider">
+                  AI Parsing Failed — Switched to Hybrid
+                </h3>
+                <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                  Primary AI extraction was unsuccessful. Automatically switched to hybrid parsing (deterministic regex + heuristic fallback) as second priority.
+                </p>
+              </div>
+            </div>
+
+            {aiFallbackModal.error && (
+              <div className="bg-gw-bg p-3 rounded-xl border border-gw-secondary text-xs font-mono text-red-700 overflow-x-auto">
+                Error details: {aiFallbackModal.error}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setAiFallbackModal(null)}
+                className="px-4 py-2 bg-gw-primary text-gw-bg text-xs font-bold rounded-xl hover:bg-gw-accent transition-colors"
+              >
+                Acknowledge & View Results
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Info */}
       <div className="bg-white border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
         <div>

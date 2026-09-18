@@ -410,6 +410,8 @@ export async function triggerPipelineRefresh(sourceId?: string): Promise<{
 export async function parseManualWarning(rawText: string, navarea?: string, mode: 'hybrid' | 'llm' | 'regex' = 'hybrid', aiModel: string = 'gemini-3.1-flash-lite'): Promise<{
   warning: NavWarning;
   extraction_method: 'deterministic' | 'llm_assisted';
+  ai_parsing_failed?: boolean;
+  ai_error?: string | null;
 }> {
   const headers = await getAdminHeaders();
   const res = await fetch('/api/pipeline/parse-manual', {
@@ -493,7 +495,7 @@ export async function testGeminiIntegration(prompt?: string): Promise<{
   return data;
 }
 
-export async function testMistralIntegration(prompt?: string): Promise<{
+export async function testMistralIntegration(prompt?: string, model?: string): Promise<{
   success: boolean;
   hasKey: boolean;
   model?: string;
@@ -507,7 +509,7 @@ export async function testMistralIntegration(prompt?: string): Promise<{
   const res = await fetch('/api/admin/test-mistral', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, model }),
   });
 
   const data = await res.json().catch(() => ({}));
