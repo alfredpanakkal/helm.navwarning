@@ -161,20 +161,48 @@ export async function fetchWarnings(params?: {
     const { INITIAL_WARNINGS } = await import('../data/sourcesRegistry');
 
     if (supabase) {
-      let query = supabase.from('nav_warnings').select('*').order('created_at', { ascending: false });
+      const PAGE_SIZE = 1000;
+      const allRows: any[] = [];
+      let from = 0;
+      let hasMore = true;
 
-      if (params?.sourceId) {
-        query = query.eq('source_id', params.sourceId);
+      while (hasMore) {
+        const to = from + PAGE_SIZE - 1;
+        let query = supabase
+          .from('nav_warnings')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, to);
+
+        if (params?.sourceId) {
+          query = query.eq('source_id', params.sourceId);
+        }
+        if (params?.navarea) {
+          query = query.eq('navarea', params.navarea);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.warn(`Supabase fetch error at range ${from}..${to}:`, error.message);
+          break;
+        }
+
+        if (data && data.length > 0) {
+          allRows.push(...data);
+          if (data.length < PAGE_SIZE) {
+            hasMore = false;
+          } else {
+            from += PAGE_SIZE;
+          }
+        } else {
+          hasMore = false;
+        }
       }
-      if (params?.navarea) {
-        query = query.eq('navarea', params.navarea);
-      }
 
-      const { data, error } = await query;
-
-      if (!error && data && data.length > 0) {
+      if (allRows.length > 0) {
         // Map database row to NavWarning interface with full field fidelity
-        const liveWarnings: NavWarning[] = data.map((row: any) =>
+        const liveWarnings: NavWarning[] = allRows.map((row: any) =>
           mapSupabaseRowToNavWarning(row, params?.status || 'active')
         );
 

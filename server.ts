@@ -66,14 +66,33 @@ async function hydrateDatabaseFromSupabase(): Promise<void> {
     }
 
     console.log('[Data Pipeline] Checking Supabase for live persistent maritime records...');
-    const { data: warningsData, error: wErr } = await client
-      .from('nav_warnings')
-      .select('*')
-      .limit(2000);
+    const PAGE_SIZE = 1000;
+    const warningsData: any[] = [];
+    let from = 0;
+    let hasMore = true;
 
-    if (wErr) {
-      console.warn('[Data Pipeline] Supabase query notice:', wErr.message);
-      return;
+    while (hasMore) {
+      const to = from + PAGE_SIZE - 1;
+      const { data, error: wErr } = await client
+        .from('nav_warnings')
+        .select('*')
+        .range(from, to);
+
+      if (wErr) {
+        console.warn(`[Data Pipeline] Supabase query notice at range ${from}..${to}:`, wErr.message);
+        break;
+      }
+
+      if (data && data.length > 0) {
+        warningsData.push(...data);
+        if (data.length < PAGE_SIZE) {
+          hasMore = false;
+        } else {
+          from += PAGE_SIZE;
+        }
+      } else {
+        hasMore = false;
+      }
     }
 
     if (warningsData && warningsData.length > 0) {

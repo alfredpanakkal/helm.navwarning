@@ -140,8 +140,8 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <span>{tab.label}</span>
                   {tab.badge !== undefined && (
-                    <span className="text-[10px] px-1.5 py-0.2 bg-gw-tertiary rounded text-gw-bg font-mono">
-                      {tab.badge}
+                    <span className="text-[10px] px-1.5 py-0.5 bg-gw-tertiary/90 border border-gw-tertiary rounded text-gw-bg font-mono font-semibold tabular-nums shadow-xs">
+                      {typeof tab.badge === 'number' ? tab.badge.toLocaleString() : tab.badge}
                     </span>
                   )}
                 </button>
@@ -157,7 +157,9 @@ export const Header: React.FC<HeaderProps> = ({
               className="flex items-center gap-1.5 px-2.5 py-1 bg-gw-tertiary hover:bg-gw-tertiary/80 border border-gw-primary rounded text-xs transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg"
             >
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-              <span className="text-[10px] sm:text-xs font-bold text-gw-bg">{activeCount} Active</span>
+              <span className="text-[10px] sm:text-xs font-bold text-gw-bg tabular-nums tracking-wide">
+                {typeof activeCount === 'number' ? activeCount.toLocaleString() : activeCount} Active
+              </span>
             </button>
 
             {/* Admin Gate Toggle Button */}
@@ -203,8 +205,8 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="relative">
                 {tab.icon}
                 {tab.badge !== undefined && (
-                  <span className="absolute -top-1 -right-2 text-[9px] bg-emerald-500 text-slate-950 font-bold px-1 rounded-full min-w-[14px] text-center">
-                    {tab.badge}
+                  <span className="absolute -top-1 -right-2 text-[9px] bg-emerald-500 text-slate-950 font-bold px-1 rounded-full min-w-[14px] text-center tabular-nums">
+                    {typeof tab.badge === 'number' ? tab.badge.toLocaleString() : tab.badge}
                   </span>
                 )}
               </div>
