@@ -138,8 +138,32 @@ export async function syncWarningsToSupabase(warnings: NavWarning[]): Promise<{ 
         charts: w.charts || null,
         categories: w.categories || null,
         web_link: w.web_link || w.source_url || null,
+        spatial: w.spatial?.geometries?.length ? { geometries: w.spatial.geometries } : null,
+        spatial_groups: (w as any).spatial_groups || (w.spatial as any)?.spatial_groups || null,
+        evidence_trail: (w as any).evidence_trail || (w.spatial as any)?.evidence_trail || null,
+        valid_until_utc: (w as any).valid_until_utc || w.valid_to || null,
+        is_cancelled: (w as any).is_cancelled ?? (w.status === 'cancelled'),
+        cancellation_text: (w as any).cancellation_text || null,
       };
     });
+
+    // Also persist raw messages
+    const rawRows = warnings
+      .filter(w => Boolean(w.raw_text))
+      .map(w => ({
+        warning_id: w.source_warning_id || w.warning_number || w.warning_id,
+        source_id: w.source_id || 'manual-import',
+        full_raw_text: w.raw_text,
+        subject_header: w.title || `${w.series || 'WARNING'} ${w.warning_number || ''}`,
+      }));
+
+    if (rawRows.length > 0) {
+      try {
+        await client.from('raw_messages').insert(rawRows);
+      } catch (err) {
+        console.warn('raw_messages insert notice:', err);
+      }
+    }
 
     // Chunk in batches of 100
     const CHUNK_SIZE = 100;

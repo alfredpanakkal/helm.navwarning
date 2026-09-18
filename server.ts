@@ -1818,40 +1818,65 @@ Instructions:
     }
   });
 
-  // Parse manual text using Gemini server-side, deterministic regex, or hybrid mode
+  // Parse manual text using Deterministic rules first, then Mistral AI, with Gemini Flash Lite fallback
   app.post('/api/pipeline/parse-manual', requireAdminAuth, async (req, res) => {
     try {
-      const { rawText, navarea = 'I', mode = 'hybrid', aiModel = 'gemini-3.1-flash-lite' } = req.body;
+      const { rawText, navarea = 'I', mode = 'hybrid', aiModel = 'mistral-small-latest' } = req.body;
       if (!rawText || typeof rawText !== 'string') {
         return res.status(400).json({ error: 'rawText string is required' });
       }
 
-      // Step 1: Run deterministic regex parsing
+      // Step 1: Run deterministic regex parsing (Tier 1)
       const deterministicSpatial = parseCoordinatesDeterministic(rawText, navarea as NavAreaId);
 
       const manualHash = crypto.createHash('sha256').update(rawText).digest('hex').substring(0, 8).toUpperCase();
+
+      // Extract cancellation / expiry deterministically
+      let isCancelled = false;
+      let cancellationText: string | null = null;
+      let validUntilUtc: string | null = null;
+
+      const cancelMatch = rawText.match(/CANCEL\s+THIS\s+MSG(?:\s+AT)?\s+([0-9]{6}\s+UTC\s+[A-Z]{3}\s+[0-9]{2})/i);
+      if (cancelMatch) {
+        cancellationText = cancelMatch[0];
+        try {
+          const parts = cancelMatch[1].split(/\s+/);
+          const day = parts[0].slice(0, 2);
+          const time = parts[0].slice(2);
+          const month = parts[2];
+          const year = `20${parts[3]}`;
+          const d = new Date(`${year}-${month}-${day}T${time.slice(0, 2)}:${time.slice(2)}:00Z`);
+          if (!isNaN(d.getTime())) {
+            validUntilUtc = d.toISOString();
+            if (d.getTime() < Date.now()) isCancelled = true;
+          }
+        } catch (_) {}
+      }
 
       let extractedData = {
         series: `NAVAREA ${navarea}`,
         source_warning_id: `MANUAL-${manualHash.substring(0, 5)}/${new Date().getFullYear()}`,
         warning_number: manualHash.substring(0, 5),
         warning_year: new Date().getFullYear(),
-
         area_text: 'MANUAL PASTE REGION',
         issued_date: new Date().toISOString().split('T')[0],
         translated_text: null as string | null,
         original_language: 'en',
         spatial: deterministicSpatial,
+        spatial_groups: (deterministicSpatial as any).spatial_groups || null,
+        evidence_trail: (deterministicSpatial as any).evidence_trail || [],
+        valid_until_utc: validUntilUtc,
+        cancellation_text: cancellationText,
+        is_cancelled: isCancelled,
         extraction_method: 'deterministic' as 'deterministic' | 'llm_assisted',
-        confidence: 0.9,
+        confidence: deterministicSpatial.geometries.length > 0 ? 0.95 : 0.6,
       };
 
-      // Step 2: Use Gemini/Mistral AI first for every parse attempt
-      const ai = getGeminiClient();
       let aiParsingFailed = false;
       let aiErrorMsg: string | null = null;
 
-      if (ai && mode !== 'regex') {
+      // Step 2: If mode is not purely 'regex' and deterministic didn't find coordinates, or user chose AI mode
+      if (mode !== 'regex' && (deterministicSpatial.geometries.length === 0 || mode === 'llm')) {
         try {
           const prompt = `Analyze this navigational warning (NAVAREA ${navarea}) text and extract structured fields.
 Raw text:
@@ -1890,10 +1915,12 @@ Instructions:
             },
           };
 
-          const response = await generateContentWithRetry(ai, prompt, aiModel, schema);
+          // Try Mistral first, then Gemini Flash Lite fallback via generateContentWithRetry
+          const ai = getGeminiClient();
+          const aiResult = await generateContentWithRetry(ai, prompt, aiModel, schema);
 
-          if (response && response.text) {
-            const llmResult = JSON.parse(response.text);
+          if (aiResult && aiResult.text) {
+            const llmResult = JSON.parse(aiResult.text.replace(/```json|```/g, '').trim());
             if (llmResult.series) extractedData.series = llmResult.series;
             if (llmResult.warning_number) {
               extractedData.warning_number = String(llmResult.warning_number);
@@ -1906,7 +1933,6 @@ Instructions:
               extractedData.translated_text = llmResult.translated_text;
             }
 
-            // If LLM returned geometries and deterministic didn't find any, use LLM
             if (deterministicSpatial.geometries.length === 0 && llmResult.geometries && llmResult.geometries.length > 0) {
               extractedData.extraction_method = 'llm_assisted';
               extractedData.confidence = 0.92;
@@ -1917,7 +1943,7 @@ Instructions:
                       type: g.type,
                       coordinates: typeof g.coordinates === 'string' ? JSON.parse(g.coordinates) : g.coordinates,
                       radius_nm: g.radius_nm,
-                      label: g.label || 'LLM Extracted Spatial Feature',
+                      label: g.label || 'AI Extracted Feature',
                     };
                   } catch (e) {
                     return null;
@@ -1940,19 +1966,12 @@ Instructions:
                 };
               }
             }
-          } else {
-            throw new Error('AI returned empty response text.');
           }
-        } catch (geminiErr: any) {
+        } catch (aiErr: any) {
           aiParsingFailed = true;
-          aiErrorMsg = geminiErr?.message || String(geminiErr);
-          console.warn('[AI Parsing Engine] AI parsing failed. Falling back to hybrid/deterministic parsing:', aiErrorMsg);
-          // Hybrid fallback is already initialized in extractedData (deterministicSpatial + heuristic fields)
-          extractedData.extraction_method = 'deterministic';
+          aiErrorMsg = aiErr?.message || String(aiErr);
+          console.warn('[AI Parsing Engine] AI fallback failed. Preserving deterministic result:', aiErrorMsg);
         }
-      } else if (!ai && mode !== 'regex') {
-        aiParsingFailed = true;
-        aiErrorMsg = 'AI client not configured or missing API key.';
       }
 
       const nowIso = new Date().toISOString();
@@ -1971,9 +1990,9 @@ Instructions:
         issued_time_precision: 'day',
         issued_text: extractedData.issued_date,
         valid_from: nowIso,
-        valid_to: null,
-        cancelled_at: null,
-        status: 'active',
+        valid_to: extractedData.valid_until_utc,
+        cancelled_at: extractedData.is_cancelled ? nowIso : null,
+        status: extractedData.is_cancelled ? 'cancelled' : 'active',
         status_basis: 'manual_user_override',
         area_text: extractedData.area_text,
         original_language: extractedData.original_language,

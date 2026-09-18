@@ -18,7 +18,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
   );
   const [navarea, setNavarea] = useState('I');
   const [parseMode, setParseMode] = useState<'hybrid' | 'llm' | 'regex'>('hybrid');
-  const [aiModel, setAiModel] = useState<string>('gemini-3.1-flash-lite');
+  const [aiModel, setAiModel] = useState<string>('mistral-small-latest');
   const [isParsing, setIsParsing] = useState(false);
   const [parsedResults, setParsedResults] = useState<NavWarning[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -184,23 +184,30 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                 onChange={(e) => setParseMode(e.target.value as any)}
                 className="bg-gw-bg border-2 border-gw-primary text-gw-primary text-xs px-3 py-1.5 rounded font-mono font-bold focus:outline-none focus:border-gw-accent transition-colors"
               >
-                <option value="hybrid">✨ Hybrid</option>
-                <option value="llm">🤖 AI Direct</option>
-                <option value="regex">⚡ Regex Only</option>
+                <option value="hybrid">✨ Auto (Rules First → Mistral → Gemini)</option>
+                <option value="regex">⚡ Deterministic Rules Only (No AI)</option>
+                <option value="llm">🤖 Direct AI Test (Override Rules)</option>
               </select>
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">AI Model</label>
+              <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">
+                {parseMode === 'hybrid' ? 'AI Escalation' : 'AI Model'}
+              </label>
               <select
                 value={aiModel}
                 onChange={(e) => setAiModel(e.target.value)}
                 className="bg-gw-bg border-2 border-gw-primary text-gw-primary text-xs px-3 py-1.5 rounded font-mono font-bold focus:outline-none focus:border-gw-accent transition-colors"
-                disabled={parseMode === 'regex'}
+                disabled={parseMode === 'regex' || parseMode === 'hybrid'}
               >
-                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Fast/Recommended)</option>
-                <option value="gemini-flash-latest">Gemini Flash Latest</option>
-                <option value="gemini-3.8-flash">Gemini 3.8 Flash (Stable)</option>
+                {parseMode === 'hybrid' ? (
+                  <option value="auto">Auto: Mistral-Small → Gemini Flash-Lite</option>
+                ) : (
+                  <>
+                    <option value="mistral-small-latest">Mistral Small (1st Priority)</option>
+                    <option value="gemini-flash-lite-latest">Gemini Flash Lite (Fallback)</option>
+                  </>
+                )}
               </select>
             </div>
           </div>

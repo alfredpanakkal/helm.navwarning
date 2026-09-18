@@ -407,7 +407,7 @@ export async function triggerPipelineRefresh(sourceId?: string): Promise<{
   }
 }
 
-export async function parseManualWarning(rawText: string, navarea?: string, mode: 'hybrid' | 'llm' | 'regex' = 'hybrid', aiModel: string = 'gemini-3.1-flash-lite'): Promise<{
+export async function parseManualWarning(rawText: string, navarea?: string, mode: 'hybrid' | 'llm' | 'regex' = 'hybrid', aiModel: string = 'mistral-small-latest'): Promise<{
   warning: NavWarning;
   extraction_method: 'deterministic' | 'llm_assisted';
   ai_parsing_failed?: boolean;
@@ -591,8 +591,32 @@ export async function saveImportedWarningsToSupabase(warnings: NavWarning[]): Pr
         charts: w.charts || null,
         categories: w.categories || null,
         web_link: w.web_link || w.source_url || null,
+        spatial: w.spatial?.geometries?.length ? { geometries: w.spatial.geometries } : null,
+        spatial_groups: (w as any).spatial_groups || (w.spatial as any)?.spatial_groups || null,
+        evidence_trail: (w as any).evidence_trail || (w.spatial as any)?.evidence_trail || null,
+        valid_until_utc: (w as any).valid_until_utc || w.valid_to || null,
+        is_cancelled: (w as any).is_cancelled ?? (w.status === 'cancelled'),
+        cancellation_text: (w as any).cancellation_text || null,
       };
     });
+
+    // Also persist into raw_messages
+    const rawRows = warnings
+      .filter(w => Boolean(w.raw_text))
+      .map(w => ({
+        warning_id: w.source_warning_id || w.warning_number || w.warning_id,
+        source_id: w.source_id || 'manual-import',
+        full_raw_text: w.raw_text,
+        subject_header: w.title || `${w.series || 'WARNING'} ${w.warning_number || ''}`,
+      }));
+
+    if (rawRows.length > 0) {
+      try {
+        await supabase.from('raw_messages').insert(rawRows);
+      } catch (err) {
+        console.warn('raw_messages insert notice:', err);
+      }
+    }
 
     // Chunk in batches of 100
     const CHUNK_SIZE = 100;
