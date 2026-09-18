@@ -71,7 +71,11 @@ export function formatDecimalCoordinates(lat: number, lng: number, decimals: num
   if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
     return '';
   }
-  return `${lat.toFixed(decimals)}, ${lng.toFixed(decimals)}`;
+  const absLat = Math.abs(lat);
+  const latHem = lat >= 0 ? 'N' : 'S';
+  const absLng = Math.abs(lng);
+  const lngHem = lng >= 0 ? 'E' : 'W';
+  return `${absLat.toFixed(decimals)}° ${latHem}, ${absLng.toFixed(decimals)}° ${lngHem}`;
 }
 
 /**

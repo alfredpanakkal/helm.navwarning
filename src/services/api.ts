@@ -493,6 +493,35 @@ export async function testGeminiIntegration(prompt?: string): Promise<{
   return data;
 }
 
+export async function testMistralIntegration(prompt?: string): Promise<{
+  success: boolean;
+  hasKey: boolean;
+  model?: string;
+  latency_ms?: number;
+  response?: string;
+  prompt_used?: string;
+  timestamp?: string;
+  error?: string;
+}> {
+  const headers = await getAdminHeaders();
+  const res = await fetch('/api/admin/test-mistral', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ prompt }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return {
+      success: false,
+      hasKey: data.hasKey ?? false,
+      error: data.error || 'Failed to trigger Mistral API verification',
+      timestamp: new Date().toISOString(),
+    };
+  }
+  return data;
+}
+
 export async function saveImportedWarningsToSupabase(warnings: NavWarning[]): Promise<{
   success: boolean;
   insertedCount: number;

@@ -162,14 +162,19 @@ export function extractWarningCoordinateList(warning: NavWarning): GeometryCoord
     const nauticalLat = parts[0] || '';
     const nauticalLng = parts[1] || '';
 
+    const absLat = Math.abs(pt.lat);
+    const latHem = pt.lat >= 0 ? 'N' : 'S';
+    const absLng = Math.abs(pt.lng);
+    const lngHem = pt.lng >= 0 ? 'E' : 'W';
+
     return {
       index: idx + 1,
       lat: pt.lat,
       lng: pt.lng,
       nauticalLat,
       nauticalLng,
-      decimalLat: `${pt.lat.toFixed(4)}°`,
-      decimalLng: `${pt.lng.toFixed(4)}°`,
+      decimalLat: `${absLat.toFixed(4)}° ${latHem}`,
+      decimalLng: `${absLng.toFixed(4)}° ${lngHem}`,
       bearingToNext,
       distanceToNext,
     };

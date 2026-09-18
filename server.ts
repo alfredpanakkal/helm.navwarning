@@ -273,6 +273,50 @@ function normalizeGeminiModel(requestedModel?: string): string {
   return clean;
 }
 
+async function callMistralFallback(prompt: string, schema?: any): Promise<{ text: string; modelUsed: string } | null> {
+  const mistralKey = process.env.MISTRAL_API_KEY;
+  if (!mistralKey) {
+    console.warn(`[Mistral Fallback] MISTRAL_API_KEY is not set. Falling back to deterministic parser.`);
+    return null;
+  }
+  const models = ['mistral-small-latest', 'ministral-8b-latest', 'ministral-3b-latest', 'open-mistral-7b'];
+  for (const model of models) {
+    try {
+      console.warn(`[Mistral AI] Attempting model ${model}...`);
+      const body: any = {
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0,
+      };
+      if (schema) {
+        body.response_format = { type: 'json_object' };
+      }
+      const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${mistralKey}`
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        console.warn(`[Mistral AI] Model ${model} failed (${res.status}): ${errText}`);
+        continue;
+      }
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (content) {
+        return { text: content, modelUsed: model };
+      }
+    } catch (err: any) {
+      console.warn(`[Mistral AI] Model ${model} invocation error:`, err?.message || err);
+    }
+  }
+  console.error(`[Mistral AI] All fallback models failed.`);
+  return null;
+}
+
 async function generateContentWithRetry(ai: any, prompt: string, model: string, schema?: any) {
   let targetModel = normalizeGeminiModel(model);
   let attempt = 0;
@@ -296,6 +340,16 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
     } catch (err: any) {
       const is503 = err?.status === 503 || err?.message?.includes('503') || err?.message?.includes('high demand') || err?.message?.includes('UNAVAILABLE');
       const is404 = err?.status === 404 || err?.message?.includes('404') || err?.message?.includes('no longer available') || err?.message?.includes('NOT_FOUND');
+      const isQuota = err?.status === 429 || err?.message?.includes('RESOURCE_EXHAUSTED') || err?.message?.includes('quota') || err?.message?.includes('rate limit');
+
+      if (isQuota) {
+        console.warn(`[Gemini API] Quota or rate limit exceeded (RESOURCE_EXHAUSTED). Attempting Mistral AI fallback...`);
+        const mistralRes = await callMistralFallback(prompt, schema);
+        if (mistralRes) {
+          return mistralRes;
+        }
+        return null;
+      }
 
       if (is404 && targetModel !== 'gemini-3.1-flash-lite') {
         console.warn(`[Gemini API] Model ${targetModel} unavailable (${err?.message || '404'}). Falling back to gemini-3.1-flash-lite.`);
@@ -313,10 +367,21 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
         }
         attempt++;
       } else {
+        console.warn(`[Gemini API] Error encountered (${err?.message || err}). Attempting Mistral AI fallback...`);
+        const mistralRes = await callMistralFallback(prompt, schema);
+        if (mistralRes) {
+          return mistralRes;
+        }
         throw err;
       }
     }
   }
+
+  const mistralRes = await callMistralFallback(prompt, schema);
+  if (mistralRes) {
+    return mistralRes;
+  }
+  return null;
 }
 
 
@@ -1708,6 +1773,51 @@ Instructions:
       res.status(400).json({
         success: false,
         hasKey: true,
+        error: err.message || String(err),
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
+  // Mistral Integration Diagnostic & Test Key Endpoint (Admin Protected)
+  app.post('/api/admin/test-mistral', requireAdminAuth, async (req, res) => {
+    try {
+      const apiKey = process.env.MISTRAL_API_KEY;
+      if (!apiKey || !apiKey.trim()) {
+        return res.json({
+          success: false,
+          hasKey: false,
+          error: 'MISTRAL_API_KEY environment variable is missing on the server. Please ensure MISTRAL_API_KEY is configured in your Settings > Secrets.',
+        });
+      }
+
+      const userPrompt =
+        typeof req.body?.prompt === 'string' && req.body.prompt.trim()
+          ? req.body.prompt.trim()
+          : "System verification: confirm 'Mistral AI operational check passed' and state current system readiness in 1 short sentence.";
+
+      const startTime = Date.now();
+      const mistralRes = await callMistralFallback(userPrompt);
+      const durationMs = Date.now() - startTime;
+
+      if (!mistralRes || !mistralRes.text) {
+        throw new Error('No response content returned from Mistral API.');
+      }
+
+      res.json({
+        success: true,
+        hasKey: true,
+        model: mistralRes.modelUsed,
+        latency_ms: durationMs,
+        response: mistralRes.text,
+        prompt_used: userPrompt,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      console.warn('[Mistral Diagnostic Error]', err);
+      res.status(400).json({
+        success: false,
+        hasKey: Boolean(process.env.MISTRAL_API_KEY),
         error: err.message || String(err),
         timestamp: new Date().toISOString(),
       });
