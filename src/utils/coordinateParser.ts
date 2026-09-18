@@ -113,6 +113,7 @@ export interface EnhancedSpatialGeometry extends SpatialGeometry {
 export interface EnhancedSpatialData extends SpatialData {
   geometries: EnhancedSpatialGeometry[];
   spatial_groups?: CoordinateGroup[];
+  evidence_trail?: EvidenceItem[];
   hemisphere_status?: 'EXPLICIT' | 'INFERRED_CONVENTION' | 'AMBIGUOUS_HEMISPHERE';
   navarea_relation?: 'INSIDE' | 'OUTSIDE' | 'PARTIALLY_OUTSIDE' | 'UNKNOWN';
   coordinate_validity?: 'VALID' | 'INVALID';
@@ -227,6 +228,22 @@ export function parseSingleCoordinatePair(
   return { lngLat: null, hemisphereAmbiguous: false, raw };
 }
 
+function parseSingleLat(str: string): number | null {
+  const m = str.match(/(\d{1,3})[-°\s]+(\d{1,2}(?:\.\d+)?)['′"]?\s*([NS])/i);
+  if (m) {
+    return dmsToDecimal(parseFloat(m[1]), parseFloat(m[2]), 0, m[3].toUpperCase());
+  }
+  return null;
+}
+
+function parseSingleLon(str: string): number | null {
+  const m = str.match(/(\d{1,3})[-°\s]+(\d{1,2}(?:\.\d+)?)['′"]?\s*([EW])/i);
+  if (m) {
+    return dmsToDecimal(parseFloat(m[1]), parseFloat(m[2]), 0, m[3].toUpperCase());
+  }
+  return null;
+}
+
 /**
  * TIER 1: Evidence-based Deterministic NAVWARN Spatial Interpretation Engine
  */
@@ -330,6 +347,60 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
 
   // If no multi-area lettered sub-blocks were parsed, fallback to standard geometry extraction rules
   if (geometries.length === 0) {
+    // A0. Bounding Box Lat-Lon Ranges (e.g., AREA BOUNDED WITHIN 12-49N TO 12-59N AND 080-46E TO 081-26E)
+    const bboxRangePattern = /(?:BOUNDED\s+WITHIN|AREA\s+BOUNDED\s+WITHIN|BOUNDED\s+BY|AREA\s+BETWEEN|BETWEEN)\s+(\d{1,3}[°\s\-]+\d{1,2}(?:\.\d+)?[^\d,]*[NS])\s+(?:TO|AND|-)\s+(\d{1,3}[°\s\-]+\d{1,2}(?:\.\d+)?[^\d,]*[NS])\s+(?:AND|,)\s+(\d{1,3}[°\s\-]+\d{1,2}(?:\.\d+)?[^\d,]*[EW])\s+(?:TO|AND|-)\s+(\d{1,3}[°\s\-]+\d{1,2}(?:\.\d+)?[^\d,]*[EW])/i;
+    const bboxMatch = sanitizedText.match(bboxRangePattern);
+    if (bboxMatch) {
+      const lat1 = parseSingleLat(bboxMatch[1]);
+      const lat2 = parseSingleLat(bboxMatch[2]);
+      const lon1 = parseSingleLon(bboxMatch[3]);
+      const lon2 = parseSingleLon(bboxMatch[4]);
+
+      if (lat1 !== null && lat2 !== null && lon1 !== null && lon2 !== null) {
+        const minLat = Math.min(lat1, lat2);
+        const maxLat = Math.max(lat1, lat2);
+        const minLon = Math.min(lon1, lon2);
+        const maxLon = Math.max(lon1, lon2);
+
+        // Standard closed CCW polygon box: SW -> SE -> NE -> NW -> SW
+        const polyCoords: [number, number][] = [
+          [minLon, minLat],
+          [maxLon, minLat],
+          [maxLon, maxLat],
+          [minLon, maxLat],
+          [minLon, minLat],
+        ];
+
+        const groupId = `group-bbox-${Math.random().toString(36).substr(2, 6)}`;
+        spatialGroups.push({
+          group_id: groupId,
+          coordinates: polyCoords,
+          relationship: 'BOUNDED_BY',
+          roles: ['CORNER_SW', 'CORNER_SE', 'CORNER_NE', 'CORNER_NW', 'CORNER_SW'] as any,
+          sequence: polyCoords.map((_, i) => i + 1),
+          evidence: [{ rule: 'BOUNDING_BOX_RANGE_POLYGON', matched_text: bboxMatch[0] }],
+        });
+
+        geometries.push({
+          type: 'Polygon',
+          semantic_type: 'POLYGON',
+          coordinates: [polyCoords],
+          label: 'Danger Area Bounded by Coordinates',
+          inference_mode: 'EXPLICIT',
+          confidence_level: 'VERIFIED',
+          spatial_group_id: groupId,
+          evidence: [{ rule: 'BOUNDING_BOX_RANGE_POLYGON', matched_text: bboxMatch[0] }],
+        });
+
+        rawCoordinateText.push(bboxMatch[0]);
+        evidenceTrail.push({
+          rule: 'BOUNDING_BOX_RANGE_POLYGON',
+          matched_text: bboxMatch[0],
+          result: { minLat, maxLat, minLon, maxLon },
+        });
+      }
+    }
+
     // A. Circle / Radius
     const circlePattern = /(?:WITHIN|RADIUS|CIRCLE OF RADIUS|EXTENDING)\s+(\d+(?:\.\d+)?)\s*(?:NM|NAUTICAL MILES)?\s*(?:OF|CENTRED ON|CENTERED ON|FROM)?\s*([0-9\-\.°\s'″NS]+[EW])/gi;
     let circleMatch;
@@ -532,6 +603,7 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
     geometries,
     circles,
     spatial_groups: spatialGroups,
+    evidence_trail: evidenceTrail,
     raw_coordinate_text: Array.from(new Set(rawCoordinateText)),
     validation_status,
     hemisphere_status: hemisphereAmbiguousFound ? 'AMBIGUOUS_HEMISPHERE' : 'EXPLICIT',
