@@ -17,9 +17,10 @@ export const SupabaseStatusView: React.FC<SupabaseStatusViewProps> = ({
   const [status, setStatus] = useState<{
     connected: boolean;
     url: string | null;
-    counts: { warnings: number; sources: number; generations: number; artifacts: number };
-    localCounts: { warnings: number; sources: number; generations: number; artifacts: number };
+    counts?: { warnings: number; sources: number; generations: number; artifacts: number };
+    localCounts?: { warnings: number; sources: number; generations: number; artifacts: number };
     error?: string;
+    ok?: boolean;
   } | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -110,7 +111,9 @@ export const SupabaseStatusView: React.FC<SupabaseStatusViewProps> = ({
     setSyncMessage(null);
     try {
       const res = await triggerSupabaseSync();
-      setSyncMessage(`Successfully synced ${res.counts.warnings} warnings and ${res.counts.artifacts} artifacts to Supabase.`);
+      const wCount = res.counts?.warnings ?? 0;
+      const aCount = res.counts?.artifacts ?? 0;
+      setSyncMessage(`Successfully synced ${wCount} warnings and ${aCount} artifacts to Supabase.`);
       await loadStatus();
     } catch (err: any) {
       setSyncMessage(`Sync Error: ${err.message || String(err)}`);
@@ -359,7 +362,7 @@ CREATE TABLE IF NOT EXISTS public.sources_registry (
         <div className="bg-white border-2 border-gw-primary rounded-xl p-4 shadow-hard">
           <div className="text-[10px] font-bold text-gw-accent uppercase tracking-wider mb-1">NAV WARNINGS TABLE</div>
           <div className="text-2xl font-bold font-mono text-gw-primary">
-            {status?.counts.warnings ?? warnings.length}
+            {status?.counts?.warnings ?? warnings.length}
           </div>
           <div className="text-[10px] text-gw-accent mt-1">Local State: {warnings.length} notices</div>
         </div>
@@ -367,7 +370,7 @@ CREATE TABLE IF NOT EXISTS public.sources_registry (
         <div className="bg-white border-2 border-gw-primary rounded-xl p-4 shadow-hard">
           <div className="text-[10px] font-bold text-gw-accent uppercase tracking-wider mb-1">SOURCES REGISTRY</div>
           <div className="text-2xl font-bold font-mono text-gw-primary">
-            {status?.counts.sources ?? 17}
+            {status?.counts?.sources ?? 17}
           </div>
           <div className="text-[10px] text-gw-accent mt-1">Verified Feeds</div>
         </div>
@@ -375,7 +378,7 @@ CREATE TABLE IF NOT EXISTS public.sources_registry (
         <div className="bg-white border-2 border-gw-primary rounded-xl p-4 shadow-hard">
           <div className="text-[10px] font-bold text-gw-accent uppercase tracking-wider mb-1">GENERATION POINTERS</div>
           <div className="text-2xl font-bold font-mono text-gw-primary">
-            {status?.counts.generations ?? generations.length}
+            {status?.counts?.generations ?? generations.length}
           </div>
           <div className="text-[10px] text-gw-accent mt-1">Audit Log Rows</div>
         </div>
@@ -383,7 +386,7 @@ CREATE TABLE IF NOT EXISTS public.sources_registry (
         <div className="bg-white border-2 border-gw-primary rounded-xl p-4 shadow-hard">
           <div className="text-[10px] font-bold text-gw-accent uppercase tracking-wider mb-1">RAW ARTIFACTS</div>
           <div className="text-2xl font-bold font-mono text-gw-primary">
-            {status?.counts.artifacts ?? artifacts.length}
+            {status?.counts?.artifacts ?? artifacts.length}
           </div>
           <div className="text-[10px] text-gw-accent mt-1">Evidence Locker Blobs</div>
         </div>

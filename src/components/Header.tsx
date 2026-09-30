@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TabType } from '../App';
-import { Map, Database, Upload, Radio, MoreHorizontal, Terminal, Activity, FileText, HardDrive, RefreshCw, X, Lock, Unlock, Key, ShieldCheck, Loader2 } from 'lucide-react';
+import { Map, Database, Upload, Radio, MoreHorizontal, Terminal, Activity, FileText, HardDrive, RefreshCw, X, Lock, Unlock, Key, Mail, ShieldCheck, Loader2 } from 'lucide-react';
 import { adminLogin, adminLogout } from '../services/api';
 
 interface HeaderProps {
@@ -20,8 +20,31 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
-  const [adminPasscode, setAdminPasscode] = useState('');
-  const [passcodeError, setPasscodeError] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
+
+  // Synchronize initial session state on component mount
+  useEffect(() => {
+    async function checkInitialAdminSession() {
+      try {
+        const { supabase } = await import('../lib/supabaseClient');
+        if (supabase) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const appMeta = user.app_metadata || {};
+            const isAdmin = appMeta.role === 'admin' || appMeta.role === 'superadmin' || appMeta.is_admin === true;
+            setIsAdminMode(isAdmin);
+            return;
+          }
+        }
+      } catch {}
+
+      const hasStoredToken = typeof window !== 'undefined' && Boolean(sessionStorage.getItem('helm_admin_token'));
+      setIsAdminMode(hasStoredToken);
+    }
+    checkInitialAdminSession();
+  }, [setIsAdminMode]);
 
   const publicTabs: { id: TabType; label: string; badge?: number }[] = [
     { id: 'map', label: 'Map View' },
@@ -76,18 +99,30 @@ export const Header: React.FC<HeaderProps> = ({
   const handleUnlockAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
-    setPasscodeError(false);
+    setAuthErrorMessage(null);
+
+    const email = adminEmail.trim();
+    const password = adminPassword.trim();
+
+    if (!email || !password) {
+      setAuthErrorMessage('Please enter both administrator email and password.');
+      setIsLoggingIn(false);
+      return;
+    }
+
     try {
-      const res = await adminLogin(adminPasscode.trim());
+      const res = await adminLogin(email, password);
       if (res.success) {
         setIsAdminMode(true);
         setShowAdminModal(false);
-        setAdminPasscode('');
+        setAdminEmail('');
+        setAdminPassword('');
+        setAuthErrorMessage(null);
       } else {
-        setPasscodeError(true);
+        setAuthErrorMessage(res.error || 'Authentication failed. Please verify credentials.');
       }
-    } catch {
-      setPasscodeError(true);
+    } catch (err: any) {
+      setAuthErrorMessage(err?.message || 'Login request failed.');
     } finally {
       setIsLoggingIn(false);
     }
@@ -295,7 +330,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={() => {
                   setShowAdminModal(false);
-                  setPasscodeError(false);
+                  setAuthErrorMessage(null);
                 }}
                 className="p-1 rounded text-gw-accent hover:text-gw-primary"
               >
@@ -304,32 +339,56 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             <p className="text-xs text-gw-accent leading-relaxed">
-              Administrative tools (Pipeline, Manual Parser, Bulk Import, Audit Logs, Evidence Locker, Supabase Server) are gated in standard public view. Enter passkey or submit to unlock Admin Mode.
+              Administrative tools (Pipeline, Manual Parser, Bulk Import, Audit Logs, Evidence Locker, Supabase Server) are restricted. Sign in with your Supabase Administrator account (<code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-zinc-800">app_metadata.role: "admin"</code>).
             </p>
 
             <form onSubmit={handleUnlockAdmin} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gw-accent uppercase tracking-wider block">
-                  Admin Access Key / Passport
+                  Admin Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-gw-accent absolute left-3 top-2.5" />
+                  <input
+                    type="email"
+                    value={adminEmail}
+                    onChange={(e) => {
+                      setAdminEmail(e.target.value);
+                      setAuthErrorMessage(null);
+                    }}
+                    placeholder="admin@example.com"
+                    className="w-full pl-9 pr-3 py-2 bg-gw-bg border border-gw-secondary focus:border-gw-primary rounded font-mono text-xs focus:outline-none"
+                    autoFocus
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gw-accent uppercase tracking-wider block">
+                  Password
                 </label>
                 <div className="relative">
                   <Key className="w-4 h-4 text-gw-accent absolute left-3 top-2.5" />
                   <input
                     type="password"
-                    value={adminPasscode}
+                    value={adminPassword}
                     onChange={(e) => {
-                      setAdminPasscode(e.target.value);
-                      setPasscodeError(false);
+                      setAdminPassword(e.target.value);
+                      setAuthErrorMessage(null);
                     }}
-                    placeholder="Enter admin key"
+                    placeholder="••••••••••••"
                     className="w-full pl-9 pr-3 py-2 bg-gw-bg border border-gw-secondary focus:border-gw-primary rounded font-mono text-xs focus:outline-none"
-                    autoFocus
+                    required
                   />
                 </div>
-                {passcodeError && (
-                  <p className="text-[10px] text-red-600 font-mono mt-1">Authentication failed. Check ADMIN_KEY.</p>
-                )}
               </div>
+
+              {authErrorMessage && (
+                <div className="p-2.5 rounded bg-red-50 border border-red-200 text-red-700 text-xs leading-relaxed font-mono">
+                  {authErrorMessage}
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-2">
                 <button

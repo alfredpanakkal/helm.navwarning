@@ -286,26 +286,70 @@ export async function fetchLastPipelineRun(): Promise<PipelineRunRecord | null> 
   }
 }
 
-export async function adminLogin(passcode: string): Promise<{ success: boolean; token?: string; error?: string }> {
+export async function adminLogin(
+  emailOrPasscode: string,
+  password?: string
+): Promise<{ success: boolean; token?: string; error?: string }> {
   try {
+    const { supabase } = await import('../lib/supabaseClient');
+    
+    // Scenario A: Email + Password Supabase Auth login
+    if (password) {
+      if (supabase) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: emailOrPasscode.trim(),
+          password: password.trim(),
+        });
+
+        if (error || !data.session || !data.user) {
+          return { success: false, error: error?.message || 'Invalid administrator credentials' };
+        }
+
+        // Verify unalterable app_metadata admin role
+        const appMeta = data.user.app_metadata || {};
+        const isAdmin = appMeta.role === 'admin' || appMeta.role === 'superadmin' || appMeta.is_admin === true;
+
+        if (!isAdmin) {
+          return {
+            success: false,
+            error: 'Access Denied (403): Account does not possess administrative privileges (app_metadata.role must be admin).',
+          };
+        }
+
+        const token = data.session.access_token;
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('helm_admin_token', token);
+          localStorage.setItem('helm_admin_mode', 'true');
+        }
+        return { success: true, token };
+      }
+    }
+
+    // Scenario B: Server-side login route fallback
     const res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passcode }),
+      body: JSON.stringify(
+        password
+          ? { email: emailOrPasscode, password }
+          : { email: emailOrPasscode, passcode: emailOrPasscode }
+      ),
     });
+
     const data = await res.json();
     if (!res.ok) {
-      return { success: false, error: data.error || 'Invalid admin credentials' };
+      return { success: false, error: data.error || 'Authentication failed' };
     }
+
     if (data.token) {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('helm_admin_token', data.token);
-        localStorage.removeItem('helm_admin_passcode'); // Remove legacy raw passcode if any exists
         localStorage.setItem('helm_admin_mode', 'true');
       }
       return { success: true, token: data.token };
     }
-    return { success: false, error: 'No token returned' };
+
+    return { success: false, error: 'No authentication token returned by server' };
   } catch (err: any) {
     return { success: false, error: err.message || 'Login request failed' };
   }
@@ -313,13 +357,17 @@ export async function adminLogin(passcode: string): Promise<{ success: boolean; 
 
 export async function adminLogout(): Promise<void> {
   try {
+    const { supabase } = await import('../lib/supabaseClient');
+    if (supabase) {
+      await supabase.auth.signOut().catch(() => {});
+    }
+
     const token = typeof window !== 'undefined' ? sessionStorage.getItem('helm_admin_token') : null;
     if (token) {
       await fetch('/api/admin/logout', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'X-Admin-Token': token,
         },
       }).catch(() => {});
     }
@@ -332,45 +380,90 @@ export async function adminLogout(): Promise<void> {
   }
 }
 
-export async function ensureAdminSession(): Promise<string | null> {
-  if (typeof window === 'undefined') return null;
-  const existingToken = sessionStorage.getItem('helm_admin_token');
-  if (existingToken) return existingToken;
+/**
+ * Retrieves authorization headers with the active Supabase admin access token.
+ * Does NOT auto-acquire passkeys or bypass authentication.
+ */
+export async function getAdminHeaders(): Promise<Record<string, string>> {
+  let token: string | null = null;
 
-  // Auto-acquire session token using default passkeys
-  const candidates = [
-    'Alpha15#',
-    '33f8379ef7f98c0774e6e35dfbb856c54695385c9f34ed8a27691b6943dd1a2e',
-    'dev-navwarn-secret-key-2026',
-  ];
+  if (typeof window !== 'undefined') {
+    // 1. Check live Supabase Auth session first
+    try {
+      const { supabase } = await import('../lib/supabaseClient');
+      if (supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          token = session.access_token;
+        }
+      }
+    } catch {}
 
-  for (const key of candidates) {
-    const loginRes = await adminLogin(key);
-    if (loginRes.success && loginRes.token) {
-      return loginRes.token;
+    // 2. Fall back to stored session token
+    if (!token) {
+      token = sessionStorage.getItem('helm_admin_token');
     }
-  }
-
-  return null;
-}
-
-async function getAdminHeaders(): Promise<Record<string, string>> {
-  let token = typeof window !== 'undefined' ? sessionStorage.getItem('helm_admin_token') : null;
-  if (!token) {
-    token = await ensureAdminSession();
   }
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'X-Admin-Gate': 'true',
   };
 
   if (token) {
-    headers['X-Admin-Token'] = token;
     headers['Authorization'] = `Bearer ${token}`;
   }
 
   return headers;
+}
+
+/**
+ * Dispatches raw text to /api/parse-navwarn for AI parsing.
+ * Protected by requireAdmin on server and rate-limited.
+ */
+export async function parseNavwarn(
+  text: string,
+  navarea?: string,
+  aiModel?: string
+): Promise<{ success: boolean; model_used?: string; duration_ms?: number; raw_output?: string; deterministic_spatial?: any; error?: string }> {
+  const headers = await getAdminHeaders();
+  const res = await fetch('/api/parse-navwarn', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ text, navarea, aiModel }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Unauthorized (401): Please sign in as an Administrator.');
+    if (res.status === 403) throw new Error('Forbidden (403): Administrator privileges required.');
+    if (res.status === 429) throw new Error('Rate limit exceeded (429): Maximum 10 AI requests per minute.');
+    throw new Error(data.error || 'Failed to parse navigational warning');
+  }
+  return data;
+}
+
+/**
+ * Dispatches target source URL to /api/enrich-evidence for SSRF-protected retrieval and AI verification.
+ * Protected by requireAdmin on server and rate-limited.
+ */
+export async function enrichEvidence(
+  sourceUrl: string,
+  warningId?: string,
+  contextText?: string
+): Promise<{ success: boolean; source_url?: string; http_status?: number; evidence_summary?: string; model_used?: string; duration_ms?: number; error?: string }> {
+  const headers = await getAdminHeaders();
+  const res = await fetch('/api/enrich-evidence', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ sourceUrl, warningId, contextText }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Unauthorized (401): Please sign in as an Administrator.');
+    if (res.status === 403) throw new Error('Forbidden (403): Administrator privileges required.');
+    if (res.status === 429) throw new Error('Rate limit exceeded (429): Maximum 10 AI requests per minute.');
+    throw new Error(data.error || 'Failed to enrich evidence');
+  }
+  return data;
 }
 
 export async function triggerPipelineRefresh(sourceId?: string): Promise<{
@@ -461,11 +554,21 @@ export async function fetchSupabaseStatus(): Promise<{
   counts: { warnings: number; sources: number; generations: number; artifacts: number };
   localCounts: { warnings: number; sources: number; generations: number; artifacts: number };
   error?: string;
+  ok?: boolean;
 }> {
   try {
-    const res = await fetch('/api/supabase/status');
+    const headers = await getAdminHeaders();
+    const res = await fetch('/api/supabase/status', { headers });
     if (!res.ok) throw new Error('Failed to fetch Supabase status');
-    return await res.json();
+    const data = await res.json();
+    return {
+      connected: Boolean(data.connected ?? data.ok),
+      url: data.url || null,
+      counts: data.counts || { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
+      localCounts: data.localCounts || { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
+      error: data.error,
+      ok: Boolean(data.ok ?? data.connected),
+    };
   } catch (err: any) {
     return {
       connected: false,
@@ -473,6 +576,7 @@ export async function fetchSupabaseStatus(): Promise<{
       counts: { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
       localCounts: { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
       error: err.message || String(err),
+      ok: false,
     };
   }
 }

@@ -1,8 +1,10 @@
 import type { Request, Response } from 'express';
 import * as cheerio from 'cheerio';
 import { supabase } from '../src/lib/db.js';
+import { getSupabaseClient } from '../src/lib/supabaseServer.js';
 import { sources } from '../src/lib/sources.js';
 import crypto from 'crypto';
+import { verifyAdminRequest } from '../server/auth.js';
 
 // Generic best-effort splitter
 export function extractWarnings(text: string, sourceId: string, navarea: string) {
@@ -29,38 +31,38 @@ export function extractWarnings(text: string, sourceId: string, navarea: string)
     });
 }
 
-function safeCompare(a: string, b: string): boolean {
-  if (typeof a !== 'string' || typeof b !== 'string') return false;
-  const bufA = Buffer.from(a, 'utf8');
-  const bufB = Buffer.from(b, 'utf8');
-  if (bufA.length !== bufB.length) {
-    crypto.timingSafeEqual(bufA, bufA);
-    return false;
+function isCronAuthorized(authHeader?: string): boolean {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || typeof cronSecret !== 'string' || !cronSecret.trim() || !authHeader || typeof authHeader !== 'string') {
+    return false; // Option (b) disabled / fails closed if CRON_SECRET is not configured
   }
-  return crypto.timingSafeEqual(bufA, bufB);
+  const expected = `Bearer ${cronSecret.trim()}`;
+  const trimmedHeader = authHeader.trim();
+  const hashA = crypto.createHash('sha256').update(trimmedHeader).digest();
+  const hashB = crypto.createHash('sha256').update(expected).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
 }
 
 export default async function scrapeNavwarnHandler(req: Request, res: Response) {
-  const authHeader = req.headers.authorization;
-  const adminKey = req.headers['x-admin-key'];
-  const cronSecret = process.env.CRON_SECRET;
-  const expectedKey = process.env.ADMIN_KEY;
+  const authHeader = req.headers['authorization'] || (req.headers as any)?.['Authorization'];
+  const cronValid = isCronAuthorized(authHeader);
 
-  if (!expectedKey) {
-    return res.status(500).json({ error: 'Server configuration error: ADMIN_KEY environment variable is not set.' });
+  let isAuthorized = cronValid;
+
+  if (!isAuthorized) {
+    const adminCheck = await verifyAdminRequest(req);
+    if (adminCheck.authorized) {
+      isAuthorized = true;
+    } else {
+      return res.status(adminCheck.status).json({
+        error: adminCheck.error,
+        code: adminCheck.status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN',
+      });
+    }
   }
 
-  const cleanAuth = typeof authHeader === 'string' ? authHeader.replace(/^Bearer\s+/i, '').trim() : '';
-  const cleanKey = typeof adminKey === 'string' ? adminKey.trim() : '';
-
-  const isCronValid = Boolean(cronSecret && authHeader === `Bearer ${cronSecret}`);
-  const isAuthValid = safeCompare(cleanAuth, expectedKey) || safeCompare(cleanKey, expectedKey);
-
-  if (!isCronValid && !isAuthValid) {
-    return res.status(401).json({ error: 'Unauthorized: Valid administrative key required.' });
-  }
-
-  if (!supabase) {
+  const dbClient = supabase || getSupabaseClient();
+  if (!dbClient) {
     return res.status(500).json({ error: 'Supabase credentials not configured' });
   }
 
@@ -89,7 +91,7 @@ export default async function scrapeNavwarnHandler(req: Request, res: Response) 
 
       if (warnings.length > 0) {
         // Upsert to Supabase
-        const { error } = await supabase
+        const { error } = await dbClient
           .from('nav_warnings')
           .upsert(warnings, { onConflict: 'source_id, warning_id', ignoreDuplicates: true });
         

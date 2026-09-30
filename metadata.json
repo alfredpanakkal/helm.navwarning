@@ -1,6 +1,6 @@
 {
-  "name": "Helm.Warning",
-  "description": "Automated ingestion pipeline, nautical warning dataset, spatial geometry parser, and OpenSeaMap view for NAVAREA navigational warnings.",
+  "name": "DocuFlow",
+  "description": "Intelligent code documentation and architecture assistant for developers. Generates inline comments, codebase architecture overviews, visual dependency diagrams, setup guides, and README files with Gemini AI.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -2,22 +2,14 @@ import express from 'express';
 import path from 'path';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
+import { requireAdmin, verifyAdminRequest } from './server/auth.js';
+import { safeFetch, validateUrlForSSRF, SOURCE_REGISTRY_HOSTNAMES } from './server/ssrfGuard.js';
 
 dotenv.config();
 
-/**
- * Enforces presence of ADMIN_KEY environment variable.
- * Refuses to fall back to hardcoded secrets or default string literals.
- */
-function getRequiredAdminKey(): string {
-  const key = process.env.ADMIN_KEY?.trim();
-  if (!key) {
-    return '33f8379ef7f98c0774e6e35dfbb856c54695385c9f34ed8a27691b6943dd1a2e';
-  }
-  return key;
-}
 import {
   INITIAL_SOURCES_REGISTRY,
   INITIAL_WARNINGS,
@@ -208,61 +200,6 @@ function safeCompare(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
-// Active server-side short-lived admin session tokens
-const activeAdminSessions = new Map<string, { expiresAt: number }>();
-
-const isSessionTokenValid = (token: string): boolean => {
-  if (!token) return false;
-  const session = activeAdminSessions.get(token);
-  if (!session) return false;
-  if (Date.now() > session.expiresAt) {
-    activeAdminSessions.delete(token);
-    return false;
-  }
-  return true;
-};
-
-/**
- * Server-Side Administrative Authorization Check
- * Uses constant-time crypto.timingSafeEqual for security.
- */
-const requireAdminAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const adminHeader = req.headers['x-admin-token'] || req.headers['x-admin-key'] || req.headers['authorization'];
-  const cleanToken = typeof adminHeader === 'string' ? adminHeader.replace(/^Bearer\s+/i, '').trim() : '';
-  const expectedKey = getRequiredAdminKey();
-  const validKeys = [
-    expectedKey,
-    '33f8379ef7f98c0774e6e35dfbb856c54695385c9f34ed8a27691b6943dd1a2e',
-    'Alpha15#',
-    'dev-navwarn-secret-key-2026',
-  ].filter(Boolean);
-
-  if (!cleanToken) {
-    return res.status(403).json({
-      error: 'Forbidden: Missing administrative session token. Please log in with your Admin Passkey.',
-      code: 'ADMIN_AUTH_REQUIRED',
-    });
-  }
-
-  // 1. Verify against active short-lived session tokens
-  if (isSessionTokenValid(cleanToken)) {
-    return next();
-  }
-
-  // 2. Verify against environment keys using constant-time comparison
-  for (const k of validKeys) {
-    if (safeCompare(cleanToken, k)) {
-      return next();
-    }
-  }
-
-  return res.status(403).json({
-    error: 'Forbidden: Invalid or expired administrative session token. Please log in again.',
-    code: 'ADMIN_AUTH_INVALID',
-  });
-};
-
-
 // Server-side Gemini AI client initialization
 const getGeminiClient = () => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -298,6 +235,8 @@ async function callMistralFallback(prompt: string, schema?: any, specificModel?:
     console.warn(`[Mistral Fallback] MISTRAL_API_KEY is not set.`);
     return null;
   }
+  // Enforce max 10,000 characters prompt bound
+  const boundedPrompt = prompt.slice(0, 10000);
   let models = ['mistral-small-latest', 'ministral-8b-latest', 'ministral-3b-latest', 'open-mistral-7b', 'mistral-large-latest'];
   if (specificModel && specificModel !== 'auto') {
     models = [specificModel, ...models.filter(m => m !== specificModel)];
@@ -307,20 +246,28 @@ async function callMistralFallback(prompt: string, schema?: any, specificModel?:
       console.warn(`[Mistral AI] Attempting model ${model}...`);
       const body: any = {
         model,
-        messages: [{ role: 'user', content: prompt }],
+        messages: [{ role: 'user', content: boundedPrompt }],
         temperature: 0,
       };
       if (schema) {
         body.response_format = { type: 'json_object' };
       }
+
+      // Add strict 30-second timeout to outgoing Mistral HTTP request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
       const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${mistralKey}`
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+
       if (!res.ok) {
         const errText = await res.text();
         console.warn(`[Mistral AI] Model ${model} failed (${res.status}): ${errText}`);
@@ -340,13 +287,15 @@ async function callMistralFallback(prompt: string, schema?: any, specificModel?:
 }
 
 async function generateContentWithRetry(ai: any, prompt: string, model: string, schema?: any) {
+  // Enforce max 10,000 characters prompt bound
+  const boundedPrompt = prompt.slice(0, 10000);
   const wantsGeminiFirst = model && model.toLowerCase().startsWith('gemini');
 
   if (!wantsGeminiFirst) {
     // FIRST PRIORITY: Try Mistral (mistral-small-latest or user-specified model) first
     const mistralModel = model && model.toLowerCase().startsWith('mistral') ? model : 'mistral-small-latest';
     console.log(`[AI Parsing Engine] Attempting first priority: Mistral AI (${mistralModel})...`);
-    const mistralRes = await callMistralFallback(prompt, schema, mistralModel);
+    const mistralRes = await callMistralFallback(boundedPrompt, schema, mistralModel);
     if (mistralRes && mistralRes.text) {
       console.log(`[AI Parsing Engine] Successfully parsed using Mistral (${mistralRes.modelUsed}).`);
       return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
@@ -359,7 +308,7 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
     // If Gemini is not configured, try Mistral as last resort if not tried yet
     if (wantsGeminiFirst) {
       console.warn(`[AI Parsing Engine] Gemini client not configured, attempting Mistral fallback...`);
-      const mistralRes = await callMistralFallback(prompt, schema, 'mistral-small-latest');
+      const mistralRes = await callMistralFallback(boundedPrompt, schema, 'mistral-small-latest');
       if (mistralRes && mistralRes.text) {
         return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
       }
@@ -380,11 +329,18 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
         config.responseSchema = schema;
       }
 
-      const response = await ai.models.generateContent({
+      // 30-second timeout on Gemini calls
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Gemini API call timed out after 30 seconds')), 30000);
+      });
+
+      const aiPromise = ai.models.generateContent({
         model: targetModel,
-        contents: prompt,
+        contents: boundedPrompt,
         config: config
       });
+
+      const response = await Promise.race([aiPromise, timeoutPromise]);
       return response;
     } catch (err: any) {
       const is503 = err?.status === 503 || err?.message?.includes('503') || err?.message?.includes('high demand') || err?.message?.includes('UNAVAILABLE');
@@ -402,7 +358,7 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
         // As a final failover if Gemini fails and Mistral hasn't been tried
         if (wantsGeminiFirst) {
           console.warn(`[AI Parsing Engine] Gemini failed (${err?.message}). Attempting emergency Mistral fallback...`);
-          const mistralRes = await callMistralFallback(prompt, schema, 'mistral-small-latest');
+          const mistralRes = await callMistralFallback(boundedPrompt, schema, 'mistral-small-latest');
           if (mistralRes && mistralRes.text) {
             return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
           }
@@ -415,18 +371,120 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
 }
 
 
-async function startServer() {
-  // Validate ADMIN_KEY presence immediately on boot
-  getRequiredAdminKey();
+/**
+ * Splits text into chunks of at most maxChunkSize characters, attempting natural boundary breaks.
+ */
+function splitIntoChunks(text: string, maxChunkSize = 10000): string[] {
+  if (text.length <= maxChunkSize) {
+    return [text];
+  }
+  const chunks: string[] = [];
+  let remaining = text;
 
+  while (remaining.length > 0) {
+    if (remaining.length <= maxChunkSize) {
+      chunks.push(remaining);
+      break;
+    }
+
+    // Try finding natural boundary (double newline, then single newline, then space)
+    let splitIdx = remaining.lastIndexOf('\n\n', maxChunkSize);
+    if (splitIdx < maxChunkSize * 0.5) {
+      splitIdx = remaining.lastIndexOf('\n', maxChunkSize);
+    }
+    if (splitIdx < maxChunkSize * 0.5) {
+      splitIdx = remaining.lastIndexOf(' ', maxChunkSize);
+    }
+    if (splitIdx <= 0) {
+      splitIdx = maxChunkSize;
+    }
+
+    const chunk = remaining.slice(0, splitIdx).trim();
+    if (chunk.length > 0) {
+      chunks.push(chunk);
+    }
+    remaining = remaining.slice(splitIdx).trim();
+  }
+
+  return chunks.length > 0 ? chunks : [text.slice(0, maxChunkSize)];
+}
+
+async function startServer() {
   // Hydrate initial state from Supabase if configured, eliminating reliance on static seeds
   await hydrateDatabaseFromSupabase();
 
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  // 1. Trust first proxy hop (e.g. Cloud Run load balancer) so express-rate-limit sees real client IPs
+  app.set('trust proxy', 1);
+
+  // 2. Configure JSON body parsers:
+  // Allow up to 2MB on bulk routes only; enforce 100KB default limit on all other routes
+  const bulkJsonParser = express.json({ limit: '2mb' });
+  app.use(['/api/pipeline/bulk-ingest-ai', '/api/pipeline/bulk-audit-ai', '/api/pipeline/parse-markdown'], bulkJsonParser);
+
+  const defaultJsonParser = express.json({ limit: '100kb' });
+  app.use((req, res, next) => {
+    if (req.body !== undefined) {
+      return next();
+    }
+    defaultJsonParser(req, res, next);
+  });
+
   app.use(securityHeadersMiddleware);
+
+  // Dedicated Map Tiles Rate Limiter (600 requests per minute per IP)
+  const tilesRateLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 600,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: 'Too many map tile requests. Rate limit is 600 requests per minute per IP.',
+      code: 'TILES_RATE_LIMIT_EXCEEDED',
+    },
+  });
+  app.use('/api/tiles', tilesRateLimiter);
+
+  // Global rate limiter on all /api routes (100 requests per 15 minutes per IP)
+  // Excludes /api/tiles/* via the `skip` option so map tile loading is never throttled by the global limit
+  const globalApiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) =>
+      req.originalUrl.startsWith('/api/tiles') ||
+      req.baseUrl.startsWith('/api/tiles') ||
+      req.path.startsWith('/tiles'),
+    message: {
+      error: 'Too many requests from this client. Rate limit is 100 requests per 15 minutes.',
+      code: 'GLOBAL_RATE_LIMIT_EXCEEDED',
+    },
+  });
+  app.use('/api', globalApiLimiter);
+
+  // Strict AI Route Rate Limiter (10 requests per minute per admin user)
+  // NOTE: Rate limit counters are stored in-memory and are scoped per-server instance.
+  const aiRouteLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+      // Key strictly on the admin user id populated by requireAdmin
+      const user = (req as any).user;
+      if (user?.id) {
+        return `admin_user_${user.id}`;
+      }
+      return (req.headers['x-forwarded-for'] as string) || req.ip || 'anonymous';
+    },
+    message: {
+      error: 'Too many AI requests. Rate limit is 10 requests per minute per user.',
+      code: 'AI_RATE_LIMIT_EXCEEDED',
+    },
+  });
 
   // API Routes
   app.get('/api/health', (req, res) => {
@@ -445,59 +503,225 @@ async function startServer() {
     res.status(204).end();
   });
 
-  // Admin Login Endpoint (Verifies password server-side using constant-time timingSafeEqual)
-  app.post('/api/admin/login', (req, res) => {
-    const { passcode } = req.body;
-    const expectedKey = getRequiredAdminKey();
-    const validKeys = [
-      expectedKey,
-      '33f8379ef7f98c0774e6e35dfbb856c54695385c9f34ed8a27691b6943dd1a2e',
-      'Alpha15#',
-      'dev-navwarn-secret-key-2026',
-    ].filter(Boolean);
+  // Admin Login Endpoint (Authenticates against Supabase Auth, requiring unalterable app_metadata.role === 'admin')
+  app.post('/api/admin/login', async (req, res) => {
+    try {
+      const { email, password, passcode } = req.body || {};
+      const authEmail = typeof email === 'string' ? email.trim() : '';
+      const authPassword = typeof password === 'string' ? password.trim() : typeof passcode === 'string' ? passcode.trim() : '';
 
-    const isAuthorized = typeof passcode === 'string' && validKeys.some((k) => safeCompare(passcode.trim(), k));
+      if (!authEmail || !authPassword) {
+        return res.status(400).json({
+          error: 'Administrator email and password are required to authenticate.',
+          code: 'CREDENTIALS_REQUIRED',
+        });
+      }
 
-    if (isAuthorized) {
-      // Issue a secure 32-byte short-lived session token (valid for 8 hours)
-      const sessionToken = crypto.randomBytes(32).toString('hex');
-      const expiresAt = Date.now() + 8 * 60 * 60 * 1000;
-      activeAdminSessions.set(sessionToken, { expiresAt });
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return res.status(503).json({
+          error: 'Supabase authentication service unavailable on server.',
+          code: 'AUTH_UNAVAILABLE',
+        });
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: authPassword,
+      });
+
+      if (error || !data.session || !data.user) {
+        return res.status(401).json({
+          error: 'Invalid administrator credentials.',
+          code: 'INVALID_CREDENTIALS',
+        });
+      }
+
+      // Verify unalterable admin role in app_metadata
+      const appMeta = data.user.app_metadata || {};
+      const isAdmin = appMeta.role === 'admin' || appMeta.role === 'superadmin' || appMeta.is_admin === true;
+
+      if (!isAdmin) {
+        return res.status(403).json({
+          error: 'Forbidden: Account authenticated but lacks administrative privileges.',
+          code: 'INSUFFICIENT_PRIVILEGES',
+        });
+      }
 
       return res.json({
         status: 'ok',
-        token: sessionToken,
-        expiresAt,
+        token: data.session.access_token,
+        expiresAt: Date.now() + (data.session.expires_in || 3600) * 1000,
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          role: appMeta.role || 'admin',
+        },
+      });
+    } catch {
+      return res.status(500).json({
+        error: 'Authentication failed due to an unexpected error.',
+        code: 'AUTH_ERROR',
       });
     }
-
-
-    return res.status(401).json({
-      error: 'Invalid administrative passkey.',
-      code: 'INVALID_CREDENTIALS',
-    });
   });
 
-  // Admin Logout Endpoint
-  app.post('/api/admin/logout', (req, res) => {
-    const adminHeader = req.headers['x-admin-token'] || req.headers['x-admin-key'] || req.headers['authorization'];
-    const cleanToken = typeof adminHeader === 'string' ? adminHeader.replace(/^Bearer\s+/i, '').trim() : '';
-    if (cleanToken) {
-      activeAdminSessions.delete(cleanToken);
-    }
+  // Admin Logout Endpoint (Protected by requireAdmin)
+  app.post('/api/admin/logout', requireAdmin, (req, res) => {
     res.json({ status: 'ok' });
   });
 
-  // Admin Verification Endpoint
-  app.get('/api/admin/verify', (req, res) => {
-    const adminHeader = req.headers['x-admin-token'] || req.headers['x-admin-key'] || req.headers['authorization'];
-    const cleanToken = typeof adminHeader === 'string' ? adminHeader.replace(/^Bearer\s+/i, '').trim() : '';
-    const expectedKey = getRequiredAdminKey();
+  // Admin Verification Endpoint (Protected by requireAdmin)
+  app.get('/api/admin/verify', requireAdmin, (req, res) => {
+    return res.json({
+      status: 'ok',
+      authenticated: true,
+      user: (req as any).user,
+    });
+  });
 
-    if (cleanToken && (isSessionTokenValid(cleanToken) || safeCompare(cleanToken, expectedKey))) {
-      return res.json({ status: 'ok', authenticated: true });
+  /**
+   * Route: POST /api/parse-navwarn
+   * Protected: Admin only (requireAdmin) + Rate limited (aiRouteLimiter, 10 req/min per user)
+   * Spends: Gemini / Mistral AI quota
+   * Security: Input text bounded to 10,000 chars, 30s timeout, sanitized errors
+   */
+  app.post('/api/parse-navwarn', requireAdmin, aiRouteLimiter, async (req, res) => {
+    try {
+      const { text, rawText, navarea = 'AUTO', aiModel = 'gemini-3.1-flash-lite' } = req.body || {};
+      const inputText = typeof text === 'string' ? text : typeof rawText === 'string' ? rawText : '';
+
+      if (!inputText || !inputText.trim()) {
+        return res.status(400).json({ error: 'text or rawText parameter is required' });
+      }
+
+      if (inputText.length > 10000) {
+        return res.status(400).json({ error: 'Input text exceeds maximum allowed limit of 10,000 characters.' });
+      }
+
+      const ai = getGeminiClient();
+      const startTime = Date.now();
+
+      const parsePrompt = `You are a certified Maritime Safety Information (MSI) navigational warning parser.
+Parse the following navigational warning text into a valid JSON object matching the standard WWNWS schema.
+Extract warning_id, navarea, series, issued_date, area_text, subject/title, risk_level, and precise coordinates.
+
+WARNING TEXT:
+"""
+${inputText.trim()}
+"""`;
+
+      // Outgoing AI call with 30-second timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('AI parsing service timed out after 30 seconds')), 30000);
+      });
+
+      const aiExecution = generateContentWithRetry(ai, parsePrompt, aiModel);
+      const aiResponse = await Promise.race([aiExecution, timeoutPromise]);
+
+      const durationMs = Date.now() - startTime;
+      const rawOutput = (aiResponse as any)?.text || '';
+
+      // Cross-verify with deterministic coordinate parser
+      const deterministicSpatial = parseCoordinatesDeterministic(inputText, (navarea as any) || 'I');
+
+      res.json({
+        success: true,
+        model_used: (aiResponse as any)?.modelUsed || aiModel,
+        duration_ms: durationMs,
+        raw_output: rawOutput,
+        deterministic_spatial: deterministicSpatial,
+      });
+    } catch (err: any) {
+      console.error('[Parse NAVWARN Error]', err?.message);
+      res.status(502).json({
+        error: err?.message?.replace(/key=[^&\s]+/gi, 'key=REDACTED') || 'Navwarn parsing failed',
+      });
     }
-    return res.status(401).json({ status: 'unauthenticated', authenticated: false });
+  });
+
+  /**
+   * Route: POST /api/enrich-evidence
+   * Protected: Admin only (requireAdmin) + Rate limited (aiRouteLimiter, 10 req/min per user)
+   * Spends: Gemini / Mistral AI quota + fetches user-supplied URL
+   * Security: SSRF protected via safeFetch (DNS lookup, IP blocklist, redirect hop verification, hostname allowlist),
+   *           Max 2MB response, 10s fetch timeout, 10,000 char prompt bound, 30s AI timeout.
+   */
+  app.post('/api/enrich-evidence', requireAdmin, aiRouteLimiter, async (req, res) => {
+    try {
+      const { sourceUrl, url, warningId, contextText } = req.body || {};
+      const targetUrl = typeof sourceUrl === 'string' ? sourceUrl : typeof url === 'string' ? url : '';
+
+      if (!targetUrl || !targetUrl.trim()) {
+        return res.status(400).json({ error: 'sourceUrl or url parameter is required' });
+      }
+
+      // Step 1: Execute SSRF-protected safe fetch with hostname allowlist from source registry
+      let fetchResult;
+      try {
+        fetchResult = await safeFetch(targetUrl.trim(), {
+          maxSizeBytes: 2 * 1024 * 1024, // 2MB max
+          timeoutMs: 10000, // 10s timeout
+          maxRedirects: 3,
+          allowedHostnames: SOURCE_REGISTRY_HOSTNAMES,
+        });
+      } catch (fetchErr: any) {
+        return res.status(400).json({
+          error: `Evidence retrieval blocked: ${fetchErr?.message || 'Security check failed'}`,
+          code: 'SSRF_OR_FETCH_ERROR',
+        });
+      }
+
+      // Step 2: Extract text snippet for AI enrichment (limit to 8,000 chars)
+      const fetchedSnippet = (fetchResult.data || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 8000);
+      const additionalContext = typeof contextText === 'string' ? contextText.slice(0, 2000) : '';
+
+      // Step 3: Run AI evidence enrichment with timeout
+      const ai = getGeminiClient();
+      const startTime = Date.now();
+
+      const enrichmentPrompt = `You are a certified Maritime Safety Information (MSI) evidence verification officer.
+Analyze the following retrieved public publication content to verify and corroborate maritime warning evidence for Warning ID "${warningId || 'UNSPECIFIED'}".
+
+RETRIEVED CONTENT:
+"""
+${fetchedSnippet}
+"""
+
+ADDITIONAL CONTEXT:
+"""
+${additionalContext}
+"""
+
+Provide a concise summary:
+1. Identify if this source corroborates active navigational hazards, coordinates, or cancellations.
+2. State the issuing hydrographic authority.
+3. List any geographic coordinates or charts found in the text.`;
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('AI enrichment service timed out after 30 seconds')), 30000);
+      });
+
+      const aiExecution = generateContentWithRetry(ai, enrichmentPrompt, 'gemini-3.1-flash-lite');
+      const aiResponse = await Promise.race([aiExecution, timeoutPromise]);
+
+      const durationMs = Date.now() - startTime;
+
+      res.json({
+        success: true,
+        source_url: fetchResult.url,
+        http_status: fetchResult.status,
+        content_type: fetchResult.contentType,
+        evidence_summary: (aiResponse as any)?.text || '',
+        model_used: (aiResponse as any)?.modelUsed || 'gemini-3.1-flash-lite',
+        duration_ms: durationMs,
+      });
+    } catch (err: any) {
+      console.error('[Enrich Evidence Error]', err?.message);
+      res.status(502).json({
+        error: err?.message?.replace(/key=[^&\s]+/gi, 'key=REDACTED') || 'Evidence enrichment failed',
+      });
+    }
   });
 
   // Sources registry
@@ -505,7 +729,7 @@ async function startServer() {
     res.json(sourcesDb);
   });
 
-  app.post('/api/sources/toggle', requireAdminAuth, (req, res) => {
+  app.post('/api/sources/toggle', requireAdmin, (req, res) => {
     const { sourceId, enabled } = req.body;
     const src = sourcesDb.find((s) => s.source_id === sourceId);
     if (!src) {
@@ -582,7 +806,7 @@ async function startServer() {
   });
 
   // Trigger Ingestion Pipeline Run
-  app.post('/api/pipeline/trigger', requireAdminAuth, async (req, res) => {
+  app.post('/api/pipeline/trigger', requireAdmin, async (req, res) => {
     const runStartTime = new Date();
     const runId = `run_${runStartTime.toISOString().replace(/[-:T.]/g, '').slice(0, 14)}_${Math.random().toString(36).substring(2, 6)}`;
 
@@ -1057,9 +1281,22 @@ ${rawPayloadText.slice(0, 2500)}
   });
 
   // Supabase Database Connection & Storage Status
+  // Public callers receive only { ok: boolean } to prevent leaking schema details & counts.
+  // Full telemetry and record counts require administrative authentication (requireAdmin).
   app.get('/api/supabase/status', async (req, res) => {
     try {
+      const auth = await verifyAdminRequest(req);
+
+      if (!auth.authorized) {
+        // Return minimal public status without leaking table counts or schema info
+        const client = getSupabaseClient();
+        return res.json({
+          ok: Boolean(client),
+        });
+      }
+
       const health = await checkSupabaseHealth();
+      // Full details only for verified admins
       res.json({
         ...health,
         localCounts: {
@@ -1075,7 +1312,7 @@ ${rawPayloadText.slice(0, 2500)}
   });
 
   // Explicit Manual Supabase Sync
-  app.post('/api/supabase/sync', requireAdminAuth, async (req, res) => {
+  app.post('/api/supabase/sync', requireAdmin, async (req, res) => {
     try {
       const client = getSupabaseClient();
       if (!client) {
@@ -1114,8 +1351,8 @@ ${rawPayloadText.slice(0, 2500)}
     }
   });
 
-  // Save specific warnings to Supabase (from Markdown, CSV, or manual paste)
-  app.post('/api/supabase/save-warnings', async (req, res) => {
+  // Save specific warnings to Supabase (from Markdown, CSV, or manual paste) - Admin Protected
+  app.post('/api/supabase/save-warnings', requireAdmin, async (req, res) => {
     try {
       const client = getSupabaseClient();
       const rawWarnings = req.body?.warnings;
@@ -1241,19 +1478,21 @@ ${rawPayloadText.slice(0, 2500)}
       // 1. Run deterministic markdown parser
       const deterministicWarnings = parseMarkdownToWarnings(markdown, navarea as any);
 
-      // 2. If Gemini AI is configured, try enhanced multi-item extraction
+      // 2. If Gemini AI is configured, try enhanced multi-item extraction across chunks
       const ai = getGeminiClient();
       if (ai) {
         try {
-          const prompt = `Analyze this Markdown document containing maritime navigational warnings. Extract each distinct navigational warning into structured items.
-Markdown text:
-"""
-${markdown.slice(0, 8000)}
-"""
+          const chunks = splitIntoChunks(markdown, 10000);
+          if (chunks.length > 20) {
+            return res.status(413).json({
+              error: 'Input exceeds maximum allowed limit of 20 chunks.',
+              code: 'INPUT_TOO_LARGE',
+            });
+          }
 
-Instructions:
-1. Extract warning_id (e.g. "NAVAREA XVII 90/2026", "145/26", "0456/26"), navarea (e.g. "I", "IV", "XVII", "XVIII", "XIX", "Baltic"), title, area_text, issued_date (YYYY-MM-DD), status ("active" or "cancelled"), cancels (array of IDs), charts, authority, latitude (decimal number), longitude (decimal number), and clean description raw_text.
-2. Return an array of extracted warnings.`;
+          const allAiParsed: any[] = [];
+          let aiCallCount = 0;
+          const MAX_AI_CALLS = 20;
 
           const schema = {
             type: Type.ARRAY,
@@ -1277,12 +1516,34 @@ Instructions:
             },
           };
 
-          const response = await generateContentWithRetry(ai, prompt, aiModel, schema);
-          if (response.text) {
-            const aiParsed = JSON.parse(response.text);
-            if (Array.isArray(aiParsed) && aiParsed.length > 0) {
-              const now = new Date().toISOString();
-              const mergedWarnings = aiParsed.map((item: any, idx: number) => {
+          for (const chunk of chunks) {
+            if (aiCallCount >= MAX_AI_CALLS) {
+              break;
+            }
+            aiCallCount++;
+
+            const prompt = `Analyze this Markdown document containing maritime navigational warnings. Extract each distinct navigational warning into structured items.
+Markdown text:
+"""
+${chunk}
+"""
+
+Instructions:
+1. Extract warning_id (e.g. "NAVAREA XVII 90/2026", "145/26", "0456/26"), navarea (e.g. "I", "IV", "XVII", "XVIII", "XIX", "Baltic"), title, area_text, issued_date (YYYY-MM-DD), status ("active" or "cancelled"), cancels (array of IDs), charts, authority, latitude (decimal number), longitude (decimal number), and clean description raw_text.
+2. Return an array of extracted warnings.`;
+
+            const response = await generateContentWithRetry(ai, prompt, aiModel, schema);
+            if (response.text) {
+              const aiParsed = JSON.parse(response.text);
+              if (Array.isArray(aiParsed) && aiParsed.length > 0) {
+                allAiParsed.push(...aiParsed);
+              }
+            }
+          }
+
+          if (allAiParsed.length > 0) {
+            const now = new Date().toISOString();
+            const mergedWarnings = allAiParsed.map((item: any, idx: number) => {
                 const effectiveNavArea = (item.navarea || navarea || 'IV').replace(/NAVAREA\s+/i, '').trim();
                 const lat = item.latitude != null && !isNaN(Number(item.latitude)) ? Number(item.latitude) : null;
                 const lng = item.longitude != null && !isNaN(Number(item.longitude)) ? Number(item.longitude) : null;
@@ -1361,7 +1622,6 @@ Instructions:
                 count: mergedWarnings.length,
               });
             }
-          }
         } catch (aiErr) {
           console.warn('[Gemini Markdown Parse Error, using deterministic results]:', aiErr);
         }
@@ -1377,12 +1637,21 @@ Instructions:
     }
   });
 
-  // AI-Powered Bulk Ingestion & NAVAREA Importer (Gemini Understanding or Rejecting)
-  app.post('/api/pipeline/bulk-ingest-ai', async (req, res) => {
+  // AI-Powered Bulk Ingestion & NAVAREA Importer (Admin Only + Rate Limited)
+  app.post('/api/pipeline/bulk-ingest-ai', requireAdmin, aiRouteLimiter, async (req, res) => {
     try {
       const { rawText, navarea = 'AUTO', aiModel = 'gemini-3.1-flash-lite', strictness = 'standard' } = req.body;
       if (!rawText || typeof rawText !== 'string' || !rawText.trim()) {
         return res.status(400).json({ error: 'rawText string is required' });
+      }
+
+      // Split bulk input into chunks of at most 10,000 characters and process chunk by chunk
+      const chunks = splitIntoChunks(rawText, 10000);
+      if (chunks.length > 20) {
+        return res.status(413).json({
+          code: 'INPUT_TOO_LARGE',
+          error: 'Input exceeds maximum allowed limit of 20 chunks.',
+        });
       }
 
       const ai = getGeminiClient();
@@ -1393,36 +1662,6 @@ Instructions:
       }
 
       const startTime = Date.now();
-
-      const prompt = `You are a certified Maritime Safety Information (MSI) AI validator and ingest engine for the World-Wide Navigational Warning Service (WWNWS / IMO / IHO).
-Inspect and evaluate the following incoming bulk data stream (which may contain multiple navigational warnings, table dumps, bulleted notices, web scraped fragments, or non-maritime noise).
-
-BULK DATA STREAM:
-"""
-${rawText.slice(0, 14000)}
-"""
-
-Target NAVAREA hint: ${navarea || 'AUTO'}
-Strictness mode: ${strictness}
-
-CRITICAL RULES:
-1. Break down the stream into every distinct notice or block of text.
-2. For each candidate item, UNDERSTAND and ACCEPT valid navigational safety warnings, or REJECT items that are invalid, non-maritime, corrupted, or severely out of bounds.
-3. ACCEPTED:
-   - Must represent an authentic maritime navigational safety warning (e.g., aids to navigation, racon/beacon outage, firing practice, rocket launch fallout, drifting hazard, shoal/depth, seismic survey, cable work, SAR operation, in-force bulletin list).
-   - Set decision: "ACCEPTED".
-   - Set rejection_code: "NONE", rejection_reason: "".
-   - Provide a clear 1-sentence understanding_summary describing the exact nature of the hazard.
-   - Extract: warning_id (e.g., "NAVAREA XVII 90/2026"), navarea (e.g., "XVII", "IV", "I", "XVIII", "Baltic"), warning_number, warning_year, title, area_text (sub-area description), issued_date (YYYY-MM-DD), authority, charts, cancels (array of string IDs), hazard_category, risk_level ("critical", "high", "medium", "low", "info").
-   - Extract latitude and longitude in decimal degrees (e.g. 69.6233, -135.4883) if coordinates or bounding positions exist. If general in-force list or non-localized, leave null.
-4. REJECTED:
-   - Reject items that are not maritime navigational warnings (e.g. website headers, footers, cookie disclaimers, login buttons, privacy policies, unrelated articles, spam). Set rejection_code: "NON_MARITIME".
-   - Reject unparseable gibberish, binary garbage, or corrupted entries. Set rejection_code: "CORRUPT_DATA".
-   - Reject severe coordinate anomalies (e.g. latitude outside -90 to +90, or coordinates located deep inland in landlocked desert/mountains away from navigable waters). Set rejection_code: "OUT_OF_BOUNDS".
-   - Reject entries with zero actionable or intelligible navigational content. Set rejection_code: "MISSING_CRITICAL_INFO".
-   - For all rejected items, set decision: "REJECTED", and explain WHY in rejection_reason.
-5. NEEDS_REVIEW:
-   - For maritime notices that have contradictory coordinates or ambiguous date ranges, set decision: "NEEDS_REVIEW" and detail the ambiguity in rejection_reason.`;
 
       const schema = {
         type: Type.ARRAY,
@@ -1459,12 +1698,58 @@ CRITICAL RULES:
         },
       };
 
-      const response = await generateContentWithRetry(ai, prompt, aiModel, schema);
-      if (!response.text) {
-        throw new Error('No content returned from Gemini model');
-      }
+      const items: any[] = [];
+      let aiCallCount = 0;
+      const MAX_AI_CALLS = 20;
 
-      const items = JSON.parse(response.text);
+      for (const chunk of chunks) {
+        if (aiCallCount >= MAX_AI_CALLS) {
+          break;
+        }
+        aiCallCount++;
+
+        const prompt = `You are a certified Maritime Safety Information (MSI) AI validator and ingest engine for the World-Wide Navigational Warning Service (WWNWS / IMO / IHO).
+Inspect and evaluate the following incoming bulk data stream (which may contain multiple navigational warnings, table dumps, bulleted notices, web scraped fragments, or non-maritime noise).
+
+BULK DATA STREAM:
+"""
+${chunk}
+"""
+
+Target NAVAREA hint: ${navarea || 'AUTO'}
+Strictness mode: ${strictness}
+
+CRITICAL RULES:
+1. Break down the stream into every distinct notice or block of text.
+2. For each candidate item, UNDERSTAND and ACCEPT valid navigational safety warnings, or REJECT items that are invalid, non-maritime, corrupted, or severely out of bounds.
+3. ACCEPTED:
+   - Must represent an authentic maritime navigational safety warning (e.g., aids to navigation, racon/beacon outage, firing practice, rocket launch fallout, drifting hazard, shoal/depth, seismic survey, cable work, SAR operation, in-force bulletin list).
+   - Set decision: "ACCEPTED".
+   - Set rejection_code: "NONE", rejection_reason: "".
+   - Provide a clear 1-sentence understanding_summary describing the exact nature of the hazard.
+   - Extract: warning_id (e.g., "NAVAREA XVII 90/2026"), navarea (e.g., "XVII", "IV", "I", "XVIII", "Baltic"), warning_number, warning_year, title, area_text (sub-area description), issued_date (YYYY-MM-DD), authority, charts, cancels (array of string IDs), hazard_category, risk_level ("critical", "high", "medium", "low", "info").
+   - Extract latitude and longitude in decimal degrees (e.g. 69.6233, -135.4883) if coordinates or bounding positions exist. If general in-force list or non-localized, leave null.
+4. REJECTED:
+   - Reject items that are not maritime navigational warnings (e.g. website headers, footers, cookie disclaimers, login buttons, privacy policies, unrelated articles, spam). Set rejection_code: "NON_MARITIME".
+   - Reject unparseable gibberish, binary garbage, or corrupted entries. Set rejection_code: "CORRUPT_DATA".
+   - Reject severe coordinate anomalies (e.g. latitude outside -90 to +90, or coordinates located deep inland in landlocked desert/mountains away from navigable waters). Set rejection_code: "OUT_OF_BOUNDS".
+   - Reject entries with zero actionable or intelligible navigational content. Set rejection_code: "MISSING_CRITICAL_INFO".
+   - For all rejected items, set decision: "REJECTED", and explain WHY in rejection_reason.
+5. NEEDS_REVIEW:
+   - For maritime notices that have contradictory coordinates or ambiguous date ranges, set decision: "NEEDS_REVIEW" and detail the ambiguity in rejection_reason.`;
+
+        try {
+          const response = await generateContentWithRetry(ai, prompt, aiModel, schema);
+          if (response.text) {
+            const chunkItems = JSON.parse(response.text);
+            if (Array.isArray(chunkItems)) {
+              items.push(...chunkItems);
+            }
+          }
+        } catch (chunkErr) {
+          console.warn('[Bulk Ingest AI Chunk Error]:', chunkErr);
+        }
+      }
       const now = new Date();
       const nowIso = now.toISOString();
       const generationId = `gen-bulk-ai-${Date.now()}`;
@@ -1640,13 +1925,29 @@ CRITICAL RULES:
     }
   });
 
-  // AI-Powered Batch Audit & Triage Endpoint
-  app.post('/api/pipeline/bulk-audit-ai', async (req, res) => {
+  // AI-Powered Batch Audit & Triage Endpoint (Admin Only + Rate Limited)
+  app.post('/api/pipeline/bulk-audit-ai', requireAdmin, aiRouteLimiter, async (req, res) => {
     try {
-      const { warnings = [], aiModel = 'gemini-3.1-flash-lite' } = req.body;
-      if (!Array.isArray(warnings) || warnings.length === 0) {
-        return res.status(400).json({ error: 'warnings array is required and must not be empty' });
+      const { warnings = [], chunks: providedChunks, aiModel = 'gemini-3.1-flash-lite' } = req.body || {};
+      const BATCH_SIZE = 20;
+      const chunksCount = Array.isArray(providedChunks)
+        ? providedChunks.length
+        : Array.isArray(warnings)
+          ? Math.ceil(warnings.length / BATCH_SIZE)
+          : 0;
+
+      if ((!Array.isArray(warnings) || warnings.length === 0) && (!Array.isArray(providedChunks) || providedChunks.length === 0)) {
+        return res.status(400).json({ error: 'warnings array or chunks is required and must not be empty' });
       }
+
+      if (chunksCount > 20) {
+        return res.status(413).json({
+          code: 'INPUT_TOO_LARGE',
+          error: 'Input exceeds maximum allowed limit of 20 chunks.',
+        });
+      }
+
+      const warningsToAudit = Array.isArray(warnings) && warnings.length > 0 ? warnings : (providedChunks || []).flat();
 
       const ai = getGeminiClient();
       if (!ai) {
@@ -1656,34 +1957,6 @@ CRITICAL RULES:
       }
 
       const startTime = Date.now();
-      const batchToAudit = warnings.slice(0, 40);
-
-      const auditSummaryList = batchToAudit.map((w, idx) => ({
-        index: idx,
-        id: w.source_warning_id || w.warning_id,
-        navarea: w.navarea,
-        title: w.title || w.area_text,
-        lat: w.latitude != null ? w.latitude : w.spatial?.geometries?.[0]?.coordinates?.[1] || null,
-        lng: w.longitude != null ? w.longitude : w.spatial?.geometries?.[0]?.coordinates?.[0] || null,
-        text_preview: (w.raw_text || '').slice(0, 300),
-      }));
-
-      const prompt = `You are a certified Maritime Safety Information (MSI) validator.
-Audit the following staged navigational warnings. For each warning, evaluate if it is a genuine maritime navigational warning, check coordinate sanity and NAVAREA consistency, and provide your understanding or rejection decision.
-
-Warnings to audit:
-${JSON.stringify(auditSummaryList, null, 2)}
-
-Instructions:
-1. For each item (by index):
-   - decision: "ACCEPTED", "REJECTED", or "NEEDS_REVIEW".
-   - rejection_code: "NONE", "NON_MARITIME", "CORRUPT_DATA", "OUT_OF_BOUNDS", "MISSING_CRITICAL_INFO", "EXPIRED_OR_STALE", "DUPLICATE", or "OTHER".
-   - rejection_reason: Explain if rejected or needs review.
-   - understanding_summary: 1 concise sentence summarizing what the notice states.
-   - hazard_category: category (e.g. Aids to Navigation, Firing, Rocket, Drifting, Cable, General).
-   - risk_level: "critical", "high", "medium", "low", or "info".
-   - coordinate_sanity: "valid", "suspicious", or "missing".
-   - confidence: 0.0 to 1.0.`;
 
       const schema = {
         type: Type.ARRAY,
@@ -1704,15 +1977,57 @@ Instructions:
         },
       };
 
-      const response = await generateContentWithRetry(ai, prompt, aiModel, schema);
-      const auditResults = response.text ? JSON.parse(response.text) : [];
-
       const auditMap = new Map<number, any>();
-      auditResults.forEach((r: any) => {
-        if (typeof r.index === 'number') {
-          auditMap.set(r.index, r);
+      let aiCallCount = 0;
+      const MAX_AI_CALLS = 20;
+
+      for (let i = 0; i < warningsToAudit.length; i += BATCH_SIZE) {
+        if (aiCallCount >= MAX_AI_CALLS) {
+          break;
         }
-      });
+        aiCallCount++;
+        const batchToAudit = warningsToAudit.slice(i, i + BATCH_SIZE);
+        const auditSummaryList = batchToAudit.map((w, idx) => ({
+          index: i + idx,
+          id: w.source_warning_id || w.warning_id,
+          navarea: w.navarea,
+          title: w.title || w.area_text,
+          lat: w.latitude != null ? w.latitude : w.spatial?.geometries?.[0]?.coordinates?.[1] || null,
+          lng: w.longitude != null ? w.longitude : w.spatial?.geometries?.[0]?.coordinates?.[0] || null,
+          text_preview: (w.raw_text || '').slice(0, 300),
+        }));
+
+        const prompt = `You are a certified Maritime Safety Information (MSI) validator.
+Audit the following staged navigational warnings. For each warning, evaluate if it is a genuine maritime navigational warning, check coordinate sanity and NAVAREA consistency, and provide your understanding or rejection decision.
+
+Warnings to audit:
+${JSON.stringify(auditSummaryList, null, 2)}
+
+Instructions:
+1. For each item (by index):
+   - decision: "ACCEPTED", "REJECTED", or "NEEDS_REVIEW".
+   - rejection_code: "NONE", "NON_MARITIME", "CORRUPT_DATA", "OUT_OF_BOUNDS", "MISSING_CRITICAL_INFO", "EXPIRED_OR_STALE", "DUPLICATE", or "OTHER".
+   - rejection_reason: Explain if rejected or needs review.
+   - understanding_summary: 1 concise sentence summarizing what the notice states.
+   - hazard_category: category (e.g. Aids to Navigation, Firing, Rocket, Drifting, Cable, General).
+   - risk_level: "critical", "high", "medium", "low", or "info".
+   - coordinate_sanity: "valid", "suspicious", or "missing".
+   - confidence: 0.0 to 1.0.`;
+
+        try {
+          const response = await generateContentWithRetry(ai, prompt, aiModel, schema);
+          const auditResults = response.text ? JSON.parse(response.text) : [];
+          if (Array.isArray(auditResults)) {
+            auditResults.forEach((r: any) => {
+              if (typeof r.index === 'number') {
+                auditMap.set(r.index, r);
+              }
+            });
+          }
+        } catch (batchErr) {
+          console.warn(`[Bulk Audit AI Batch Error at offset ${i}]:`, batchErr);
+        }
+      }
 
       const nowIso = new Date().toISOString();
       let accepted = 0;
@@ -1762,8 +2077,8 @@ Instructions:
     }
   });
 
-  // Gemini Integration Diagnostic & Test Key Endpoint (Admin Protected)
-  app.post('/api/admin/test-gemini', requireAdminAuth, async (req, res) => {
+  // Gemini Integration Diagnostic & Test Key Endpoint (Admin Protected + Rate Limited)
+  app.post('/api/admin/test-gemini', requireAdmin, aiRouteLimiter, async (req, res) => {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey || !apiKey.trim()) {
@@ -1814,8 +2129,8 @@ Instructions:
     }
   });
 
-  // Mistral Integration Diagnostic & Test Key Endpoint (Admin Protected)
-  app.post('/api/admin/test-mistral', requireAdminAuth, async (req, res) => {
+  // Mistral Integration Diagnostic & Test Key Endpoint (Admin Protected + Rate Limited)
+  app.post('/api/admin/test-mistral', requireAdmin, aiRouteLimiter, async (req, res) => {
     try {
       const apiKey = process.env.MISTRAL_API_KEY;
       if (!apiKey || !apiKey.trim()) {
@@ -1861,12 +2176,17 @@ Instructions:
     }
   });
 
-  // Parse manual text using Deterministic rules first, then Mistral AI, with Gemini Flash Lite fallback
-  app.post('/api/pipeline/parse-manual', requireAdminAuth, async (req, res) => {
+  // Parse manual text using Deterministic rules first, then Mistral AI, with Gemini Flash Lite fallback (Admin Protected + Rate Limited)
+  app.post('/api/pipeline/parse-manual', requireAdmin, aiRouteLimiter, async (req, res) => {
     try {
       const { rawText, navarea = 'I', mode = 'hybrid', aiModel = 'mistral-small-latest' } = req.body;
       if (!rawText || typeof rawText !== 'string') {
         return res.status(400).json({ error: 'rawText string is required' });
+      }
+
+      // Enforce max 10,000 characters limit for single-notice route
+      if (rawText.length > 10000) {
+        return res.status(400).json({ error: 'Input text exceeds maximum allowed limit of 10,000 characters.' });
       }
 
       // Step 1: Run deterministic regex parsing (Tier 1)
@@ -2077,16 +2397,20 @@ Instructions:
   });
 
   // Proxy for FreeOpenAPI.dev shipping warnings
-  app.post('/api/freeopenapi/warnings', express.json(), async (req, res) => {
+  // Hardcoded fixed host - never accepts or calls any caller-supplied URL
+  app.post('/api/freeopenapi/warnings', async (req, res) => {
     try {
-      const { apiKey, navArea } = req.body;
+      const { apiKey, navArea } = req.body || {};
       if (!apiKey || !navArea) {
         return res.status(400).json({ error: 'Missing apiKey or navArea' });
       }
 
-      const fetchRes = await fetch(`https://freeopenapi.dev/api/v1/shipping/warnings?navArea=${navArea}`, {
+      const safeNavArea = encodeURIComponent(String(navArea).trim());
+      const fixedUrl = `https://freeopenapi.dev/api/v1/shipping/warnings?navArea=${safeNavArea}`;
+
+      const fetchRes = await fetch(fixedUrl, {
         headers: {
-          'X-Api-Key': apiKey,
+          'X-Api-Key': String(apiKey).trim(),
           'Accept': 'application/json'
         }
       });
@@ -2104,15 +2428,54 @@ Instructions:
   });
 
   // Proxy CARTO map tiles securely server-side so CARTO_API_KEY remains a secure secret
-  app.get('/api/tiles/carto/:style/:z/:x/:y', async (req, res) => {
+  // Rate limited with dedicated tilesRateLimiter (600 req/min per IP)
+  app.get('/api/tiles/carto/:style/:z/:x/:y', tilesRateLimiter, async (req, res) => {
     try {
       const { style, z, x, y } = req.params;
+
+      // Allowlist only styles defined in src/config/mapLayers.ts
+      const ALLOWED_TILE_STYLES = ['voyager', 'dark_all'] as const;
+      if (!ALLOWED_TILE_STYLES.includes(style as any)) {
+        return res.status(400).json({
+          error: `Invalid tile style '${style}'. Allowed styles: ${ALLOWED_TILE_STYLES.join(', ')}`,
+          code: 'INVALID_TILE_STYLE',
+        });
+      }
+
+      // Validate z, x, y are non-negative integers
+      if (!/^\d+$/.test(z) || !/^\d+$/.test(x) || !/^\d+$/.test(y)) {
+        return res.status(400).json({
+          error: 'Tile coordinates z, x, and y must be non-negative integers.',
+          code: 'INVALID_TILE_COORDINATES',
+        });
+      }
+
+      const zoom = parseInt(z, 10);
+      const tileX = parseInt(x, 10);
+      const tileY = parseInt(y, 10);
+
+      // Web Mercator zoom limit in mapLayers.ts is 19
+      if (zoom < 0 || zoom > 19) {
+        return res.status(400).json({
+          error: `Tile zoom level z must be between 0 and 19 (received ${zoom}).`,
+          code: 'TILE_ZOOM_OUT_OF_RANGE',
+        });
+      }
+
+      const maxTileCoord = Math.pow(2, zoom);
+      if (tileX < 0 || tileX >= maxTileCoord || tileY < 0 || tileY >= maxTileCoord) {
+        return res.status(400).json({
+          error: `Tile coordinate out of bounds for zoom level ${zoom}. Expected 0 <= x,y < ${maxTileCoord}.`,
+          code: 'TILE_COORDINATE_OUT_OF_BOUNDS',
+        });
+      }
+
       const apiKey = process.env.CARTO_API_KEY || 'cb1_3orr_1_f228f632545fb6733113f41c';
       
       const subdomains = ['a', 'b', 'c', 'd'];
       const sub = subdomains[Math.floor(Math.random() * subdomains.length)];
       
-      const cartoUrl = `https://${sub}.basemaps.cartocdn.com/rastertiles/${style}/${z}/${x}/${y}.png?key=${apiKey}`;
+      const cartoUrl = `https://${sub}.basemaps.cartocdn.com/rastertiles/${style}/${zoom}/${tileX}/${tileY}.png?key=${apiKey}`;
       
       const response = await fetch(cartoUrl);
       if (!response.ok) {

@@ -7,27 +7,7 @@ import {
   syncSourcesToSupabase,
 } from '../../src/lib/supabaseServer.js';
 import { INITIAL_SOURCES_REGISTRY, INITIAL_WARNINGS, INITIAL_GENERATIONS, INITIAL_ARTIFACTS } from '../../src/data/sourcesRegistry.js';
-
-function getRequiredAdminKey(): string {
-  const key = process.env.ADMIN_KEY?.trim();
-  if (!key) {
-    return '33f8379ef7f98c0774e6e35dfbb856c54695385c9f34ed8a27691b6943dd1a2e';
-  }
-  return key;
-}
-
-function verifyAdminAuth(req: VercelRequest): boolean {
-  const adminHeader =
-    (req.headers['x-admin-token'] as string) ||
-    (req.headers['x-admin-key'] as string) ||
-    (req.headers['authorization'] as string);
-
-  const cleanToken = typeof adminHeader === 'string' ? adminHeader.replace(/^Bearer\s+/i, '').trim() : '';
-  if (!cleanToken) return false;
-
-  const expectedKey = getRequiredAdminKey();
-  return cleanToken === expectedKey || cleanToken.length >= 32;
-}
+import { verifyAdminRequest } from '../../server/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -35,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, X-Admin-Token, X-Admin-Key'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
   if (req.method === 'OPTIONS') {
@@ -46,10 +26,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!verifyAdminAuth(req)) {
-    return res.status(403).json({
-      error: 'Forbidden: Missing administrative session token. Please authenticate as Admin.',
-      code: 'ADMIN_AUTH_REQUIRED',
+  const auth = await verifyAdminRequest(req);
+  if (!auth.authorized) {
+    return res.status(auth.status).json({
+      error: auth.error,
+      code: auth.status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN',
     });
   }
 
