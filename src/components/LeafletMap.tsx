@@ -567,7 +567,13 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   return (
     <div className="relative h-[calc(100vh-140px)] min-h-[520px] border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden bg-gw-bg isolate">
       {/* Map Canvas */}
-      <div id="map" ref={mapRef} className="absolute inset-0 z-0"></div>
+      <div
+        id="map"
+        ref={mapRef}
+        role="region"
+        aria-label="Interactive chart of live navigational warnings. Use arrow keys to pan and plus or minus to zoom."
+        className="absolute inset-0 z-0"
+      ></div>
 
       {/* ISOLATION MODE BANNER */}
       {isolatedWarning && (
