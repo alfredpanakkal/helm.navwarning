@@ -48,12 +48,17 @@ The same command is also packaged as the `verify-production` workflow
 **dispatched by hand — nothing runs automatically on deploy**. The first dispatch is
 only possible once that file is merged to the default branch; from then on
 `gh workflow run verify-production --ref main` starts a run,
-`gh run list --workflow verify-production --limit 1` finds it, and `gh run watch`
-follows it to completion. **Expect that run to be RED** until the three dead `/api/*`
-endpoints below are resolved — a failing check on a genuinely broken deployment is the
-intended signal, not a broken workflow. Either way the run uploads a `verify-report`
-artifact containing `verify.json` and `verify.png` (the upload step is `if: always()`),
-so the screenshot is available exactly when it is needed.
+`gh run list --workflow verify-production --limit 1` finds it, and
+`gh run watch <run-id>` — using the id from that `gh run list` row — follows it to
+completion. **Expect that run to be RED** until the three dead `/api/*` endpoints below
+are resolved — a failing check on a genuinely broken deployment is the intended signal,
+not a broken workflow. Read the log before deciding which it is: the known deployment
+failure is the recorded `no unexpected console errors` FAIL with those three 404s
+present in `verify.json`, whereas a runner or environment problem surfaces as a Chrome
+launch or CDP error, or as a missing or failed `verify-report` artifact. Either way the
+run uploads a `verify-report` artifact containing `verify.json` and `verify.png` (the
+upload step is `if: always()`), so the screenshot is available exactly when it is
+needed.
 
 ## Deployment shape (verified 2026-10-05)
 
@@ -111,8 +116,9 @@ The baseline is a **red** baseline, recorded as observed on 2026-10-05 and not
 worked around. The checker's known-missing allowlist covers only `/api/warnings`,
 `/api/health`, and `/api/tiles/`; the three dead client calls above are outside it,
 so their 404s surface as unexpected console errors and the run exits 1. The failure
-is deterministic — two independent runs on 2026-10-05 produced byte-identical check
-lines.
+is deterministic — across independent runs on 2026-10-05 the fail-severity check lines
+were byte-identical. The warn-severity 4xx line lists the same four URLs every time, but
+its order can vary with request arrival order, so compare it as a set.
 
 Resolution belongs in the app or the deployment, not in the checker: either deploy
 the missing endpoints, or stop calling them client-side (or accept them explicitly,
