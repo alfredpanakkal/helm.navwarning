@@ -60,9 +60,18 @@ export async function launchChrome({ port = 9333 } = {}) {
     proc.kill();
     throw new Error('Chrome did not expose a CDP endpoint');
   }
+  const exitHandlers = new Set();
+  proc.on('exit', () => {
+    for (const h of exitHandlers) {
+      try { h(); } catch {}
+    }
+    exitHandlers.clear();
+  });
   return {
+    proc,
     wsUrl,
     port,
+    userDataDir,
     cleanup: async () => {
       try {
         proc.kill();
@@ -75,10 +84,14 @@ export async function launchChrome({ port = 9333 } = {}) {
         /* windows file lock */
       }
     },
+    onExit: (h) => {
+      exitHandlers.add(h);
+      return () => exitHandlers.delete(h);
+    },
   };
 }
 
-export async function connectCdp(wsUrl) {
+export async function connectCdp(wsUrl, { onBrowserExit } = {}) {
   const ws = new WebSocket(wsUrl);
   await new Promise((resolve, reject) => {
     ws.addEventListener('open', resolve, { once: true });
@@ -87,6 +100,12 @@ export async function connectCdp(wsUrl) {
   let seq = 0;
   const pending = new Map();
   const listeners = new Set();
+  const rejectAll = (err) => {
+    for (const { reject } of pending.values()) {
+      try { reject(err); } catch {}
+    }
+    pending.clear();
+  };
   ws.addEventListener('message', (ev) => {
     const msg = JSON.parse(ev.data);
     if (msg.id != null && pending.has(msg.id)) {
@@ -98,6 +117,17 @@ export async function connectCdp(wsUrl) {
     }
     if (msg.method) for (const fn of listeners) fn(msg);
   });
+  ws.addEventListener('close', () => {
+    rejectAll(new Error('CDP WebSocket closed'));
+  });
+  ws.addEventListener('error', (e) => {
+    rejectAll(new Error(`CDP WebSocket error: ${e.message || e}`));
+  });
+  if (onBrowserExit) {
+    onBrowserExit(() => {
+      rejectAll(new Error('Chrome process exited'));
+    });
+  }
   return {
     send: (method, params = {}, sessionId) =>
       new Promise((resolve, reject) => {

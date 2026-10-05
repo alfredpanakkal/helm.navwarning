@@ -12,7 +12,7 @@ const SHOT = arg('screenshot', '');
 const JSON_OUT = arg('json', '');
 const PORT = Number(arg('port', 9333));
 const TIMEOUT = Number(arg('timeout', 60000));
-const CDP_PORT = Number(arg('cdp-port', 9333));
+const CDP_PORT = Number(arg('cdp-port', arg('port', 9333)));
 
 // Production currently 404s these; they are reported, never hidden.
 const KNOWN_MISSING = ['/api/warnings', '/api/health', '/api/tiles/'];
@@ -40,14 +40,15 @@ const docUrl = (u) => {
 
 const chrome = await launchChrome({ port: CDP_PORT });
 let exitCode = 0;
+let csp = null;
+let tiles = { total: 0, decoded: 0 };
 try {
-  const cdp = await connectCdp(chrome.wsUrl);
+  const cdp = await connectCdp(chrome.wsUrl, { onBrowserExit: chrome.onExit });
   const page = await openPage(cdp);
 
   const consoleErrors = [];
   const pageErrors = [];
   const badResponses = [];
-  let csp = null;
 
   cdp.on((msg) => {
     if (msg.sessionId !== page.sessionId) return;
@@ -68,25 +69,24 @@ try {
     }
   });
 
+  // Chrome replays the previous session's console buffer on Log.enable; reset before navigating
+  consoleErrors.length = 0;
+  pageErrors.length = 0;
+  badResponses.length = 0;
   await cdp.send('Page.navigate', { url: TARGET }, page.sessionId);
   for (let i = 0; i < 60; i++) {
     if ((await page.evaluate('document.readyState')) === 'complete') break;
     await sleep(500);
   }
-  // Chrome replays the previous session's console buffer on Log.enable.
-  consoleErrors.length = 0;
-  pageErrors.length = 0;
-  badResponses.length = 0;
 
   const tilesExpr = `(() => {
-    const t = [...document.querySelectorAll('.leaflet-base-pane img, .leaflet-tile-pane img')];
+    const t = [...document.querySelectorAll('.leaflet-tile')];
     return {
       total: t.length,
       decoded: t.filter((i) => i.complete && i.naturalWidth > 0).length,
     };
   })()`;
 
-  let tiles = { total: 0, decoded: 0 };
   const deadline = Date.now() + TIMEOUT;
   while (Date.now() < deadline) {
     tiles = await page.evaluate(tilesExpr);
@@ -124,14 +124,18 @@ try {
   } else {
     check('CSP header', true, csp ?? 'absent (static deployment bypasses the Express middleware)', 'warn');
   }
-  if (csp) {
-    check('CSP allows Esri basemap', csp.includes('server.arcgisonline.com'), 'img-src entry missing');
-    check(
-      'CSP script-src has no unsafe-eval',
-      !/script-src[^;]*unsafe-eval/.test(csp),
-      'production should not allow unsafe-eval'
-    );
-  }
+  check(
+    'CSP allows Esri basemap',
+    !!csp && csp.includes('server.arcgisonline.com'),
+    !!csp ? 'img-src entry missing' : 'no CSP header to inspect',
+    'warn'
+  );
+  check(
+    'CSP script-src has no unsafe-eval',
+    !!csp && !/script-src[^;]*unsafe-eval/.test(csp),
+    !!csp ? 'production should not allow unsafe-eval' : 'no CSP header to inspect',
+    'warn'
+  );
 
   check('no uncaught page errors', pageErrors.length === 0, pageErrors.slice(0, 3).join(' | '));
   const realConsole = consoleErrors.filter(
