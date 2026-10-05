@@ -26,39 +26,76 @@ export function resolveChrome() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function launchChrome({ port = 9333 } = {}) {
-  const userDataDir = mkdtempSync(path.join(tmpdir(), 'hw-verify-'));
-  const proc = spawn(
-    resolveChrome(),
-    [
-      '--headless=new',
-      '--disable-gpu',
-      '--hide-scrollbars',
-      '--no-first-run',
-      '--no-default-browser-check',
-      '--disable-extensions',
-      '--mute-audio',
-      `--user-data-dir=${userDataDir}`,
-      `--remote-debugging-port=${port}`,
-      '--remote-allow-origins=*',
-      'about:blank',
-    ],
-    { stdio: 'ignore' }
-  );
-  let wsUrl;
-  for (let i = 0; i < 80; i++) {
-    await sleep(250);
+async function removeUserDataDirWithRetry(userDataDir, attempts = 5, delayMs = 100) {
+  for (let i = 0; i < attempts; i++) {
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/json/version`);
-      wsUrl = (await res.json()).webSocketDebuggerUrl;
-      if (wsUrl) break;
-    } catch {
-      /* chrome not up yet */
+      rmSync(userDataDir, { recursive: true, force: true });
+      return true;
+    } catch (err) {
+      if (i === attempts - 1) {
+        console.error(`[verify] Failed to remove user-data-dir after ${attempts} attempts: ${userDataDir}`);
+        console.error(`[verify] Last error: ${err?.message ?? err}`);
+        return false;
+      }
+      await sleep(delayMs);
     }
   }
-  if (!wsUrl) {
-    proc.kill();
-    throw new Error('Chrome did not expose a CDP endpoint');
+  return false;
+}
+
+export async function launchChrome({ port = 9333 } = {}) {
+  const chromePath = resolveChrome();
+  let userDataDir;
+  let proc;
+  try {
+    userDataDir = mkdtempSync(path.join(tmpdir(), 'hw-verify-'));
+  } catch (err) {
+    throw new Error(`Failed to create temp user-data-dir: ${err?.message ?? err}`);
+  }
+  try {
+    proc = spawn(
+      chromePath,
+      [
+        '--headless=new',
+        '--disable-gpu',
+        '--hide-scrollbars',
+        '--no-first-run',
+        '--no-default-browser-check',
+        '--disable-extensions',
+        '--mute-audio',
+        `--user-data-dir=${userDataDir}`,
+        `--remote-debugging-port=${port}`,
+        '--remote-allow-origins=*',
+        'about:blank',
+      ],
+      { stdio: 'ignore' }
+    );
+  } catch (err) {
+    await removeUserDataDirWithRetry(userDataDir);
+    throw err;
+  }
+  let wsUrl;
+  try {
+    for (let i = 0; i < 80; i++) {
+      await sleep(250);
+      try {
+        const res = await fetch(`http://127.0.0.1:${port}/json/version`);
+        wsUrl = (await res.json()).webSocketDebuggerUrl;
+        if (wsUrl) break;
+      } catch {
+        /* chrome not up yet */
+      }
+    }
+    if (!wsUrl) {
+      proc.kill();
+      throw new Error('Chrome did not expose a CDP endpoint');
+    }
+  } catch (err) {
+    try {
+      proc.kill();
+    } catch {}
+    await removeUserDataDirWithRetry(userDataDir);
+    throw err;
   }
   const exitHandlers = new Set();
   proc.on('exit', () => {
@@ -78,11 +115,7 @@ export async function launchChrome({ port = 9333 } = {}) {
       } catch {
         /* already gone */
       }
-      try {
-        rmSync(userDataDir, { recursive: true, force: true });
-      } catch {
-        /* windows file lock */
-      }
+      await removeUserDataDirWithRetry(userDataDir);
     },
     onExit: (h) => {
       exitHandlers.add(h);
