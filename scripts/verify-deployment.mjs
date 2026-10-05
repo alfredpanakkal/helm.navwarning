@@ -111,10 +111,18 @@ try {
   check('page title is Helm.Warning', identity.title === 'Helm.Warning', identity.title);
   check('no DocuFlow residue', !identity.hasDocuFlow);
   check('leaflet map mounted with markers', map.container && map.markers > 0, `${map.markers} markers`);
+  // `0/0` is not a decode failure, it is "the selector matched nothing" -- which
+  // reads identically to a broken selector. Name that case so the fixture's
+  // negative (`0/28`, elements found, none decoded) stays attributable to the
+  // blocked decode rather than to a missing selector.
+  const tilesDetail =
+    tiles.total === 0
+      ? `${tiles.decoded}/${tiles.total} tiles decoded (no .leaflet-tile elements found: basemap did not render, or the selector did not match)`
+      : `${tiles.decoded}/${tiles.total} tiles decoded`;
   check(
     'basemap tiles load (CSP allows Esri)',
     tiles.total > 0 && tiles.decoded === tiles.total,
-    `${tiles.decoded}/${tiles.total} tiles decoded`
+    tilesDetail
   );
 
   if (EXPECT_HEADERS === 'present') {
