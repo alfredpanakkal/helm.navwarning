@@ -31,13 +31,31 @@ export function securityHeadersMiddleware(req: Request, res: Response, next: Nex
     scriptSources.push("'unsafe-inline'", "'unsafe-eval'");
   }
 
+  const connectSources = [
+    "'self'",
+    'https://*.supabase.co',
+    'https://unpkg.com',
+    'https://www.admiralty.co.uk',
+    'https://msi.nga.mil',
+    'https://*.tile.openstreetmap.org',
+    'https://*.openseamap.org',
+  ];
+  if (isDev) {
+    // Vite HMR client opens a websocket (middleware mode uses port 24678);
+    // without this the dev client logs CSP violations and loses live reload.
+    connectSources.push('ws://localhost:*', 'wss://localhost:*');
+  }
+
   const cspDirectives = [
     "default-src 'self'",
     `script-src ${scriptSources.join(' ')}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openseamap.org https://unpkg.com https://*.supabase.co",
-    "connect-src 'self' https://*.supabase.co https://unpkg.com https://www.admiralty.co.uk https://msi.nga.mil https://*.tile.openstreetmap.org https://*.openseamap.org",
+    // server.arcgisonline.com serves the default esri-ocean basemap and the
+    // esri-labels overlay (src/config/mapLayers.ts); without it in img-src the
+    // default chart imagery is blocked by CSP and the map renders blank.
+    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openseamap.org https://server.arcgisonline.com https://unpkg.com https://*.supabase.co",
+    `connect-src ${connectSources.join(' ')}`,
     "frame-ancestors 'self' https://*.google.com https://ai.studio https://*.run.app",
     "object-src 'none'",
     "base-uri 'self'",
