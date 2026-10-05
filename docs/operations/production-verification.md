@@ -43,6 +43,18 @@ that is resolved app-side or deployment-side. Full evidence and the reasoning ar
    resolved, expect exit 1 instead; see [Baseline](#baseline).
 4. On failure, keep the evidence: `node scripts/verify-deployment.mjs --url https://helmwarning.vercel.app --expect-headers any --json verify.json --screenshot verify.png`.
 
+The same command is also packaged as the `verify-production` workflow
+(`.github/workflows/verify-production.yml`), which runs it in CI on Node 22. It is
+**dispatched by hand — nothing runs automatically on deploy**. The first dispatch is
+only possible once that file is merged to the default branch; from then on
+`gh workflow run verify-production --ref main` starts a run,
+`gh run list --workflow verify-production --limit 1` finds it, and `gh run watch`
+follows it to completion. **Expect that run to be RED** until the three dead `/api/*`
+endpoints below are resolved — a failing check on a genuinely broken deployment is the
+intended signal, not a broken workflow. Either way the run uploads a `verify-report`
+artifact containing `verify.json` and `verify.png` (the upload step is `if: always()`),
+so the screenshot is available exactly when it is needed.
+
 ## Deployment shape (verified 2026-10-05)
 
 - Static Vite build served by Vercel's filesystem layer: `GET /` returns
