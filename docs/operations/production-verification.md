@@ -1,27 +1,46 @@
 # Production verification
 
 Production: https://helmwarning.vercel.app
-Checker: `npm run verify:prod` (exit 0 = all fail-severity checks passed)
+Checker: `npm run verify:prod` — exit 0 means every fail-severity check passed.
+
+**Current status: RED.** The baseline recorded on 2026-10-05 exits **1**, not 0: the
+fail-severity check `no unexpected console errors` fails because three `/api/*`
+endpoints the client calls (`/api/sources`, `/api/generations`, `/api/artifacts`)
+return 404 in production. `npm run verify:prod` is expected to keep exiting 1 until
+that is resolved app-side or deployment-side. Full evidence and the reasoning are in
+[Baseline](#baseline).
 
 ## How to verify a deployment
 
 1. `git fetch origin && git rev-parse origin/main` — note the commit.
-2. `gh api "repos/alfredpanakkal/helm.navwarning/deployments?per_page=10" --jq '.[] | select(.environment=="Production") | "\(.created_at) \(.sha)"'`
-   — read the newest Production deployment's `created_at` and `sha`, and record
-   both next to the `origin/main` sha from step 1.
+2. Read the newest Production deployment's `created_at` and `sha` (the API returns
+   newest first), and record both next to the `origin/main` sha from step 1.
+
+   **bash / Linux / macOS** — `--jq` is gh's own filter engine, so no `jq` binary is
+   needed:
+
+   ```bash
+   gh api "repos/alfredpanakkal/helm.navwarning/deployments?per_page=10" --jq '.[] | select(.environment=="Production") | "\(.created_at) \(.sha)"'
+   ```
+
+   **Windows PowerShell 5.1 — use this form instead.** The `--jq` one-liner above does
+   *not* run there: PowerShell splits the argument on the embedded double quotes and gh
+   fails with `gh : accepts 1 arg(s), received 2`. Let gh emit plain JSON and filter in
+   PowerShell. Keep the parentheses — `ConvertFrom-Json` on a JSON array emits one
+   un-enumerated object, so without them `Where-Object` and `Select-Object -First 3`
+   operate on the whole array and the output is silently wrong (every deployment's
+   dates and shas concatenated on one line, non-`Production` environments included):
+
+   ```powershell
+   (gh api "repos/alfredpanakkal/helm.navwarning/deployments?per_page=10" | ConvertFrom-Json) | Where-Object { $_.environment -eq 'Production' } | Select-Object -First 3 | ForEach-Object { "$($_.created_at) $($_.sha)" }
+   ```
+
    Parity is a **recorded fact, not a pass/fail gate**. Production legitimately
    lags `origin/main` whenever a merge is still open or a build has not finished;
    record the lag and its commit, do not fail the verification on it.
-   On Windows PowerShell 5.1 the literal `--jq` one-liner above fails with
-   `gh : accepts 1 arg(s), received 2` (the embedded double quotes are split).
-   Working equivalent:
 
-   ```powershell
-   $jq = '.[] | select(.environment=="Production") | "\(.created_at) \(.sha)"'
-   gh api "repos/alfredpanakkal/helm.navwarning/deployments?per_page=10" --jq $jq.Replace('"','\"')
-   ```
-
-3. `npm run verify:prod` — expect exit 0.
+3. `npm run verify:prod` — expect exit 0. Until the recorded red baseline below is
+   resolved, expect exit 1 instead; see [Baseline](#baseline).
 4. On failure, keep the evidence: `node scripts/verify-deployment.mjs --url https://helmwarning.vercel.app --expect-headers any --json verify.json --screenshot verify.png`.
 
 ## Deployment shape (verified 2026-10-05)
