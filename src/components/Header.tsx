@@ -139,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <>
       {/* Top Main Navigation Bar */}
-      <header className="sticky top-0 z-50 bg-gw-primary text-gw-secondary border-b-2 border-gw-tertiary shadow-md">
+      <header className="gw-dark-surface sticky top-0 z-50 bg-gw-primary text-gw-secondary border-b-2 border-gw-tertiary shadow-md">
         <div className="max-w-[1600px] mx-auto px-3 sm:px-6 md:px-8 flex justify-between items-center py-2.5 md:py-0 gap-2 md:gap-4">
           
           {/* Logo & Title */}
@@ -211,7 +211,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={() => setShowAdminModal(true)}
                 title="Unlock Admin Tools"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-gw-tertiary/60 text-gw-accent hover:text-gw-bg font-bold text-xs uppercase tracking-wider rounded border border-gw-accent/40 hover:border-gw-bg transition-all min-h-[36px]"
+                className="gw-dark-surface flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-gw-tertiary/60 text-gw-accent hover:text-gw-bg font-bold text-xs uppercase tracking-wider rounded border border-gw-accent/40 hover:border-gw-bg transition-all min-h-[36px]"
               >
                 <Lock className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Admin Access</span>
@@ -223,7 +223,7 @@ export const Header: React.FC<HeaderProps> = ({
       </header>
 
       {/* Mobile Bottom Quick Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gw-primary border-t-2 border-gw-tertiary px-2 py-1.5 flex items-center justify-around shadow-2xl">
+      <nav className="gw-dark-surface md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gw-primary border-t-2 border-gw-tertiary px-2 py-1.5 flex items-center justify-around shadow-2xl" aria-label="Primary quick navigation">
         {primaryMobileTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -267,7 +267,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Mobile Bottom Sheet / Drawer for Secondary Tools */}
       {showMobileMenu && (
         <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end">
-          <div className="bg-gw-primary border-t-2 border-gw-tertiary p-4 rounded-t-2xl shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+          <div className="gw-dark-surface bg-gw-primary border-t-2 border-gw-tertiary p-4 rounded-t-2xl shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto" role="dialog" aria-label="Tools and options menu">
             <div className="flex items-center justify-between pb-2 border-b border-gw-tertiary">
               <span className="font-bold text-sm text-gw-bg uppercase tracking-wider">Helm.Warning Tools &amp; Options</span>
               <button

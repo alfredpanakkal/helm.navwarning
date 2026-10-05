@@ -243,6 +243,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gw-bg text-gw-primary font-mono selection:bg-gw-primary selection:text-gw-bg relative pb-20 md:pb-6">
+      <a href="#main-content" className="gw-skip-link">
+        Skip to main content
+      </a>
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -251,7 +254,7 @@ export default function App() {
         setIsAdminMode={setIsAdminMode}
       />
       {isLoadingData && (
-        <div className="bg-blue-100 border-b-2 border-blue-600 px-4 py-2 text-xs font-mono font-bold text-blue-900 flex items-center justify-between shadow-xs">
+        <div role="status" aria-live="polite" className="bg-blue-100 border-b-2 border-blue-600 px-4 py-2 text-xs font-mono font-bold text-blue-900 flex items-center justify-between shadow-xs">
           <div className="max-w-[1600px] mx-auto w-full flex items-center gap-2">
             <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
             <span>CONNECTING TO SUPABASE — Fetching latest live navigational warnings...</span>
@@ -259,7 +262,7 @@ export default function App() {
         </div>
       )}
       {dataError && !isLoadingData && (
-        <div className="bg-red-100 border-b-2 border-red-600 px-4 py-2 text-xs font-mono font-bold text-red-900 flex items-center justify-between shadow-xs">
+        <div role="alert" className="bg-red-100 border-b-2 border-red-600 px-4 py-2 text-xs font-mono font-bold text-red-900 flex items-center justify-between shadow-xs">
           <div className="max-w-[1600px] mx-auto w-full flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-red-600"></span>
@@ -275,7 +278,7 @@ export default function App() {
         </div>
       )}
       {isOfflineMode && !dataError && (
-        <div className="bg-amber-100 border-b-2 border-amber-600 px-4 py-2 text-xs font-mono font-bold text-amber-900 flex items-center justify-between shadow-xs">
+        <div role="status" aria-live="polite" className="bg-amber-100 border-b-2 border-amber-600 px-4 py-2 text-xs font-mono font-bold text-amber-900 flex items-center justify-between shadow-xs">
           <div className="max-w-[1600px] mx-auto w-full flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span>
             <span>OFFLINE MODE ACTIVE — Server API unavailable. Operating on synchronized local client store.</span>
@@ -284,7 +287,7 @@ export default function App() {
       )}
       <DisclaimerBanner />
 
-      <main className="relative z-10 max-w-[1600px] mx-auto p-3 sm:p-6 md:p-8">
+      <main id="main-content" tabIndex={-1} className="relative z-10 max-w-[1600px] mx-auto p-3 sm:p-6 md:p-8 focus:outline-none">
         {/* Map View */}
         <div className={activeTab === 'map' ? 'block' : 'hidden'}>
           <LeafletMap
