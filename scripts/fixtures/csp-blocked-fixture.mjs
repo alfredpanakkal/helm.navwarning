@@ -18,7 +18,7 @@ const html = `<!doctype html>
   <h1>Fixture</h1>
   <div class="leaflet-container">
   <div class="leaflet-pane leaflet-base-pane" id="map">
-    ${Array.from({ length: 28 }, (_, i) => `<img src="${tile(i)}" width="256" height="256" alt="">`).join('\n    ')}
+    ${Array.from({ length: 28 }, (_, i) => `<img class="leaflet-tile" src="${tile(i)}" width="256" height="256" alt="">`).join('\n    ')}
   </div>
   <div class="leaflet-pane leaflet-marker-pane"><img class="leaflet-marker-icon" src="/dot.png" alt=""></div>
   </div>
