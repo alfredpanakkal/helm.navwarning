@@ -380,3 +380,25 @@ test.describe('tablet 768', () => {
     expect(errors, 'no uncaught page errors').toEqual([]);
   });
 });
+
+test.describe('ui path flag (temporary; Task 13 removes)', () => {
+  test('default load renders Data Bank on the v2 path; hwUI=classic uses the legacy path', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await openApp(page);
+    await goTab(page, 'Data Bank');
+    await expect(page.locator('#databank-table-header')).toBeVisible();
+    await expect(page.locator('[data-ui-render-path="v2"]')).toBeVisible();
+    expect(await matchingCount(page)).toBe(5);
+
+    await page.addInitScript(() => {
+      localStorage.setItem('hwUI', 'classic');
+    });
+    await openApp(page);
+    await goTab(page, 'Data Bank');
+    await expect(page.locator('#databank-table-header')).toBeVisible();
+    await expect(page.locator('[data-ui-render-path="legacy"]')).toBeVisible();
+    expect(await matchingCount(page)).toBe(5);
+
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+});

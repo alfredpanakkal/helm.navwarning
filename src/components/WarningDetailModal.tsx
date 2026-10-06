@@ -196,7 +196,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all shadow-xs ${
                 activeTab === 'message'
                   ? 'bg-gw-primary text-gw-bg shadow-sm'
-                  : 'bg-white text-gw-primary border border-gw-primary hover:bg-gw-bg'
+                  : 'bg-secondary text-gw-primary border-primary hover:bg-gw-bg'
               }`}
             >
               <FileText className="w-4 h-4" />
@@ -208,7 +208,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all shadow-xs ${
                 activeTab === 'geometry'
                   ? 'bg-gw-primary text-gw-bg shadow-sm'
-                  : 'bg-white text-gw-primary border border-gw-primary hover:bg-gw-bg'
+                  : 'bg-secondary text-gw-primary border-primary hover:bg-gw-bg'
               }`}
             >
               <MapPin className="w-4 h-4" />

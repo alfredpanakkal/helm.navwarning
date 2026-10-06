@@ -39,7 +39,7 @@ import {
 } from '../utils/warningAnalyzer';
 import { IngestionProcedureModal } from './IngestionProcedureModal';
 
-interface DataBankProps {
+export interface DataBankProps {
   warnings: NavWarning[];
   onLocate: (warning: NavWarning) => void;
   onVerifyWarning?: (warningId: string) => void;
@@ -341,20 +341,20 @@ export const DataBank: React.FC<DataBankProps> = ({
   }, [totalPages, validPage]);
 
   return (
-    <div className="flex flex-col gap-6 sm:gap-8 font-mono">
+    <div className="flex flex-col gap-6 sm:gap-8 font-ui">
       {/* Stat Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
-        <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all shadow-hard shadow-hard-hover">
+        <div className="bg-secondary border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all shadow-hard shadow-hard-hover">
           <div className="text-xs font-bold uppercase tracking-wider text-gw-accent mb-2 sm:mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 border border-gw-primary rounded flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 border-primary rounded-sm flex items-center justify-center shrink-0">
                 <Database className="w-3.5 h-3.5 text-gw-primary" />
               </div>
               Total Published
             </div>
             <button
               onClick={() => setIsProcedureModalOpen(true)}
-              className="text-[10px] uppercase font-bold text-gw-primary hover:bg-gw-bg px-2 py-0.5 rounded border border-gw-secondary transition-all flex items-center gap-1 cursor-pointer"
+              className="text-[10px] uppercase font-bold text-gw-primary hover:bg-gw-bg px-2 py-0.5 rounded border-subtle transition-all flex items-center gap-1 cursor-pointer"
               title="View Ingestion Procedure (SOP)"
             >
               <span>Procedure</span>
@@ -380,16 +380,16 @@ export const DataBank: React.FC<DataBankProps> = ({
           </div>
         </div>
         
-        <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all shadow-hard shadow-hard-hover">
+        <div className="bg-secondary border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all shadow-hard shadow-hard-hover">
           <div className="text-xs font-bold uppercase tracking-wider text-gw-accent mb-2 sm:mb-4 flex items-center gap-2">
-            <div className="w-6 h-6 border border-gw-primary rounded flex items-center justify-center shrink-0">
+            <div className="w-6 h-6 border-primary rounded-sm flex items-center justify-center shrink-0">
               <AlertTriangle className="w-3.5 h-3.5 text-gw-primary" />
             </div>
             Active Warnings
           </div>
           <div className="text-3xl sm:text-4xl md:text-[2.75rem] font-black tracking-tight leading-none mb-2 sm:mb-3 text-gw-primary tabular-nums font-mono flex items-baseline gap-1.5">
             <span>{activeCount.toLocaleString()}</span>
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gw-primary bg-gw-bg border border-gw-secondary px-1.5 py-0.5 rounded ml-1">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gw-primary bg-gw-bg border-subtle px-1.5 py-0.5 rounded-sm ml-1">
               In-Force
             </span>
           </div>
@@ -401,9 +401,9 @@ export const DataBank: React.FC<DataBankProps> = ({
           </div>
         </div>
         
-        <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all shadow-hard shadow-hard-hover">
+        <div className="bg-secondary border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all shadow-hard shadow-hard-hover">
           <div className="text-xs font-bold uppercase tracking-wider text-gw-accent mb-2 sm:mb-4 flex items-center gap-2">
-            <div className="w-6 h-6 border border-gw-primary rounded flex items-center justify-center shrink-0">
+            <div className="w-6 h-6 border-primary rounded-sm flex items-center justify-center shrink-0">
               <Layers className="w-3.5 h-3.5 text-gw-primary" />
             </div>
             Critical / High
@@ -422,9 +422,9 @@ export const DataBank: React.FC<DataBankProps> = ({
           </div>
         </div>
         
-        <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all shadow-hard shadow-hard-hover">
+        <div className="bg-secondary border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all shadow-hard shadow-hard-hover">
           <div className="text-xs font-bold uppercase tracking-wider text-gw-accent mb-2 sm:mb-4 flex items-center gap-2">
-            <div className="w-6 h-6 border border-gw-primary rounded flex items-center justify-center shrink-0">
+            <div className="w-6 h-6 border-primary rounded-sm flex items-center justify-center shrink-0">
               <MapPin className="w-3.5 h-3.5 text-gw-primary" />
             </div>
             NAVAREAs
@@ -464,7 +464,7 @@ export const DataBank: React.FC<DataBankProps> = ({
         <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0">
           <button
             onClick={() => setIsProcedureModalOpen(true)}
-            className="flex-1 sm:flex-none px-3 py-1.5 bg-white text-gw-primary font-bold uppercase tracking-wider text-[11px] rounded-lg border border-gw-primary hover:bg-gw-bg transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+            className="flex-1 sm:flex-none px-3 py-1.5 bg-secondary text-gw-primary font-bold uppercase tracking-wider text-[11px] rounded-lg border-primary hover:bg-gw-bg transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
           >
             <Server className="w-3.5 h-3.5 text-gw-primary" />
             <span>How Data is Taken (Procedure SOP)</span>
@@ -473,7 +473,7 @@ export const DataBank: React.FC<DataBankProps> = ({
             <button
               onClick={() => onTriggerRefresh()}
               disabled={isRefreshing}
-              className="px-3 py-1.5 bg-gw-primary text-white font-bold uppercase tracking-wider text-[11px] rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-50 cursor-pointer"
+              className="px-3 py-1.5 bg-gw-primary text-white font-bold uppercase tracking-wider text-[11px] rounded-lg border-primary hover:bg-gw-tertiary transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-50 cursor-pointer"
               title="Trigger live pipeline fetch from hydrographic endpoints"
             >
               <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -484,7 +484,7 @@ export const DataBank: React.FC<DataBankProps> = ({
       </div>
 
       {/* Executive Operational Brief Card & Category Filter Pills */}
-      <div className="bg-white border-2 border-gw-primary rounded-xl p-4 sm:p-5 shadow-xs flex flex-col gap-4">
+      <div className="bg-secondary border-2 border-gw-primary rounded-xl p-4 sm:p-5 shadow-xs flex flex-col gap-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-gw-secondary/60">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gw-primary text-white flex items-center justify-center shrink-0">
@@ -493,7 +493,7 @@ export const DataBank: React.FC<DataBankProps> = ({
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-gw-primary flex items-center gap-2">
                 <span>Executive Operational Brief</span>
-                <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-gw-bg border border-gw-secondary text-gw-accent">
+                <span className="text-[10px] font-normal px-2 py-0.5 rounded-sm bg-gw-bg border-subtle text-gw-accent">
                   {analytics.geoReferencedPct}% GPS Georeferenced
                 </span>
               </h2>
@@ -505,7 +505,7 @@ export const DataBank: React.FC<DataBankProps> = ({
             <select
               value={groupByMode}
               onChange={(e) => setGroupByMode(e.target.value as any)}
-              className="bg-gw-bg border border-gw-secondary rounded px-2.5 py-1 text-xs font-bold text-gw-primary outline-none focus:border-gw-primary cursor-pointer"
+              className="bg-gw-bg border-subtle rounded-sm px-2.5 py-1 text-xs font-bold text-gw-primary outline-none focus:border-gw-primary cursor-pointer"
             >
               <option value="none">Flat Table View</option>
               <option value="category">Group by Hazard Category</option>
@@ -577,10 +577,10 @@ export const DataBank: React.FC<DataBankProps> = ({
       </div>
 
       {/* Filter & Shifting Control Center */}
-      <div className="flex flex-col gap-3 p-3.5 sm:p-4 bg-white border-2 border-gw-primary rounded-xl shadow-xs">
+      <div className="flex flex-col gap-3 p-3.5 sm:p-4 bg-secondary border-2 border-gw-primary rounded-xl shadow-xs">
         {/* Top Controls Row: Search & Dropdowns */}
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
-          <div className="flex-1 min-w-[200px] flex items-center gap-2 bg-gw-bg border border-gw-secondary rounded px-3 py-2 focus-within:border-gw-primary">
+          <div className="flex-1 min-w-[200px] flex items-center gap-2 space-compact bg-gw-bg border-subtle rounded px-3 py-2 focus-within:border-gw-primary">
             <Search className="w-4 h-4 text-gw-accent shrink-0" />
             <input 
               type="text" 
@@ -719,11 +719,11 @@ export const DataBank: React.FC<DataBankProps> = ({
 
             {/* Reset Filters Button */}
             {hasActiveFilters && (
-              <button 
-                onClick={handleResetFilters}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gw-bg border border-gw-secondary rounded-lg text-xs font-bold uppercase hover:bg-gw-primary hover:border-gw-primary hover:text-white transition-colors min-h-[38px]"
-                title="Reset all filters"
-              >
+          <button
+            onClick={handleResetFilters}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gw-bg border-subtle rounded-lg text-xs font-bold uppercase hover:bg-gw-primary hover:border-gw-primary hover:text-white transition-colors min-h-[38px]"
+            title="Reset all filters"
+          >
                 <Filter className="w-3.5 h-3.5" />
                 <span>Reset</span>
               </button>
@@ -1116,8 +1116,8 @@ export const DataBank: React.FC<DataBankProps> = ({
         </div>
 
         {paginatedWarnings.length === 0 ? (
-          <div className="p-8 text-center bg-white border-2 border-gw-primary rounded-xl space-y-3">
-            <div className="w-12 h-12 rounded-full bg-gw-bg border border-gw-primary text-gw-primary flex items-center justify-center mx-auto">
+          <div className="p-8 text-center bg-secondary border-2 border-gw-primary rounded-xl space-y-3">
+            <div className="w-12 h-12 rounded-full bg-gw-bg border-primary text-gw-primary flex items-center justify-center mx-auto">
               <Search className="w-6 h-6" />
             </div>
             <div className="text-xs font-bold text-gw-primary uppercase tracking-wider">No Navigational Warnings Found</div>
@@ -1283,7 +1283,7 @@ export const DataBank: React.FC<DataBankProps> = ({
       </div>
 
       {/* Desktop / Tablet Grid Table (hidden on mobile < md) */}
-      <div className="hidden md:block bg-white border-2 border-gw-primary rounded-2xl overflow-hidden overflow-x-auto shadow-sm">
+      <div className="hidden md:block bg-secondary border-2 border-gw-primary rounded-2xl overflow-hidden overflow-x-auto shadow-sm">
         {/* Table Header: Selected Element - Interactive Column Sorting */}
         <div 
           id="databank-table-header"

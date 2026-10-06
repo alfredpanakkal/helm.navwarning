@@ -49,7 +49,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
       {/* Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-secondary border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
           <div>
             <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Total NAVAREAs In Registry</div>
             <div className="text-2xl font-mono font-bold text-gw-primary mt-1">21</div>
@@ -58,7 +58,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
           <Radio className="w-8 h-8 text-gw-primary opacity-30" />
         </div>
 
-        <div className="bg-white border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-secondary border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
           <div>
             <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Verified Endpoints</div>
             <div className="text-2xl font-mono font-bold text-green-700 mt-1">{verifiedCount}</div>
@@ -67,7 +67,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
           <CheckCircle2 className="w-8 h-8 text-green-600 opacity-40" />
         </div>
 
-        <div className="bg-white border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-secondary border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
           <div>
             <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Unverified Coverage</div>
             <div className="text-2xl font-mono font-bold text-amber-700 mt-1">{unverifiedCount}</div>
@@ -76,7 +76,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
           <AlertTriangle className="w-8 h-8 text-amber-500 opacity-40" />
         </div>
 
-        <div className="bg-white border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-secondary border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
           <div>
             <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Poll Cadence</div>
             <div className="text-2xl font-mono font-bold text-gw-primary mt-1">360 min</div>
@@ -87,7 +87,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
       </div>
 
       {/* Registry Table */}
-      <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-secondary border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
         <div className="p-4 border-b-2 border-gw-primary bg-gw-bg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-gw-primary flex items-center gap-2 uppercase tracking-wider">
@@ -99,7 +99,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
             </p>
           </div>
 
-          <div className="text-xs text-gw-primary bg-white px-3 py-1.5 rounded border border-gw-primary font-mono font-bold uppercase shrink-0">
+          <div className="text-xs text-gw-primary bg-secondary px-3 py-1.5 rounded-sm border-primary font-mono font-bold uppercase shrink-0">
             Status: <span className="text-green-700">18 of 21 NAVAREAs Scaffolded</span>
           </div>
         </div>
@@ -251,7 +251,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
             </div>
 
             <div className="space-y-2.5 text-xs text-gw-primary max-h-[60vh] overflow-y-auto pr-1">
-              <div className="p-3 bg-gw-bg rounded-lg border border-gw-primary flex items-start gap-2.5">
+              <div className="p-3 bg-gw-bg rounded-lg border-primary flex items-start gap-2.5">
                 <ShieldCheck className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
                 <div>
                   <div className="font-bold text-gw-primary uppercase text-[11px]">1. Official Publisher Identity</div>
@@ -259,7 +259,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                 </div>
               </div>
 
-              <div className="p-3 bg-gw-bg rounded-lg border border-gw-primary flex items-start gap-2.5">
+              <div className="p-3 bg-gw-bg rounded-lg border-primary flex items-start gap-2.5">
                 <Radio className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
                 <div>
                   <div className="font-bold text-gw-primary uppercase text-[11px]">2. Exact Publication Scope & Endpoint</div>
@@ -267,7 +267,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                 </div>
               </div>
 
-              <div className="p-3 bg-gw-bg rounded-lg border border-gw-primary flex items-start gap-2.5">
+              <div className="p-3 bg-gw-bg rounded-lg border-primary flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
                 <div>
                   <div className="font-bold text-gw-primary uppercase text-[11px]">3. In-Force Publication Semantics</div>
@@ -275,7 +275,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                 </div>
               </div>
 
-              <div className="p-3 bg-gw-bg rounded-lg border border-gw-primary flex items-start gap-2.5">
+              <div className="p-3 bg-gw-bg rounded-lg border-primary flex items-start gap-2.5">
                 <FileCheck className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
                 <div>
                   <div className="font-bold text-gw-primary uppercase text-[11px]">4. Saved Evidence Fixture & Parser Test</div>

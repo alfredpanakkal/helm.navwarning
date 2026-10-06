@@ -10,9 +10,30 @@
      5.9:1 on primary and 4.7:1 on tertiary, so it clears WCAG AA where the base
      accent measures 2.85:1. */
   --color-gw-accent-on-dark: #8d93a6;
-  
+
   --font-mono: 'Courier New', Courier, monospace;
   --font-sans: 'Courier New', Courier, monospace;
+  --font-ui: 'Courier New', Courier, monospace;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+
+  /* Hierarchy tokens (Sprint 0 Task 2). Values match today's computed styles;
+     Task 8 tunes values. Primary containers may keep a clear border. Secondary
+     containers, rows and most buttons use background contrast + spacing only.
+     Never border every nested div. */
+  --border-primary: 1px solid var(--color-gw-primary);
+  --border-subtle: 1px solid var(--color-gw-secondary);
+  --bg-secondary: #ffffff;
+  --space-compact: 0.5rem;
+}
+
+@layer utilities {
+  .border-primary { border: var(--border-primary); }
+  .border-subtle { border: var(--border-subtle); }
+  .bg-secondary { background-color: var(--bg-secondary); }
+  .space-compact { gap: var(--space-compact); }
+  .font-ui { font-family: var(--font-ui); }
 }
 
 @layer base {
