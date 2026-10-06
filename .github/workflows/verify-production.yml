@@ -1,0 +1,37 @@
+name: verify-production
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Deployment URL to verify'
+        required: false
+        default: 'https://helmwarning.vercel.app'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify deployment
+        run: |
+          node scripts/verify-deployment.mjs \
+            --url "${{ inputs.url || 'https://helmwarning.vercel.app' }}" \
+            --expect-headers any \
+            --json verify.json \
+            --screenshot verify.png
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-report
+          path: |
+            verify.json
+            verify.png
+          if-no-files-found: ignore
