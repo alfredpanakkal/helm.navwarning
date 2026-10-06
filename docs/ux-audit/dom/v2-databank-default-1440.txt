@@ -1,0 +1,152 @@
+state: v2-databank-default-1440
+viewport: 1440x900
+url: http://localhost:3000/
+path: v2
+overflow: scrollWidth=1440 clientWidth=1440 no_horizontal_overflow=true
+---
+Skip to main content
+Helm.Warning
+NAVAREA Data Bank & Ingestion
+MAP VIEW
+DATA BANK
+5
+SOURCES
+5 Active
+ADMIN ACCESS
+NOTICE
+Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
+• Last updated: 6 Oct 2026, 21:13 IST
+PRINCIPLES
+01_VERIFICATION
+An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
+02_RAW_IMMUTABILITY
+Original source text preserved unchanged. Extractions/translations stored alongside with distinct confidence flags.
+03_ATOMIC_PUBLISHING
+Frontend reads published generations via source pointers. Staged generations prevent partial reads during runs.
+5 Warnings
+·
+5 Active
+·
+2 High
+·
+4/22 NAVAREAs
+·
+Last checked 10:45 IST
+LIVE
+PIPELINE ACTIVE
+SYNC LIVE FEEDS
+All NAVAREAs (5)
+NAVAREA I (UK / NE Atlantic) (2)
+Baltic Sea (Sweden)
+NAVAREA II (France / E Atlantic)
+NAVAREA III (Spain / Med & Black Sea) (1)
+NAVAREA IV (USA / NW Atlantic) (1)
+NAVAREA V (Brazil / SW Atlantic)
+NAVAREA VI (Argentina / S Atlantic)
+NAVAREA VII (South Africa / Indian Ocean)
+NAVAREA VIII (India / North Indian Ocean)
+NAVAREA IX (Pakistan / Persian Gulf & Red Sea)
+NAVAREA X (Australia) (1)
+NAVAREA XI (Japan / East Asia)
+NAVAREA XII (USA / Eastern Pacific)
+NAVAREA XIII (Russian Fed / NW Pacific)
+NAVAREA XIV (New Zealand / South Pacific)
+NAVAREA XV (Chile / SE Pacific)
+NAVAREA XVI (Peru / Eastern Pacific)
+NAVAREA XVII (Canada / Arctic West & Beaufort)
+NAVAREA XVIII (Canada / Arctic East & Baffin)
+NAVAREA XIX (Norway / Arctic)
+NAVAREA XX (Russian Fed / Arctic West)
+NAVAREA XXI (Russian Fed / Arctic East)
+All Status (5)
+Active (5)
+Unverified (2)
+Expiring
+Cancelled
+All Categories (5)
+AtoN (0)
+Military (2)
+Subsea (0)
+Drifting (2)
+Weather & Ice (0)
+Offshore (0)
+General (1)
+MORE FILTERS
+SORT:
+Urgency First
+Recency (Newest)
+NAVAREA Sequence
+Data Quality
+Standard Table Columns
+DESC
+↓
+Matching: 5
+Sorted by Issued
+QUICK:
+All (5)
+Active Only (5)
+With Coords (5)
+Unverified (2)
+ID
+AREA
+TITLE
+SEVERITY
+COORDS
+ISSUED
+STATUS
+ACTION
+0095/26
+NA III
+130915 UTC SEP 2026...
+MOD
+-5.33, 35.97
+2026-09-13
+ACTIVE
+✓ VERIFY
+0142/26
+NA I
+121000 UTC SEP 2026...
+MOD
+3.75, 55.24
+2026-09-12
+ACTIVE
+0311/26
+NA X
+140200 UTC SEP 2026...
+MOD
+148.21, -16.75
+2026-09-14
+ACTIVE
+0140/26
+NA I
+100830 UTC SEP 2026...
+MOD
+1.38, 50.92
+2026-09-10
+ACTIVE
+0812/26
+NA IV
+111400 UTC SEP 2026...
+MOD
+-80.50, 28.58
+2026-09-11
+ACTIVE
+✓ VERIFY
+Showing 1–5 of 5 warnings
+ROWS:
+10
+25
+50
+100
+All (5)
+SUMMARY
+5 records · 5 active · 2 high confidence · 4/22 NAVAREAs
+PROCEDURE
+↗
+Helm.Warning
+•
+NAVAREA Maritime Safety Information Pipeline
+Last updated: 6 Oct 2026, 21:13 IST
+UI
+v2
+classic

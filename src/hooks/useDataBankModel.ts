@@ -1,0 +1,461 @@
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from 'react';
+import { NavWarning, SourceRegistryItem } from '../types';
+import {
+  analyzeDataset,
+  sortAnalyzedWarnings,
+  groupWarnings,
+  HazardCategory,
+  SmartSortMode,
+  AnalyzedWarning,
+  DataBankAnalytics,
+} from '../utils/warningAnalyzer';
+
+export interface DataBankProps {
+  warnings: NavWarning[];
+  onLocate: (warning: NavWarning) => void;
+  onVerifyWarning?: (warningId: string) => void;
+  initialStatusFilter?: string;
+  initialNavAreaFilter?: string;
+  onTriggerRefresh?: (sourceId?: string) => Promise<void>;
+  isRefreshing?: boolean;
+  onCommitWarnings?: (newWarnings: NavWarning[]) => void;
+  sources?: SourceRegistryItem[];
+  isOfflineMode?: boolean;
+  onOpenConsole?: () => void;
+  onNavigate?: (tab: any) => void;
+}
+
+export const ALL_NAVAREAS: { id: string; name: string }[] = [
+  { id: 'I', name: 'NAVAREA I (UK / NE Atlantic)' },
+  { id: 'Baltic', name: 'Baltic Sea (Sweden)' },
+  { id: 'II', name: 'NAVAREA II (France / E Atlantic)' },
+  { id: 'III', name: 'NAVAREA III (Spain / Med & Black Sea)' },
+  { id: 'IV', name: 'NAVAREA IV (USA / NW Atlantic)' },
+  { id: 'V', name: 'NAVAREA V (Brazil / SW Atlantic)' },
+  { id: 'VI', name: 'NAVAREA VI (Argentina / S Atlantic)' },
+  { id: 'VII', name: 'NAVAREA VII (South Africa / Indian Ocean)' },
+  { id: 'VIII', name: 'NAVAREA VIII (India / North Indian Ocean)' },
+  { id: 'IX', name: 'NAVAREA IX (Pakistan / Persian Gulf & Red Sea)' },
+  { id: 'X', name: 'NAVAREA X (Australia)' },
+  { id: 'XI', name: 'NAVAREA XI (Japan / East Asia)' },
+  { id: 'XII', name: 'NAVAREA XII (USA / Eastern Pacific)' },
+  { id: 'XIII', name: 'NAVAREA XIII (Russian Fed / NW Pacific)' },
+  { id: 'XIV', name: 'NAVAREA XIV (New Zealand / South Pacific)' },
+  { id: 'XV', name: 'NAVAREA XV (Chile / SE Pacific)' },
+  { id: 'XVI', name: 'NAVAREA XVI (Peru / Eastern Pacific)' },
+  { id: 'XVII', name: 'NAVAREA XVII (Canada / Arctic West & Beaufort)' },
+  { id: 'XVIII', name: 'NAVAREA XVIII (Canada / Arctic East & Baffin)' },
+  { id: 'XIX', name: 'NAVAREA XIX (Norway / Arctic)' },
+  { id: 'XX', name: 'NAVAREA XX (Russian Fed / Arctic West)' },
+  { id: 'XXI', name: 'NAVAREA XXI (Russian Fed / Arctic East)' },
+];
+
+export type SortField = 'id' | 'area' | 'title' | 'severity' | 'coords' | 'issued' | 'status';
+export type SortDirection = 'asc' | 'desc';
+export type CoordFilterType = 'ALL' | 'with_coords' | 'without_coords';
+export type GroupByMode = 'none' | 'navarea' | 'category' | 'urgency' | 'authority';
+
+export interface DataBankModel {
+  warnings: NavWarning[];
+
+  searchTerm: string;
+  setSearchTerm: Dispatch<SetStateAction<string>>;
+  selectedNavArea: string;
+  setSelectedNavArea: Dispatch<SetStateAction<string>>;
+  selectedSeverity: string;
+  setSelectedSeverity: Dispatch<SetStateAction<string>>;
+  selectedStatus: string;
+  setSelectedStatus: Dispatch<SetStateAction<string>>;
+  selectedCategory: HazardCategory | 'ALL';
+  setSelectedCategory: Dispatch<SetStateAction<HazardCategory | 'ALL'>>;
+  smartSortMode: SmartSortMode | 'custom';
+  setSmartSortMode: Dispatch<SetStateAction<SmartSortMode | 'custom'>>;
+  groupByMode: GroupByMode;
+  setGroupByMode: Dispatch<SetStateAction<GroupByMode>>;
+  coordFilter: CoordFilterType;
+  setCoordFilter: Dispatch<SetStateAction<CoordFilterType>>;
+  isProcedureModalOpen: boolean;
+  setIsProcedureModalOpen: Dispatch<SetStateAction<boolean>>;
+  sortField: SortField;
+  setSortField: Dispatch<SetStateAction<SortField>>;
+  sortDirection: SortDirection;
+  setSortDirection: Dispatch<SetStateAction<SortDirection>>;
+  currentPage: number;
+  setCurrentPage: Dispatch<SetStateAction<number>>;
+  pageSize: number | 'ALL';
+  setPageSize: Dispatch<SetStateAction<number | 'ALL'>>;
+
+  datasetAnalysis: ReturnType<typeof analyzeDataset>;
+  analyzed: AnalyzedWarning[];
+  analytics: DataBankAnalytics;
+  navareaCounts: Record<string, number>;
+  extraNavAreas: string[];
+  activeCount: number;
+  coordsCount: number;
+  criticalCount: number;
+  unverifiedCount: number;
+  recent24hCount: number;
+  lastCheckedAt: number | null;
+
+  filteredAnalyzed: AnalyzedWarning[];
+  sortedAnalyzed: AnalyzedWarning[];
+  sortedWarnings: NavWarning[];
+  groupedAnalyzed: ReturnType<typeof groupWarnings> | null;
+
+  totalPages: number;
+  validPage: number;
+  startIndex: number;
+  endIndex: number;
+  paginatedWarnings: NavWarning[];
+  pageNumbers: (number | '...')[];
+
+  expandedCards: Record<string, boolean>;
+  expandedGroups: Record<string, boolean>;
+  hasActiveFilters: boolean;
+
+  toggleExpand: (id: string, e: React.MouseEvent) => void;
+  toggleGroup: (groupKey: string) => void;
+  handleSort: (field: SortField) => void;
+  handleResetFilters: () => void;
+  getSortLabel: (field: SortField, label: string) => string;
+  shiftPrevPage: () => void;
+  shiftNextPage: () => void;
+  shiftFirstPage: () => void;
+  shiftLastPage: () => void;
+  shiftToPage: (p: number) => void;
+}
+
+/**
+ * Single source of truth for the Data Bank page: data analysis, filters, quick
+ * filters, sorting and pagination. The classic layout and the v2 layout are two
+ * presentations of this one model — never fork the filtering/sorting logic into
+ * a component.
+ */
+export function useDataBankModel({
+  warnings,
+  initialStatusFilter = 'ALL',
+  initialNavAreaFilter = 'ALL',
+}: {
+  warnings: NavWarning[];
+  initialStatusFilter?: string;
+  initialNavAreaFilter?: string;
+}): DataBankModel {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedNavArea, setSelectedNavArea] = useState(initialNavAreaFilter);
+  const [selectedSeverity, setSelectedSeverity] = useState('ALL');
+  const [selectedStatus, setSelectedStatus] = useState(initialStatusFilter);
+  const [selectedCategory, setSelectedCategory] = useState<HazardCategory | 'ALL'>('ALL');
+  const [smartSortMode, setSmartSortMode] = useState<SmartSortMode | 'custom'>('urgency');
+  const [groupByMode, setGroupByMode] = useState<GroupByMode>('none');
+  const [coordFilter, setCoordFilter] = useState<CoordFilterType>('ALL');
+  const [isProcedureModalOpen, setIsProcedureModalOpen] = useState(false);
+
+  // Sorting state
+  const [sortField, setSortField] = useState<SortField>('issued');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  // Comprehensive Dataset Analysis via warningAnalyzer
+  const datasetAnalysis = useMemo(() => analyzeDataset(warnings), [warnings]);
+  const { analyzed, analytics } = datasetAnalysis;
+
+  // Shifting / Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number | 'ALL'>(25);
+
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupKey]: prev[groupKey] === false ? true : false
+    }));
+  };
+
+  useEffect(() => {
+    if (initialStatusFilter) {
+      setSelectedStatus(initialStatusFilter);
+    }
+  }, [initialStatusFilter]);
+
+  useEffect(() => {
+    if (initialNavAreaFilter) {
+      setSelectedNavArea(initialNavAreaFilter);
+    }
+  }, [initialNavAreaFilter]);
+
+  const navareaCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    warnings.forEach((w) => {
+      if (w.navarea) {
+        counts[w.navarea] = (counts[w.navarea] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [warnings]);
+
+  const extraNavAreas = useMemo(() => {
+    const knownIds = new Set(ALL_NAVAREAS.map((a) => a.id.toUpperCase()));
+    return Object.keys(navareaCounts).filter((na) => !knownIds.has(na.toUpperCase()));
+  }, [navareaCounts]);
+
+  const activeCount = useMemo(() => warnings.filter(w => w.status === 'active').length, [warnings]);
+  const coordsCount = useMemo(() => warnings.filter(w => (w.spatial?.geometries?.length > 0 || w.spatial?.circles?.length > 0)).length, [warnings]);
+  const criticalCount = useMemo(() => warnings.filter(w => w.extraction_confidence >= 0.8).length, [warnings]);
+  const unverifiedCount = useMemo(() => warnings.filter(w => w.status === 'unverified' || w.extraction_confidence < 1).length, [warnings]);
+
+  const recent24hCount = useMemo(() => {
+    const now = Date.now();
+    return warnings.filter((w) => {
+      const dateStr = w.issued_at || w.issued_date;
+      if (!dateStr) return false;
+      const t = new Date(dateStr).getTime();
+      return !isNaN(t) && (now - t) <= 86400000;
+    }).length;
+  }, [warnings]);
+
+  // Most recent observation across the bank — the honest "last checked" stamp.
+  const lastCheckedAt = useMemo(() => {
+    let latest = 0;
+    warnings.forEach((w) => {
+      const dateStr = w.last_seen_at || w.first_seen_at || w.issued_at;
+      if (!dateStr) return;
+      const t = new Date(dateStr).getTime();
+      if (!isNaN(t) && t > latest) latest = t;
+    });
+    return latest > 0 ? latest : null;
+  }, [warnings]);
+
+  const toggleExpand = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedCards(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection(field === 'issued' || field === 'severity' ? 'desc' : 'asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setSelectedNavArea('ALL');
+    setSelectedSeverity('ALL');
+    setSelectedStatus('ALL');
+    setCoordFilter('ALL');
+    setCurrentPage(1);
+  };
+
+  // 1. Filter analyzed warnings
+  const filteredAnalyzed = useMemo(() => {
+    return analyzed.filter(item => {
+      const w = item.warning;
+      if (selectedNavArea !== 'ALL' && w.navarea?.toUpperCase() !== selectedNavArea.toUpperCase()) return false;
+      if (selectedStatus !== 'ALL' && w.status !== selectedStatus.toLowerCase()) return false;
+      if (selectedCategory !== 'ALL' && item.category !== selectedCategory) return false;
+      if (selectedSeverity === 'critical' && w.extraction_confidence < 1) return false;
+      if (selectedSeverity === 'high' && (w.extraction_confidence >= 1 || w.extraction_confidence < 0.8)) return false;
+
+      if (coordFilter === 'with_coords') {
+        if (!item.hasCoordinates) return false;
+      } else if (coordFilter === 'without_coords') {
+        if (item.hasCoordinates) return false;
+      }
+
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const matchId = w.source_warning_id.toLowerCase().includes(q);
+        const matchText = w.issued_text.toLowerCase().includes(q);
+        const matchArea = `navarea ${w.navarea}`.toLowerCase().includes(q);
+        const matchStatus = w.status.toLowerCase().includes(q);
+        const matchAuth = item.issuingAuthorityLabel.toLowerCase().includes(q);
+        const matchCat = item.categoryMeta.label.toLowerCase().includes(q);
+        return matchId || matchText || matchArea || matchStatus || matchAuth || matchCat;
+      }
+
+      return true;
+    });
+  }, [analyzed, selectedNavArea, selectedStatus, selectedCategory, selectedSeverity, coordFilter, searchTerm]);
+
+  // 2. Sort analyzed warnings
+  const sortedAnalyzed = useMemo(() => {
+    if (smartSortMode !== 'custom') {
+      return sortAnalyzedWarnings(filteredAnalyzed, smartSortMode, sortDirection);
+    } else {
+      const list = filteredAnalyzed.map(i => i.warning);
+      const sortedRaw = [...list].sort((a, b) => {
+        let cmp = 0;
+        if (sortField === 'id') {
+          const aNum = parseInt(a.warning_number || '0', 10);
+          const bNum = parseInt(b.warning_number || '0', 10);
+          const aYr = a.warning_year || 0;
+          const bYr = b.warning_year || 0;
+          if (aYr !== bYr) {
+            cmp = aYr - bYr;
+          } else if (!isNaN(aNum) && !isNaN(bNum) && aNum !== bNum) {
+            cmp = aNum - bNum;
+          } else {
+            cmp = a.source_warning_id.localeCompare(b.source_warning_id);
+          }
+        } else if (sortField === 'area') {
+          cmp = (a.navarea || '').localeCompare(b.navarea || '');
+        } else if (sortField === 'title') {
+          cmp = (a.issued_text || '').localeCompare(b.issued_text || '');
+        } else if (sortField === 'severity') {
+          cmp = (a.extraction_confidence ?? 0) - (b.extraction_confidence ?? 0);
+        } else if (sortField === 'coords') {
+          const aHas = (a.spatial?.geometries?.length > 0 || a.spatial?.circles?.length > 0) ? 1 : 0;
+          const bHas = (b.spatial?.geometries?.length > 0 || b.spatial?.circles?.length > 0) ? 1 : 0;
+          cmp = aHas - bHas;
+        } else if (sortField === 'issued') {
+          const aTime = a.issued_at ? new Date(a.issued_at).getTime() : (a.issued_date ? new Date(a.issued_date).getTime() : 0);
+          const bTime = b.issued_at ? new Date(b.issued_at).getTime() : (b.issued_date ? new Date(b.issued_date).getTime() : 0);
+          cmp = aTime - bTime;
+        } else if (sortField === 'status') {
+          cmp = (a.status || '').localeCompare(b.status || '');
+        }
+        return sortDirection === 'asc' ? cmp : -cmp;
+      });
+      const map = new Map(filteredAnalyzed.map(i => [i.warning.warning_id, i]));
+      return sortedRaw.map(w => map.get(w.warning_id)!).filter(Boolean);
+    }
+  }, [filteredAnalyzed, smartSortMode, sortDirection, sortField]);
+
+  const sortedWarnings = useMemo(() => sortedAnalyzed.map(i => i.warning), [sortedAnalyzed]);
+  const groupedAnalyzed = useMemo(() => {
+    if (groupByMode === 'none') return null;
+    return groupWarnings(sortedAnalyzed, groupByMode);
+  }, [sortedAnalyzed, groupByMode]);
+
+  // 3. Shifting / Pagination Math
+  const pageSizeNum = pageSize === 'ALL' ? Math.max(1, sortedWarnings.length) : Number(pageSize);
+  const totalPages = pageSize === 'ALL' ? 1 : Math.max(1, Math.ceil(sortedWarnings.length / pageSizeNum));
+  const validPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const startIndex = pageSize === 'ALL' ? 0 : (validPage - 1) * pageSizeNum;
+  const endIndex = pageSize === 'ALL' ? sortedWarnings.length : Math.min(sortedWarnings.length, startIndex + pageSizeNum);
+  const paginatedWarnings = useMemo(() => {
+    return sortedWarnings.slice(startIndex, endIndex);
+  }, [sortedWarnings, startIndex, endIndex]);
+
+  const shiftPrevPage = () => setCurrentPage(p => Math.max(1, p - 1));
+  const shiftNextPage = () => setCurrentPage(p => Math.min(totalPages, p + 1));
+  const shiftFirstPage = () => setCurrentPage(1);
+  const shiftLastPage = () => setCurrentPage(totalPages);
+  const shiftToPage = (p: number) => setCurrentPage(Math.min(Math.max(1, p), totalPages));
+
+  // Keyboard shortcut listener to shift pages: Shift + Left / Right
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
+        return;
+      }
+      if (e.key === 'ArrowLeft' && e.shiftKey) {
+        e.preventDefault();
+        setCurrentPage(p => Math.max(1, p - 1));
+      } else if (e.key === 'ArrowRight' && e.shiftKey) {
+        e.preventDefault();
+        setCurrentPage(p => Math.min(totalPages, p + 1));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [totalPages]);
+
+  const hasActiveFilters = Boolean(
+    searchTerm.trim() ||
+    selectedNavArea !== 'ALL' ||
+    selectedSeverity !== 'ALL' ||
+    selectedStatus !== 'ALL' ||
+    coordFilter !== 'ALL'
+  );
+
+  const getSortLabel = (field: SortField, label: string) => {
+    if (sortField !== field) return `Sort by ${label}`;
+    return `Sorted by ${label} (${sortDirection === 'asc' ? 'Ascending' : 'Descending'}) - Click to reverse`;
+  };
+
+  const pageNumbers = useMemo<(number | '...')[]>(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (validPage <= 4) {
+      return [1, 2, 3, 4, 5, '...', totalPages];
+    }
+    if (validPage >= totalPages - 3) {
+      return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, '...', validPage - 1, validPage, validPage + 1, '...', totalPages];
+  }, [totalPages, validPage]);
+
+  return {
+    warnings,
+    searchTerm,
+    setSearchTerm,
+    selectedNavArea,
+    setSelectedNavArea,
+    selectedSeverity,
+    setSelectedSeverity,
+    selectedStatus,
+    setSelectedStatus,
+    selectedCategory,
+    setSelectedCategory,
+    smartSortMode,
+    setSmartSortMode,
+    groupByMode,
+    setGroupByMode,
+    coordFilter,
+    setCoordFilter,
+    isProcedureModalOpen,
+    setIsProcedureModalOpen,
+    sortField,
+    setSortField,
+    sortDirection,
+    setSortDirection,
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+    datasetAnalysis,
+    analyzed,
+    analytics,
+    navareaCounts,
+    extraNavAreas,
+    activeCount,
+    coordsCount,
+    criticalCount,
+    unverifiedCount,
+    recent24hCount,
+    lastCheckedAt,
+    filteredAnalyzed,
+    sortedAnalyzed,
+    sortedWarnings,
+    groupedAnalyzed,
+    totalPages,
+    validPage,
+    startIndex,
+    endIndex,
+    paginatedWarnings,
+    pageNumbers,
+    expandedCards,
+    expandedGroups,
+    hasActiveFilters,
+    toggleExpand,
+    toggleGroup,
+    handleSort,
+    handleResetFilters,
+    getSortLabel,
+    shiftPrevPage,
+    shiftNextPage,
+    shiftFirstPage,
+    shiftLastPage,
+    shiftToPage,
+  };
+}

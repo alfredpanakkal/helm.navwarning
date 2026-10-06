@@ -136,9 +136,11 @@ test.describe('data bank', () => {
     await goTab(page, 'Data Bank');
     await expect(page.locator('#databank-table-header')).toBeVisible();
 
-    const presets = [/Urgency First/, /Recency \(Newest\)/, /NAVAREA Sequence/, /Data Quality/, /Standard Table Columns/];
+    // Task 3: the five legacy smart-sort presets are now one dropdown on the
+    // v2 path (`#databank-sort`). Values keep the legacy preset ids.
+    const presets = ['urgency', 'recency', 'navarea', 'quality', 'custom'];
     for (const preset of presets) {
-      await page.getByRole('button', { name: preset }).click();
+      await page.locator('#databank-sort').selectOption(preset);
       expect(await matchingCount(page)).toBe(5);
       await expect(page.locator('#databank-table-header')).toBeVisible();
     }
@@ -390,6 +392,12 @@ test.describe('ui path flag (temporary; Task 13 removes)', () => {
     await expect(page.locator('[data-ui-render-path="v2"]')).toBeVisible();
     expect(await matchingCount(page)).toBe(5);
 
+    // Task 3: the v2 hierarchy shows the status bar and folds the classic
+    // stat-card / brief headings out of the default view.
+    await expect(page.locator('[data-databank-status-bar]')).toBeVisible();
+    expect(await page.locator('text=Total Published').count()).toBe(0);
+    expect(await page.locator('text=Executive Operational Brief').count()).toBe(0);
+
     await page.addInitScript(() => {
       localStorage.setItem('hwUI', 'classic');
     });
@@ -398,6 +406,12 @@ test.describe('ui path flag (temporary; Task 13 removes)', () => {
     await expect(page.locator('#databank-table-header')).toBeVisible();
     await expect(page.locator('[data-ui-render-path="legacy"]')).toBeVisible();
     expect(await matchingCount(page)).toBe(5);
+
+    // Classic path keeps the original hierarchy: stat cards + brief visible,
+    // and no v2 status bar.
+    await expect(page.locator('text=Total Published').first()).toBeVisible();
+    await expect(page.locator('text=Executive Operational Brief').first()).toBeVisible();
+    expect(await page.locator('[data-databank-status-bar]').count()).toBe(0);
 
     expect(errors, 'no uncaught page errors').toEqual([]);
   });
