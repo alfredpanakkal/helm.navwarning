@@ -559,7 +559,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                     ? 'bg-white/20 text-white font-black ring-1 ring-white/40 shadow-xs'
                     : 'text-gw-bg/90 hover:bg-white/10 hover:text-white'
                 }`}
-                title={getSortLabel(field, label)}
+                title={getSortLabel(field, field === 'area' ? 'NAVAREA' : label)}
                 aria-sort={sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
               >
                 <span className="truncate">{label}</span>
