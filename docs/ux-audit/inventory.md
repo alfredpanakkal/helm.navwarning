@@ -15,7 +15,7 @@ if a task changes an element's location or fate, update the row and say so in th
 | Tooling | Playwright 1.63 (Chromium), `playwright.config.ts`, `scripts/ux-audit/capture.ts` |
 | Local driver | `npm run dev:audit` (`scripts/ux-audit/dev-server.ts`, `DISABLE_HMR=true`) |
 | Live driver | `npm run ux:capture:live` → `https://helmwarning.vercel.app` |
-| Smoke suite | `npm run ux:smoke` → `scripts/ux-audit/tests/do-not-break.spec.ts` (11 tests, green) |
+| Smoke suite | `npm run ux:smoke` → `scripts/ux-audit/tests/do-not-break.spec.ts` (12 tests, green) |
 | Captured states | 19 local + 3 live baseline = 22 (screenshots ≤ 25 budget, 6 MB total) |
 | Data baseline | No `.env` present → in-memory seed: **5 warnings, 19 sources** (matches live site today) |
 | Classifications | A Essential · B Useful · C Advanced · D Administrative · E Unnecessary |
@@ -39,9 +39,17 @@ Artifacts: `docs/ux-audit/screenshots/*.png` and `docs/ux-audit/dom/*.txt` (visi
 | `modal-admin-access` | ✓ | Admin Access Gate modal |
 | `mobile-375-{map,databank,warning-expanded,sources,tools-menu}` | ✓ | 375×812 |
 | `tablet-768-{map,databank,sources}` | ✓ | 768×1024 |
-| `live-baseline-{map,databank,sources}` | ✓ | live site, no horizontal overflow |
+| `live-baseline-{map,databank,sources}` | ✓ | live site baselines |
 
-No horizontal overflow at 375 px or 768 px (`scrollWidth === clientWidth` on every state).
+**What is actually measured for overflow:** `scripts/ux-audit/capture.ts` evaluates
+`document.documentElement.scrollWidth` / `clientWidth` **inside `capture()` for every captured
+state** (all 19 local states at 375 px and 768 px, plus the 3 live baselines) and writes the result
+into each `docs/ux-audit/dom/*.txt` header as
+`overflow: scrollWidth=… clientWidth=… no_horizontal_overflow=true|false`.
+The smoke suite additionally asserts it in code for all three primary views (Map, Data Bank,
+Sources) at **375 px** (`mobile › …`) and at **768 px** (`tablet 768 › …`). Nothing beyond that is
+claimed: modal-open states and admin views are captured and recorded per state, but only the
+smoke assertions above are enforced.
 
 ---
 
@@ -97,7 +105,7 @@ leak internals into the public UI.
 | Drawer "Move mouse over map / Copy" hint strip | `LeafletMap.tsx` | E | Remove from normal UI |
 | Scope switcher (ALL / NAVAREA / COASTAL) | `LeafletMap.tsx` | B | Keep · subordinate (merge with NAVAREA selector) |
 | NAVAREA selector (All Regions + 21 named regions) | `LeafletMap.tsx` | B | Keep · subordinate |
-| Layer visibility & panes list (Warning Polygons, Marker Clusters, Ocean Soundings, OpenSeaMap Seamarks) | `LeafletMap.tsx:811+` | C | Progressive disclosure behind "Layers" panel |
+| Layer visibility & panes list (Warning Polygons, Marker Clusters, Ocean Soundings, OpenSeaMap Seamarks) | `LeafletMap.tsx:1008-1054` | C | Progressive disclosure behind "Layers" panel — **strip pane IDs from the labels** (constraint 10: `navWarnVectorPane` / `navWarnMarkerPane` / `soundingsPane` / `seamarksPane` are implementation identifiers shown to the public today; labels must become plain language) |
 | Base cartography switcher (ESRI Ocean / Voyager / Dark All) | `LeafletMap.tsx:788-809` | C | Progressive disclosure inside Layers panel |
 | Go to Coordinates form (DMM/DD input, GO, error/feedback) | `LeafletMap.tsx:714-768` | C | Progressive disclosure behind Layers/crosshair control |
 | Fit Bounds control | `LeafletMap.tsx:777-785` | B | Keep · subordinate |
@@ -214,7 +222,7 @@ the table records what must stay admin-only (never leak into public surfaces).
 | **F-01** | "Unverified (n)" quick-filter pill and status option count `status === 'unverified' \|\| extraction_confidence < 1` (gives 2), but the table filter matches only `w.status === 'unverified'` (gives 0 today). Clicking the pill empties the table. | `DataBank.tsx:162` vs `DataBank.tsx:206`; smoke test documents the narrowing behaviour | Open — later task should align predicates (do not enshrine the mismatch as "correct") |
 | **F-02** | Admin Gate "Unlock Admin Tools" reverts immediately when no `helm_admin_token` is in sessionStorage. `setIsAdminMode` in `App.tsx:54` is an inline wrapper (new identity each render), so `Header.tsx:28-47`'s session-sync effect re-runs and resets admin mode to the stored-token value. | Probe: unlock → `localStorage` stays `'false'`, gate remains; with token set first → unlock sticks | Open — later task should stabilise the setter / effect deps |
 | **F-03** | No URL state or deep links today: `/?tab=databank` and `#sources` are ignored; the app always boots to Map View. In-app filter state is not URL-addressable. | Smoke test `today the app has no URL-driven state`; `App.tsx` has no router | Constraint — any future deep-link work is new behaviour, not a restore |
-| **F-04** | Public surfaces leak operator/pipeline claims: "Zero Hardcoded Data", "Dynamic Ingestion Pipeline Active", Sources "LLM FALLBACK RATE", Poll Cadence, PRINCIPLES accordion. | Inventory rows marked E/D | Open — redesign moves these to Admin |
+| **F-04** | Public surfaces leak operator/pipeline claims: "Zero Hardcoded Data", "Dynamic Ingestion Pipeline Active", Sources "LLM FALLBACK RATE", Poll Cadence, PRINCIPLES accordion. **Also:** the Map drawer's "Layer Visibility & Panes" list exposes Leaflet pane identifiers to end users — "Warning Polygons (navWarnVectorPane)", "Marker Clusters (navWarnMarkerPane)", "Ocean Soundings (soundingsPane)", "OpenSeaMap Seamarks (seamarksPane)" (`LeafletMap.tsx:1021-1051`, `docs/ux-audit/dom/map-drawer-open.txt`). Binding constraint 10 forbids these; the audit tooling and smoke suite no longer key on them (they use the public label prefix only), so the mandated cleanup will not fail the do-not-break suite. | Inventory rows marked E/D; layers row fate = "strip pane IDs from labels" | Open — redesign moves operator claims to Admin and strips pane IDs from labels |
 | **F-05** | `modal-admin-access` DOM snapshot captured the Sources page behind the modal rather than modal text alone (modal body is in the header layer). Structure verified from source instead. | `docs/ux-audit/dom/modal-admin-access.txt` | Cosmetic — capture script improvement for later tasks |
 | **F-06** | Desktop table empty state (`DataBank.tsx:1473`) and mobile list empty state (`DataBank.tsx:1123`) duplicate the same message in one DOM tree. | Strict-mode hit during smoke-test authoring | Consolidate during redesign |
 
@@ -234,7 +242,8 @@ the table records what must stay admin-only (never leak into public surfaces).
 8. `admin gate (mobile) › locked admin tools show the gate, unlock recovers the workspace view`
 9. `admin views › all six admin views render for an authenticated session`
 10. `resilience › sync live feeds fails gracefully without server credentials`
-11. `mobile › no horizontal overflow on any primary view and touch targets stay usable`
+11. `mobile › no horizontal overflow on any primary view and touch targets stay usable` (375 px)
+12. `tablet 768 › no horizontal overflow on Map, Data Bank and Sources at 768 px`
 
 ---
 

@@ -1,6 +1,7 @@
 state: mobile-375-map
 viewport: 375x812
 url: http://localhost:3000/
+overflow: scrollWidth=375 clientWidth=375 no_horizontal_overflow=true
 ---
 Skip to main content
 Helm.Warning
@@ -101,4 +102,4 @@ HIGH
 Details →
 Helm.Warning
 NAVAREA Maritime Safety Information Pipeline
-Last updated: 6 Oct 2026, 17:59 IST
+Last updated: 6 Oct 2026, 19:26 IST

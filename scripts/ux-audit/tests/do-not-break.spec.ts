@@ -183,15 +183,18 @@ test.describe('map', () => {
     await expect.poll(voyagerIsActive).toBe(true);
     await page.locator('button[title="ESRI Ocean Base"]').click();
 
-    const overlayCheckbox = page
+    // Anchored on the public label prefix only — never on Leaflet pane
+    // identifiers (constraint 10; the pane-ID cleanup must not fail this test,
+    // see do-not-break.md §3.7).
+    const soundingsCheckbox = page
       .locator('label')
-      .filter({ hasText: 'Ocean Soundings (soundingsPane)' })
+      .filter({ hasText: /^Ocean Soundings/ })
       .first()
       .locator('input[type="checkbox"]');
-    const before = await overlayCheckbox.isChecked();
-    await page.getByText('Ocean Soundings (soundingsPane)').first().click();
-    await expect.poll(() => overlayCheckbox.isChecked()).not.toBe(before);
-    await page.getByText('Ocean Soundings (soundingsPane)').first().click();
+    const before = await soundingsCheckbox.isChecked();
+    await soundingsCheckbox.click();
+    await expect.poll(() => soundingsCheckbox.isChecked()).not.toBe(before);
+    await soundingsCheckbox.click();
 
     const jumpInput = page.locator('input[placeholder^="e.g. 55-23.90N"]');
     await expect(jumpInput).toBeVisible();
@@ -351,6 +354,27 @@ test.describe('mobile', () => {
       expect(box, `touch target "${label}" has a box`).not.toBeNull();
       expect(box!.width, `touch target width for "${label}"`).toBeGreaterThanOrEqual(60);
       expect(box!.height, `touch target height for "${label}"`).toBeGreaterThanOrEqual(40);
+    }
+
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+});
+
+test.describe('tablet 768', () => {
+  test.use({ viewport: { width: 768, height: 1024 } });
+
+  test('no horizontal overflow on Map, Data Bank and Sources at 768 px', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await openApp(page);
+
+    for (const tab of ['Map View', 'Data Bank', 'Sources'] as const) {
+      await goTab(page, tab);
+      await page.waitForTimeout(500);
+      const overflow = (await page.evaluate(
+        'JSON.stringify({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth })',
+      )) as string;
+      const { scrollWidth, clientWidth } = JSON.parse(overflow);
+      expect(scrollWidth, `no horizontal overflow on ${tab} at 768px`).toBeLessThanOrEqual(clientWidth);
     }
 
     expect(errors, 'no uncaught page errors').toEqual([]);

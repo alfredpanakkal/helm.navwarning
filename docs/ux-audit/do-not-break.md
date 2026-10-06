@@ -63,7 +63,7 @@ in the same PR — do not silently weaken a check.
 | 3.4 | Go to Coordinates accepts valid DD/DMM and shows feedback | Yes | test 5 (`Focused: …`) |
 | 3.5 | Go to Coordinates rejects garbage input with an error message (no crash) | Yes | test 5 (rose error state) |
 | 3.6 | Fit Bounds works | Yes | test 5 |
-| 3.7 | Layer pane toggles (Warning Polygons / Marker Clusters / Soundings / Seamarks) remain available | Manual | inventory §4; verify after any Layers refactor |
+| 3.7 | Layer pane toggles (Warning Polygons / Marker Clusters / Soundings / Seamarks) remain available | Manual | inventory §4 / F-04. **Pane-identifier cleanup is mandated by constraint 10 and will change this text on purpose** (e.g. "Ocean Soundings (soundingsPane)" → "Ocean Soundings"). The capture driver and smoke suite anchor on the public label prefix (`/^Ocean Soundings/`), never on pane IDs, so that cleanup must **not** fail the suite; if a test still references a pane identifier, treat it as a bug in the test |
 | 3.8 | Map stays interactive while drawer is open; attribution preserved | Manual | `map-drawer-open` capture |
 
 ## 4. Warning Details, expand, "View on map", isolation
@@ -101,9 +101,9 @@ in the same PR — do not silently weaken a check.
 
 | # | Behaviour to protect | Automated? | Test / evidence |
 | --- | --- | --- | --- |
-| 7.1 | No horizontal overflow on Map / Data Bank / Sources at 375 px | Yes | test 11 |
-| 7.2 | Bottom quick-nav buttons ≥ 60 px wide, ≥ 40 px high (touch targets) | Yes | test 11 |
-| 7.3 | No horizontal overflow at 768 px | Manual | `tablet-768-*` captures (`scrollW === clientW`) |
+| 7.1 | No horizontal overflow on Map / Data Bank / Sources at 375 px | Yes | test 11 (`mobile › …`) |
+| 7.2 | Bottom quick-nav buttons ≥ 60 px wide, ≥ 40 px high (touch targets) | Yes | test 11 (`mobile › …`) |
+| 7.3 | No horizontal overflow on Map / Data Bank / Sources at 768 px | Yes | test 12 (`tablet 768 › …`); per-state evidence: every `docs/ux-audit/dom/*.txt` header carries `overflow: scrollWidth=… clientWidth=… no_horizontal_overflow=…` measured inside `capture()` for that state |
 | 7.4 | Mobile "More" drawer keeps TOOLS / RECORDS / SYSTEM groups reachable | Manual | capture `mobile-375-tools-menu` |
 | 7.5 | Mobile warning-card expand control works | Manual | capture `mobile-375-warning-expanded` |
 
@@ -126,7 +126,7 @@ npm run ux:capture           # local states
 npm run ux:capture:live      # + live-site baselines
 ```
 
-Expected result: `11 passed`, lint clean, `vite build` succeeds.
+Expected result: `12 passed`, lint clean, `vite build` succeeds.
 
 ---
 
@@ -137,7 +137,8 @@ Expected result: `11 passed`, lint clean, `vite build` succeeds.
 - [ ] Data Bank: open Details → "Show Only This Message" → "Show All Warnings".
 - [ ] Sources: badges + Run Worker button present; no new pipeline jargon on the public surface.
 - [ ] NOTICE disclaimer, zero-count categories, and the empty state are still visible where expected.
-- [ ] Mobile 375 px: no horizontal scroll on any tab; More drawer reachable.
+- [ ] Mobile 375 px and tablet 768 px: no horizontal scroll on Map / Data Bank / Sources; More drawer reachable at 375 px.
+- [ ] Map drawer "Layer Visibility & Panes" labels are plain language (no pane IDs) once the F-04 cleanup lands; test 5 still passes.
 - [ ] Nothing new appears in the URL that would leak operator state.
 - [ ] Compare `docs/ux-audit/dom/*.txt` diffs before/after your change and record intentional
       differences in the PR (and in `inventory.md`).

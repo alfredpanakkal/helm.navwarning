@@ -1,6 +1,7 @@
 state: live-baseline-databank
 viewport: 1440x900
 url: https://helmwarning.vercel.app/
+overflow: scrollWidth=1440 clientWidth=1440 no_horizontal_overflow=true
 ---
 Skip to main content
 Helm.Warning

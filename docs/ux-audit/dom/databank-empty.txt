@@ -1,6 +1,7 @@
 state: databank-empty
 viewport: 1440x900
 url: http://localhost:3000/
+overflow: scrollWidth=1440 clientWidth=1440 no_horizontal_overflow=true
 ---
 Skip to main content
 Helm.Warning
@@ -13,7 +14,7 @@ SOURCES
 ADMIN ACCESS
 NOTICE
 Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
-• Last updated: 6 Oct 2026, 17:59 IST
+• Last updated: 6 Oct 2026, 19:25 IST
 PRINCIPLES
 01_VERIFICATION
 An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
@@ -153,4 +154,4 @@ All (0)
 Helm.Warning
 •
 NAVAREA Maritime Safety Information Pipeline
-Last updated: 6 Oct 2026, 17:59 IST
+Last updated: 6 Oct 2026, 19:25 IST

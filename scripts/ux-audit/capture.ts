@@ -11,7 +11,9 @@
  *
  * Output:
  *   docs/ux-audit/screenshots/<state>.png
- *   docs/ux-audit/dom/<state>.txt   (visible body text of the same state)
+ *   docs/ux-audit/dom/<state>.txt   (visible body text of the same state, with a
+ *                                   header line: overflow: scrollWidth=… clientWidth=…
+ *                                   no_horizontal_overflow=… measured for that state)
  */
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -36,13 +38,22 @@ async function capture(page: Page, name: string, opts: { fullPage?: boolean } = 
   const shotPath = path.join(SHOTS, `${name}.png`);
   await page.screenshot({ path: shotPath, fullPage: opts.fullPage ?? false });
   const text = (await page.evaluate('document.body.innerText')) as string;
+  // Measured for every captured state (not once per viewport) and persisted in
+  // the snapshot header, so overflow claims stay verifiable per state.
+  const overflow = (await page.evaluate(
+    '({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth })'
+  )) as { scrollWidth: number; clientWidth: number };
+  const noOverflow = overflow.scrollWidth <= overflow.clientWidth;
   const header =
     `state: ${name}\n` +
     `viewport: ${currentViewport.width}x${currentViewport.height}\n` +
     `url: ${page.url()}\n` +
+    `overflow: scrollWidth=${overflow.scrollWidth} clientWidth=${overflow.clientWidth} no_horizontal_overflow=${noOverflow}\n` +
     `---\n`;
   writeFileSync(path.join(DOM, `${name}.txt`), header + text + '\n', 'utf8');
-  console.log(`  captured ${name}`);
+  console.log(
+    `  captured ${name} (overflow scrollWidth=${overflow.scrollWidth} clientWidth=${overflow.clientWidth} no_horizontal_overflow=${noOverflow})`
+  );
 }
 
 async function step(label: string, fn: () => Promise<void>) {
@@ -74,6 +85,20 @@ async function mobileTab(page: Page, label: 'Map' | 'Data Bank' | 'Sources') {
   await page.waitForTimeout(700);
 }
 
+/**
+ * Drawer toggle for the Ocean Soundings overlay.
+ * Anchored on the public label prefix only — never on Leaflet pane identifiers
+ * (constraint 10 keeps pane/vector internals out of user-facing text, so the
+ * audit tooling must not key on them either; see do-not-break.md §3.7).
+ */
+function oceanSoundingsCheckbox(page: Page) {
+  return page
+    .locator('label')
+    .filter({ hasText: /^Ocean Soundings/ })
+    .first()
+    .locator('input[type="checkbox"]');
+}
+
 async function runDesktop(browser: Browser) {
   currentViewport = DESKTOP;
   const context: BrowserContext = await browser.newContext({ viewport: DESKTOP });
@@ -94,10 +119,11 @@ async function runDesktop(browser: Browser) {
 
   await step('map-layers-alt-base', async () => {
     await page.locator('button[title="CARTO Voyager"]').click();
-    await page.getByText('Ocean Soundings (soundingsPane)').first().click();
+    const soundings = oceanSoundingsCheckbox(page);
+    await soundings.click();
     await page.waitForTimeout(1200);
     await capture(page, 'map-layers-alt-base-voyager');
-    await page.getByText('Ocean Soundings (soundingsPane)').first().click();
+    await soundings.click();
     await page.locator('button[title="ESRI Ocean Base"]').click();
     await page.waitForTimeout(600);
   });
@@ -177,10 +203,6 @@ async function runViewportSet(
   const context: BrowserContext = await browser.newContext({ viewport, isMobile: viewport.width < 768, hasTouch: true });
   const page = await context.newPage();
   await openApp(page, LOCAL);
-  const overflow = await page.evaluate(
-    '({ scrollW: document.documentElement.scrollWidth, clientW: document.documentElement.clientWidth })'
-  );
-  console.log(`  ${prefix} horizontal overflow check: ${JSON.stringify(overflow)}`);
 
   const useMobileNav = viewport.width < 768;
   const goTab = async (label: 'Map View' | 'Data Bank' | 'Sources') => {
