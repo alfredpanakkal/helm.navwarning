@@ -3,7 +3,7 @@ import L from 'leaflet';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
-import { NavWarning, NavAreaId } from '../types';
+import { NavWarning, NavAreaId, SourceRegistryItem } from '../types';
 import {
   Search,
   MapPin,
@@ -30,6 +30,8 @@ import { formatDecimalCoordinates, type CoordinateParseError } from '../utils/co
 import { NAVAREA_ZONE_LIST, NAVAREA_ZONES_BY_ID } from '../utils/navareaZones';
 import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
 import { useMapLayers, WarningSeverityLevel } from '../hooks/useMapLayers';
+import { useUILegacy } from '../lib/uiFlags';
+import { WarningHierarchyLines } from './WarningItemV2';
 
 export type ScopeFilterType = 'all' | 'navarea' | 'coastal';
 
@@ -52,6 +54,7 @@ export const isCoastalWarning = (w: NavWarning): boolean => {
 interface LeafletMapProps {
   warnings: NavWarning[];
   selectedNavArea?: NavAreaId | 'ALL';
+  sources?: SourceRegistryItem[];
   onSelectWarning: (warning: NavWarning) => void;
   isolatedWarning?: NavWarning | null;
   onClearIsolation?: () => void;
@@ -60,6 +63,7 @@ interface LeafletMapProps {
 export const LeafletMap: React.FC<LeafletMapProps> = ({
   warnings,
   selectedNavArea: initialNavArea = 'ALL',
+  sources,
   onSelectWarning,
   isolatedWarning,
   onClearIsolation,
@@ -67,6 +71,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletInstance = useRef<L.Map | null>(null);
   const [mapReady, setMapReady] = useState<L.Map | null>(null);
+  const legacyUI = useUILegacy();
 
   // Layer references
   const baseTileLayerRef = useRef<L.TileLayer | null>(null);
@@ -1091,27 +1096,80 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               filteredWarnings.map((w) => {
                 const isHidden = hiddenWarningIds.has(w.warning_id);
                 const coastal = isCoastalWarning(w);
+                const drawerItemClass = `p-2.5 border-2 rounded-lg cursor-pointer transition-all shadow-xs group ${
+                  isHidden
+                    ? 'bg-amber-50/50 border-amber-300 opacity-60'
+                    : 'bg-gw-bg hover:bg-white border-gw-secondary hover:border-gw-primary'
+                }`;
+
+                if (legacyUI) {
+                  return (
+                    <div
+                      key={w.warning_id}
+                      onClick={() => onSelectWarning(w)}
+                      className={drawerItemClass}
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] font-mono font-bold text-gw-accent group-hover:text-gw-primary">
+                          {w.source_warning_id} · NA {w.navarea}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {coastal && (
+                            <span className="text-[8px] font-mono font-bold px-1 rounded bg-sky-100 text-sky-800 border border-sky-300">
+                              COASTAL
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleWarningVisibility(w.warning_id);
+                            }}
+                            className={`p-0.5 rounded transition-all ${
+                              isHidden
+                                ? 'text-amber-700 hover:bg-amber-200'
+                                : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
+                            }`}
+                            title={isHidden ? 'Unhide this layer' : 'Hide this layer from map'}
+                          >
+                            {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase bg-gw-primary text-gw-bg">
+                            {w.extraction_confidence === 1 ? 'CRIT' : 'HIGH'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-xs font-bold text-gw-primary line-clamp-2 mb-1.5">
+                        {w.issued_text || w.area_text}
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-gw-accent font-mono">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-gw-primary" />
+                          {w.issued_date}
+                        </span>
+                        <span className="text-gw-primary font-bold group-hover:underline">
+                          Details →
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <div
                     key={w.warning_id}
                     onClick={() => onSelectWarning(w)}
-                    className={`p-2.5 border-2 rounded-lg cursor-pointer transition-all shadow-xs group ${
+                    className={`p-2.5 border rounded-lg cursor-pointer transition-all shadow-xs group ${
                       isHidden
                         ? 'bg-amber-50/50 border-amber-300 opacity-60'
                         : 'bg-gw-bg hover:bg-white border-gw-secondary hover:border-gw-primary'
                     }`}
                   >
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[10px] font-mono font-bold text-gw-accent group-hover:text-gw-primary">
-                        {w.source_warning_id} · NA {w.navarea}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        {coastal && (
-                          <span className="text-[8px] font-mono font-bold px-1 rounded bg-sky-100 text-sky-800 border border-sky-300">
-                            COASTAL
-                          </span>
-                        )}
+                    <WarningHierarchyLines
+                      warning={w}
+                      sources={sources}
+                      showStatus={false}
+                      line1Right={
                         <button
                           type="button"
                           onClick={(e) => {
@@ -1127,22 +1185,31 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                         >
                           {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase bg-gw-primary text-gw-bg">
-                          {w.extraction_confidence === 1 ? 'CRIT' : 'HIGH'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-xs font-bold text-gw-primary line-clamp-2 mb-1.5">
-                      {w.issued_text || w.area_text}
-                    </div>
-                    <div className="flex items-center justify-between text-[10px] text-gw-accent font-mono">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-gw-primary" />
-                        {w.issued_date}
-                      </span>
-                      <span className="text-gw-primary font-bold group-hover:underline">
-                        Details →
-                      </span>
+                      }
+                    />
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          centerOnWarningArea(w);
+                        }}
+                        title="View this warning on the map"
+                        className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
+                      >
+                        <MapPin className="w-3 h-3" />
+                        <span>View on map</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectWarning(w);
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:border-gw-primary hover:text-gw-primary transition-colors"
+                      >
+                        <span>Details</span>
+                      </button>
                     </div>
                   </div>
                 );

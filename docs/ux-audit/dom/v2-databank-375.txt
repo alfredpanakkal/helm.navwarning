@@ -79,35 +79,70 @@ ID (High-Low)
 NAVAREA (Asc)
 Severity (High First)
 Status (Active First)
-0095/26
+NAVAREA III · 0095/26
 HIGH
+
+STRAIT OF GIBRALTAR, ALBORAN SEA
+
+13 Sept 2026 – open
+·
+Instituto Hidrográfico de la Marina (Spain)
+ACTIVE
+VIEW ON MAP
+DETAILS
 ✓ VERIFY
-LOCATE
-130915 UTC SEP 2026
-0142/26
+NAVAREA I · 0142/26
+MODERATE
+
+NORTH SEA, DOGGER BANK
+
+12 Sept 2026 – open
+·
+United Kingdom Hydrographic Office
+ACTIVE
+VIEW ON MAP
+DETAILS
+NAVAREA X · 0311/26
+MODERATE
+
+CORAL SEA, GREAT BARRIER REEF
+
+14 Sept 2026 – open
+·
+Australian Maritime Safety Authority (AMSA)
+ACTIVE
+VIEW ON MAP
+DETAILS
+NAVAREA I · 0140/26
+MODERATE
+
+ENGLISH CHANNEL, DOVER STRAIT
+
+10 Sept 2026 – open
+·
+United Kingdom Hydrographic Office
+ACTIVE
+VIEW ON MAP
+DETAILS
+NAVAREA IV · 0812/26
 HIGH
-LOCATE
-121000 UTC SEP 2026
-0311/26
-HIGH
-LOCATE
-140200 UTC SEP 2026
-0140/26
-HIGH
-LOCATE
-100830 UTC SEP 2026
-0812/26
-HIGH
+
+WESTERN NORTH ATLANTIC, CAPE CANAVERAL
+
+15 Sept – 16 Sept 2026
+·
+National Geospatial-Intelligence Agency (NGA)
+ACTIVE
+VIEW ON MAP
+DETAILS
 ✓ VERIFY
-LOCATE
-111400 UTC SEP 2026
 SUMMARY
 5 records · 5 active · 2 high confidence · 4/22 NAVAREAs
 PROCEDURE
 ↗
 Helm.Warning
 NAVAREA Maritime Safety Information Pipeline
-Last updated: 6 Oct 2026, 22:00 IST
+Last updated: 6 Oct 2026, 23:02 IST
 UI
 v2
 classic

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavWarning } from '../types';
+import { NavWarning, SourceRegistryItem } from '../types';
 import {
   Calendar,
   ArrowUpDown,
@@ -18,23 +18,41 @@ import {
 } from 'lucide-react';
 import { formatSpatialCoordinates } from '../utils/coordinateParser';
 import { DataBankModel, SortDirection, SortField } from '../hooks/useDataBankModel';
+import { useUILegacy } from '../lib/uiFlags';
+import { WarningHierarchyLines, WarningItemDetails } from './WarningItemV2';
 
 export interface DataBankWarningListProps {
   model: DataBankModel;
   onLocate: (warning: NavWarning) => void;
   onVerifyWarning?: (warningId: string) => void;
+  sources?: SourceRegistryItem[];
 }
+
+/** Sort columns kept reachable in the v2 header strip (coords moves into Details). */
+const V2_SORT_BUTTONS: { field: SortField; label: string }[] = [
+  { field: 'id', label: 'ID' },
+  { field: 'area', label: 'AREA' },
+  { field: 'title', label: 'TITLE' },
+  { field: 'severity', label: 'SEVERITY' },
+  { field: 'coords', label: 'COORDS' },
+  { field: 'issued', label: 'ISSUED' },
+  { field: 'status', label: 'STATUS' },
+];
 
 /**
  * Warning presentation shared by the classic and v2 Data Bank layouts:
  * grouped view, mobile cards and the desktop sortable table. The layout around
- * it differs per UI path; this markup does not.
+ * it differs per UI path; this markup does not. The classic path renders the
+ * original rows byte-for-byte; the v2 path applies the warning-item hierarchy
+ * (ID·NAVAREA / headline / validity·source / actions + expandable Details).
  */
 export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
   model,
   onLocate,
   onVerifyWarning,
+  sources,
 }) => {
+  const legacy = useUILegacy();
   const {
     warnings,
     sortField,
@@ -116,6 +134,66 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                   {group.items.map((analyzedItem, gIdx) => {
                     const w = analyzedItem.warning;
                     const cardId = w.warning_id || w.source_warning_id || `group-${group.groupKey}-${gIdx}`;
+
+                    if (!legacy) {
+                      const isExpanded = !!expandedCards[cardId];
+                      const canVerify =
+                        !!onVerifyWarning &&
+                        (w.status === 'unverified' ||
+                          (typeof w.extraction_confidence === 'number' && w.extraction_confidence < 1));
+
+                      return (
+                        <div
+                          key={cardId}
+                          onClick={() => onLocate(w)}
+                          className={`p-2.5 border rounded-md bg-white hover:bg-gw-bg/40 hover:border-gw-primary transition-colors cursor-pointer group ${
+                            isExpanded ? 'border-gw-primary' : 'border-gw-secondary'
+                          }`}
+                        >
+                          <WarningHierarchyLines warning={w} sources={sources} />
+                          <div className="mt-2 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onLocate(w);
+                              }}
+                              className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
+                            >
+                              <Locate className="w-3 h-3" />
+                              <span>View on map</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleExpand(cardId, e);
+                              }}
+                              aria-expanded={isExpanded}
+                              aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
+                              className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:border-gw-primary hover:text-gw-primary transition-colors"
+                            >
+                              <span>Details</span>
+                              {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            </button>
+                            {canVerify && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onVerifyWarning!(w.warning_id);
+                                }}
+                                className="ml-auto px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase hover:bg-emerald-700 transition-colors"
+                              >
+                                ✓ Verify
+                              </button>
+                            )}
+                          </div>
+                          {isExpanded && <WarningItemDetails warning={w} />}
+                        </div>
+                      );
+                    }
+
                     const isCritical = w.extraction_confidence === 1;
 
                     return (
@@ -261,6 +339,60 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
           paginatedWarnings.map((w, idx) => {
             const cardId = w.warning_id || w.source_warning_id || `card-${idx}`;
             const isExpanded = !!expandedCards[cardId];
+
+            if (!legacy) {
+              const canVerify =
+                !!onVerifyWarning &&
+                (w.status === 'unverified' ||
+                  (typeof w.extraction_confidence === 'number' && w.extraction_confidence < 1));
+
+              return (
+                <div
+                  key={cardId}
+                  className="bg-white border border-gw-primary rounded-md overflow-hidden"
+                >
+                  <div className="p-2.5">
+                    <WarningHierarchyLines warning={w} sources={sources} />
+                  </div>
+                  <div className="px-2.5 pb-2.5 flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onLocate(w);
+                      }}
+                      className="flex items-center gap-1 px-2 py-1.5 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase transition-colors hover:bg-gw-primary hover:text-gw-bg"
+                      title="Locate on Map"
+                    >
+                      <Locate className="w-3 h-3" />
+                      <span>View on map</span>
+                    </button>
+                    <button
+                      onClick={(e) => toggleExpand(cardId, e)}
+                      aria-expanded={isExpanded}
+                      aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
+                      className="flex items-center gap-1 px-2 py-1.5 bg-white border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase transition-colors hover:border-gw-primary hover:text-gw-primary"
+                    >
+                      <span>Details</span>
+                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </button>
+                    {canVerify && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onVerifyWarning!(w.warning_id);
+                        }}
+                        className="ml-auto flex items-center gap-1 px-2 py-1.5 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase transition-colors hover:bg-emerald-700"
+                        title="Quick Verify"
+                      >
+                        ✓ Verify
+                      </button>
+                    )}
+                  </div>
+                  {isExpanded && <WarningItemDetails warning={w} />}
+                </div>
+              );
+            }
+
             const isCritical = w.extraction_confidence === 1;
 
             return (
@@ -410,7 +542,43 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
 
       {/* Desktop / Tablet Grid Table (hidden on mobile < md) */}
       <div className="hidden md:block bg-secondary border-2 border-gw-primary rounded-2xl overflow-hidden overflow-x-auto shadow-sm">
-        {/* Table Header: Selected Element - Interactive Column Sorting */}
+        {/* v2 header: compact sort strip (all 8 sort fields stay reachable; coords moves into Details) */}
+        {!legacy && (
+          <div
+            id="databank-table-header"
+            className="flex flex-wrap items-center gap-1 p-2 bg-gw-primary text-gw-bg text-[10px] font-bold tracking-wider uppercase select-none sticky top-0 z-10 shadow-xs"
+          >
+            <span className="px-1.5 text-gw-bg/70 font-mono text-[9px]">SORT</span>
+            {V2_SORT_BUTTONS.map(({ field, label }) => (
+              <button
+                key={field}
+                type="button"
+                onClick={() => handleSort(field)}
+                className={`flex items-center gap-1 px-2 py-1 rounded transition-all font-mono cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                  sortField === field
+                    ? 'bg-white/20 text-white font-black ring-1 ring-white/40 shadow-xs'
+                    : 'text-gw-bg/90 hover:bg-white/10 hover:text-white'
+                }`}
+                title={getSortLabel(field, label)}
+                aria-sort={sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
+                <span className="truncate">{label}</span>
+                {sortField === field ? (
+                  sortDirection === 'asc' ? (
+                    <ArrowUp className="w-3 h-3 text-white shrink-0" />
+                  ) : (
+                    <ArrowDown className="w-3 h-3 text-white shrink-0" />
+                  )
+                ) : (
+                  <ArrowUpDown className="w-3 h-3 opacity-30 shrink-0" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Table Header: Selected Element - Interactive Column Sorting (classic path) */}
+        {legacy && (
         <div
           id="databank-table-header"
           className="min-w-[900px] grid grid-cols-[140px_80px_1fr_90px_130px_110px_90px_60px] p-2.5 bg-gw-primary text-gw-bg text-[10px] font-bold tracking-wider uppercase gap-2.5 items-center border-b border-gw-primary/30 select-none sticky top-0 z-10 shadow-xs"
@@ -588,9 +756,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             ACTION
           </div>
         </div>
+        )}
 
         {/* Table Body: Paginated Rows */}
-        <div className="min-w-[900px] max-h-[520px] overflow-y-auto no-scrollbar">
+        <div className={legacy ? 'min-w-[900px] max-h-[520px] overflow-y-auto no-scrollbar' : 'max-h-[600px] overflow-y-auto no-scrollbar'}>
           {paginatedWarnings.length === 0 ? (
             <div className="p-10 text-center bg-white space-y-3">
               <div className="w-12 h-12 rounded-full bg-gw-bg border border-gw-primary text-gw-primary flex items-center justify-center mx-auto">
@@ -608,7 +777,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 Reset All Filters
               </button>
             </div>
-          ) : (
+          ) : legacy ? (
             paginatedWarnings.map((w, idx) => (
               <div
                 key={w.warning_id || w.source_warning_id || idx}
@@ -671,6 +840,67 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 </div>
               </div>
             ))
+          ) : (
+            paginatedWarnings.map((w, idx) => {
+              const cardId = w.warning_id || w.source_warning_id || String(idx);
+              const isExpanded = !!expandedCards[cardId];
+              const canVerify =
+                !!onVerifyWarning &&
+                (w.status === 'unverified' ||
+                  (typeof w.extraction_confidence === 'number' && w.extraction_confidence < 1));
+
+              return (
+                <div
+                  key={cardId}
+                  onClick={() => onLocate(w)}
+                  className={`p-2.5 border-b border-gw-secondary bg-white hover:bg-gw-bg/60 transition-colors cursor-pointer group ${
+                    isExpanded ? 'bg-gw-bg/40' : ''
+                  }`}
+                >
+                  <WarningHierarchyLines warning={w} sources={sources} />
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      aria-label={`Locate warning ${w.source_warning_id} on map`}
+                      title={`Locate warning ${w.source_warning_id} on map`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onLocate(w);
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+                    >
+                      <Locate className="w-3 h-3" />
+                      <span>View on map</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpand(cardId, e);
+                      }}
+                      aria-expanded={isExpanded}
+                      aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
+                      className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:border-gw-primary hover:text-gw-primary transition-colors"
+                    >
+                      <span>Details</span>
+                      {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    </button>
+                    {canVerify && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onVerifyWarning!(w.warning_id);
+                        }}
+                        className="ml-auto px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase hover:bg-emerald-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                      >
+                        ✓ Verify
+                      </button>
+                    )}
+                  </div>
+                  {isExpanded && <WarningItemDetails warning={w} />}
+                </div>
+              );
+            })
           )}
         </div>
 

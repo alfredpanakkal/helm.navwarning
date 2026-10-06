@@ -297,6 +297,7 @@ export default function App() {
           <LeafletMap
             warnings={warnings}
             selectedNavArea="ALL"
+            sources={sources}
             onSelectWarning={(w) => {
               setSelectedWarning(w);
             }}

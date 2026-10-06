@@ -1,0 +1,245 @@
+import React from 'react';
+import { Calendar, MapPin } from 'lucide-react';
+import { NavWarning, SourceRegistryItem } from '../types';
+import { formatSpatialCoordinates } from '../utils/coordinateParser';
+import { resolveIssuingAuthority } from '../utils/warningAnalyzer';
+
+export type WarningSeverityBand = 'CRITICAL' | 'HIGH' | 'MODERATE';
+
+/**
+ * Standardized v2 severity banding, aligned with the map marker bands
+ * (critical = confidence 1, high >= 0.8, otherwise moderate) and with the
+ * status bar "N High" count (confidence >= 0.8).
+ */
+export function warningSeverity(w: NavWarning): { label: WarningSeverityBand; className: string } {
+  const c = w.extraction_confidence;
+  if (c === 1) return { label: 'CRITICAL', className: 'bg-gw-primary text-white' };
+  if (typeof c === 'number' && c >= 0.8) return { label: 'HIGH', className: 'bg-gw-tertiary text-white' };
+  return { label: 'MODERATE', className: 'bg-gw-bg text-gw-accent border border-gw-secondary' };
+}
+
+export function warningHeadline(w: NavWarning): string {
+  return w.title || w.area_text || w.issued_text;
+}
+
+export function warningSourceLabel(w: NavWarning, sources?: SourceRegistryItem[]): string {
+  if (sources && sources.length > 0) {
+    const match = sources.find((s) => s.source_id === w.source_id);
+    if (match && match.publisher_name) return match.publisher_name;
+  }
+  return resolveIssuingAuthority(w);
+}
+
+function shortUtcDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+export function formatWarningValidity(w: NavWarning): string {
+  const from = w.valid_from;
+  const to = w.valid_to || w.valid_until || null;
+  if (!from && !to) return w.issued_date ? `Issued ${shortUtcDate(w.issued_date)}` : '';
+  if (from && to) {
+    const d1 = new Date(from);
+    const d2 = new Date(to);
+    if (d1.getUTCFullYear() === d2.getUTCFullYear()) {
+      const s1 = d1.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+      const s2 = d2.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+      return `${s1} – ${s2} ${d2.getUTCFullYear()}`;
+    }
+    return `${shortUtcDate(from)} – ${shortUtcDate(to)}`;
+  }
+  if (from) return `${shortUtcDate(from)} – open`;
+  return `until ${shortUtcDate(to as string)}`;
+}
+
+/** Same pure coastal check as the map drawer (kept local to avoid an import cycle). */
+export const isCoastalWarning = (w: NavWarning): boolean => {
+  const s = (w.series || '').toLowerCase();
+  const id = (w.source_warning_id || '').toLowerCase();
+  const sub = (w.sub_area || '').toLowerCase();
+  const raw = (w.raw_text || '').toLowerCase();
+  const area = (w.area_text || '').toLowerCase();
+  return (
+    s.includes('coastal') ||
+    id.includes('coastal') ||
+    sub.includes('coastal') ||
+    raw.includes('coastal warning') ||
+    area.includes('coastal') ||
+    w.navarea === 'Baltic'
+  );
+};
+
+function statusDotClass(status: NavWarning['status']): string {
+  return status === 'active' ? 'bg-green-600' : status === 'unverified' ? 'bg-amber-500' : 'bg-zinc-400';
+}
+
+function statusTextClass(status: NavWarning['status']): string {
+  return status === 'active' ? 'text-green-700' : status === 'unverified' ? 'text-amber-700' : 'text-zinc-600';
+}
+
+export const WarningSeverityBadge: React.FC<{ warning: NavWarning; className?: string }> = ({
+  warning,
+  className = '',
+}) => {
+  const sev = warningSeverity(warning);
+  return (
+    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0 ${sev.className} ${className}`}>
+      {sev.label}
+    </span>
+  );
+};
+
+export interface WarningHierarchyLinesProps {
+  warning: NavWarning;
+  sources?: SourceRegistryItem[];
+  /** Extra controls rendered just before the severity badge on line 1 (drawer eye toggle). */
+  line1Right?: React.ReactNode;
+  /** Append the status dot+label to line 3 (table/grouped/mobile; omitted in the drawer). */
+  showStatus?: boolean;
+  className?: string;
+}
+
+/**
+ * The mandated warning-item hierarchy, shared by the v2 Data Bank list and the
+ * Map View drawer:
+ *
+ *   NAVAREA XI · 977/26                      [HIGH]
+ *   Survey operations in specified area
+ *   17 Sep – 15 Oct 2026 · Japan Coast Guard
+ */
+export const WarningHierarchyLines: React.FC<WarningHierarchyLinesProps> = ({
+  warning: w,
+  sources,
+  line1Right,
+  showStatus = true,
+  className = '',
+}) => {
+  const coastal = isCoastalWarning(w);
+  const source = warningSourceLabel(w, sources);
+  const validity = formatWarningValidity(w);
+  return (
+    <div className={`space-y-0.5 ${className}`}>
+      {/* Line 1 — ID & NAVAREA (secondary, prominent) */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="font-mono text-[11px] font-bold text-gw-primary truncate">
+            NAVAREA {w.navarea} · {w.source_warning_id}
+          </span>
+          {coastal && (
+            <span className="text-[8px] font-mono font-bold px-1 rounded bg-sky-100 text-sky-800 border border-sky-300 shrink-0">
+              COASTAL
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {line1Right}
+          <WarningSeverityBadge warning={w} />
+        </div>
+      </div>
+
+      {/* Line 2 — headline (strongest) */}
+      <p className="text-[13px] font-bold text-gw-primary leading-snug line-clamp-2">{warningHeadline(w)}</p>
+
+      {/* Line 3 — validity · source · status */}
+      <div className="flex items-center gap-1.5 text-[10px] text-gw-accent font-mono min-w-0">
+        {validity && <span className="shrink-0">{validity}</span>}
+        {validity && <span className="shrink-0">·</span>}
+        <span className="truncate" title={source}>
+          {source}
+        </span>
+        {showStatus && (
+          <span className="flex items-center gap-1 shrink-0 font-bold uppercase ml-auto">
+            <span className={`w-1.5 h-1.5 rounded-full ${statusDotClass(w.status)}`} />
+            <span className={statusTextClass(w.status)}>{w.status}</span>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export interface WarningItemDetailsProps {
+  warning: NavWarning;
+}
+
+/**
+ * Expandable technical panel behind "Details". Keeps every technical field
+ * that the classic rows exposed (coordinates, issued text/date, confidence,
+ * raw message) without competing with the hierarchy lines above.
+ */
+export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning: w }) => {
+  const conf = w.extraction_confidence;
+  return (
+    <div className="mt-2 p-3 bg-gw-bg/60 border-t border-gw-secondary/60 space-y-2.5 text-[11px] animate-in fade-in duration-150">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">NAVAREA Region</span>
+          <span className="font-bold text-gw-primary inline-block px-2 py-0.5 bg-white border border-gw-secondary rounded">
+            NAVAREA {w.navarea}
+          </span>
+        </div>
+        <div>
+          <div className="flex justify-between items-center mb-0.5">
+            <span className="text-[10px] font-bold uppercase text-gw-accent">Parsed Coordinates</span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(formatSpatialCoordinates(w.spatial));
+              }}
+              className="text-[10px] text-gw-primary hover:text-gw-accent font-bold uppercase underline"
+            >
+              Copy Coords
+            </button>
+          </div>
+          <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-gw-accent shrink-0" />
+            <span className="truncate font-mono">{formatSpatialCoordinates(w.spatial)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">Issued</span>
+        <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5 text-gw-accent shrink-0" />
+          <span className="font-mono truncate">
+            {w.issued_text || w.issued_date}
+            {w.issued_text && w.issued_date ? <span className="text-gw-accent"> · {w.issued_date}</span> : null}
+          </span>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex justify-between items-center mb-0.5">
+          <span className="text-[10px] font-bold uppercase text-gw-accent">Full Raw Telemetry</span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(w.raw_text || w.issued_text);
+            }}
+            className="text-[10px] text-gw-primary hover:text-gw-accent font-bold uppercase underline"
+          >
+            Copy Raw Telemetry
+          </button>
+        </div>
+        <div className="p-2.5 bg-white border border-gw-secondary rounded text-[11px] text-gw-primary font-mono leading-relaxed max-h-36 overflow-y-auto no-scrollbar">
+          {w.raw_text || w.issued_text}
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center text-[10px] pt-1">
+        <span className="text-gw-accent font-bold">Extraction Confidence:</span>
+        <span className="font-bold text-gw-primary bg-white px-2 py-0.5 rounded border border-gw-secondary">
+          {typeof conf === 'number' && Number.isFinite(conf) ? `${Math.round(conf * 100)}% Match` : 'Not recorded'}
+        </span>
+      </div>
+    </div>
+  );
+};

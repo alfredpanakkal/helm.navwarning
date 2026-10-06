@@ -36,7 +36,7 @@ export const DataBankV2: React.FC<DataBankProps> = ({
         <DataBankControls model={model} />
       </div>
 
-      <DataBankWarningList model={model} onLocate={onLocate} onVerifyWarning={onVerifyWarning} />
+      <DataBankWarningList model={model} onLocate={onLocate} onVerifyWarning={onVerifyWarning} sources={sources} />
 
       <DataBankSummary model={model} sources={sources} />
 

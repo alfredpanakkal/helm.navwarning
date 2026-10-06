@@ -15,7 +15,7 @@ SOURCES
 ADMIN ACCESS
 NOTICE
 Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
-• Last updated: 6 Oct 2026, 22:00 IST
+• Last updated: 6 Oct 2026, 23:02 IST
 PRINCIPLES
 01_VERIFICATION
 An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
@@ -74,6 +74,7 @@ General (1)
 MORE FILTERS
 Matching: 5
 Sorted by Issued
+SORT
 ID
 AREA
 TITLE
@@ -81,43 +82,62 @@ SEVERITY
 COORDS
 ISSUED
 STATUS
-ACTION
-0095/26
-NA III
-130915 UTC SEP 2026...
-MOD
--5.33, 35.97
-2026-09-13
+NAVAREA III · 0095/26
+HIGH
+
+STRAIT OF GIBRALTAR, ALBORAN SEA
+
+13 Sept 2026 – open
+·
+Instituto Hidrográfico de la Marina (Spain)
 ACTIVE
+VIEW ON MAP
+DETAILS
 ✓ VERIFY
-0142/26
-NA I
-121000 UTC SEP 2026...
-MOD
-3.75, 55.24
-2026-09-12
+NAVAREA I · 0142/26
+MODERATE
+
+NORTH SEA, DOGGER BANK
+
+12 Sept 2026 – open
+·
+United Kingdom Hydrographic Office
 ACTIVE
-0311/26
-NA X
-140200 UTC SEP 2026...
-MOD
-148.21, -16.75
-2026-09-14
+VIEW ON MAP
+DETAILS
+NAVAREA X · 0311/26
+MODERATE
+
+CORAL SEA, GREAT BARRIER REEF
+
+14 Sept 2026 – open
+·
+Australian Maritime Safety Authority (AMSA)
 ACTIVE
-0140/26
-NA I
-100830 UTC SEP 2026...
-MOD
-1.38, 50.92
-2026-09-10
+VIEW ON MAP
+DETAILS
+NAVAREA I · 0140/26
+MODERATE
+
+ENGLISH CHANNEL, DOVER STRAIT
+
+10 Sept 2026 – open
+·
+United Kingdom Hydrographic Office
 ACTIVE
-0812/26
-NA IV
-111400 UTC SEP 2026...
-MOD
--80.50, 28.58
-2026-09-11
+VIEW ON MAP
+DETAILS
+NAVAREA IV · 0812/26
+HIGH
+
+WESTERN NORTH ATLANTIC, CAPE CANAVERAL
+
+15 Sept – 16 Sept 2026
+·
+National Geospatial-Intelligence Agency (NGA)
 ACTIVE
+VIEW ON MAP
+DETAILS
 ✓ VERIFY
 Showing 1–5 of 5 warnings
 ROWS:
@@ -156,7 +176,7 @@ Zero Hardcoded Data: Live WWNWS Hydrographic Feeds
 Helm.Warning
 •
 NAVAREA Maritime Safety Information Pipeline
-Last updated: 6 Oct 2026, 22:00 IST
+Last updated: 6 Oct 2026, 23:02 IST
 UI
 v2
 classic
