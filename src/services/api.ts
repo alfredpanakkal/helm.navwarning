@@ -258,33 +258,7 @@ export async function fetchArtifacts(): Promise<RawArtifact[]> {
   }
 }
 
-export async function fetchPipelineStatus(): Promise<PipelineSystemStatus> {
-  try {
-    const res = await fetch('/api/pipeline/status');
-    if (!res.ok) throw new Error('Failed to fetch pipeline status');
-    return await res.json();
-  } catch (err: any) {
-    return {
-      pipeline: 'UNAVAILABLE',
-      database: 'UNAVAILABLE',
-      sources_enabled_count: 0,
-      sources_total_count: 0,
-      last_run: null,
-      current_job: null,
-    };
-  }
-}
 
-export async function fetchLastPipelineRun(): Promise<PipelineRunRecord | null> {
-  try {
-    const res = await fetch('/api/pipeline/last');
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.run || null;
-  } catch (err) {
-    return null;
-  }
-}
 
 export async function adminLogin(
   emailOrPasscode: string,
@@ -416,55 +390,7 @@ export async function getAdminHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
-/**
- * Dispatches raw text to /api/parse-navwarn for AI parsing.
- * Protected by requireAdmin on server and rate-limited.
- */
-export async function parseNavwarn(
-  text: string,
-  navarea?: string,
-  aiModel?: string
-): Promise<{ success: boolean; model_used?: string; duration_ms?: number; raw_output?: string; deterministic_spatial?: any; error?: string }> {
-  const headers = await getAdminHeaders();
-  const res = await fetch('/api/parse-navwarn', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ text, navarea, aiModel }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    if (res.status === 401) throw new Error('Unauthorized (401): Please sign in as an Administrator.');
-    if (res.status === 403) throw new Error('Forbidden (403): Administrator privileges required.');
-    if (res.status === 429) throw new Error('Rate limit exceeded (429): Maximum 10 AI requests per minute.');
-    throw new Error(data.error || 'Failed to parse navigational warning');
-  }
-  return data;
-}
 
-/**
- * Dispatches target source URL to /api/enrich-evidence for SSRF-protected retrieval and AI verification.
- * Protected by requireAdmin on server and rate-limited.
- */
-export async function enrichEvidence(
-  sourceUrl: string,
-  warningId?: string,
-  contextText?: string
-): Promise<{ success: boolean; source_url?: string; http_status?: number; evidence_summary?: string; model_used?: string; duration_ms?: number; error?: string }> {
-  const headers = await getAdminHeaders();
-  const res = await fetch('/api/enrich-evidence', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ sourceUrl, warningId, contextText }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    if (res.status === 401) throw new Error('Unauthorized (401): Please sign in as an Administrator.');
-    if (res.status === 403) throw new Error('Forbidden (403): Administrator privileges required.');
-    if (res.status === 429) throw new Error('Rate limit exceeded (429): Maximum 10 AI requests per minute.');
-    throw new Error(data.error || 'Failed to enrich evidence');
-  }
-  return data;
-}
 
 export async function triggerPipelineRefresh(sourceId?: string): Promise<{
   success: boolean;

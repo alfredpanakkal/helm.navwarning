@@ -81,10 +81,3 @@ export const OVERLAY_LAYERS: MapLayerConfig[] = [
   },
 ];
 
-export const MAP_LAYERS_REGISTRY: Record<string, MapLayerConfig> = [
-  ...BASE_LAYERS,
-  ...OVERLAY_LAYERS,
-].reduce((acc, layer) => {
-  acc[layer.id] = layer;
-  return acc;
-}, {} as Record<string, MapLayerConfig>);

@@ -190,33 +190,6 @@ export interface NavWarning {
   };
 }
 
-export interface SupabaseNavWarningRow {
-  id?: string;
-  source_id: string;
-  warning_id: string;
-  title?: string | null;
-  raw_text: string;
-  issued_date?: string | null;
-  navarea?: string | null;
-  area_text?: string | null;
-  sub_area?: string | null;
-  authority?: string | null;
-  source_url?: string | null;
-  risk_level?: string | null;
-  extraction_method?: string | null;
-  extraction_confidence?: number | null;
-  generation_id?: string | null;
-  issued_text?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  valid_until?: string | null;
-  validity?: string | null;
-  charts?: string | null;
-  categories?: string | null;
-  web_link?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-}
 
 export interface IngestionGeneration {
   generation_id: string;
