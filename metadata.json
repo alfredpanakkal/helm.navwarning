@@ -1,6 +1,0 @@
-{
-  "name": "DocuFlow",
-  "description": "Intelligent code documentation and architecture assistant for developers. Generates inline comments, codebase architecture overviews, visual dependency diagrams, setup guides, and README files with Gemini AI.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
