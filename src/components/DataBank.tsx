@@ -50,6 +50,7 @@ interface DataBankProps {
   onCommitWarnings?: (newWarnings: NavWarning[]) => void;
   sources?: SourceRegistryItem[];
   isOfflineMode?: boolean;
+  onOpenConsole?: () => void;
   onNavigate?: (tab: any) => void;
 }
 

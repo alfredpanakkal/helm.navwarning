@@ -60,7 +60,7 @@ export interface SourceRegistryItem {
   published_generation_id: string | null;
 }
 
-export type WarningStatus = 'active' | 'cancelled' | 'expired' | 'unknown';
+export type WarningStatus = 'active' | 'cancelled' | 'expired' | 'unknown' | 'unverified';
 
 export type StatusBasis =
   | 'listed_in_complete_in_force_publication'

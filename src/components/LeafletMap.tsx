@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { getLeafletLatLng } from '../utils/coordinateParser';
 import { useMapNavigation } from '../hooks/useMapNavigation';
-import { formatDecimalCoordinates } from '../utils/coordinateConversion';
+import { formatDecimalCoordinates, type CoordinateParseError } from '../utils/coordinateConversion';
 import { NAVAREA_ZONE_LIST, NAVAREA_ZONES_BY_ID } from '../utils/navareaZones';
 import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
 import { useMapLayers, WarningSeverityLevel } from '../hooks/useMapLayers';
@@ -524,7 +524,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
     const result = parseAndJump(input);
     if (!result.success) {
-      setJumpError(result.error);
+      setJumpError((result as CoordinateParseError).error);
       return;
     }
 

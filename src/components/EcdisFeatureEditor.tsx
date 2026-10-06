@@ -79,7 +79,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
         geometry: { type: 'Point' as const, coordinates: [lon, lat] as [number, number] },
         properties: {
           ...f.properties,
-          modification_state: f.properties.modification_state === 'inserted' ? 'inserted' : ('edited' as const),
+          modification_state: f.properties.modification_state === 'inserted' ? ('inserted' as const) : ('edited' as const),
           confidence: isInside ? ('verified' as const) : ('partial' as const),
           errors: isInside ? [] : ['COORD_OUTSIDE_NAVAREA'],
         },
@@ -97,7 +97,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
         properties: {
           ...f.properties,
           user_notes: notes,
-          modification_state: f.properties.modification_state === 'inserted' ? 'inserted' : ('edited' as const),
+          modification_state: f.properties.modification_state === 'inserted' ? ('inserted' as const) : ('edited' as const),
         },
       };
     });
@@ -112,7 +112,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
         properties: {
           ...f.properties,
           role_hint: role,
-          modification_state: f.properties.modification_state === 'inserted' ? 'inserted' : ('edited' as const),
+          modification_state: f.properties.modification_state === 'inserted' ? ('inserted' as const) : ('edited' as const),
         },
       };
     });

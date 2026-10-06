@@ -1623,8 +1623,9 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 ) : (
                   parsedWarnings.map((warn, i) => {
                     const hasGps = (warn.latitude != null && warn.longitude != null) || (warn.spatial?.geometries?.length > 0);
-                    const latDisplay = warn.latitude != null ? warn.latitude.toFixed(4) : warn.spatial?.geometries?.[0]?.coordinates?.[1]?.toFixed(4);
-                    const lngDisplay = warn.longitude != null ? warn.longitude.toFixed(4) : warn.spatial?.geometries?.[0]?.coordinates?.[0]?.toFixed(4);
+                    const firstGeomCoords = warn.spatial?.geometries?.[0]?.coordinates as number[] | undefined;
+                    const latDisplay = warn.latitude != null ? warn.latitude.toFixed(4) : firstGeomCoords?.[1]?.toFixed(4);
+                    const lngDisplay = warn.longitude != null ? warn.longitude.toFixed(4) : firstGeomCoords?.[0]?.toFixed(4);
                     const isAiAssessed = Boolean(warn.ai_triage);
 
                     return (
