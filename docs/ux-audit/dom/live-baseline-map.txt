@@ -1,0 +1,107 @@
+state: live-baseline-map
+viewport: 1440x900
+url: https://helmwarning.vercel.app/
+---
+Skip to main content
+Helm.Warning
+NAVAREA Data Bank & Ingestion
+MAP VIEW
+DATA BANK
+5
+SOURCES
+5 Active
+ADMIN ACCESS
+NOTICE
+Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
+• Last updated: 6 Oct 2026, 14:45 IST
+PRINCIPLES
+01_VERIFICATION
+An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
+02_RAW_IMMUTABILITY
+Original source text preserved unchanged. Extractions/translations stored alongside with distinct confidence flags.
+03_ATOMIC_PUBLISHING
+Frontend reads published generations via source pointers. Staged generations prevent partial reads during runs.
+2
+ Leaflet | Tiles © Esri — Sources: GEBCO, NOAA, CHS, OSU, UNH, CSUMB, National Geographic, DeLorme, NAVTEQ, and Esri, Tiles © Esri — NOAA, GEBCO, Garmin, Map style: © OpenSeaMap
+DRAWER
+Move mouse over map
+Copy
+GO TO COORDINATES
+DMM / DD
+GO
+BASE CARTOGRAPHY
+FIT BOUNDS
+ESRI Ocean
+Voyager
+Dark All
+ESRI Ocean Labels & Soundings
+OpenSeaMap Seamarks
+ACTIVE WARNINGS
+5
+SCOPE SWITCHER
+ALL
+ALL
+NAVAREA
+COASTAL
+NAVAREA SELECTOR
+All Regions (Global View)
+NAVAREA I — North Sea & NE Atlantic (UK)
+Baltic Sea — Baltic Sea Sub-area (Sweden)
+NAVAREA II — Atlantic East & Bay of Biscay (France)
+NAVAREA III — Mediterranean & Black Sea (Spain)
+NAVAREA IV — Western North Atlantic (USA/NGA)
+NAVAREA V — South Atlantic West (Brazil)
+NAVAREA VI — South Atlantic SW (Argentina)
+NAVAREA VII — South Atlantic SE & S Indian Ocean (South Africa)
+NAVAREA VIII — Northern Indian Ocean (India)
+NAVAREA IX — Red Sea, Gulf of Aden & Persian Gulf (Pakistan)
+NAVAREA X — Australia & Southern Ocean (Australia)
+NAVAREA XI — Western Pacific & East Asia (Japan)
+NAVAREA XII — Eastern North Pacific (USA/NGA)
+NAVAREA XIII — Sea of Okhotsk & NW Pacific (Russia)
+NAVAREA XIV — South Pacific & Tasman Sea (New Zealand)
+NAVAREA XV — South Pacific SE (Chile)
+NAVAREA XVI — South Pacific East (Peru)
+NAVAREA XVII — Arctic Ocean NW (Canada)
+NAVAREA XVIII — Arctic Ocean NE (Canada)
+NAVAREA XIX — Arctic Ocean North (Norway)
+NAVAREA XX — Arctic Ocean Russia West (Russia)
+NAVAREA XXI — Arctic Ocean Russia East (Russia)
+LAYER VISIBILITY & PANES
+Warning Polygons (navWarnVectorPane)
+Marker Clusters (navWarnMarkerPane)
+Ocean Soundings (soundingsPane)
+OpenSeaMap Seamarks (seamarksPane)
+ALL
+CRITICAL
+HIGH
+MODERATE
+0142/26 · NA I
+HIGH
+121000 UTC SEP 2026
+2026-09-12
+Details →
+0140/26 · NA I
+HIGH
+100830 UTC SEP 2026
+2026-09-10
+Details →
+0812/26 · NA IV
+HIGH
+111400 UTC SEP 2026
+2026-09-11
+Details →
+0095/26 · NA III
+HIGH
+130915 UTC SEP 2026
+2026-09-13
+Details →
+0311/26 · NA X
+HIGH
+140200 UTC SEP 2026
+2026-09-14
+Details →
+Helm.Warning
+•
+NAVAREA Maritime Safety Information Pipeline
+Last updated: 6 Oct 2026, 14:45 IST

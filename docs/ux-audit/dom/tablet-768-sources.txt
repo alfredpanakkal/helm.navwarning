@@ -1,0 +1,347 @@
+state: tablet-768-sources
+viewport: 768x1024
+url: http://localhost:3000/
+---
+Skip to main content
+Helm.Warning
+NAVAREA Data Bank & Ingestion
+MAP VIEW
+DATA BANK
+5
+SOURCES
+5 Active
+ADMIN ACCESS
+NOTICE
+Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
+PRINCIPLES
+01_VERIFICATION
+An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
+02_RAW_IMMUTABILITY
+Original source text preserved unchanged. Extractions/translations stored alongside with distinct confidence flags.
+03_ATOMIC_PUBLISHING
+Frontend reads published generations via source pointers. Staged generations prevent partial reads during runs.
+TOTAL NAVAREAS IN REGISTRY
+21
+18 Candidates + 3 Under Investigation
+VERIFIED ENDPOINTS
+14
+Active Ingestion Feeds
+UNVERIFIED COVERAGE
+5
+NAVAREA XIII, XX, XXI
+POLL CADENCE
+360 min
+6-hour Polling Defaults
+NAVWARN CANDIDATE DISCOVERY REGISTRY
+
+Official maritime publication coordinators, endpoint verification status, and publication semantics.
+
+STATUS: 18 OF 21 NAVAREAS SCAFFOLDED
+NAVAREA	COORDINATOR / PUBLISHER	SEMANTICS & FORMAT	LLM FALLBACK RATE	HEALTH & STATUS	ACTIONS
+
+I
+	
+United Kingdom Hydrographic Office
+UKHO-NAVAREA-1
+	
+COMPLETE_IN_FORCE
+[HTML]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+BALTIC
+	
+Swedish Maritime Administration (Sjöfartsverket)
+SMA-BALTIC-SUBAREA
+	
+COMPLETE_IN_FORCE
+[JSON]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+II
+	
+SHOM (Service Hydrographique et Océanographique de la Marine)
+SHOM-NAVAREA-2
+	
+COMPLETE_IN_FORCE
+[PDF]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+III
+	
+Instituto Hidrográfico de la Marina (Spain)
+IHM-NAVAREA-3
+	
+COMPLETE_IN_FORCE
+[HTML]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+IV, XII
+	
+National Geospatial-Intelligence Agency (NGA)
+NGA-NAVAREA-4-12
+	
+COMPLETE_IN_FORCE
+[JSON]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+V
+	
+Centro de Hidrografia da Marinha (Brazil)
+CHM-NAVAREA-5
+	
+COMPLETE_IN_FORCE
+[JSON]
+	
+0%
+0/0 runs
+	
+⚠ UNVERIFIED
+	
+Pending Onboarding
+
+
+VI
+	
+Servicio de Hidrografía Naval (Argentina)
+SHN-NAVAREA-6
+	
+COMPLETE_IN_FORCE
+[TEXT]
+	
+0%
+0/0 runs
+	
+◌ STALE
+	
+Pending Onboarding
+
+
+VII
+	
+South African Hydrographic Office (SANHO)
+SANHO-NAVAREA-7
+	
+COMPLETE_IN_FORCE
+[HTML]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+VIII
+	
+Indian Naval Hydrographic Office (INHO)
+INHO-NAVAREA-8
+	
+COMPLETE_IN_FORCE
+[PDF]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+IX
+	
+Pakistan Hydrographic Department
+PNH-NAVAREA-9
+	
+COMPLETE_IN_FORCE
+[HTML]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+X
+	
+Australian Maritime Safety Authority (AMSA)
+AMSA-NAVAREA-10
+	
+COMPLETE_IN_FORCE
+[HTML]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+XI
+	
+Japan Coast Guard (Hydrographic and Oceanographic Dept)
+JCG-NAVAREA-11
+	
+COMPLETE_IN_FORCE
+[HTML]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+XIII
+	
+Department of Navigation and Oceanography (Russia)
+RUSSIA-NAVAREA-13
+	
+COMPLETE_IN_FORCE
+[HTML]
+	
+0%
+0/0 runs
+	
+⚠ UNVERIFIED
+	
+Pending Onboarding
+
+
+XIV
+	
+Maritime New Zealand
+MNZ-NAVAREA-14
+	
+COMPLETE_IN_FORCE
+[HTML]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+XV
+	
+Servicio Hidrográfico y Oceanográfico de la Armada (Chile)
+SHOA-NAVAREA-15
+	
+COMPLETE_IN_FORCE
+[JSON]
+	
+0%
+0/0 runs
+	
+⚠ UNVERIFIED
+	
+Pending Onboarding
+
+
+XVI
+	
+Dirección de Hidrografía y Navegación (Peru)
+DHN-NAVAREA-16
+	
+COMPLETE_IN_FORCE
+[HTML]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+XVII, XVIII
+	
+Canadian Coast Guard (NAVAREA XVII & XVIII WFS)
+CCG-NAVAREAS-MAP
+	
+COMPLETE_IN_FORCE
+[JSON]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+XIX
+	
+Norwegian Coastal Administration (Kystverket)
+KYSTVERKET-NAVAREA-19
+	
+COMPLETE_IN_FORCE
+[HTML]
+	
+0%
+0/0 runs
+	
+✓ VERIFIED
+	
+RUN WORKER
+
+
+XX, XXI
+	
+Department of Navigation and Oceanography (Russia Arctic)
+RUSSIA-NAVAREA-20-21
+	
+COMPLETE_IN_FORCE
+[HTML]
+	
+0%
+0/0 runs
+	
+⚠ UNVERIFIED
+	
+Pending Onboarding
+Helm.Warning
+•
+NAVAREA Maritime Safety Information Pipeline
+Last updated: 6 Oct 2026, 17:59 IST
