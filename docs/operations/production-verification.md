@@ -55,10 +55,15 @@ are resolved — a failing check on a genuinely broken deployment is the intende
 not a broken workflow. Read the log before deciding which it is: the known deployment
 failure is the recorded `no unexpected console errors` FAIL with those three 404s
 present in `verify.json`, whereas a runner or environment problem surfaces as a Chrome
-launch or CDP error, or as a missing or failed `verify-report` artifact. Either way the
-run uploads a `verify-report` artifact containing `verify.json` and `verify.png` (the
-upload step is `if: always()`), so the screenshot is available exactly when it is
-needed.
+launch or CDP error, or as a missing or failed `verify-report` artifact. Those two
+sentences are consistent only read precisely: the upload step is `if: always()`, so it
+*runs* after both outcomes, but it is paired with `if-no-files-found: ignore`, so it
+publishes nothing when the verifier never produced its outputs — a job that dies
+before the verifier runs leaves no artifact at all, which is exactly why a *missing*
+artifact counts as a runner symptom rather than a deployment verdict. When
+`verify.json` and `verify.png` do exist — the verifier ran to completion, whether the
+checks passed or failed — the `verify-report` artifact containing them is uploaded,
+and the screenshot is available exactly when it is needed.
 
 ## Deployment shape (verified 2026-10-05)
 
@@ -122,10 +127,32 @@ its order can vary with request arrival order, so compare it as a set.
 
 Resolution belongs in the app or the deployment, not in the checker: either deploy
 the missing endpoints, or stop calling them client-side (or accept them explicitly,
-with that decision recorded here). `scripts/verify-deployment.mjs`,
-`scripts/fixtures/csp-blocked-fixture.mjs`, and the `verify:*` npm scripts were
-deliberately left unmodified so this baseline keeps its teeth. Do not expect exit 0
-until one of those is done.
+with that decision recorded here). Do not expect exit 0 until one of those is done.
+
+Nothing that decides this baseline has ever been relaxed. The fail conditions, the
+`KNOWN_MISSING` allowlist (`scripts/verify-deployment.mjs:18` — `/api/warnings`,
+`/api/health`, `/api/tiles/` and nothing more), and the `--expect-headers any` setting
+that `verify:prod` and the CI workflow both run with are exactly as recorded above;
+`scripts/fixtures/csp-blocked-fixture.mjs` has not been touched since this baseline
+was recorded. Since then only three changes touched this tooling, and none of them
+can move a single number, check, or exit code above:
+
+- `scripts/verify-deployment.mjs:118` added a `detail` string for the
+  `tiles.total === 0` case, so "the selector matched nothing" is no longer
+  worded like "every tile failed to decode". That is a diagnostic label on an
+  existing check: the predicate, the check name, and its `fail` severity are
+  untouched.
+- `package.json:14` repointed `verify:selftest` from the raw fixture to
+  `scripts/verify-selftest.mjs`, a harness that starts the CSP-broken fixture,
+  runs the real verifier against it, and *requires* it to reject that deployment
+  on the parsed `--json` output. It adds assertions, never relaxes one.
+- `scripts/lib/cdp.mjs` only changed how the Chrome temp profile is removed and
+  how its directory is named (an env-var override that defaults to today's
+  `hw-verify-`). The verifier's checks, allowlist, and command-line flags are
+  untouched.
+
+The teeth are still in place, and `npm run verify:selftest` now proves them
+mechanically instead of this paragraph having to assert it.
 
 `GET /favicon.ico` also 404s. It is excluded from the console-error check by the
 checker's `/favicon/i` filter and only appears in the 4xx WARN, so it does not

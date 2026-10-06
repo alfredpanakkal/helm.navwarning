@@ -26,6 +26,15 @@ export function resolveChrome() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Ownership of the temp profile dir. The selftest gives its own runs a unique
+// prefix here so it can identify -- and only ever remove -- the user-data-dirs
+// it created itself (see scripts/verify-selftest.mjs). Nothing sets it, so the
+// name stays exactly what it has always been.
+function userDataDirPrefix() {
+  const raw = process.env.VERIFY_USER_DATA_DIR_PREFIX;
+  return typeof raw === 'string' && raw.length > 0 && !/[\\/]/.test(raw) ? raw : 'hw-verify-';
+}
+
 async function removeUserDataDirWithRetry(userDataDir, attempts = 5, delayMs = 100) {
   for (let i = 0; i < attempts; i++) {
     try {
@@ -48,7 +57,7 @@ export async function launchChrome({ port = 9333 } = {}) {
   let userDataDir;
   let proc;
   try {
-    userDataDir = mkdtempSync(path.join(tmpdir(), 'hw-verify-'));
+    userDataDir = mkdtempSync(path.join(tmpdir(), userDataDirPrefix()));
   } catch (err) {
     throw new Error(`Failed to create temp user-data-dir: ${err?.message ?? err}`);
   }

@@ -36,13 +36,25 @@
 // SIGINT/SIGTERM, overall timeout):
 //   - the fixture server and the verifier (plus the Chrome it spawned) are
 //     killed as a process tree, and the fixture port is re-checked as released;
+//   - the tree is reaped UNCONDITIONALLY: a child that has already exited tells
+//     us nothing about its descendants, so cleanup never skips the reaping step
+//     just because the child is gone;
 //   - the temp dir holding verify.json is removed;
-//   - any `hw-verify-*` Chrome user-data-dir leaked by a hard-killed verifier
-//     (only present when this run created it) is swept;
+//   - every process holding a Chrome user-data-dir created by THIS invocation is
+//     killed and those directories are swept. Ownership is established by this
+//     invocation's unique `hw-verify-st<8 hex>-` prefix (exported to the
+//     verifier through VERIFY_USER_DATA_DIR_PREFIX), never by age and never by
+//     the generic `hw-verify-` pattern -- a concurrent run started in another
+//     terminal has a different prefix and is untouchable by us;
+//   - every cleanup failure is reported as one clear `[cleanup] LEFT BEHIND: ...`
+//     line (or as a `- cleanup: ...` assertion line) naming what survived and
+//     where it is; nothing is swallowed, and the exit-code semantics are the
+//     ones already documented below (0/1 for assertions, 130 for a signal);
 //   - an overall timeout guarantees the harness can never hang.
 
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeSync } from 'node:fs';
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -51,6 +63,33 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FIXTURE = path.join(ROOT, 'scripts', 'fixtures', 'csp-blocked-fixture.mjs');
 const VERIFIER = path.join(ROOT, 'scripts', 'verify-deployment.mjs');
+
+// --- ownership of Chrome user-data-dirs -------------------------------------
+// Everything this harness sweeps or kills is keyed off this prefix and nothing
+// else. It is random per invocation, so:
+//   - a normal `npm run verify:prod` in another terminal creates
+//     `hw-verify-` + 6 mkdtemp chars, which can never carry this prefix (6
+//     chars cannot cover `st` + 8 hex + `-`), so it is invisible to us;
+//   - a second concurrent selftest gets its own prefix, so the two never
+//     overlap either.
+const OWN_USER_DATA_DIR_PREFIX = `hw-verify-st${randomBytes(4).toString('hex')}-`;
+// The prefix reaches Chrome only through the environment (cdp.mjs reads it),
+// never through an argv of ours, so no process we own can match it by cmdline.
+process.env.VERIFY_USER_DATA_DIR_PREFIX = OWN_USER_DATA_DIR_PREFIX;
+// Indirection for the Windows enumerator: passing the value inside the child's
+// environment keeps it out of that child's own command line, so the enumerator
+// can never match (and kill) itself.
+const OWN_PREFIX_ENV_KEY = 'HW_SELFTEST_OWN_PREFIX';
+// Single-quoted PS format string on purpose: no double quotes anywhere in the
+// command, so it survives both CreateProcess argument quoting (node) and
+// PowerShell's own native-command quoting intact.
+const PS_LIST_OWN_PROCESSES =
+  'Get-CimInstance Win32_Process -Property ProcessId,CommandLine | ' +
+  'Where-Object { $_.CommandLine -and $_.CommandLine.Contains($env:' +
+  OWN_PREFIX_ENV_KEY +
+  ") } | ForEach-Object { '{0}|{1}' -f $_.ProcessId, $_.CommandLine }";
+const OWN_KILL_TIMEOUT_MS = 5_000;
+// ---------------------------------------------------------------------------
 
 const FIXTURE_URL_HOST = '127.0.0.1';
 const EXPECTED_TILE_TOTAL = 28;
@@ -81,8 +120,9 @@ function finish(code) {
 }
 
 function snapshotVerifyTempDirs() {
-  // Baseline taken before this run spawns anything: only entries created after
-  // this point may be swept, so we never touch another run's directories.
+  // Baseline taken before this run spawns anything. It is a second, redundant
+  // guard on top of the unique prefix: a directory that already existed when
+  // we started is by definition not ours to remove.
   try {
     return new Set(readdirSync(tmpdir()));
   } catch {
@@ -118,23 +158,42 @@ async function pickFixturePort() {
   return { port: await pickFreePort(), reusedDefault: false };
 }
 
+// Kill the tree rooted at `child`. This is called on EVERY cleanup path,
+// including when `child` has already exited: a dead child says nothing about
+// its descendants (on Windows they are re-parented and keep running), so
+// cleanup never skips reaping just because the child is gone.
+//
+//   - POSIX: the child is a process-group leader and the group survives its
+//     leader as long as any member lives, so `kill(-pgid)` still reaches the
+//     stragglers. Unguarded by design.
+//   - Windows: `taskkill /T` can only walk down from a LIVE root. Running it
+//     against an already-exited pid cannot reach the descendants at all (the
+//     parent-child chain died with the root) and would kill an unrelated tree
+//     if that pid had already been recycled. Descendants of a dead root are
+//     therefore reaped by reapOwnedUserDataDirProcesses(), which matches on
+//     this invocation's unique user-data-dir prefix and runs unconditionally on
+//     every path -- including this one.
 function killTree(child) {
-  if (!child || !child.pid || child.exitCode !== null || child.signalCode !== null) return;
-  try {
-    if (process.platform === 'win32') {
+  if (!child || !child.pid) return;
+  if (process.platform === 'win32') {
+    if (child.exitCode !== null || child.signalCode !== null) return;
+    try {
       // /T kills the whole tree so the verifier's Chrome dies with it.
       spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
         stdio: 'ignore',
+        windowsHide: true,
       });
-    } else {
-      // The child was spawned detached, so -pid targets its own process group
-      // (verifier + Chrome, or fixture) and never this harness.
+    } catch {
       try {
-        process.kill(-child.pid, 'SIGKILL');
-      } catch {
         child.kill('SIGKILL');
+      } catch {
+        /* already gone */
       }
     }
+    return;
+  }
+  try {
+    process.kill(-child.pid, 'SIGKILL');
   } catch {
     try {
       child.kill('SIGKILL');
@@ -142,6 +201,114 @@ function killTree(child) {
       /* already gone */
     }
   }
+}
+
+function userDataDirFromCommandLine(cmdline) {
+  const m = /--user-data-dir=(?:"([^"]+)"|(\S+))/.exec(String(cmdline ?? ''));
+  return m ? m[1] || m[2] : null;
+}
+
+// Live processes whose command line embeds this invocation's user-data-dir
+// prefix. Only Chrome ever carries that string (it arrives as
+// `--user-data-dir=<tmpdir>/<prefix>...`); our own argv never does.
+function listOwnedUserDataDirProcesses() {
+  const processes = [];
+  let failure = null;
+  try {
+    if (process.platform === 'win32') {
+      const res = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', PS_LIST_OWN_PROCESSES], {
+        env: { ...process.env, [OWN_PREFIX_ENV_KEY]: OWN_USER_DATA_DIR_PREFIX },
+        encoding: 'utf8',
+        timeout: 20_000,
+        windowsHide: true,
+      });
+      if (res.error) failure = res.error.message;
+      else if (res.status !== 0) {
+        failure = `powershell exited ${res.status}: ${String(res.stderr ?? '').trim().slice(0, 200)}`;
+      } else {
+        for (const line of String(res.stdout ?? '').split(/\r?\n/)) {
+          const m = /^(\d+)\|([\s\S]*)$/.exec(line.trim());
+          if (m) remember(processes, Number(m[1]), m[2]);
+        }
+      }
+    } else {
+      const res = spawnSync('ps', ['-eo', 'pid=,args='], { encoding: 'utf8', timeout: 20_000 });
+      if (res.error) failure = res.error.message;
+      else if (res.status !== 0) failure = `ps exited ${res.status}: ${String(res.stderr ?? '').trim().slice(0, 200)}`;
+      else {
+        for (const line of String(res.stdout ?? '').split('\n')) {
+          if (!line.includes(OWN_USER_DATA_DIR_PREFIX)) continue;
+          const m = /^\s*(\d+)\s+([\s\S]*)$/.exec(line);
+          if (m) remember(processes, Number(m[1]), m[2]);
+        }
+      }
+    }
+  } catch (err) {
+    failure = err?.message ?? String(err);
+  }
+  return { processes, failure };
+}
+
+function remember(into, pid, cmdline) {
+  if (!Number.isInteger(pid) || pid <= 0 || pid === process.pid) return;
+  into.push({ pid, userDataDir: userDataDirFromCommandLine(cmdline) });
+}
+
+function killProcesses(processes) {
+  for (const { pid } of processes) {
+    try {
+      if (process.platform === 'win32') {
+        spawnSync('taskkill', ['/pid', String(pid), '/T', '/F'], {
+          stdio: 'ignore',
+          timeout: 15_000,
+          windowsHide: true,
+        });
+      } else {
+        try {
+          process.kill(pid, 'SIGKILL');
+        } catch {
+          /* already gone */
+        }
+      }
+    } catch {
+      /* re-checked by the caller */
+    }
+  }
+}
+
+// Unconditional reaping of this run's own Chrome, independent of whether the
+// verifier is alive. This is what makes "the child already exited" safe: the
+// child's state never gates this function.
+async function reapOwnedUserDataDirProcesses() {
+  const problems = [];
+  const first = listOwnedUserDataDirProcesses();
+  if (first.failure) {
+    problems.push(
+      `could not enumerate processes holding a ${OWN_USER_DATA_DIR_PREFIX}* user-data-dir: ${first.failure}`
+    );
+    return problems;
+  }
+  killProcesses(first.processes);
+  let remaining = first.processes;
+  const deadline = Date.now() + OWN_KILL_TIMEOUT_MS;
+  while (remaining.length > 0 && Date.now() < deadline) {
+    await sleep(200);
+    const next = listOwnedUserDataDirProcesses();
+    if (next.failure) {
+      problems.push(
+        `could not re-check processes holding a ${OWN_USER_DATA_DIR_PREFIX}* user-data-dir: ${next.failure}`
+      );
+      return problems;
+    }
+    remaining = next.processes;
+    killProcesses(remaining);
+  }
+  for (const p of remaining) {
+    problems.push(
+      `Chrome still running for our user-data-dir ${p.userDataDir ?? OWN_USER_DATA_DIR_PREFIX} (pid ${p.pid})`
+    );
+  }
+  return problems;
 }
 
 function spawnDetached(cmd, args, env) {
@@ -184,7 +351,7 @@ async function waitForPortFree(port) {
   return await portIsFree(port);
 }
 
-async function sweepNewVerifyTempDirs(baseline) {
+async function sweepOwnUserDataDirs(baseline) {
   const problems = [];
   let names = [];
   try {
@@ -194,7 +361,11 @@ async function sweepNewVerifyTempDirs(baseline) {
     return problems;
   }
   for (const name of names) {
-    if (!name.startsWith('hw-verify-') || baseline.has(name)) continue;
+    // Ownership, and nothing else: only directories carrying this invocation's
+    // unique prefix are candidates, and only if they were not already here when
+    // the baseline was taken. We never remove a directory we did not create --
+    // not by age, not by the generic `hw-verify-` pattern, not by mtime.
+    if (!name.startsWith(OWN_USER_DATA_DIR_PREFIX) || baseline.has(name)) continue;
     const dir = path.join(tmpdir(), name);
     let removed = false;
     for (let i = 0; i < 5 && !removed; i++) {
@@ -330,16 +501,20 @@ async function cleanup() {
   if (cleanedUp) return problems;
   cleanedUp = true;
 
+  // Unconditional, whether or not either child is still alive. killTree() no
+  // longer skips a child that already exited, and reapOwnedUserDataDirProcesses()
+  // does not consult child state at all.
   killTree(verifierProc);
   killTree(fixtureProc);
   await whenExited(verifierProc);
   await whenExited(fixtureProc);
+  problems.push(...(await reapOwnedUserDataDirProcesses()));
 
   if (fixturePort !== null && !(await waitForPortFree(fixturePort))) {
     problems.push(`port ${fixturePort} is still occupied after killing the fixture`);
   }
 
-  problems.push(...(await sweepNewVerifyTempDirs(baselineDirs)));
+  problems.push(...(await sweepOwnUserDataDirs(baselineDirs)));
 
   if (tempDir) {
     for (let i = 0; i < 3; i++) {
@@ -357,25 +532,98 @@ async function cleanup() {
   return problems;
 }
 
+// Cleanup failures are never swallowed. One line per leftover, naming what
+// survived and where it is. The async paths can use stdout; the process 'exit'
+// handler cannot (stdout may already be draining), so it writes to fd 2
+// synchronously instead.
+function reportCleanupProblems(problems) {
+  for (const problem of problems) {
+    process.stdout.write(`[cleanup] LEFT BEHIND: ${problem}\n`);
+  }
+}
+
+function reportCleanupProblemsSync(problems) {
+  for (const problem of problems) {
+    try {
+      writeSync(2, `[cleanup] LEFT BEHIND: ${problem}\n`);
+    } catch {
+      /* fd already closed; nothing left to write to */
+    }
+  }
+}
+
 // Last-resort synchronous cleanup: runs even on process 'exit' (uncaught
-// exception, forced exit) when async cleanup never got the chance.
+// exception, forced exit) when async cleanup never got the chance. Anything it
+// cannot remove is reported, not swallowed. Once async cleanup has run
+// (cleanedUp) it has already reported its own leftovers, so this only backfills
+// the temp dir, which it still tries to remove.
 process.on('exit', () => {
+  if (cleanedUp) {
+    if (tempDir) {
+      try {
+        rmSync(tempDir, { recursive: true, force: true });
+      } catch {
+        /* already reported by the async pass if it is still there */
+      }
+      tempDir = null;
+    }
+    return;
+  }
+  cleanedUp = true;
+  const problems = [];
   killTree(verifierProc);
   killTree(fixtureProc);
+  try {
+    const { processes, failure } = listOwnedUserDataDirProcesses();
+    if (failure) {
+      problems.push(
+        `could not enumerate processes holding a ${OWN_USER_DATA_DIR_PREFIX}* user-data-dir: ${failure}`
+      );
+    } else {
+      killProcesses(processes);
+      for (const p of processes) {
+        problems.push(
+          `Chrome still running for our user-data-dir ${p.userDataDir ?? OWN_USER_DATA_DIR_PREFIX} (pid ${p.pid})`
+        );
+      }
+    }
+    for (const name of readdirSync(tmpdir())) {
+      if (!name.startsWith(OWN_USER_DATA_DIR_PREFIX) || baselineDirs.has(name)) continue;
+      const dir = path.join(tmpdir(), name);
+      try {
+        rmSync(dir, { recursive: true, force: true });
+      } catch {
+        /* reported below if it is still there */
+      }
+      if (existsSync(dir)) problems.push(`leftover Chrome user-data-dir not removable: ${dir}`);
+    }
+  } catch (err) {
+    problems.push(`synchronous cleanup could not run: ${err?.message ?? String(err)}`);
+  }
   if (tempDir) {
     try {
       rmSync(tempDir, { recursive: true, force: true });
     } catch {
-      /* best effort */
+      /* reported below */
     }
+    if (existsSync(tempDir)) problems.push(`temp dir not removable: ${tempDir}`);
+    tempDir = null;
   }
+  reportCleanupProblemsSync(problems);
 });
 
 const signalHandler = (signal) => async () => {
   if (aborting) return;
   aborting = true;
   process.stdout.write(`\n[signal] ${signal} received -- cleaning up before exit\n`);
-  await cleanup();
+  // The signal path has no assertion list to carry cleanup problems, so they
+  // are printed here. The exit code stays 130 -- a cleanup failure is reported,
+  // never silently folded into a different code.
+  const problems = await cleanup();
+  reportCleanupProblems(problems);
+  if (problems.length === 0) {
+    process.stdout.write('[cleanup] clean: no leftovers\n');
+  }
   finish(130);
 };
 process.on('SIGINT', signalHandler('SIGINT'));
@@ -385,7 +633,8 @@ async function main() {
   process.stdout.write(
     'verify:selftest -- negative control for scripts/verify-deployment.mjs\n' +
       '  INVERSION: this selftest PASSES (exit 0) only when the CHECKER FAILS (exit != 0).\n' +
-      `  overall timeout: ${OVERALL_TIMEOUT_MS} ms\n`
+      `  overall timeout: ${OVERALL_TIMEOUT_MS} ms\n` +
+      `  own user-data-dir prefix: ${OWN_USER_DATA_DIR_PREFIX} (only these dirs/processes are ever removed)\n`
   );
 
   const { port: chosenPort, reusedDefault } = await pickFixturePort();
@@ -497,6 +746,9 @@ async function main() {
   if (aborting) return;
 
   const cleanupProblems = await cleanup();
+  // On this path every problem is both printed (as its own `- cleanup: ...`
+  // line, which names the leftover and its path) and turned into a failed
+  // assertion, so a cleanup failure fails the run rather than passing quietly.
   for (const problem of cleanupProblems) {
     failures.push({ id: 'cleanup', message: problem });
   }
@@ -535,6 +787,10 @@ async function main() {
 
 main().catch(async (err) => {
   process.stdout.write(`SELFTEST FAIL: harness crashed: ${err?.stack ?? String(err)}\n`);
-  await cleanup();
+  const problems = await cleanup();
+  reportCleanupProblems(problems);
+  for (const problem of problems) {
+    process.stdout.write(`  - cleanup: ${problem}\n`);
+  }
   finish(1);
 });
