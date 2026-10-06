@@ -63,14 +63,14 @@ export const DataBankStatusBar: React.FC<{
           Live
         </span>
         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300">
-          {enabledFeeds > 0 ? 'Pipeline Active' : 'Deterministic Parser'}
+          {enabledFeeds > 0 ? 'Pipeline Active' : 'Manual Data Mode'}
         </span>
         {onTriggerRefresh && (
           <button
             type="button"
             onClick={() => onTriggerRefresh()}
             disabled={isRefreshing}
-            title="Trigger live pipeline fetch from hydrographic endpoints"
+            title="Refresh live feeds now"
             className="px-2 py-1 rounded bg-gw-primary text-white font-bold uppercase tracking-wider text-[10px] border border-gw-primary hover:bg-gw-tertiary transition-all flex items-center gap-1 disabled:opacity-50 cursor-pointer"
           >
             <RotateCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />

@@ -70,20 +70,7 @@ Weather & Ice (0)
 Offshore (0)
 General (1)
 MORE FILTERS
-SORT:
-Urgency First
-Recency (Newest)
-NAVAREA Sequence
-Data Quality
-Standard Table Columns
-DESC
-↓
 Matching: 5
-QUICK:
-All (5)
-Active Only (5)
-With Coords (5)
-Unverified (2)
 Sort:
 Date (Newest First)
 Date (Oldest First)
@@ -120,7 +107,7 @@ PROCEDURE
 ↗
 Helm.Warning
 NAVAREA Maritime Safety Information Pipeline
-Last updated: 6 Oct 2026, 21:14 IST
+Last updated: 6 Oct 2026, 22:00 IST
 UI
 v2
 classic

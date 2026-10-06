@@ -160,7 +160,7 @@ export const DataBankSummary: React.FC<{
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse shrink-0" />
               <span className="font-bold text-gw-primary">
-                {enabledFeeds > 0 ? 'Dynamic Ingestion Pipeline Active' : 'Deterministic Spatial Parser'}
+                {enabledFeeds > 0 ? 'Dynamic Ingestion Pipeline Active' : 'Manual Data Mode'}
               </span>
               <span>({enabledFeeds > 0 ? `${enabledFeeds} Feeds Configured` : 'No live feeds configured'})</span>
             </div>

@@ -36,6 +36,17 @@ async function goTab(page: Page, name: 'Data Bank' | 'Sources' | 'Map View') {
   await page.getByRole('tab', { name: new RegExp(`^${name}`, 'i') }).click();
 }
 
+/**
+ * Task 3 fix round: smart-sort presets and quick filters moved into the
+ * collapsed "More filters" secondary panel on the v2 path. Idempotent.
+ */
+async function openMoreFilters(page: Page) {
+  const button = page.getByRole('button', { name: /^More filters$/ });
+  if ((await button.getAttribute('aria-expanded')) !== 'true') {
+    await button.click();
+  }
+}
+
 test.describe('public shell', () => {
   test('header tabs, active-count shortcut and tab switching keep working', async ({ page }) => {
     const errors = watchPageErrors(page);
@@ -76,6 +87,9 @@ test.describe('data bank', () => {
     await expect(page.locator('#databank-table-header')).toBeVisible();
 
     expect(await matchingCount(page)).toBe(5);
+
+    // Quick filters live in the collapsed More filters panel (Task 3 fix).
+    await openMoreFilters(page);
 
     // Quick filter: the "Unverified (n)" pill counts `status === 'unverified'
     // || extraction_confidence < 1` but the table filter matches only
@@ -135,6 +149,10 @@ test.describe('data bank', () => {
     await openApp(page);
     await goTab(page, 'Data Bank');
     await expect(page.locator('#databank-table-header')).toBeVisible();
+
+    // Task 3 fix round: the smart-sort dropdown + direction toggle live in
+    // the collapsed More filters panel; open it first.
+    await openMoreFilters(page);
 
     // Task 3: the five legacy smart-sort presets are now one dropdown on the
     // v2 path (`#databank-sort`). Values keep the legacy preset ids.

@@ -15,7 +15,7 @@ SOURCES
 ADMIN ACCESS
 NOTICE
 Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
-• Last updated: 6 Oct 2026, 21:13 IST
+• Last updated: 6 Oct 2026, 22:00 IST
 PRINCIPLES
 01_VERIFICATION
 An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
@@ -72,21 +72,8 @@ Weather & Ice (0)
 Offshore (0)
 General (1)
 MORE FILTERS
-SORT:
-Urgency First
-Recency (Newest)
-NAVAREA Sequence
-Data Quality
-Standard Table Columns
-DESC
-↓
 Matching: 5
 Sorted by Issued
-QUICK:
-All (5)
-Active Only (5)
-With Coords (5)
-Unverified (2)
 ID
 AREA
 TITLE
@@ -169,7 +156,7 @@ Zero Hardcoded Data: Live WWNWS Hydrographic Feeds
 Helm.Warning
 •
 NAVAREA Maritime Safety Information Pipeline
-Last updated: 6 Oct 2026, 21:13 IST
+Last updated: 6 Oct 2026, 22:00 IST
 UI
 v2
 classic
