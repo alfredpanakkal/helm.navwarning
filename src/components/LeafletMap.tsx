@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { getLeafletLatLng } from '../utils/coordinateParser';
 import { useMapNavigation } from '../hooks/useMapNavigation';
+import { useMapFocus } from '../hooks/useMapFocus';
 import { formatDecimalCoordinates, type CoordinateParseError } from '../utils/coordinateConversion';
 import { NAVAREA_ZONE_LIST, NAVAREA_ZONES_BY_ID } from '../utils/navareaZones';
 import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
@@ -81,11 +82,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
   // Task 7 — Focus map (v2 path only): a single control hides every map
   // panel so the map owns the viewport; toggling back restores panel state.
-  const [focusMap, setFocusMap] = useState(false);
+  const { focusMap, setFocusMap } = useMapFocus(legacyUI, isActive);
   const [controlsPanelOpen, setControlsPanelOpen] = useState(true);
   const drawerListRef = useRef<HTMLDivElement>(null);
-  const severityStripRef = useRef<HTMLDivElement>(null);
-  const focusSnapshotRef = useRef<{ listScrollTop: number; stripScrollLeft: number } | null>(null);
 
   // Layer references
   const baseTileLayerRef = useRef<L.TileLayer | null>(null);
@@ -130,6 +129,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     format: 'DMM' | 'DD';
   } | null>(null);
   const [isQuickJumpExpanded, setIsQuickJumpExpanded] = useState<boolean>(true);
+
+  // Focus mode scroll snapshot
+  const focusSnapshotRef = useRef<{ listScrollTop: number; stripScrollLeft: number } | null>(null);
+  const severityStripRef = useRef<HTMLDivElement>(null);
 
   // Real-time navigation and coordinate tracking hook
   const {
@@ -353,28 +356,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     if ((legacyUI || !isActive) && focusMap) setFocusMap(false);
   }, [legacyUI, isActive, focusMap]);
 
-  // Focus-map chrome: `body[data-map-focus]` steps the app header/footer aside
-  // (index.css) so the map owns the full viewport. Only ever set on the v2
-  // path; cleaned up on unmount so a tab switch can never leave it stuck.
-  useEffect(() => {
-    if (legacyUI) return;
-    if (focusMap) document.body.setAttribute('data-map-focus', 'on');
-    else document.body.removeAttribute('data-map-focus');
-    return () => document.body.removeAttribute('data-map-focus');
-  }, [focusMap, legacyUI]);
-
-  // The map container changes size on focus entry/exit — re-measure so tiles
-  // and controls realign. The map instance itself (center, zoom, layers,
-  // hidden warnings) is untouched, so the view is preserved.
-  useEffect(() => {
-    const t1 = setTimeout(() => leafletInstance.current?.invalidateSize(), 80);
-    const t2 = setTimeout(() => leafletInstance.current?.invalidateSize(), 450);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [focusMap]);
-
   // Restore the drawer scroll snapshot once the panels are back in layout.
   useEffect(() => {
     if (focusMap) return;
@@ -384,8 +365,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     let inner = 0;
     const outer = requestAnimationFrame(() => {
       inner = requestAnimationFrame(() => {
-        if (drawerListRef.current) drawerListRef.current.scrollTop = snap.listScrollTop;
-        if (severityStripRef.current) severityStripRef.current.scrollLeft = snap.stripScrollLeft;
+        const list = drawerListRef.current;
+        const strip = severityStripRef.current;
+        if (list && list.offsetParent !== null) list.scrollTop = snap.listScrollTop;
+        if (strip && strip.offsetParent !== null) strip.scrollLeft = snap.stripScrollLeft;
       });
     });
     return () => {
@@ -651,6 +634,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           : 'relative h-[calc(100vh-140px)] min-h-[520px] border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden bg-gw-bg isolate'
       }
       data-map-focus={focusMap ? 'on' : undefined}
+      aria-hidden={focusMap ? 'true' : undefined}
     >
       {/* Map Canvas */}
       <div
@@ -940,7 +924,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                       onChange={() => toggleOverlay('esri-labels')}
                       className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
                     />
-                    <span>ESRI Ocean Labels & Soundings</span>
+                    <span>Ocean Soundings</span>
                   </label>
 
                   <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
@@ -950,7 +934,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                       onChange={() => toggleOverlay('openseamap')}
                       className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
                     />
-                    <span>OpenSeaMap Seamarks</span>
+                    <span>Seamarks</span>
                   </label>
                 </div>
               </div>
