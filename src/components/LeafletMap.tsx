@@ -1033,7 +1033,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     onChange={(e) => setEnableClusters(e.target.checked)}
                     className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
                   />
-                  <span>Warning Markers</span>
+                  <span>Warning Markers (cluster)</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">

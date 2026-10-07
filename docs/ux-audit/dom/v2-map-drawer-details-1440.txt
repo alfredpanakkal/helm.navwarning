@@ -15,7 +15,7 @@ SOURCES
 ADMIN ACCESS
 NOTICE
 Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
-• Last updated: 7 Oct 2026, 14:46 IST
+• Last updated: 7 Oct 2026, 15:20 IST
 PRINCIPLES
 01_VERIFICATION
 An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
@@ -71,7 +71,7 @@ NAVAREA XX — Arctic Ocean Russia West (Russia)
 NAVAREA XXI — Arctic Ocean Russia East (Russia)
 LAYER VISIBILITY
 Warning Areas
-Warning Markers
+Warning Markers (cluster)
 Ocean Soundings
 Seamarks
 ALL
@@ -131,7 +131,7 @@ DETAILS
 Helm.Warning
 •
 NAVAREA Maritime Safety Information Pipeline
-Last updated: 7 Oct 2026, 14:46 IST
+Last updated: 7 Oct 2026, 15:20 IST
 NAVAREA I
 NAVAREA I
 ● ACTIVE

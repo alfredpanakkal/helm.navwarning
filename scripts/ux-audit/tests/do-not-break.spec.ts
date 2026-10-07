@@ -220,8 +220,11 @@ test.describe('map', () => {
 
     // Task 6 (plan §1.4): no pane identifier or "panes" wording may appear in
     // any user-visible string. The map component is shared by both render
-    // paths, so this one assertion covers classic and v2.
-    const mapText = (await page.evaluate('document.body.innerText')) as string;
+    // paths, so this one assertion covers classic and v2. Compared on the
+    // lowercased innerText — the heading sits in an `uppercase`-styled div, so
+    // a case-sensitive needle for "Layer Visibility & Panes" could never fire
+    // against the rendered "LAYER VISIBILITY & PANES" (review finding 1).
+    const mapText = ((await page.evaluate('document.body.innerText')) as string).toLowerCase();
     for (const internal of [
       'navWarnVectorPane',
       'navWarnMarkerPane',
@@ -229,7 +232,7 @@ test.describe('map', () => {
       'seamarksPane',
       'Layer Visibility & Panes',
     ]) {
-      expect(mapText, `user-visible text must not contain "${internal}"`).not.toContain(internal);
+      expect(mapText, `user-visible text must not contain "${internal}"`).not.toContain(internal.toLowerCase());
     }
 
     const jumpInput = page.locator('input[placeholder^="e.g. 55-23.90N"]');
@@ -290,10 +293,13 @@ test.describe('sources', () => {
     await expect(page.getByRole('button', { name: /Refresh Now/ }).first()).toBeEnabled();
 
     // Task 6 (plan §1.4): worker/LLM internal names are gone from every
-    // user-visible string on the Sources surface (both paths).
+    // user-visible string on the Sources surface (both paths). The action
+    // button and table headers are `uppercase`-styled, so a reintroduced
+    // "Run Worker" renders as "RUN WORKER" — the needle must be
+    // case-insensitive or it can never fire (review finding 2).
     const sourcesText = (await page.evaluate('document.body.innerText')) as string;
-    expect(sourcesText, 'no "Run Worker" label').not.toMatch(/Run Worker/);
-    expect(sourcesText, 'no "LLM" token').not.toMatch(/\bLLM\b/);
+    expect(sourcesText, 'no "Run Worker" label').not.toMatch(/run worker/i);
+    expect(sourcesText, 'no "LLM" token').not.toMatch(/\bllm\b/i);
 
     expect(errors, 'no uncaught page errors').toEqual([]);
   });

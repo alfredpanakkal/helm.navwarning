@@ -16,7 +16,10 @@ const RENAMES: ReadonlyArray<readonly [string, string]> = [
   // Map drawer layer list (LeafletMap.tsx)
   ['Layer Visibility & Panes', 'Layer Visibility'],
   ['Warning Polygons (navWarnVectorPane)', 'Warning Areas'],
-  ['Marker Clusters (navWarnMarkerPane)', 'Warning Markers'],
+  // Task-6 fix round 1 (human ruling): label amended from the plan table's
+  // "Warning Markers" to "Warning Markers (cluster)" — the checkbox toggles
+  // clustered vs unclustered rendering, markers never hide.
+  ['Marker Clusters (navWarnMarkerPane)', 'Warning Markers (cluster)'],
   ['Ocean Soundings (soundingsPane)', 'Ocean Soundings'],
   ['OpenSeaMap Seamarks (seamarksPane)', 'Seamarks'],
   // Sources registry (classic table + v2 row expand)
