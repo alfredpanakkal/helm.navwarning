@@ -12,7 +12,7 @@
     "dev:audit": "tsx scripts/ux-audit/dev-server.ts",
     "ux:capture": "tsx scripts/ux-audit/capture.ts",
     "ux:capture:live": "tsx scripts/ux-audit/capture.ts --live",
-    "ux:smoke": "playwright test"
+    "ux:smoke": "playwright test",
     "verify:dev": "node scripts/verify-deployment.mjs --url http://localhost:3000 --expect-headers present",
     "verify:prod": "node scripts/verify-deployment.mjs --url https://helmwarning.vercel.app --expect-headers any",
     "verify:selftest": "node scripts/verify-selftest.mjs"
