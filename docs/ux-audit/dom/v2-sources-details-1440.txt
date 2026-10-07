@@ -1,0 +1,141 @@
+state: v2-sources-details-1440
+viewport: 1440x900
+url: http://localhost:3000/
+path: v2
+overflow: scrollWidth=1440 clientWidth=1440 no_horizontal_overflow=true
+---
+Skip to main content
+Helm.Warning
+NAVAREA Data Bank & Ingestion
+MAP VIEW
+DATA BANK
+5
+SOURCES
+5 Active
+ADMIN ACCESS
+NOTICE
+Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
+• Last updated: 7 Oct 2026, 13:12 IST
+PRINCIPLES
+01_VERIFICATION
+An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
+02_RAW_IMMUTABILITY
+Original source text preserved unchanged. Extractions/translations stored alongside with distinct confidence flags.
+03_ATOMIC_PUBLISHING
+Frontend reads published generations via source pointers. Staged generations prevent partial reads during runs.
+←
+OFFICIAL DATA SOURCES
+19 sources available · 5 active warnings · Last checked 10:00 UTC
+AUTHORITY	NAVAREA	STATUS	LAST CHECKED	DETAILS
+United Kingdom Hydrographic Office	I	
+VERIFIED	04:00 UTC	
+DETAILS
+
+
+DISCOVERY ENDPOINT
+https://msi.admiralty.co.uk/RadioNavigationalWarnings
+SOURCE ID
+ukho-navarea-1
+PUBLICATION SEMANTICS
+complete_in_force · [html]
+LLM FALLBACK RATE
+0% (0/0 runs)
+HEALTH DIAGNOSTICS
+ok
+POLL CADENCE
+360 min · stale after 780 min
+RUN WORKER
+
+Swedish Maritime Administration (Sjöfartsverket)	BALTIC	
+VERIFIED	03:30 UTC	
+DETAILS
+
+SHOM (Service Hydrographique et Océanographique de la Marine)	II	
+VERIFIED	02:00 UTC	
+DETAILS
+
+Instituto Hidrográfico de la Marina (Spain)	III	
+VERIFIED	05:00 UTC	
+DETAILS
+
+National Geospatial-Intelligence Agency (NGA)	IV, XII	
+VERIFIED	04:45 UTC	
+DETAILS
+
+Centro de Hidrografia da Marinha (Brazil)	V	
+UNVERIFIED	01:15 UTC	
+DETAILS
+
+Servicio de Hidrografía Naval (Argentina)	VI	
+UNVERIFIED	18:00 UTC	
+DETAILS
+
+South African Hydrographic Office (SANHO)	VII	
+VERIFIED	03:00 UTC	
+DETAILS
+
+Indian Naval Hydrographic Office (INHO)	VIII	
+VERIFIED	04:10 UTC	
+DETAILS
+
+Pakistan Hydrographic Department	IX	
+VERIFIED	02:45 UTC	
+DETAILS
+
+Australian Maritime Safety Authority (AMSA)	X	
+VERIFIED	05:15 UTC	
+DETAILS
+
+Japan Coast Guard (Hydrographic and Oceanographic Dept)	XI	
+VERIFIED	04:30 UTC	
+DETAILS
+
+Department of Navigation and Oceanography (Russia)	XIII	
+UNVERIFIED	Never	
+DETAILS
+
+Maritime New Zealand	XIV	
+VERIFIED	05:00 UTC	
+DETAILS
+
+Servicio Hidrográfico y Oceanográfico de la Armada (Chile)	XV	
+UNVERIFIED	03:45 UTC	
+DETAILS
+
+Dirección de Hidrografía y Navegación (Peru)	XVI	
+VERIFIED	01:30 UTC	
+DETAILS
+
+Canadian Coast Guard (NAVAREA XVII & XVIII WFS)	XVII, XVIII	
+VERIFIED	10:00 UTC	
+DETAILS
+
+Norwegian Coastal Administration (Kystverket)	XIX	
+VERIFIED	05:10 UTC	
+DETAILS
+
+Department of Navigation and Oceanography (Russia Arctic)	XX, XXI	
+UNVERIFIED	Never	
+DETAILS
+REGISTRY STATISTICS
+14 verified · 5 unverified
+TOTAL NAVAREAS IN REGISTRY
+22
+19 sources · 0 under investigation
+VERIFIED ENDPOINTS
+14
+Active Ingestion Feeds
+UNVERIFIED COVERAGE
+5
+NAVAREA V, VI, XIII, XV, XX, XXI
+POLL CADENCE
+360 min
+6-hour polling defaults
+22 of 22 NAVAREAs scaffolded · 14 of 19 sources verified
+Helm.Warning
+•
+NAVAREA Maritime Safety Information Pipeline
+Last updated: 7 Oct 2026, 13:12 IST
+UI
+v2
+classic

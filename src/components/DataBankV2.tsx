@@ -3,7 +3,7 @@ import { DataBankWarningList } from './DataBankWarningList';
 import { DataBankStatusBar } from './DataBankStatusBar';
 import { DataBankControls } from './DataBankControls';
 import { DataBankSummary } from './DataBankSummary';
-import { IngestionProcedureModal } from './IngestionProcedureModal';
+import { IngestionProcedureModalV2 } from './IngestionProcedureModalV2';
 import { useDataBankModel, type DataBankProps } from '../hooks/useDataBankModel';
 
 /**
@@ -40,7 +40,7 @@ export const DataBankV2: React.FC<DataBankProps> = ({
 
       <DataBankSummary model={model} sources={sources} />
 
-      <IngestionProcedureModal
+      <IngestionProcedureModalV2
         isOpen={model.isProcedureModalOpen}
         onClose={() => model.setIsProcedureModalOpen(false)}
         warningsCount={warnings.length}

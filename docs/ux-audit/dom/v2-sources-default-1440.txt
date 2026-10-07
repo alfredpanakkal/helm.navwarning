@@ -1,0 +1,35 @@
+state: v2-sources-default-1440
+viewport: 1440x900
+url: http://localhost:3000/
+path: v2
+overflow: scrollWidth=1440 clientWidth=1440 no_horizontal_overflow=true
+---
+Skip to main content
+Helm.Warning
+NAVAREA Data Bank & Ingestion
+MAP VIEW
+DATA BANK
+5
+SOURCES
+5 Active
+ADMIN ACCESS
+NOTICE
+Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
+• Last updated: 7 Oct 2026, 13:12 IST
+PRINCIPLES
+01_VERIFICATION
+An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
+02_RAW_IMMUTABILITY
+Original source text preserved unchanged. Extractions/translations stored alongside with distinct confidence flags.
+03_ATOMIC_PUBLISHING
+Frontend reads published generations via source pointers. Staged generations prevent partial reads during runs.
+OFFICIAL DATA SOURCES
+19 sources available · 5 active warnings · Last checked 10:00 UTC
+View source details
+Helm.Warning
+•
+NAVAREA Maritime Safety Information Pipeline
+Last updated: 7 Oct 2026, 13:12 IST
+UI
+v2
+classic

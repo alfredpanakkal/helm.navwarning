@@ -63,7 +63,9 @@ test.describe('public shell', () => {
     await expect(page.locator('#databank-table-header')).toBeVisible();
 
     await goTab(page, 'Sources');
-    await expect(page.getByText('NAVWARN Candidate Discovery Registry')).toBeVisible();
+    // Task 5: the default Sources view is the short summary; the legacy
+    // registry heading now lives behind "View source details".
+    await expect(page.getByText('Official Data Sources')).toBeVisible();
 
     expect(errors, 'no uncaught page errors').toEqual([]);
   });
@@ -259,9 +261,18 @@ test.describe('sources', () => {
     await openApp(page);
     await goTab(page, 'Sources');
 
-    await expect(page.getByText('NAVWARN Candidate Discovery Registry')).toBeVisible();
+    // Task 5 (progressive disclosure): default = short summary; the counters,
+    // badges and Run Worker action move one/two levels deeper but must all
+    // still be reachable (do-not-break §5.7).
+    await expect(page.getByText('Official Data Sources')).toBeVisible();
+    await page.getByRole('button', { name: 'View source details' }).click();
+
+    await page.getByRole('button', { name: /^Registry statistics/ }).click();
     await expect(page.getByText('Verified Endpoints')).toBeVisible();
     await expect(page.getByText('Unverified Coverage')).toBeVisible();
+
+    // First seed source is verified; its Details row carries the worker action.
+    await page.locator('button[title="Show technical details"]').first().click();
     await expect(page.getByRole('button', { name: /Run Worker/ }).first()).toBeEnabled();
 
     expect(errors, 'no uncaught page errors').toEqual([]);

@@ -88,7 +88,7 @@ in the same PR — do not silently weaken a check.
 | 5.4 | **Known bug F-02:** unlock reverts with no stored token — do not make this *worse*; fixing it is a separate task | Documented | `inventory.md` F-02 |
 | 5.5 | All six admin views render for an authenticated session (Pipeline / Manual Parser / Bulk Import / Audit Log / Evidence / Supabase Server) | Yes | test 9 |
 | 5.6 | Admin technical content stays admin-only (never appears in public surfaces) | Manual | inventory §8; re-check after any "promote to public" proposal |
-| 5.7 | Sources "Run Worker" and registry health data stay present | Yes (presence) | test 7 |
+| 5.7 | Sources "Run Worker" and registry health data stay present | Yes (presence) | test 7 — Task 5: default Sources view is the short summary; test clicks "View source details" → "Registry statistics" → row Details before asserting the counters, badges and Run Worker |
 
 ## 6. URL state / deep links
 
@@ -126,7 +126,7 @@ npm run ux:capture           # local states
 npm run ux:capture:live      # + live-site baselines
 ```
 
-Expected result: `12 passed`, lint clean, `vite build` succeeds.
+Expected result: `13 passed`, lint clean, `vite build` succeeds.
 
 ---
 
@@ -135,7 +135,7 @@ Expected result: `12 passed`, lint clean, `vite build` succeeds.
 - [ ] Open Map View at 1440 px and 375 px — drawer, layers, and coordinates control still work.
 - [ ] Data Bank: search, one quick filter, one Smart Sort preset, one column sort, Reset.
 - [ ] Data Bank: open Details → "Show Only This Message" → "Show All Warnings".
-- [ ] Sources: badges + Run Worker button present; no new pipeline jargon on the public surface.
+- [ ] Sources (Task 5): default view = "Official Data Sources" summary with real counts; "View source details" → compact table → row Details expand shows badges, health data and Run Worker; no new pipeline jargon on the public surface.
 - [ ] NOTICE disclaimer, zero-count categories, and the empty state are still visible where expected.
 - [ ] Mobile 375 px and tablet 768 px: no horizontal scroll on Map / Data Bank / Sources; More drawer reachable at 375 px.
 - [ ] Map drawer "Layer Visibility & Panes" labels are plain language (no pane IDs) once the F-04 cleanup lands; test 5 still passes.

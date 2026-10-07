@@ -9,6 +9,7 @@ import { UILegacySwitcher } from './components/UILegacySwitcher';
 import { useUILegacy } from './lib/uiFlags';
 import { WorkspaceView } from './components/WorkspaceView';
 import { SourceRegistryView } from './components/SourceRegistryView';
+import { SourceRegistryViewV2 } from './components/SourceRegistryViewV2';
 import { ManualParserView } from './components/ManualParserView';
 import { CsvUploaderView } from './components/CsvUploaderView';
 import { GenerationInspectorView } from './components/GenerationInspectorView';
@@ -348,13 +349,24 @@ export default function App() {
 
         {/* Candidate Sources Registry */}
         <div className={activeTab === 'sources' ? 'block' : 'hidden'}>
-          <SourceRegistryView
-            sources={sources}
-            initialFilter={sourcesFilterStatus}
-            onToggleSource={handleToggleSource}
-            onTriggerRefresh={handleTriggerRefresh}
-            isRefreshing={isPipelineRefreshing}
-          />
+          {legacyUI ? (
+            <SourceRegistryView
+              sources={sources}
+              initialFilter={sourcesFilterStatus}
+              onToggleSource={handleToggleSource}
+              onTriggerRefresh={handleTriggerRefresh}
+              isRefreshing={isPipelineRefreshing}
+            />
+          ) : (
+            <SourceRegistryViewV2
+              sources={sources}
+              warnings={warnings}
+              initialFilter={sourcesFilterStatus}
+              onToggleSource={handleToggleSource}
+              onTriggerRefresh={handleTriggerRefresh}
+              isRefreshing={isPipelineRefreshing}
+            />
+          )}
         </div>
 
         {/* Admin Access Gate fallback for locked operational views */}
