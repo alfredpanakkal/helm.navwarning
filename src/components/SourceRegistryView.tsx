@@ -46,10 +46,10 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
   const unverifiedCount = sources.filter((s) => s.verification.status === 'unverified').length;
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-4">
+    <div className="max-w-7xl mx-auto p-4 md:p-5 space-y-4">
       {/* Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-secondary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-secondary p-3 rounded-xl flex items-center justify-between shadow-sm">
           <div>
             <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Total NAVAREAs In Registry</div>
             <div className="text-2xl font-mono font-bold text-gw-primary mt-1">21</div>
@@ -58,7 +58,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
           <Radio className="w-8 h-8 text-gw-primary opacity-30" />
         </div>
 
-        <div className="bg-secondary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-secondary p-3 rounded-xl flex items-center justify-between shadow-sm">
           <div>
             <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Verified Endpoints</div>
             <div className="text-2xl font-mono font-bold text-green-700 mt-1">{verifiedCount}</div>
@@ -67,7 +67,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
           <CheckCircle2 className="w-8 h-8 text-green-600 opacity-40" />
         </div>
 
-        <div className="bg-secondary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-secondary p-3 rounded-xl flex items-center justify-between shadow-sm">
           <div>
             <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Unverified Coverage</div>
             <div className="text-2xl font-mono font-bold text-amber-700 mt-1">{unverifiedCount}</div>
@@ -76,7 +76,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
           <AlertTriangle className="w-8 h-8 text-amber-500 opacity-40" />
         </div>
 
-        <div className="bg-secondary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-secondary p-3 rounded-xl flex items-center justify-between shadow-sm">
           <div>
             <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Poll Cadence</div>
             <div className="text-2xl font-mono font-bold text-gw-primary mt-1">360 min</div>

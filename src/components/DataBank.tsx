@@ -82,7 +82,7 @@ export const DataBank: React.FC<DataBankProps> = ({
     <div className="flex flex-col gap-4 sm:gap-6 font-ui">
       {/* Stat Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-        <div className="bg-secondary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all hover:shadow-md">
+        <div className="bg-secondary rounded-xl sm:rounded-2xl p-3 sm:p-5 transition-all hover:shadow-md">
           <div className="text-xs font-bold uppercase tracking-wider text-gw-accent mb-2 sm:mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-white rounded-sm flex items-center justify-center shrink-0">
@@ -118,7 +118,7 @@ export const DataBank: React.FC<DataBankProps> = ({
           </div>
         </div>
         
-        <div className="bg-secondary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all hover:shadow-md">
+        <div className="bg-secondary rounded-xl sm:rounded-2xl p-3 sm:p-5 transition-all hover:shadow-md">
           <div className="text-xs font-bold uppercase tracking-wider text-gw-accent mb-2 sm:mb-4 flex items-center gap-2">
             <div className="w-6 h-6 bg-white rounded-sm flex items-center justify-center shrink-0">
               <AlertTriangle className="w-3.5 h-3.5 text-gw-primary" />
@@ -139,7 +139,7 @@ export const DataBank: React.FC<DataBankProps> = ({
           </div>
         </div>
         
-        <div className="bg-secondary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all hover:shadow-md">
+        <div className="bg-secondary rounded-xl sm:rounded-2xl p-3 sm:p-5 transition-all hover:shadow-md">
           <div className="text-xs font-bold uppercase tracking-wider text-gw-accent mb-2 sm:mb-4 flex items-center gap-2">
             <div className="w-6 h-6 bg-white rounded-sm flex items-center justify-center shrink-0">
               <Layers className="w-3.5 h-3.5 text-gw-primary" />
@@ -160,7 +160,7 @@ export const DataBank: React.FC<DataBankProps> = ({
           </div>
         </div>
         
-        <div className="bg-secondary rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all hover:shadow-md">
+        <div className="bg-secondary rounded-xl sm:rounded-2xl p-3 sm:p-5 transition-all hover:shadow-md">
           <div className="text-xs font-bold uppercase tracking-wider text-gw-accent mb-2 sm:mb-4 flex items-center gap-2">
             <div className="w-6 h-6 bg-white rounded-sm flex items-center justify-center shrink-0">
               <MapPin className="w-3.5 h-3.5 text-gw-primary" />
@@ -222,7 +222,7 @@ export const DataBank: React.FC<DataBankProps> = ({
       </div>
 
       {/* Executive Operational Brief Card & Category Filter Pills */}
-      <div className="bg-secondary rounded-xl p-4 sm:p-5 shadow-xs flex flex-col gap-4">
+      <div className="bg-secondary rounded-xl p-3 sm:p-4 shadow-xs flex flex-col gap-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-gw-secondary/60">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gw-primary text-white flex items-center justify-center shrink-0">
@@ -315,7 +315,7 @@ export const DataBank: React.FC<DataBankProps> = ({
       </div>
 
       {/* Filter & Shifting Control Center */}
-      <div className="flex flex-col gap-3 p-3.5 sm:p-4 bg-secondary rounded-xl shadow-xs">
+      <div className="flex flex-col gap-3 p-3 sm:p-3.5 bg-secondary rounded-xl shadow-xs">
         {/* Top Controls Row: Search & Dropdowns */}
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
           <div className="flex-1 min-w-[200px] flex items-center gap-2 space-compact bg-gw-bg border-subtle rounded px-3 py-2 focus-within:border-gw-primary">
