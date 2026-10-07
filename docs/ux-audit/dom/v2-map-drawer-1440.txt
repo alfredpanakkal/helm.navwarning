@@ -15,7 +15,7 @@ SOURCES
 ADMIN ACCESS
 NOTICE
 Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
-• Last updated: 7 Oct 2026, 15:20 IST
+• Last updated: 7 Oct 2026, 15:53 IST
 PRINCIPLES
 01_VERIFICATION
 An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
@@ -26,6 +26,7 @@ Frontend reads published generations via source pointers. Staged generations pre
 2
  Leaflet | Tiles © Esri — Sources: GEBCO, NOAA, CHS, OSU, UNH, CSUMB, National Geographic, DeLorme, NAVTEQ, and Esri
 DRAWER
+FOCUS MAP
 Move mouse over map
 Copy
 GO TO COORDINATES
@@ -131,7 +132,7 @@ DETAILS
 Helm.Warning
 •
 NAVAREA Maritime Safety Information Pipeline
-Last updated: 7 Oct 2026, 15:20 IST
+Last updated: 7 Oct 2026, 15:53 IST
 UI
 v2
 classic

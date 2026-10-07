@@ -518,3 +518,74 @@ test.describe('ingestion procedure (progressive disclosure)', () => {
     expect(errors, 'no uncaught page errors').toEqual([]);
   });
 });
+
+// Task 7 (plan §1.5): the single Focus map control hides every map panel so
+// the map owns the viewport, and toggling back restores panel state — drawer
+// scroll position, drawer search text and the minimized controls panel. v2
+// path only; the classic path never renders the control. (Test 16.)
+test.describe('map focus (Task 7)', () => {
+  test('focus map hides panels, fills the viewport and restores panel state', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await openApp(page);
+    await expect(page.locator('button[title="Collapse active warnings drawer"]')).toBeVisible();
+
+    // Round-trip 1: drawer scroll position (snapshotted on focus entry; the
+    // drawer unmounts while focused, so the offset must be carried across).
+    const scrollBefore = JSON.parse(
+      (await page.evaluate(`(() => {
+        const list = document.querySelector('aside .overflow-y-auto');
+        if (!list) return JSON.stringify({ top: null });
+        list.scrollTop = list.scrollHeight;
+        return JSON.stringify({ top: list.scrollTop });
+      })()`)) as string
+    );
+    await page.locator('button[title="Hide panels and focus the map"]').click();
+    await expect(page.locator('button[title="Restore map panels"]')).toBeVisible();
+    await page.locator('button[title="Restore map panels"]').click();
+    await expect(page.locator('aside')).toBeVisible();
+    const scrollAfter = JSON.parse(
+      (await page.evaluate(
+        "JSON.stringify({ top: document.querySelector('aside .overflow-y-auto')?.scrollTop ?? null })",
+      )) as string
+    );
+    expect(scrollAfter.top).toBe(scrollBefore.top);
+
+    // Round-trip 2: search text + a minimized controls panel must survive.
+    await page.locator('input[placeholder="Search active notices..."]').fill('014');
+    await page.locator('button[title="Hide controls panel"]').click();
+    await expect(page.locator('#map-controls-chip')).toBeVisible();
+
+    // Enter focus: interface reduces to map + essential floating controls.
+    await page.locator('button[title="Hide panels and focus the map"]').click();
+    await expect(page.locator('button[title="Restore map panels"]')).toBeVisible();
+    await expect(page.locator('header')).toBeHidden();
+    await expect(page.locator('footer')).toBeHidden();
+    expect(await page.locator('aside').count()).toBe(0);
+    expect(await page.locator('#map-controls-chip').count()).toBe(0);
+    expect(
+      await page.locator('button[title="Collapse active warnings drawer"]').count(),
+    ).toBe(0);
+    await page.waitForTimeout(400);
+    const box = await page.locator('#map').boundingBox();
+    expect(box, 'map container has a box in focus mode').not.toBeNull();
+    expect(Math.abs(box!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(box!.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(box!.width - 1440)).toBeLessThanOrEqual(1);
+    expect(Math.abs(box!.height - 900)).toBeLessThanOrEqual(1);
+
+    // Exit focus: every panel state comes back.
+    await page.locator('button[title="Restore map panels"]').click();
+    await expect(page.locator('header')).toBeVisible();
+    await expect(page.locator('footer')).toBeVisible();
+    await expect(page.locator('aside')).toBeVisible();
+    await expect(page.locator('#map-controls-chip')).toBeVisible();
+    await expect(page.locator('input[placeholder="Search active notices..."]')).toHaveValue('014');
+
+    // Leave the map exactly as it was found.
+    await page.locator('#map-controls-chip button').click();
+    await expect(page.locator('#map-controls-panel')).toBeVisible();
+    await page.locator('input[placeholder="Search active notices..."]').fill('');
+
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+});

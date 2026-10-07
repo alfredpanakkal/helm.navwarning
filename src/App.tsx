@@ -299,6 +299,7 @@ export default function App() {
             warnings={warnings}
             selectedNavArea="ALL"
             sources={sources}
+            isActive={activeTab === 'map'}
             onSelectWarning={(w) => {
               setSelectedWarning(w);
             }}

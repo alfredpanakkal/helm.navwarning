@@ -15,7 +15,7 @@ SOURCES
 ADMIN ACCESS
 NOTICE
 Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
-• Last updated: 6 Oct 2026, 23:02 IST
+• Last updated: 7 Oct 2026, 15:53 IST
 PRINCIPLES
 01_VERIFICATION
 An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
@@ -165,7 +165,7 @@ PROCEDURE
 Helm.Warning
 •
 NAVAREA Maritime Safety Information Pipeline
-Last updated: 6 Oct 2026, 23:02 IST
+Last updated: 7 Oct 2026, 15:53 IST
 UI
 v2
 classic

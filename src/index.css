@@ -187,3 +187,15 @@
   box-shadow: 0 0 8px rgba(3, 105, 161, 0.8);
 }
 
+/* Task 7 — Focus map (v2 path only). The focus control sets
+   body[data-map-focus="on"], stepping the app header/footer aside so the map
+   owns the full viewport with only essential floating controls. The mobile
+   quick-nav is a sibling <nav> and stays reachable; the rule targets only
+   direct header/footer children of the app root, so modal markup is never
+   affected. The control that sets the attribute only exists when
+   legacyUI === false, so the classic path never enters this state. */
+body[data-map-focus='on'] > #root > div > header,
+body[data-map-focus='on'] > #root > div > footer {
+  display: none;
+}
+

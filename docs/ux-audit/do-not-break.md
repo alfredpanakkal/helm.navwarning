@@ -65,6 +65,7 @@ in the same PR — do not silently weaken a check.
 | 3.6 | Fit Bounds works | Yes | test 5 |
 | 3.7 | Layer toggles (Warning Areas / Warning Markers (cluster) / Ocean Soundings / Seamarks) remain available | Yes | inventory §4 / F-04. **Pane-identifier cleanup landed in Task 6 (plan §1.4)**: labels are now plain language ("Ocean Soundings (soundingsPane)" → "Ocean Soundings", "Warning Polygons (navWarnVectorPane)" → "Warning Areas", "Marker Clusters (navWarnMarkerPane)" → "Warning Markers (cluster)" — amended from the plan table's "Warning Markers" by human ruling, because the checkbox toggles clustered vs unclustered rendering and markers never hide, "OpenSeaMap Seamarks (seamarksPane)" → "Seamarks", heading "Layer Visibility & Panes" → "Layer Visibility"). Test 5 anchors on the public label prefix (`/^Ocean Soundings/`) **and** asserts that no pane identifier appears in user-visible text (lowercased compare — the heading renders upper-cased) |
 | 3.8 | Map stays interactive while drawer is open; attribution preserved | Manual | `map-drawer-open` capture |
+| 3.9 | Focus map (Task 7, v2 only): one control hides every map panel so the map fills the viewport with only essential floating controls; toggling back restores all panel state (drawer open + scroll position, search text, controls-panel minimized/expanded); classic path never renders the control | Yes | test 16 (`map focus (Task 7)`); capture `v2-map-focus-*` |
 
 ## 4. Warning Details, expand, "View on map", isolation
 
@@ -126,7 +127,7 @@ npm run ux:capture           # local states
 npm run ux:capture:live      # + live-site baselines
 ```
 
-Expected result: `15 passed`, lint clean, `vite build` succeeds.
+Expected result: `16 passed`, lint clean, `vite build` succeeds.
 
 ---
 
@@ -139,6 +140,7 @@ Expected result: `15 passed`, lint clean, `vite build` succeeds.
 - [ ] NOTICE disclaimer, zero-count categories, and the empty state are still visible where expected.
 - [ ] Mobile 375 px and tablet 768 px: no horizontal scroll on Map / Data Bank / Sources; More drawer reachable at 375 px.
 - [ ] Map drawer "Layer Visibility" labels are plain language (no pane IDs) — cleanup landed in Task 6; test 5 asserts it still holds.
+- [ ] Focus map (Task 7, v2): enter focus → header/footer hidden, map fills the viewport, drawer/search/controls panel gone; exit → drawer open, search text, controls panel and scroll position restored. Classic path (`hwUI=classic`) has no focus control.
 - [ ] Nothing new appears in the URL that would leak operator state.
 - [ ] Compare `docs/ux-audit/dom/*.txt` diffs before/after your change and record intentional
       differences in the PR (and in `inventory.md`).

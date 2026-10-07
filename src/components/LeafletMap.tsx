@@ -8,6 +8,7 @@ import {
   Search,
   MapPin,
   Maximize2,
+  Minimize2,
   List,
   X,
   Copy,
@@ -58,6 +59,10 @@ interface LeafletMapProps {
   onSelectWarning: (warning: NavWarning) => void;
   isolatedWarning?: NavWarning | null;
   onClearIsolation?: () => void;
+  /** True while the Map View tab is the active tab (App-owned). Focus-map
+   * mode resets when the user navigates away so app chrome never stays
+   * hidden behind another view. */
+  isActive?: boolean;
 }
 
 export const LeafletMap: React.FC<LeafletMapProps> = ({
@@ -67,11 +72,20 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   onSelectWarning,
   isolatedWarning,
   onClearIsolation,
+  isActive = true,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletInstance = useRef<L.Map | null>(null);
   const [mapReady, setMapReady] = useState<L.Map | null>(null);
   const legacyUI = useUILegacy();
+
+  // Task 7 — Focus map (v2 path only): a single control hides every map
+  // panel so the map owns the viewport; toggling back restores panel state.
+  const [focusMap, setFocusMap] = useState(false);
+  const [controlsPanelOpen, setControlsPanelOpen] = useState(true);
+  const drawerListRef = useRef<HTMLDivElement>(null);
+  const severityStripRef = useRef<HTMLDivElement>(null);
+  const focusSnapshotRef = useRef<{ listScrollTop: number; stripScrollLeft: number } | null>(null);
 
   // Layer references
   const baseTileLayerRef = useRef<L.TileLayer | null>(null);
@@ -332,6 +346,66 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     };
   }, [mapReady, closeContextMenu]);
 
+  // Focus-map guards: the control only exists on the v2 path, and leaving the
+  // Map View always returns to the normal layout (app chrome must never stay
+  // hidden behind another tab).
+  useEffect(() => {
+    if ((legacyUI || !isActive) && focusMap) setFocusMap(false);
+  }, [legacyUI, isActive, focusMap]);
+
+  // Focus-map chrome: `body[data-map-focus]` steps the app header/footer aside
+  // (index.css) so the map owns the full viewport. Only ever set on the v2
+  // path; cleaned up on unmount so a tab switch can never leave it stuck.
+  useEffect(() => {
+    if (legacyUI) return;
+    if (focusMap) document.body.setAttribute('data-map-focus', 'on');
+    else document.body.removeAttribute('data-map-focus');
+    return () => document.body.removeAttribute('data-map-focus');
+  }, [focusMap, legacyUI]);
+
+  // The map container changes size on focus entry/exit — re-measure so tiles
+  // and controls realign. The map instance itself (center, zoom, layers,
+  // hidden warnings) is untouched, so the view is preserved.
+  useEffect(() => {
+    const t1 = setTimeout(() => leafletInstance.current?.invalidateSize(), 80);
+    const t2 = setTimeout(() => leafletInstance.current?.invalidateSize(), 450);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [focusMap]);
+
+  // Restore the drawer scroll snapshot once the panels are back in layout.
+  useEffect(() => {
+    if (focusMap) return;
+    const snap = focusSnapshotRef.current;
+    if (!snap) return;
+    focusSnapshotRef.current = null;
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => {
+        if (drawerListRef.current) drawerListRef.current.scrollTop = snap.listScrollTop;
+        if (severityStripRef.current) severityStripRef.current.scrollLeft = snap.stripScrollLeft;
+      });
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [focusMap]);
+
+  // Snapshot scroll state at the moment focus starts (the drawer unmounts
+  // while focused, so its scroll offset must be carried across).
+  const enterFocusMap = useCallback(() => {
+    focusSnapshotRef.current = {
+      listScrollTop: drawerListRef.current?.scrollTop ?? 0,
+      stripScrollLeft: severityStripRef.current?.scrollLeft ?? 0,
+    };
+    setFocusMap(true);
+  }, []);
+
+  const exitFocusMap = useCallback(() => setFocusMap(false), []);
+
   // Filter warnings
   const filteredWarnings = warnings.filter((w) => {
     if (isolatedWarning) {
@@ -570,7 +644,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   };
 
   return (
-    <div className="relative h-[calc(100vh-140px)] min-h-[520px] border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden bg-gw-bg isolate">
+    <div
+      className={
+        focusMap
+          ? 'fixed inset-0 z-[600] overflow-hidden bg-gw-bg isolate'
+          : 'relative h-[calc(100vh-140px)] min-h-[520px] border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden bg-gw-bg isolate'
+      }
+      data-map-focus={focusMap ? 'on' : undefined}
+    >
       {/* Map Canvas */}
       <div
         id="map"
@@ -621,45 +702,69 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         </div>
       )}
 
-      {/* TOP-LEFT TOOLBAR: Sidebar Toggle & Search */}
+      {/* TOP-LEFT TOOLBAR: Sidebar Toggle, Search & Focus control */}
       <div className="absolute top-3 sm:top-4 left-3 sm:left-4 z-[420] flex items-center gap-2 pointer-events-auto max-w-[calc(100%-24px)] sm:max-w-md">
-        <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard hover:bg-gw-primary hover:text-gw-bg transition-all shrink-0 min-h-[40px]"
-          title={isSidebarOpen ? 'Collapse active warnings drawer' : 'Expand active warnings drawer'}
-        >
-          <List className="w-4 h-4" />
-          <span className="hidden sm:inline">
-            {isSidebarOpen ? 'Drawer' : `Warnings (${renderedWarnings.length})`}
-          </span>
-          <span className="sm:hidden">{renderedWarnings.length}</span>
-        </button>
+        {!focusMap && (
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard hover:bg-gw-primary hover:text-gw-bg transition-all shrink-0 min-h-[40px]"
+            title={isSidebarOpen ? 'Collapse active warnings drawer' : 'Expand active warnings drawer'}
+          >
+            <List className="w-4 h-4" />
+            <span className="hidden sm:inline">
+              {isSidebarOpen ? 'Drawer' : `Warnings (${renderedWarnings.length})`}
+            </span>
+            <span className="sm:hidden">{renderedWarnings.length}</span>
+          </button>
+        )}
 
-        <div className="flex items-center gap-2 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard flex-1 min-w-[160px]">
-          <Search className="w-4 h-4 text-gw-accent shrink-0" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search active notices..."
-            className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-gw-primary placeholder:text-gw-accent font-mono"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="text-xs text-gw-accent hover:text-gw-primary font-bold px-1"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+        {!focusMap && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard flex-1 min-w-[160px]">
+            <Search className="w-4 h-4 text-gw-accent shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search active notices..."
+              className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-gw-primary placeholder:text-gw-accent font-mono"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-xs text-gw-accent hover:text-gw-primary font-bold px-1"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Task 7: single Focus map control — hides every panel for a
+            full-viewport map; toggling back restores panel state. v2 path only. */}
+        {!legacyUI && (
+          <button
+            type="button"
+            onClick={focusMap ? exitFocusMap : enterFocusMap}
+            aria-pressed={focusMap}
+            title={focusMap ? 'Restore map panels' : 'Hide panels and focus the map'}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard hover:bg-gw-primary hover:text-gw-bg transition-all shrink-0 min-h-[40px]"
+          >
+            {focusMap ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            <span className="hidden sm:inline">{focusMap ? 'Show panels' : 'Focus map'}</span>
+          </button>
+        )}
       </div>
 
       {/* TOP-RIGHT MAP CONTROLS: Coordinates, Quick-Jump & Basemap Stack */}
-      <div className="absolute top-3 sm:top-4 right-3 sm:right-4 z-[440] pointer-events-auto max-w-[360px] sm:max-w-[400px] w-full sm:w-auto">
+      <div
+        id={legacyUI ? undefined : 'map-controls-panel'}
+        className={`absolute top-3 sm:top-4 right-3 sm:right-4 z-[440] pointer-events-auto max-w-[360px] sm:max-w-[400px] w-full sm:w-auto${
+          focusMap || !controlsPanelOpen ? ' hidden' : ''
+        }`}
+      >
         <div className="bg-white/95 border-2 border-gw-primary rounded-xl shadow-hard overflow-hidden backdrop-blur-xs flex flex-col">
           {/* Header & Cursor Coordinate Readout */}
-          <div className="p-2.5 sm:p-3 bg-gw-bg border-b border-gw-primary flex items-center justify-between gap-2">
+          <div className={`${legacyUI ? 'p-2.5 sm:p-3' : 'p-2'} bg-gw-bg border-b border-gw-primary flex items-center justify-between gap-2`}>
             <div className="flex items-center gap-2 min-w-0">
               <span
                 className={`w-2 h-2 rounded-full shrink-0 transition-all ${
@@ -713,12 +818,25 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               >
                 <Sliders className="w-3.5 h-3.5" />
               </button>
+
+              {/* Task 7 (v2 only): minimize the whole controls panel; a
+                  compact chip restores it without leaving the map. */}
+              {!legacyUI && (
+                <button
+                  type="button"
+                  onClick={() => setControlsPanelOpen(false)}
+                  className="p-1 text-gw-accent hover:text-gw-primary rounded hover:bg-gw-secondary transition-all"
+                  title="Hide controls panel"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
           {/* Quick-Jump & Basemap Layer Configuration */}
           {isQuickJumpExpanded && (
-            <div className="p-3 space-y-2.5 text-xs bg-white">
+            <div className={`${legacyUI ? 'p-3 space-y-2.5' : 'p-2 space-y-2'} text-xs bg-white`}>
               {/* Go to Coordinates */}
               <form
                 onSubmit={(e) => {
@@ -841,6 +959,24 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         </div>
       </div>
 
+      {/* Minimized controls-panel chip (v2 only): restores the panel */}
+      {!legacyUI && !controlsPanelOpen && !focusMap && (
+        <div
+          id="map-controls-chip"
+          className="absolute top-3 sm:top-4 right-3 sm:right-4 z-[440] pointer-events-auto"
+        >
+          <button
+            type="button"
+            onClick={() => setControlsPanelOpen(true)}
+            title="Show controls panel"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard hover:bg-gw-primary hover:text-gw-bg transition-all min-h-[40px]"
+          >
+            <Sliders className="w-4 h-4" />
+            <span className="hidden sm:inline">Controls</span>
+          </button>
+        </div>
+      )}
+
       {/* Layer Context Menu */}
       {contextMenu && contextMenu.isOpen && (
         <div
@@ -938,9 +1074,17 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       )}
 
       {/* COLLAPSIBLE SIDEBAR: Active Warnings & Filter Drawer */}
-      {isSidebarOpen && (
-        <aside className="absolute top-[64px] sm:top-[72px] left-3 sm:left-4 bottom-3 sm:bottom-4 w-[calc(100%-24px)] sm:w-[320px] md:w-[350px] bg-white border-2 border-gw-primary rounded-xl shadow-2xl pointer-events-auto z-[410] flex flex-col overflow-hidden">
-          <div className="flex justify-between items-center p-3 border-b border-gw-secondary bg-gw-bg">
+      {isSidebarOpen && !focusMap && (
+        <aside
+          className={`absolute top-[64px] sm:top-[72px] left-3 sm:left-4 bottom-3 sm:bottom-4 w-[calc(100%-24px)] sm:w-[320px] md:w-[350px] bg-white border-2 border-gw-primary rounded-xl ${
+            legacyUI ? 'shadow-2xl' : 'shadow-hard'
+          } pointer-events-auto z-[410] flex flex-col overflow-hidden`}
+        >
+          <div
+            className={`flex justify-between items-center ${
+              legacyUI ? 'p-3' : 'p-2'
+            } border-b border-gw-secondary bg-gw-bg`}
+          >
             <div className="font-bold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2 text-gw-primary">
               <Layers className="w-4 h-4 text-gw-primary" />
               <span>Active Warnings</span>
@@ -963,7 +1107,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           </div>
 
           {/* Filters & Pane Toggles */}
-          <div className="p-3 border-b border-gw-secondary bg-gw-bg/40 space-y-3">
+          <div
+            className={`${legacyUI ? 'p-3 space-y-3' : 'p-2 space-y-2'} border-b border-gw-secondary bg-gw-bg/40`}
+          >
             {/* Scope Switcher */}
             <div className="space-y-1.5">
               <div className="text-[10px] font-bold uppercase tracking-wider text-gw-accent flex items-center justify-between">
@@ -1070,7 +1216,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           </div>
 
           {/* Quick Severity Filters */}
-          <div className="flex items-center gap-1 p-2 border-b border-gw-secondary bg-white overflow-x-auto no-scrollbar">
+          <div
+            ref={severityStripRef}
+            className="flex items-center gap-1 p-2 border-b border-gw-secondary bg-white overflow-x-auto no-scrollbar"
+          >
             {['all', 'critical', 'high', 'moderate'].map((sev) => (
               <button
                 key={sev}
@@ -1087,7 +1236,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           </div>
 
           {/* Warning List Items */}
-          <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
+          <div ref={drawerListRef} className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
             {filteredWarnings.length === 0 ? (
               <div className="text-center py-8 text-xs text-gw-accent font-mono">
                 No active warnings match filter criteria.
