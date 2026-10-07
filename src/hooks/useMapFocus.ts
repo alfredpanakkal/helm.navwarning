@@ -25,22 +25,27 @@ export function useMapFocus(
     return () => document.body.removeAttribute('data-map-focus');
   }, [focusMap]);
 
-  // Inert sibling elements while map is focused so they can't receive
-  // focus or handle events; clean up on exit.
+  // Inert the app shell outside the focus-mode map container so panels
+  // can't receive focus or handle events; the container subtree (map
+  // canvas + floating controls) stays interactive. Cleaned up on exit.
   useEffect(() => {
-    if (focusMap) {
-      // Inert all direct children of body except the map canvas.
-      const mapEl = document.getElementById('map');
-      Array.from(document.body.children as HTMLCollection).forEach((el: HTMLElement) => {
-        if (el !== mapEl) {
-          el.setAttribute('inert', 'true');
+    if (!focusMap) return;
+    const container = document.querySelector<HTMLElement>('[data-map-focus="on"]');
+    if (!container) return;
+    let el: HTMLElement | null = container;
+    while (el && el.parentElement && el.parentElement !== document.body) {
+      Array.from(el.parentElement.children).forEach((sibling) => {
+        if (sibling !== el) {
+          sibling.setAttribute('inert', 'true');
         }
       });
-    } else {
-      Array.from(document.body.children as HTMLCollection).forEach((el: HTMLElement) => {
-        el.removeAttribute('inert');
-      });
+      el = el.parentElement;
     }
+    return () => {
+      document
+        .querySelectorAll<HTMLElement>('[inert]')
+        .forEach((node) => node.removeAttribute('inert'));
+    };
   }, [focusMap]);
 
   // Map size re-measure on focus enter/exit so tiles/controls realign.

@@ -438,8 +438,8 @@ test.describe('tablet 768', () => {
   });
 });
 
-test.describe('ui path flag (temporary; Task 13 removes)', () => {
-  test('default load renders Data Bank on the v2 path; hwUI=classic uses the legacy path', async ({ page }) => {
+test.describe('ui path (v2 only; legacy path removed in Task 13)', () => {
+  test('default load renders Data Bank on the v2 hierarchy', async ({ page }) => {
     const errors = watchPageErrors(page);
     await openApp(page);
     await goTab(page, 'Data Bank');
@@ -453,20 +453,17 @@ test.describe('ui path flag (temporary; Task 13 removes)', () => {
     expect(await page.locator('text=Total Published').count()).toBe(0);
     expect(await page.locator('text=Executive Operational Brief').count()).toBe(0);
 
+    // Task 13: the hwUI flag and legacy path are gone — a stored
+    // 'classic' preference is inert and the v2 path still renders.
     await page.addInitScript(() => {
       localStorage.setItem('hwUI', 'classic');
     });
     await openApp(page);
     await goTab(page, 'Data Bank');
     await expect(page.locator('#databank-table-header')).toBeVisible();
-    await expect(page.locator('[data-ui-render-path="legacy"]')).toBeVisible();
-    expect(await matchingCount(page)).toBe(5);
-
-    // Classic path keeps the original hierarchy: stat cards + brief visible,
-    // and no v2 status bar.
-    await expect(page.locator('text=Total Published').first()).toBeVisible();
-    await expect(page.locator('text=Executive Operational Brief').first()).toBeVisible();
-    expect(await page.locator('[data-databank-status-bar]').count()).toBe(0);
+    await expect(page.locator('[data-ui-render-path="v2"]')).toBeVisible();
+    expect(await page.locator('[data-ui-render-path="legacy"]').count()).toBe(0);
+    await expect(page.locator('[data-databank-status-bar]')).toBeVisible();
 
     expect(errors, 'no uncaught page errors').toEqual([]);
   });
@@ -543,12 +540,15 @@ test.describe('map focus (Task 7)', () => {
     await expect(page.locator('button[title="Restore map panels"]')).toBeVisible();
     await page.locator('button[title="Restore map panels"]').click();
     await expect(page.locator('aside')).toBeVisible();
-    const scrollAfter = JSON.parse(
-      (await page.evaluate(
-        "JSON.stringify({ top: document.querySelector('aside .overflow-y-auto')?.scrollTop ?? null })",
-      )) as string
+    // The restore lands a couple of animation frames after the panels
+    // remount, so poll until the snapshot is back instead of reading
+    // once and racing the frame callbacks.
+    await page.waitForFunction(
+      (expected) =>
+        document.querySelector('aside .overflow-y-auto')?.scrollTop === expected,
+      scrollBefore.top,
+      { timeout: 5_000 }
     );
-    expect(scrollAfter.top).toBe(scrollBefore.top);
 
     // Round-trip 2: search text + a minimized controls panel must survive.
     await page.locator('input[placeholder="Search active notices..."]').fill('014');
