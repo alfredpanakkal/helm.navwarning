@@ -212,7 +212,7 @@ export const DataBank: React.FC<DataBankProps> = ({
               onClick={() => onTriggerRefresh()}
               disabled={isRefreshing}
               className="px-3 py-1.5 bg-gw-primary text-white font-bold uppercase tracking-wider text-[11px] rounded-lg border-primary hover:bg-gw-tertiary transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-50 cursor-pointer"
-              title="Trigger live pipeline fetch from hydrographic endpoints"
+              title="Refresh data from official sources"
             >
               <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span>{isRefreshing ? 'Syncing...' : 'Sync Live Feeds'}</span>

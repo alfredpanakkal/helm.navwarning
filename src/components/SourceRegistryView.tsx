@@ -95,7 +95,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
               <span>NAVWARN Candidate Discovery Registry</span>
             </h2>
             <p className="text-xs text-gw-accent mt-0.5">
-              Official maritime publication coordinators, endpoint verification status, and publication semantics.
+              Official maritime publication coordinators, verification status, and publication coverage.
             </p>
           </div>
 
