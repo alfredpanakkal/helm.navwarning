@@ -15,7 +15,7 @@ SOURCES
 ADMIN ACCESS
 NOTICE
 Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
-• Last updated: 6 Oct 2026, 23:03 IST
+• Last updated: 7 Oct 2026, 14:46 IST
 PRINCIPLES
 01_VERIFICATION
 An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
@@ -69,11 +69,11 @@ NAVAREA XVIII — Arctic Ocean NE (Canada)
 NAVAREA XIX — Arctic Ocean North (Norway)
 NAVAREA XX — Arctic Ocean Russia West (Russia)
 NAVAREA XXI — Arctic Ocean Russia East (Russia)
-LAYER VISIBILITY & PANES
-Warning Polygons (navWarnVectorPane)
-Marker Clusters (navWarnMarkerPane)
-Ocean Soundings (soundingsPane)
-OpenSeaMap Seamarks (seamarksPane)
+LAYER VISIBILITY
+Warning Areas
+Warning Markers
+Ocean Soundings
+Seamarks
 ALL
 CRITICAL
 HIGH
@@ -131,7 +131,7 @@ DETAILS
 Helm.Warning
 •
 NAVAREA Maritime Safety Information Pipeline
-Last updated: 6 Oct 2026, 23:03 IST
+Last updated: 7 Oct 2026, 14:46 IST
 NAVAREA I
 NAVAREA I
 ● ACTIVE

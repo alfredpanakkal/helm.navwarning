@@ -35,7 +35,7 @@ const formatUtcTime = (iso: string | null): string => {
  * Default: one short summary row ("Official Data Sources" + real counts).
  * "View source details" opens the compact registry table; the Details column
  * expands one level to the technical facts (endpoint URL, format, fallback
- * rates, health diagnostics, Run Worker) and the registry statistics fold-in
+ * rates, health diagnostics, Refresh Now) and the registry statistics fold-in
  * carries the classic overview-card counters. The legacy SourceRegistryView
  * keeps rendering unchanged on the classic path (App.tsx gates on legacyUI).
  */
@@ -246,7 +246,7 @@ export const SourceRegistryViewV2: React.FC<SourceRegistryViewV2Props> = ({
                               </div>
                               <div>
                                 <div className="text-[10px] font-bold uppercase tracking-wider text-gw-accent">
-                                  LLM fallback rate
+                                  AI fallback rate
                                 </div>
                                 <div className="font-mono text-gw-primary">
                                   {llmRate}%{' '}
@@ -299,7 +299,7 @@ export const SourceRegistryViewV2: React.FC<SourceRegistryViewV2Props> = ({
                                   className="inline-flex items-center gap-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 shadow-sm cursor-pointer"
                                 >
                                   <Play className="w-3 h-3" />
-                                  <span>Run Worker</span>
+                                  <span>Refresh Now</span>
                                 </button>
                               ) : (
                                 <span className="text-[11px] text-gw-accent font-mono italic">

@@ -1013,7 +1013,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             {/* Strict Pane Layer Toggles */}
             <div className="space-y-1.5 pt-1 border-t border-gw-secondary">
               <div className="text-[10px] font-bold uppercase tracking-wider text-gw-accent">
-                Layer Visibility & Panes
+                Layer Visibility
               </div>
               <div className="space-y-1 text-xs">
                 <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
@@ -1023,7 +1023,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     onChange={(e) => setShowPolygons(e.target.checked)}
                     className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
                   />
-                  <span>Warning Polygons (navWarnVectorPane)</span>
+                  <span>Warning Areas</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
@@ -1033,7 +1033,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     onChange={(e) => setEnableClusters(e.target.checked)}
                     className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
                   />
-                  <span>Marker Clusters (navWarnMarkerPane)</span>
+                  <span>Warning Markers</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
@@ -1043,7 +1043,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     onChange={() => toggleOverlay('esri-labels')}
                     className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
                   />
-                  <span>Ocean Soundings (soundingsPane)</span>
+                  <span>Ocean Soundings</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
@@ -1053,7 +1053,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     onChange={() => toggleOverlay('openseamap')}
                     className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
                   />
-                  <span>OpenSeaMap Seamarks (seamarksPane)</span>
+                  <span>Seamarks</span>
                 </label>
               </div>
             </div>

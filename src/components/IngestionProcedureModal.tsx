@@ -199,7 +199,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                     </div>
                     <h4 className="text-sm font-bold text-gw-primary">Coordinate & Spatial Extraction</h4>
                     <p className="text-xs text-gw-accent leading-relaxed">
-                      Raw bulletin text is scanned for maritime coordinate formats: DMS (<code className="text-gw-primary">DD-MM.mmN DDD-MM.mmW</code>), DDM, danger radii in nautical miles, and polygons. Non-standard unstructured alerts trigger Gemini Flash LLM structured extraction.
+                      Raw bulletin text is scanned for maritime coordinate formats: DMS (<code className="text-gw-primary">DD-MM.mmN DDD-MM.mmW</code>), DDM, danger radii in nautical miles, and polygons. Non-standard unstructured alerts trigger Gemini Flash AI-assisted structured extraction.
                     </p>
                     <div className="text-[11px] font-mono text-gw-primary bg-gw-bg p-2 rounded border border-gw-secondary">
                       parseCoordinatesDeterministic(rawText, navarea)

@@ -63,7 +63,7 @@ in the same PR — do not silently weaken a check.
 | 3.4 | Go to Coordinates accepts valid DD/DMM and shows feedback | Yes | test 5 (`Focused: …`) |
 | 3.5 | Go to Coordinates rejects garbage input with an error message (no crash) | Yes | test 5 (rose error state) |
 | 3.6 | Fit Bounds works | Yes | test 5 |
-| 3.7 | Layer pane toggles (Warning Polygons / Marker Clusters / Soundings / Seamarks) remain available | Manual | inventory §4 / F-04. **Pane-identifier cleanup is mandated by constraint 10 and will change this text on purpose** (e.g. "Ocean Soundings (soundingsPane)" → "Ocean Soundings"). The capture driver and smoke suite anchor on the public label prefix (`/^Ocean Soundings/`), never on pane IDs, so that cleanup must **not** fail the suite; if a test still references a pane identifier, treat it as a bug in the test |
+| 3.7 | Layer toggles (Warning Areas / Warning Markers / Ocean Soundings / Seamarks) remain available | Yes | inventory §4 / F-04. **Pane-identifier cleanup landed in Task 6 (plan §1.4)**: labels are now plain language ("Ocean Soundings (soundingsPane)" → "Ocean Soundings", "Warning Polygons (navWarnVectorPane)" → "Warning Areas", "Marker Clusters (navWarnMarkerPane)" → "Warning Markers", "OpenSeaMap Seamarks (seamarksPane)" → "Seamarks", heading "Layer Visibility & Panes" → "Layer Visibility"). Test 5 anchors on the public label prefix (`/^Ocean Soundings/`) **and** asserts that no pane identifier appears in user-visible text |
 | 3.8 | Map stays interactive while drawer is open; attribution preserved | Manual | `map-drawer-open` capture |
 
 ## 4. Warning Details, expand, "View on map", isolation
@@ -88,7 +88,7 @@ in the same PR — do not silently weaken a check.
 | 5.4 | **Known bug F-02:** unlock reverts with no stored token — do not make this *worse*; fixing it is a separate task | Documented | `inventory.md` F-02 |
 | 5.5 | All six admin views render for an authenticated session (Pipeline / Manual Parser / Bulk Import / Audit Log / Evidence / Supabase Server) | Yes | test 9 |
 | 5.6 | Admin technical content stays admin-only (never appears in public surfaces) | Partially | inventory §8; re-check after any "promote to public" proposal. Entry points covered by tests 14–15 (Task 5 fix round): v2 footer "Technical details (Admin)" → non-admin gets the Admin Access Gate only; stored session token opens the nested original modal |
-| 5.7 | Sources "Run Worker" and registry health data stay present | Yes (presence) | test 7 — Task 5: default Sources view is the short summary; test clicks "View source details" → "Registry statistics" → row Details before asserting the counters, badges and Run Worker |
+| 5.7 | Sources "Refresh Now" (was "Run Worker"; renamed by Task 6) and registry health data stay present | Yes (presence) | test 7 — Task 5: default Sources view is the short summary; test clicks "View source details" → "Registry statistics" → row Details before asserting the counters, badges and Refresh Now; test 7 also asserts no "Run Worker" / "LLM" token remains on the surface |
 
 ## 6. URL state / deep links
 
@@ -135,10 +135,10 @@ Expected result: `15 passed`, lint clean, `vite build` succeeds.
 - [ ] Open Map View at 1440 px and 375 px — drawer, layers, and coordinates control still work.
 - [ ] Data Bank: search, one quick filter, one Smart Sort preset, one column sort, Reset.
 - [ ] Data Bank: open Details → "Show Only This Message" → "Show All Warnings".
-- [ ] Sources (Task 5): default view = "Official Data Sources" summary with real counts; "View source details" → compact table → row Details expand shows badges, health data and Run Worker; no new pipeline jargon on the public surface.
+- [ ] Sources (Task 5): default view = "Official Data Sources" summary with real counts; "View source details" → compact table → row Details expand shows badges, health data and Refresh Now; no new pipeline jargon on the public surface.
 - [ ] NOTICE disclaimer, zero-count categories, and the empty state are still visible where expected.
 - [ ] Mobile 375 px and tablet 768 px: no horizontal scroll on Map / Data Bank / Sources; More drawer reachable at 375 px.
-- [ ] Map drawer "Layer Visibility & Panes" labels are plain language (no pane IDs) once the F-04 cleanup lands; test 5 still passes.
+- [ ] Map drawer "Layer Visibility" labels are plain language (no pane IDs) — cleanup landed in Task 6; test 5 asserts it still holds.
 - [ ] Nothing new appears in the URL that would leak operator state.
 - [ ] Compare `docs/ux-audit/dom/*.txt` diffs before/after your change and record intentional
       differences in the PR (and in `inventory.md`).

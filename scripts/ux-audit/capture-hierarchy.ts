@@ -20,6 +20,7 @@ import { chromium, type Page } from 'playwright';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { applyTerminologyRenames } from './terminology-renames';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SHOTS = path.join(ROOT, 'docs', 'ux-audit', 'screenshots', 'v2');
@@ -73,7 +74,7 @@ async function capture(page: Page, name: string) {
 function normalizeDump(raw: string): string[] {
   return raw
     .split(/\r?\n/)
-    .map((line) => line.trim())
+    .map((line) => applyTerminologyRenames(line.trim()))
     .filter((t) => {
       if (/^(state|viewport|url|path|overflow):/.test(t)) return false;
       if (t === '---') return false;

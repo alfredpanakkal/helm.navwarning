@@ -291,7 +291,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 <div>
                   <div className="text-gw-accent uppercase font-bold text-[10px]">Extraction Method</div>
                   <div className="text-gw-primary font-bold uppercase">
-                    {warning.extraction_method === 'llm_assisted' ? 'LLM Assisted' : 'Deterministic'}
+                    {warning.extraction_method === 'llm_assisted' ? 'AI Assisted' : 'Deterministic'}
                   </div>
                 </div>
                 <div>

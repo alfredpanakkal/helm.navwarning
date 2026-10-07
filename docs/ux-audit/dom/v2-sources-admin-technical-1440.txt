@@ -21,7 +21,7 @@ SUPABASE SERVER
 ADMIN MODE
 NOTICE
 Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
-• Last updated: 7 Oct 2026, 13:12 IST
+• Last updated: 7 Oct 2026, 14:40 IST
 PRINCIPLES
 01_VERIFICATION
 An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
@@ -228,7 +228,7 @@ STEP 02 • PARSING
 Deterministic Regex + AI
 Coordinate & Spatial Extraction
 
-Raw bulletin text is scanned for maritime coordinate formats: DMS (DD-MM.mmN DDD-MM.mmW), DDM, danger radii in nautical miles, and polygons. Non-standard unstructured alerts trigger Gemini Flash LLM structured extraction.
+Raw bulletin text is scanned for maritime coordinate formats: DMS (DD-MM.mmN DDD-MM.mmW), DDM, danger radii in nautical miles, and polygons. Non-standard unstructured alerts trigger Gemini Flash AI-assisted structured extraction.
 
 parseCoordinatesDeterministic(rawText, navarea)
 STEP 03 • INTEGRITY
@@ -256,7 +256,7 @@ CLOSE PROCEDURE
 Helm.Warning
 •
 NAVAREA Maritime Safety Information Pipeline
-Last updated: 7 Oct 2026, 13:12 IST
+Last updated: 7 Oct 2026, 14:40 IST
 UI
 v2
 classic

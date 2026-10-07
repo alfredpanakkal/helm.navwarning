@@ -111,7 +111,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                 <th className="py-3 px-4">NAVAREA</th>
                 <th className="py-3 px-4">Coordinator / Publisher</th>
                 <th className="py-3 px-4">Semantics & Format</th>
-                <th className="py-3 px-4">LLM Fallback Rate</th>
+                <th className="py-3 px-4">AI Fallback Rate</th>
                 <th className="py-3 px-4">Health & Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -215,7 +215,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                             className="flex items-center gap-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 shadow-sm"
                           >
                             <Play className="w-3 h-3" />
-                            <span>Run Worker</span>
+                            <span>Refresh Now</span>
                           </button>
                         ) : (
                           <span className="text-[11px] text-gw-accent font-mono italic">Pending Onboarding</span>

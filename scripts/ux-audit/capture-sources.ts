@@ -25,6 +25,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { applyTerminologyRenames } from './terminology-renames';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SHOTS = path.join(ROOT, 'docs', 'ux-audit', 'screenshots', 'v2');
@@ -40,6 +41,13 @@ const BASELINE_DOM = path.join(ROOT, 'docs', 'ux-audit', 'dom');
 const LOCAL = 'http://localhost:3000';
 const DESKTOP = { width: 1440, height: 900 };
 
+/**
+ * Constraint-10 tokens for the rendered Sources surface. The four pane IDs,
+ * "LLM" and "worker" were added by Task 6 (terminology cleanup) so this guard
+ * now also enforces plan §1.4, not only the original SHA/Supabase/regex set.
+ * "pane" as a bare word is deliberately not a token (it substring-matches
+ * "panel"); the full pane identifiers are used instead.
+ */
 const CONSTRAINT_TOKENS = [
   'SHA-256',
   'SHA256',
@@ -48,6 +56,12 @@ const CONSTRAINT_TOKENS = [
   'regex',
   'parser pipeline',
   'HTTP format',
+  'navWarnVectorPane',
+  'navWarnMarkerPane',
+  'soundingsPane',
+  'seamarksPane',
+  'LLM',
+  'worker',
 ];
 
 const results: string[] = [];
@@ -146,7 +160,7 @@ async function mainText(page: Page): Promise<string> {
 function normalizeDump(raw: string): string[] {
   return raw
     .split(/\r?\n/)
-    .map((line) => line.trim())
+    .map((line) => applyTerminologyRenames(line.trim()))
     .filter((t) => {
       if (/^(state|viewport|url|path|overflow):/.test(t)) return false;
       if (t === '---') return false;
@@ -231,8 +245,11 @@ async function main() {
         !mainTextDefault.includes('NAVWARN Candidate Discovery Registry')));
       mark(check('default: no legacy overview-card counters on default view',
         !mainTextDefault.includes('Verified Endpoints') && !mainTextDefault.includes('Poll Cadence')));
-      mark(check('default: no Run Worker action on default view',
-        !mainTextDefault.includes('Run Worker')));
+      // innerText renders CSS `uppercase` labels as "REFRESH NOW", so compare
+      // case-insensitively (the pre-Task-6 `.includes('Run Worker')` never
+      // matched the upper-cased render and could not have failed).
+      mark(check('default: no Refresh Now action on default view',
+        !mainTextDefault.toLowerCase().includes('refresh now')));
       mark(check('default: constraint tokens absent from rendered Sources view',
         hitsIn(mainTextDefault).length === 0, hitsIn(mainTextDefault).join(', ') || 'none'));
 
@@ -251,11 +268,11 @@ async function main() {
 
       await page.locator('button[title="Show technical details"]').first().click();
       await page.waitForTimeout(400);
-      for (const probe of ['Discovery endpoint', 'Publication semantics', 'LLM fallback rate', 'Health diagnostics', 'Poll cadence']) {
+      for (const probe of ['Discovery endpoint', 'Publication semantics', 'AI fallback rate', 'Health diagnostics', 'Poll cadence']) {
         mark(check(`details: row expand shows "${probe}"`, await page.getByText(probe).first().isVisible()));
       }
-      mark(check('details: Run Worker action reachable in row expand',
-        await page.getByRole('button', { name: /Run Worker/ }).first().isVisible()));
+      mark(check('details: Refresh Now action reachable in row expand',
+        await page.getByRole('button', { name: /Refresh Now/ }).first().isVisible()));
 
       const mainTextDetails = await mainText(page);
       mark(check('details: constraint tokens absent from expanded technical facts',

@@ -15,7 +15,7 @@ SOURCES
 ADMIN ACCESS
 NOTICE
 Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
-• Last updated: 7 Oct 2026, 13:12 IST
+• Last updated: 7 Oct 2026, 14:40 IST
 PRINCIPLES
 01_VERIFICATION
 An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.
@@ -38,13 +38,13 @@ SOURCE ID
 ukho-navarea-1
 PUBLICATION SEMANTICS
 complete_in_force · [html]
-LLM FALLBACK RATE
+AI FALLBACK RATE
 0% (0/0 runs)
 HEALTH DIAGNOSTICS
 ok
 POLL CADENCE
 360 min · stale after 780 min
-RUN WORKER
+REFRESH NOW
 
 Swedish Maritime Administration (Sjöfartsverket)	BALTIC	
 VERIFIED	03:30 UTC	
@@ -135,7 +135,7 @@ POLL CADENCE
 Helm.Warning
 •
 NAVAREA Maritime Safety Information Pipeline
-Last updated: 7 Oct 2026, 13:12 IST
+Last updated: 7 Oct 2026, 14:40 IST
 UI
 v2
 classic

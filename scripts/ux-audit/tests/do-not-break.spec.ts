@@ -218,6 +218,20 @@ test.describe('map', () => {
     await expect.poll(() => soundingsCheckbox.isChecked()).not.toBe(before);
     await soundingsCheckbox.click();
 
+    // Task 6 (plan §1.4): no pane identifier or "panes" wording may appear in
+    // any user-visible string. The map component is shared by both render
+    // paths, so this one assertion covers classic and v2.
+    const mapText = (await page.evaluate('document.body.innerText')) as string;
+    for (const internal of [
+      'navWarnVectorPane',
+      'navWarnMarkerPane',
+      'soundingsPane',
+      'seamarksPane',
+      'Layer Visibility & Panes',
+    ]) {
+      expect(mapText, `user-visible text must not contain "${internal}"`).not.toContain(internal);
+    }
+
     const jumpInput = page.locator('input[placeholder^="e.g. 55-23.90N"]');
     await expect(jumpInput).toBeVisible();
     await jumpInput.fill('55.3983, 3.8116');
@@ -256,13 +270,13 @@ test.describe('warning details', () => {
 });
 
 test.describe('sources', () => {
-  test('registry counters, verification badges and worker action are present', async ({ page }) => {
+  test('registry counters, verification badges and refresh action are present', async ({ page }) => {
     const errors = watchPageErrors(page);
     await openApp(page);
     await goTab(page, 'Sources');
 
     // Task 5 (progressive disclosure): default = short summary; the counters,
-    // badges and Run Worker action move one/two levels deeper but must all
+    // badges and Refresh Now action move one/two levels deeper but must all
     // still be reachable (do-not-break §5.7).
     await expect(page.getByText('Official Data Sources')).toBeVisible();
     await page.getByRole('button', { name: 'View source details' }).click();
@@ -271,9 +285,15 @@ test.describe('sources', () => {
     await expect(page.getByText('Verified Endpoints')).toBeVisible();
     await expect(page.getByText('Unverified Coverage')).toBeVisible();
 
-    // First seed source is verified; its Details row carries the worker action.
+    // First seed source is verified; its Details row carries the refresh action.
     await page.locator('button[title="Show technical details"]').first().click();
-    await expect(page.getByRole('button', { name: /Run Worker/ }).first()).toBeEnabled();
+    await expect(page.getByRole('button', { name: /Refresh Now/ }).first()).toBeEnabled();
+
+    // Task 6 (plan §1.4): worker/LLM internal names are gone from every
+    // user-visible string on the Sources surface (both paths).
+    const sourcesText = (await page.evaluate('document.body.innerText')) as string;
+    expect(sourcesText, 'no "Run Worker" label').not.toMatch(/Run Worker/);
+    expect(sourcesText, 'no "LLM" token').not.toMatch(/\bLLM\b/);
 
     expect(errors, 'no uncaught page errors').toEqual([]);
   });

@@ -82,7 +82,7 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
               </div>
               <div className="text-xs font-bold text-gw-primary uppercase tracking-wider">No Audit Generation Logs Found</div>
               <p className="text-xs text-gw-accent max-w-sm mx-auto">
-                Run the pipeline worker from the Pipeline or Sources view to generate immutable audit pointer records.
+                Run a source refresh from the Pipeline or Sources view to generate immutable audit pointer records.
               </p>
             </div>
           ) : (

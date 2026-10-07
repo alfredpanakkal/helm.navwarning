@@ -22,7 +22,7 @@ const MOCK_LOGS = [
   { t: '14:32:09.820', lvl: 'ok', msg: 'Source NGA NAVAREA IV/XII live JSON feed synchronized' },
   { t: '14:32:10.442', lvl: 'info', msg: 'Parsing & Geocoding phase complete — structured geometries emitted' },
   { t: '14:32:10.881', lvl: 'ok', msg: 'Coordinate parser: 119 deterministic regex extractions' },
-  { t: '14:32:11.012', lvl: 'ok', msg: 'Gemini LLM Assistant: 23 complex geometry extractions verified' },
+  { t: '14:32:11.012', lvl: 'ok', msg: 'Gemini AI Assistant: 23 complex geometry extractions verified' },
   { t: '14:32:11.294', lvl: 'ok', msg: 'Atomic pointer swap to latest ingestion generation successful' },
   { t: '14:32:11.301', lvl: 'info', msg: 'Pipeline run complete — Evidence hashes sealed in locker' },
 ];
@@ -170,7 +170,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             </div>
             <div>
               <div className="text-sm font-bold text-gw-primary">Manual Parser</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">Regex &amp; Gemini LLM</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">Regex &amp; Gemini AI</div>
             </div>
           </button>
 

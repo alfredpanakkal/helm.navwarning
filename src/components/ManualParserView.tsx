@@ -149,7 +149,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
             <span>Manual Warning Parser & Override Workflow</span>
           </h2>
           <p className="text-xs text-gw-accent mt-1 leading-relaxed">
-            For unsupported sources, manual paste corrections, or personal route voyage updates. Enforces deterministic regex extraction with optional server-side LLM assistance.
+            For unsupported sources, manual paste corrections, or personal route voyage updates. Enforces deterministic regex extraction with optional server-side AI assistance.
           </p>
         </div>
 
@@ -308,7 +308,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                               : 'bg-green-100 text-green-900 border border-green-400'
                           }`}
                         >
-                          {parsedResult.extraction_method === 'llm_assisted' ? 'LLM assisted' : 'Deterministic'}
+                          {parsedResult.extraction_method === 'llm_assisted' ? 'AI assisted' : 'Deterministic'}
                         </span>
                         {parsedResult.extraction_confidence && (
                           <span className="text-gw-accent font-bold">
