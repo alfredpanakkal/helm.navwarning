@@ -1,0 +1,434 @@
+{
+  "communities": {
+    "0": [
+      "cheerio",
+      "dotenv",
+      "express",
+      "express_rate_limit",
+      "firebase",
+      "google_genai",
+      "leaflet",
+      "leaflet_markercluster",
+      "lucide_react",
+      "motion",
+      "package_dependencies",
+      "package_dependencies_cheerio",
+      "package_dependencies_dotenv",
+      "package_dependencies_express",
+      "package_dependencies_express_rate_limit",
+      "package_dependencies_firebase",
+      "package_dependencies_google_genai",
+      "package_dependencies_leaflet",
+      "package_dependencies_leaflet_markercluster",
+      "package_dependencies_lucide_react",
+      "package_dependencies_motion",
+      "package_dependencies_papaparse",
+      "package_dependencies_react",
+      "package_dependencies_react_dom",
+      "package_dependencies_supabase_server",
+      "package_dependencies_supabase_supabase_js",
+      "package_dependencies_tailwindcss_vite",
+      "package_dependencies_types_leaflet",
+      "package_dependencies_vitejs_plugin_react",
+      "package_dependencies_zod",
+      "papaparse",
+      "react",
+      "react_dom",
+      "supabase_server",
+      "supabase_supabase_js",
+      "tailwindcss_vite",
+      "types_leaflet",
+      "vitejs_plugin_react",
+      "zod"
+    ],
+    "1": [
+      "api_admin_test_gemini",
+      "api_admin_test_gemini_handler",
+      "api_admin_verify",
+      "api_admin_verify_handler",
+      "api_scrape_navwarn",
+      "api_scrape_navwarn_extractwarnings",
+      "api_scrape_navwarn_iscronauthorized",
+      "api_scrape_navwarn_scrapenavwarnhandler",
+      "api_supabase_status",
+      "api_supabase_status_handler",
+      "api_supabase_sync",
+      "api_supabase_sync_handler",
+      "server",
+      "server_artifactsdb",
+      "server_auth",
+      "server_auth_adminuser",
+      "server_auth_authverificationresult",
+      "server_auth_extractbearertoken",
+      "server_auth_requireadmin",
+      "server_auth_verifyadminrequest",
+      "server_callmistralfallback",
+      "server_generatecontentwithretry",
+      "server_generationsdb",
+      "server_getgeminiclient",
+      "server_hydratedatabasefromsupabase",
+      "server_normalizegeminimodel",
+      "server_rationale_469",
+      "server_safecompare",
+      "server_securityheaders",
+      "server_securityheaders_securityheadersmiddleware",
+      "server_sourceleases",
+      "server_sourcesdb",
+      "server_splitintochunks",
+      "server_startserver",
+      "server_warningsdb"
+    ],
+    "2": [
+      "src_components_header",
+      "src_components_header_header",
+      "src_components_header_headerprops",
+      "src_components_supabasestatusview",
+      "src_components_supabasestatusview_supabasestatusview",
+      "src_components_supabasestatusview_supabasestatusviewprops",
+      "src_services_api",
+      "src_services_api_adminlogin",
+      "src_services_api_adminlogout",
+      "src_services_api_auditbatchwithai",
+      "src_services_api_bulkingestairesponse",
+      "src_services_api_bulkingestwithai",
+      "src_services_api_enrichevidence",
+      "src_services_api_fetchartifacts",
+      "src_services_api_fetchgenerations",
+      "src_services_api_fetchlastpipelinerun",
+      "src_services_api_fetchpipelinestatus",
+      "src_services_api_fetchsources",
+      "src_services_api_fetchsupabasestatus",
+      "src_services_api_fetchwarnings",
+      "src_services_api_getadminheaders",
+      "src_services_api_mapsupabaserowtonavwarning",
+      "src_services_api_parsemanualwarning",
+      "src_services_api_parsemarkdownwithai",
+      "src_services_api_parsenavwarn",
+      "src_services_api_rejectedtriageitem",
+      "src_services_api_saveimportedwarningstosupabase",
+      "src_services_api_testgeminiintegration",
+      "src_services_api_testmistralintegration",
+      "src_services_api_triggerpipelinerefresh",
+      "src_services_api_triggersupabasesync"
+    ],
+    "3": [
+      "autoprefixer",
+      "esbuild",
+      "package_dependencies_vite",
+      "package_devdependencies",
+      "package_devdependencies_autoprefixer",
+      "package_devdependencies_esbuild",
+      "package_devdependencies_tailwindcss",
+      "package_devdependencies_tsx",
+      "package_devdependencies_types_express",
+      "package_devdependencies_types_leaflet_markercluster",
+      "package_devdependencies_types_node",
+      "package_devdependencies_types_papaparse",
+      "package_devdependencies_typescript",
+      "package_devdependencies_vercel_node",
+      "package_devdependencies_vite",
+      "package_devdependencies_vite_plugin_singlefile",
+      "tailwindcss",
+      "tsx",
+      "types_express",
+      "types_leaflet_markercluster",
+      "types_node",
+      "types_papaparse",
+      "typescript",
+      "vercel_node",
+      "vite",
+      "vite_plugin_singlefile"
+    ],
+    "4": [
+      "design_component_patterns",
+      "design_functional_colors",
+      "design_gw_accent",
+      "design_gw_bg",
+      "design_gw_palette",
+      "design_gw_primary",
+      "design_gw_secondary",
+      "design_gw_tertiary",
+      "design_map_elements",
+      "index_docuflow",
+      "index_gemini_ai",
+      "index_google_fonts_stylesheet",
+      "index_inter_font",
+      "index_jetbrains_mono",
+      "ui_design_fundamentals_courier_new",
+      "ui_design_fundamentals_effects",
+      "ui_design_fundamentals_hard_offset_shadows",
+      "ui_design_fundamentals_hover_transform",
+      "ui_design_fundamentals_radii",
+      "ui_design_fundamentals_radius_lg",
+      "ui_design_fundamentals_radius_md",
+      "ui_design_fundamentals_radius_sm",
+      "ui_design_fundamentals_typography",
+      "ui_design_fundamentals_uppercase_casing"
+    ],
+    "5": [
+      "jszip",
+      "package_dependencies_jszip",
+      "src_app",
+      "src_app_app",
+      "src_main",
+      "src_types",
+      "src_types_analysisprogress",
+      "src_types_architecturemodule",
+      "src_types_architectureresult",
+      "src_types_codeinsight",
+      "src_types_commentdensity",
+      "src_types_dependencyitem",
+      "src_types_designpatterninfo",
+      "src_types_docuflowanalysis",
+      "src_types_envvariable",
+      "src_types_inlinecommentsresult",
+      "src_types_setupguideresult",
+      "src_types_setupstep",
+      "src_types_sourcefile",
+      "src_types_supportedlanguage"
+    ],
+    "6": [
+      "ref_dom",
+      "ref_dom_iterable",
+      "ref_es2022",
+      "tsconfig",
+      "tsconfig_compileroptions",
+      "tsconfig_compileroptions_allowimportingtsextensions",
+      "tsconfig_compileroptions_allowjs",
+      "tsconfig_compileroptions_experimentaldecorators",
+      "tsconfig_compileroptions_isolatedmodules",
+      "tsconfig_compileroptions_jsx",
+      "tsconfig_compileroptions_lib",
+      "tsconfig_compileroptions_module",
+      "tsconfig_compileroptions_moduledetection",
+      "tsconfig_compileroptions_moduleresolution",
+      "tsconfig_compileroptions_noemit",
+      "tsconfig_compileroptions_paths",
+      "tsconfig_compileroptions_skiplibcheck",
+      "tsconfig_compileroptions_target",
+      "tsconfig_compileroptions_usedefineforclassfields"
+    ],
+    "7": [
+      "docref_rfc_1918",
+      "docref_rfc_2544",
+      "docref_rfc_4193",
+      "docref_rfc_4291",
+      "docref_rfc_6598",
+      "server_ssrfguard",
+      "server_ssrfguard_isdisallowedip",
+      "server_ssrfguard_ishostnameallowed",
+      "server_ssrfguard_isprivateipv4",
+      "server_ssrfguard_isprivateipv6",
+      "server_ssrfguard_safefetch",
+      "server_ssrfguard_safefetchoptions",
+      "server_ssrfguard_safefetchresult",
+      "server_ssrfguard_source_registry_hostnames",
+      "server_ssrfguard_validateurlforssrf"
+    ],
+    "8": [
+      "package",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_clean",
+      "package_scripts_dev",
+      "package_scripts_lint",
+      "package_scripts_start",
+      "package_type",
+      "package_version"
+    ],
+    "9": [
+      "src_vite_env_d",
+      "src_vite_env_d_importmeta",
+      "src_vite_env_d_importmetaenv"
+    ],
+    "10": [
+      "api_admin_login",
+      "api_admin_login_handler"
+    ],
+    "11": [
+      "generate_single_file",
+      "generate_single_file_sh__entry"
+    ],
+    "12": [
+      "index_main_tsx",
+      "index_root"
+    ],
+    "13": [
+      "ui_design_fundamentals_grid_background",
+      "ui_design_fundamentals_grid_spacing"
+    ],
+    "14": [
+      "vercel",
+      "vercel_crons"
+    ],
+    "15": [
+      "vite_config"
+    ]
+  },
+  "cohesion": {
+    "0": 0.05128205128205128,
+    "1": 0.10756302521008404,
+    "2": 0.10967741935483871,
+    "3": 0.07692307692307693,
+    "4": 0.09057971014492754,
+    "5": 0.13157894736842105,
+    "6": 0.10526315789473684,
+    "7": 0.19047619047619047,
+    "8": 0.18181818181818182,
+    "9": 0.6666666666666666,
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.0,
+    "15": 1.0
+  },
+  "gods": [
+    {
+      "id": "server_auth_verifyadminrequest",
+      "label": "verifyAdminRequest()",
+      "degree": 15
+    },
+    {
+      "id": "tsconfig_compileroptions",
+      "label": "compilerOptions",
+      "degree": 15
+    },
+    {
+      "id": "server_startserver",
+      "label": "startServer()",
+      "degree": 11
+    },
+    {
+      "id": "src_services_api_getadminheaders",
+      "label": "getAdminHeaders()",
+      "degree": 8
+    },
+    {
+      "id": "api_scrape_navwarn_scrapenavwarnhandler",
+      "label": "scrapeNavwarnHandler()",
+      "degree": 6
+    },
+    {
+      "id": "package_scripts",
+      "label": "scripts",
+      "degree": 6
+    },
+    {
+      "id": "design_gw_palette",
+      "label": "GATEWORKS Palette (CSS Variables)",
+      "degree": 6
+    },
+    {
+      "id": "server_ssrfguard_validateurlforssrf",
+      "label": "validateUrlForSSRF()",
+      "degree": 5
+    },
+    {
+      "id": "src_components_supabasestatusview_supabasestatusview",
+      "label": "SupabaseStatusView()",
+      "degree": 5
+    },
+    {
+      "id": "design_component_patterns",
+      "label": "GATEWORKS Component Patterns (Buttons, Cards, Map Elements)",
+      "degree": 5
+    }
+  ],
+  "surprises": [
+    {
+      "source": "JetBrains Mono Webfont",
+      "target": "Courier New Monospace Font Family",
+      "source_files": [
+        "index.html",
+        "UI-DESIGN-FUNDAMENTALS.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; semantically similar concepts with no structural link"
+    },
+    {
+      "source": "GATEWORKS Component Patterns (Buttons, Cards, Map Elements)",
+      "target": "Radius sm: 4px Interactive Elements",
+      "source_files": [
+        "DESIGN.md",
+        "UI-DESIGN-FUNDAMENTALS.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `Radius sm: 4px Interactive Elements` unexpectedly reaches hub `GATEWORKS Component Patterns (Buttons, Cards, Map Elements)`"
+    },
+    {
+      "source": "GATEWORKS Component Patterns (Buttons, Cards, Map Elements)",
+      "target": "UPPERCASE Labels, Statuses, Headers",
+      "source_files": [
+        "DESIGN.md",
+        "UI-DESIGN-FUNDAMENTALS.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `UPPERCASE Labels, Statuses, Headers` unexpectedly reaches hub `GATEWORKS Component Patterns (Buttons, Cards, Map Elements)`"
+    },
+    {
+      "source": "handler()",
+      "target": "verifyAdminRequest()",
+      "source_files": [
+        "api/admin/test-gemini.ts",
+        "server/auth.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `handler()` unexpectedly reaches hub `verifyAdminRequest()`"
+    },
+    {
+      "source": "handler()",
+      "target": "verifyAdminRequest()",
+      "source_files": [
+        "api/admin/verify.ts",
+        "server/auth.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `handler()` unexpectedly reaches hub `verifyAdminRequest()`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `dependencies` connect `Community 0` to `Community 8`, `Community 3`, `Community 5`?",
+      "why": "High betweenness centrality (0.359) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `jszip` connect `Community 5` to `Community 0`?",
+      "why": "High betweenness centrality (0.285) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 3 inferred relationships involving `startServer()` (e.g. with `scrapeNavwarnHandler()` and `requireAdmin()`) actually correct?",
+      "why": "`startServer()` has 3 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `generate_single_file.sh script`, `name`, `private` to the rest of the system?",
+      "why": "98 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.05128205128205128 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 1` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.10756302521008404 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 2` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.10967741935483871 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

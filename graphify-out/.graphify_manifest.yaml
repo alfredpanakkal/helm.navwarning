@@ -1,0 +1,43 @@
+---
+graphify:
+  version: 0.9.33
+  python: 3.11.9
+  mode: shallow
+  directed: false
+  target: helm.navwarning
+  generated: 2026-09-30
+model:
+  semantic: explore-subagent (no API key available)
+  ast: graphify built-in
+tokens:
+  input: 0
+  output: 0
+  note: No API key configured; semantic pass ran through a read-only subagent that did not report usage. Cost is not claimed.
+graph:
+  nodes: 234
+  edges: 297
+  communities: 16
+extraction:
+  files: 27
+  words: 23736
+  code_files: 24
+  documents: 3
+  ast_nodes: 206
+  ast_edges: 390
+  semantic_nodes: 28
+  semantic_edges: 27
+  hyperedges: 3
+health:
+  dangling_endpoint_edges: 119
+  real_missing_modules_or_exports: 84
+  extractor_artifacts: 35
+  import_cycles: 0
+  unindexed: [src/index.css, bun.lock]
+excluded:
+  - public/export
+  - package-lock.json
+output:
+  - graphify-out/graph.json
+  - graphify-out/GRAPH_REPORT.md
+  - graphify-out/graph.html
+  - CODE_REVIEW.md

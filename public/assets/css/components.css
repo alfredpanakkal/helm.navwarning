@@ -1,0 +1,62 @@
+/* ═══════════ RESETS & BASE ═══════════ */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { font: var(--font-body); background: var(--bg); color: var(--text); min-height: 100vh; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-sm); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--surface-dark); outline-offset: 2px; }
+
+/* ═══════════ BUTTONS ═══════════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: var(--space-sm) var(--space-md); border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  font: 500 14px system-ui; cursor: pointer; min-height: var(--touch-min);
+  transition: .2s; text-decoration: none;
+}
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary { background: var(--surface-dark); color: #fff; border-color: var(--surface-dark); padding: var(--space-sm) var(--space-lg); }
+.btn-primary:hover { background: #334155; }
+.btn-secondary { background: var(--surface); }
+.btn-ghost { background: transparent; border: none; color: var(--text-muted); padding: 4px 8px; }
+.btn-sm { padding: 4px 12px; font-size: 13px; min-height: 34px; }
+
+/* ═══════════ BADGES ═══════════ */
+.badge-simple {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px;
+  border-radius: var(--radius-lg); font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.badge-simple .dot { width: 6px; height: 6px; border-radius: 50%; }
+.badge-high { background: #fff7ed; color: var(--high); }
+.badge-high .dot { background: var(--high); }
+.badge-active { background: #ecfdf5; color: var(--active); }
+.badge-active .dot { background: var(--active); }
+.badge-verified { background: #f0fdfa; color: var(--verified); }
+.badge-verified .dot { background: var(--verified); }
+.badge-neutral { background: #f1f5f9; color: var(--neutral); }
+.badge-neutral .dot { background: var(--neutral); }
+.badge-moderate { background: #f1f5f9; color: #475569; }
+.badge-moderate .dot { background: #475569; }
+
+/* ═══════════ SPINNER ═══════════ */
+.spinner {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid rgba(255,255,255,.35); border-top-color: #fff;
+  border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px;
+}
+.spinner.dark { border-color: rgba(15,23,42,.2); border-top-color: var(--surface-dark); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══════════ TOAST ═══════════ */
+.toast {
+  position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%;
+  transform: translateX(-50%) translateY(10px); background: var(--surface-dark); color: #fff;
+  padding: 10px 24px; border-radius: var(--radius-lg); z-index: 3000; font-size: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.2); max-width: calc(100vw - 32px);
+  text-align: center; opacity: 0; transition: .3s; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ═══════════ ANIMATIONS ═══════════ */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
