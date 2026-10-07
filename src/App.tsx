@@ -3,12 +3,8 @@ import { Header } from './components/Header';
 import { DisclaimerBanner } from './components/DisclaimerBanner';
 import { Footer } from './components/Footer';
 import { LeafletMap } from './components/LeafletMap';
-import { DataBank } from './components/DataBank';
 import { DataBankV2 } from './components/DataBankV2';
-import { UILegacySwitcher } from './components/UILegacySwitcher';
-import { useUILegacy } from './lib/uiFlags';
 import { WorkspaceView } from './components/WorkspaceView';
-import { SourceRegistryView } from './components/SourceRegistryView';
 import { SourceRegistryViewV2 } from './components/SourceRegistryViewV2';
 import { ManualParserView } from './components/ManualParserView';
 import { CsvUploaderView } from './components/CsvUploaderView';
@@ -46,7 +42,6 @@ export type TabType =
   | 'supabase';
 
 export default function App() {
-  const legacyUI = useUILegacy();
   const [activeTab, setActiveTab] = useState<TabType>('map');
   const [selectedWarning, setSelectedWarning] = useState<NavWarning | null>(null);
   const [isolatedWarning, setIsolatedWarning] = useState<NavWarning | null>(null);
@@ -311,25 +306,8 @@ export default function App() {
         {/* Data Bank */}
         <div
           className={activeTab === 'databank' ? 'block' : 'hidden'}
-          data-ui-render-path={legacyUI ? 'legacy' : 'v2'}
+          data-ui-render-path="v2"
         >
-          {legacyUI ? (
-            <DataBank
-              warnings={warnings}
-              initialStatusFilter={dataBankStatusFilter}
-              onVerifyWarning={handleVerifyWarning}
-              onLocate={(w) => {
-                setSelectedWarning(w);
-                setActiveTab('map');
-              }}
-              onTriggerRefresh={handleTriggerRefresh}
-              isRefreshing={isPipelineRefreshing}
-              onCommitWarnings={handleCommitWarnings}
-              sources={sources}
-              isOfflineMode={isOfflineMode}
-              onNavigate={(tab) => setActiveTab(tab)}
-            />
-          ) : (
             <DataBankV2
               warnings={warnings}
               initialStatusFilter={dataBankStatusFilter}
@@ -345,20 +323,10 @@ export default function App() {
               isOfflineMode={isOfflineMode}
               onNavigate={(tab) => setActiveTab(tab)}
             />
-          )}
         </div>
 
         {/* Candidate Sources Registry */}
         <div className={activeTab === 'sources' ? 'block' : 'hidden'}>
-          {legacyUI ? (
-            <SourceRegistryView
-              sources={sources}
-              initialFilter={sourcesFilterStatus}
-              onToggleSource={handleToggleSource}
-              onTriggerRefresh={handleTriggerRefresh}
-              isRefreshing={isPipelineRefreshing}
-            />
-          ) : (
             <SourceRegistryViewV2
               sources={sources}
               warnings={warnings}
@@ -367,7 +335,6 @@ export default function App() {
               onTriggerRefresh={handleTriggerRefresh}
               isRefreshing={isPipelineRefreshing}
             />
-          )}
         </div>
 
         {/* Admin Access Gate fallback for locked operational views */}
@@ -491,8 +458,6 @@ export default function App() {
           onClearIsolation={() => setIsolatedWarning(null)}
         />
       )}
-
-      <UILegacySwitcher />
 
     </div>
   );

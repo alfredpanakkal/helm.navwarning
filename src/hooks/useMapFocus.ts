@@ -8,28 +8,26 @@ export interface UseMapFocusReturn {
 }
 
 export function useMapFocus(
-  legacyUI: boolean,
   isActive: boolean
 ): UseMapFocusReturn {
   const [focusMap, setFocusMap] = useState(false);
 
-  // Legacy/UI check: classic path never renders the focus control.
+  // Focus mode only active on the active map tab
   useEffect(() => {
-    if ((legacyUI || !isActive) && focusMap) setFocusMap(false);
-  }, [legacyUI, isActive, focusMap]);
+    if (!isActive && focusMap) setFocusMap(false);
+  }, [isActive, focusMap]);
 
-  // Set/remove data-map-focus on body for CSS chrome stepping aside.
+  // Focus-map chrome: `body[data-map-focus]` steps the app header/footer aside
+  // (index.css) so the map owns the full viewport. Cleaned up on unmount.
   useEffect(() => {
-    if (legacyUI) return;
     if (focusMap) document.body.setAttribute('data-map-focus', 'on');
     else document.body.removeAttribute('data-map-focus');
     return () => document.body.removeAttribute('data-map-focus');
-  }, [focusMap, legacyUI]);
+  }, [focusMap]);
 
   // Inert sibling elements while map is focused so they can't receive
   // focus or handle events; clean up on exit.
   useEffect(() => {
-    if (legacyUI) return;
     if (focusMap) {
       // Inert all direct children of body except the map canvas.
       const mapEl = document.getElementById('map');
@@ -43,7 +41,7 @@ export function useMapFocus(
         el.removeAttribute('inert');
       });
     }
-  }, [focusMap, legacyUI]);
+  }, [focusMap]);
 
   // Map size re-measure on focus enter/exit so tiles/controls realign.
   useEffect(() => {
