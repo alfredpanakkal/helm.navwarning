@@ -244,6 +244,9 @@ the table records what must stay admin-only (never leak into public surfaces).
 10. `resilience › sync live feeds fails gracefully without server credentials`
 11. `mobile › no horizontal overflow on any primary view and touch targets stay usable` (375 px)
 12. `tablet 768 › no horizontal overflow on Map, Data Bank and Sources at 768 px`
+13. `ui path flag (temporary; Task 13 removes) › default load renders Data Bank on the v2 path; hwUI=classic uses the legacy path`
+14. `ingestion procedure (progressive disclosure) › Technical details (Admin): non-admin users are routed to the Admin Access Gate`
+15. `ingestion procedure (progressive disclosure) › Technical details (Admin): a stored admin session token opens the nested original modal`
 
 ---
 

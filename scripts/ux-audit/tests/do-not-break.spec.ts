@@ -445,3 +445,50 @@ test.describe('ui path flag (temporary; Task 13 removes)', () => {
     expect(errors, 'no uncaught page errors').toEqual([]);
   });
 });
+
+// Task-5 fix round (Important 2): both branches of the v2 footer's
+// "Technical details (Admin)" entry point used to be untested, and the
+// non-admin branch relied on a silent `?.click()` no-op. These are tests
+// 14 and 15 (do-not-break §5.6 / §8).
+test.describe('ingestion procedure (progressive disclosure)', () => {
+  test('Technical details (Admin): non-admin users are routed to the Admin Access Gate', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await openApp(page);
+    await goTab(page, 'Data Bank');
+    await page
+      .locator('button[title="View Ingestion Procedure (SOP)"]')
+      .first()
+      .click();
+    await expect(page.getByText('Navigational Warning Ingestion Procedure')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Technical details (Admin)' }).click();
+
+    // Without a stored admin session the procedure modal closes and the
+    // header-driven Admin Access Gate takes over; no technical view appears.
+    await expect(page.getByText('Admin Access Gate')).toBeVisible();
+    await expect(page.getByText('Navigational Warning Ingestion Procedure')).toHaveCount(0);
+
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+
+  test('Technical details (Admin): a stored admin session token opens the nested original modal', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await openApp(page);
+    await page.evaluate("sessionStorage.setItem('helm_admin_token', 'audit-payload')");
+    await goTab(page, 'Data Bank');
+    await page
+      .locator('button[title="View Ingestion Procedure (SOP)"]')
+      .first()
+      .click();
+    await expect(page.getByText('Navigational Warning Ingestion Procedure').first()).toBeVisible();
+
+    await page.getByRole('button', { name: 'Technical details (Admin)' }).click();
+
+    // The original technical modal is nested inside the v2 wrapper: two
+    // procedure headings plus the technical view's SHA-256 fingerprint chip.
+    await expect(page.getByText('SHA-256 Hashes')).toBeVisible();
+    await expect(page.getByText('Navigational Warning Ingestion Procedure')).toHaveCount(2);
+
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+});
