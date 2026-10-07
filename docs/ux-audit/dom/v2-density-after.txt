@@ -1,0 +1,27 @@
+Task 8 - visual density probe (border/box inventory, viewport 1440x900)
+tooling: scripts/ux-audit/density-probe.ts (Playwright Chromium, computed styles)
+rules: visible elements intersecting the viewport, >=12x12px (smaller are
+        glyphs, not boxes), excluding the #map subtree;
+        bordered = any side >=1px; strong = WCAG contrast >=3:1 between the
+        alpha-composited border colour and the effective background, or a
+        >=2px side at >=1.5:1; hardShadow = offset shadow with 0 blur;
+        boxes = strong or hardShadow (a competing visual container).
+
+state: map-default bordered=49 strong=7 hardShadow=1 boxes=7
+state: databank-v2-default bordered=47 strong=4 hardShadow=0 boxes=4
+state: databank-v2-more-filters bordered=57 strong=4 hardShadow=0 boxes=4
+state: databank-classic-default bordered=53 strong=6 hardShadow=0 boxes=6
+state: sources-v2-summary bordered=20 strong=3 hardShadow=0 boxes=3
+state: sources-v2-details bordered=64 strong=3 hardShadow=0 boxes=3
+state: sources-classic bordered=44 strong=4 hardShadow=0 boxes=4
+total: bordered=334 strong=31 hardShadow=1 boxes=31
+
+--- delta vs docs/ux-audit/dom/v2-density-before.txt ---
+state: map-default strong 18 -> 7 (-61.1%) | boxes 18 -> 7 (-61.1%)
+state: databank-v2-default strong 10 -> 4 (-60.0%) | boxes 10 -> 4 (-60.0%)
+state: databank-v2-more-filters strong 8 -> 4 (-50.0%) | boxes 8 -> 4 (-50.0%)
+state: databank-classic-default strong 18 -> 6 (-66.7%) | boxes 18 -> 6 (-66.7%)
+state: sources-v2-summary strong 4 -> 3 (-25.0%) | boxes 4 -> 3 (-25.0%)
+state: sources-v2-details strong 4 -> 3 (-25.0%) | boxes 4 -> 3 (-25.0%)
+state: sources-classic strong 19 -> 4 (-78.9%) | boxes 19 -> 4 (-78.9%)
+TOTAL (matched states): strong 81 -> 31 (-61.7%) | boxes 81 -> 31 (-61.7%) | bordered 363 -> 334 (-8.0%)

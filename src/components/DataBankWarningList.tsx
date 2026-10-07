@@ -88,7 +88,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
   if (groupByMode !== 'none' && groupedAnalyzed) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between p-3.5 bg-white border-2 border-gw-primary rounded-xl text-xs shadow-xs">
+        <div className="flex items-center justify-between p-3.5 bg-white rounded-xl text-xs shadow-xs">
           <span className="font-bold text-gw-primary uppercase tracking-wider flex items-center gap-2">
             <Layers className="w-4 h-4 text-gw-primary" />
             Grouped View Mode: <strong className="capitalize text-gw-tertiary">{groupByMode}</strong> ({groupedAnalyzed.length} Active Groups)
@@ -101,7 +101,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         {groupedAnalyzed.map(group => {
           const isExpanded = expandedGroups[group.groupKey] !== false;
           return (
-            <div key={group.groupKey} className="bg-white border-2 border-gw-primary rounded-2xl overflow-hidden shadow-xs">
+            <div key={group.groupKey} className="bg-white rounded-2xl overflow-hidden shadow-xs">
               {/* Group Header */}
               <div
                 onClick={() => toggleGroup(group.groupKey)}
@@ -158,7 +158,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                                 e.stopPropagation();
                                 onLocate(w);
                               }}
-                              className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
+                              className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-secondary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
                             >
                               <Locate className="w-3 h-3" />
                               <span>View on map</span>
@@ -200,7 +200,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       <div
                         key={cardId}
                         onClick={() => onLocate(w)}
-                        className="p-3.5 border-2 border-gw-secondary rounded-xl bg-gw-bg/30 hover:bg-white hover:border-gw-primary transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs group"
+                        className="p-3.5 border border-gw-secondary rounded-xl bg-gw-bg/30 hover:bg-white hover:border-gw-primary transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs group"
                       >
                         <div className="flex items-start sm:items-center gap-3 min-w-0">
                           <div className="w-8 h-8 rounded-lg bg-white border border-gw-secondary flex items-center justify-center text-gw-primary shrink-0 font-bold text-xs font-mono">
@@ -269,7 +269,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
       {/* Mobile Card List (visible on mobile < md) */}
       <div className="block md:hidden space-y-3">
         {/* Mobile Shifter & Sorting Header */}
-        <div className="flex items-center justify-between p-2.5 bg-white border-2 border-gw-primary rounded-xl text-xs font-bold">
+        <div className="flex items-center justify-between p-2.5 bg-white rounded-xl text-xs font-bold">
           <div className="flex items-center gap-1.5">
             <span className="text-gw-accent text-[11px]">Sort:</span>
             <select
@@ -320,7 +320,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         </div>
 
         {paginatedWarnings.length === 0 ? (
-          <div className="p-8 text-center bg-secondary border-2 border-gw-primary rounded-xl space-y-3">
+          <div className="p-8 text-center bg-secondary rounded-xl space-y-3">
             <div className="w-12 h-12 rounded-full bg-gw-bg border-primary text-gw-primary flex items-center justify-center mx-auto">
               <Search className="w-6 h-6" />
             </div>
@@ -360,7 +360,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         e.stopPropagation();
                         onLocate(w);
                       }}
-                      className="flex items-center gap-1 px-2 py-1.5 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase transition-colors hover:bg-gw-primary hover:text-gw-bg"
+                      className="flex items-center gap-1 px-2 py-1.5 bg-white border border-gw-secondary text-gw-primary rounded text-[10px] font-bold uppercase transition-colors hover:bg-gw-primary hover:text-gw-bg"
                       title="Locate on Map"
                     >
                       <Locate className="w-3 h-3" />
@@ -398,7 +398,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             return (
               <div
                 key={cardId}
-                className="bg-white border-2 border-gw-primary rounded-xl overflow-hidden shadow-hard transition-all"
+                className="bg-white border border-gw-secondary hover:border-gw-primary rounded-xl overflow-hidden shadow-xs transition-all"
               >
                 {/* Primary Visible Header */}
                 <div className="p-3.5 flex items-center justify-between gap-2 bg-white">
@@ -866,7 +866,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         e.stopPropagation();
                         onLocate(w);
                       }}
-                      className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+                      className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-secondary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                     >
                       <Locate className="w-3 h-3" />
                       <span>View on map</span>

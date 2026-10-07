@@ -707,7 +707,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         {!focusMap && (
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard hover:bg-gw-primary hover:text-gw-bg transition-all shrink-0 min-h-[40px]"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border border-gw-primary/40 rounded-lg text-xs font-bold uppercase shadow-xs hover:bg-gw-primary hover:text-gw-bg transition-all shrink-0 min-h-[40px]"
             title={isSidebarOpen ? 'Collapse active warnings drawer' : 'Expand active warnings drawer'}
           >
             <List className="w-4 h-4" />
@@ -719,7 +719,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         )}
 
         {!focusMap && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard flex-1 min-w-[160px]">
+          <div className="flex items-center gap-2 px-3 py-2 bg-white/95 border border-gw-primary/40 rounded-lg shadow-xs flex-1 min-w-[160px]">
             <Search className="w-4 h-4 text-gw-accent shrink-0" />
             <input
               type="text"
@@ -747,7 +747,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             onClick={focusMap ? exitFocusMap : enterFocusMap}
             aria-pressed={focusMap}
             title={focusMap ? 'Restore map panels' : 'Hide panels and focus the map'}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard hover:bg-gw-primary hover:text-gw-bg transition-all shrink-0 min-h-[40px]"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border border-gw-primary/40 rounded-lg text-xs font-bold uppercase shadow-xs hover:bg-gw-primary hover:text-gw-bg transition-all shrink-0 min-h-[40px]"
           >
             {focusMap ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             <span className="hidden sm:inline">{focusMap ? 'Show panels' : 'Focus map'}</span>
@@ -762,9 +762,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           focusMap || !controlsPanelOpen ? ' hidden' : ''
         }`}
       >
-        <div className="bg-white/95 border-2 border-gw-primary rounded-xl shadow-hard overflow-hidden backdrop-blur-xs flex flex-col">
+        <div className="bg-white/95 border border-gw-primary/40 rounded-xl shadow-xs overflow-hidden backdrop-blur-xs flex flex-col">
           {/* Header & Cursor Coordinate Readout */}
-          <div className={`${legacyUI ? 'p-2.5 sm:p-3' : 'p-2'} bg-gw-bg border-b border-gw-primary flex items-center justify-between gap-2`}>
+          <div className={`${legacyUI ? 'p-2.5 sm:p-3' : 'p-2'} bg-gw-bg border-b border-gw-primary/40 flex items-center justify-between gap-2`}>
             <div className="flex items-center gap-2 min-w-0">
               <span
                 className={`w-2 h-2 rounded-full shrink-0 transition-all ${
@@ -793,8 +793,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   cursorState.hasCopied
                     ? 'bg-emerald-600 text-white border-emerald-700'
                     : cursorState.isActive
-                    ? 'bg-white hover:bg-gw-primary hover:text-gw-bg text-gw-primary border-gw-primary'
-                    : 'bg-gw-secondary text-gw-accent border-gw-tertiary cursor-not-allowed'
+                    ? 'bg-white hover:bg-gw-primary hover:text-gw-bg text-gw-primary border-gw-primary/40'
+                    : 'bg-gw-secondary text-gw-accent border-gw-tertiary/40 cursor-not-allowed'
                 }`}
               >
                 {cursorState.hasCopied ? (
@@ -969,7 +969,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             type="button"
             onClick={() => setControlsPanelOpen(true)}
             title="Show controls panel"
-            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard hover:bg-gw-primary hover:text-gw-bg transition-all min-h-[40px]"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border border-gw-primary/40 rounded-lg text-xs font-bold uppercase shadow-xs hover:bg-gw-primary hover:text-gw-bg transition-all min-h-[40px]"
           >
             <Sliders className="w-4 h-4" />
             <span className="hidden sm:inline">Controls</span>
@@ -1118,7 +1118,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   {scopeFilter.toUpperCase()}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-lg border border-gw-primary shadow-xs">
+              <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-lg border border-gw-primary/40 shadow-xs">
                 {(['all', 'navarea', 'coastal'] as ScopeFilterType[]).map((scope) => (
                   <button
                     key={scope}
@@ -1344,7 +1344,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                           centerOnWarningArea(w);
                         }}
                         title="View this warning on the map"
-                        className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
+                         className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-secondary text-gw-primary rounded text-[10px] font-bold uppercase hover:border-gw-primary hover:bg-gw-primary hover:text-gw-bg transition-colors"
                       >
                         <MapPin className="w-3 h-3" />
                         <span>View on map</span>

@@ -46,10 +46,10 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
   const unverifiedCount = sources.filter((s) => s.verification.status === 'unverified').length;
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-4">
       {/* Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-secondary border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-secondary p-4 rounded-xl flex items-center justify-between shadow-sm">
           <div>
             <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Total NAVAREAs In Registry</div>
             <div className="text-2xl font-mono font-bold text-gw-primary mt-1">21</div>
@@ -58,7 +58,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
           <Radio className="w-8 h-8 text-gw-primary opacity-30" />
         </div>
 
-        <div className="bg-secondary border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-secondary p-4 rounded-xl flex items-center justify-between shadow-sm">
           <div>
             <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Verified Endpoints</div>
             <div className="text-2xl font-mono font-bold text-green-700 mt-1">{verifiedCount}</div>
@@ -67,7 +67,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
           <CheckCircle2 className="w-8 h-8 text-green-600 opacity-40" />
         </div>
 
-        <div className="bg-secondary border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-secondary p-4 rounded-xl flex items-center justify-between shadow-sm">
           <div>
             <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Unverified Coverage</div>
             <div className="text-2xl font-mono font-bold text-amber-700 mt-1">{unverifiedCount}</div>
@@ -76,7 +76,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
           <AlertTriangle className="w-8 h-8 text-amber-500 opacity-40" />
         </div>
 
-        <div className="bg-secondary border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-secondary p-4 rounded-xl flex items-center justify-between shadow-sm">
           <div>
             <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Poll Cadence</div>
             <div className="text-2xl font-mono font-bold text-gw-primary mt-1">360 min</div>
@@ -88,7 +88,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
 
       {/* Registry Table */}
       <div className="bg-secondary border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
-        <div className="p-4 border-b-2 border-gw-primary bg-gw-bg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="p-4 border-b border-gw-secondary bg-gw-bg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-gw-primary flex items-center gap-2 uppercase tracking-wider">
               <Radio className="w-5 h-5 text-gw-primary" />
@@ -99,7 +99,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
             </p>
           </div>
 
-          <div className="text-xs text-gw-primary bg-secondary px-3 py-1.5 rounded-sm border-primary font-mono font-bold uppercase shrink-0">
+          <div className="text-xs text-gw-primary bg-white px-3 py-1.5 rounded-sm font-mono font-bold uppercase shrink-0">
             Status: <span className="text-green-700">18 of 21 NAVAREAs Scaffolded</span>
           </div>
         </div>
@@ -154,7 +154,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
 
                     <td className="py-3 px-4 text-[11px]">
                       <div className="flex items-center gap-1.5">
-                        <span className="bg-gw-bg text-gw-primary px-2 py-0.5 rounded border border-gw-primary font-bold uppercase text-[10px]">
+                        <span className="bg-gw-bg text-gw-primary px-2 py-0.5 rounded font-bold uppercase text-[10px]">
                           {src.publication_semantics}
                         </span>
                         <span className="text-gw-primary font-bold tracking-wider text-[11px] uppercase">

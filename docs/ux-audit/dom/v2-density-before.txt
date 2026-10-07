@@ -1,0 +1,17 @@
+Task 8 - visual density probe (border/box inventory, viewport 1440x900)
+tooling: scripts/ux-audit/density-probe.ts (Playwright Chromium, computed styles)
+rules: visible elements intersecting the viewport, >=12x12px (smaller are
+        glyphs, not boxes), excluding the #map subtree;
+        bordered = any side >=1px; strong = WCAG contrast >=3:1 between the
+        alpha-composited border colour and the effective background, or a
+        >=2px side at >=1.5:1; hardShadow = offset shadow with 0 blur;
+        boxes = strong or hardShadow (a competing visual container).
+
+state: map-default bordered=50 strong=18 hardShadow=5 boxes=18
+state: databank-v2-default bordered=48 strong=10 hardShadow=0 boxes=10
+state: databank-v2-more-filters bordered=58 strong=8 hardShadow=0 boxes=8
+state: databank-classic-default bordered=64 strong=18 hardShadow=4 boxes=18
+state: sources-v2-summary bordered=21 strong=4 hardShadow=0 boxes=4
+state: sources-v2-details bordered=65 strong=4 hardShadow=0 boxes=4
+state: sources-classic bordered=57 strong=19 hardShadow=0 boxes=19
+total: bordered=363 strong=81 hardShadow=9 boxes=81

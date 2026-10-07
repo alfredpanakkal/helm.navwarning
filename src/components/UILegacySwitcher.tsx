@@ -6,7 +6,7 @@ function UILegacySwitcherControl() {
   return (
     <div
       data-testid="dev-ui-switcher"
-      className="fixed bottom-20 sm:bottom-4 left-2 sm:left-4 z-[1000] flex items-center gap-1 bg-gw-primary text-gw-secondary border border-gw-secondary rounded px-2 py-1 text-[10px] font-mono font-bold uppercase shadow-lg"
+      className="fixed bottom-20 sm:bottom-4 left-2 sm:left-4 z-[1000] flex items-center gap-1 bg-gw-primary text-gw-secondary rounded px-2 py-1 text-[10px] font-mono font-bold uppercase shadow-lg"
     >
       <span className="text-gw-accent mr-1">UI</span>
       <button

@@ -22,10 +22,10 @@
      Task 8 tunes values. Primary containers may keep a clear border. Secondary
      containers, rows and most buttons use background contrast + spacing only.
      Never border every nested div. */
-  --border-primary: 1px solid var(--color-gw-primary);
-  --border-subtle: 1px solid var(--color-gw-secondary);
-  --bg-secondary: #ffffff;
-  --space-compact: 0.5rem;
+  --border-primary: 1px solid var(--color-gw-tertiary);
+  --border-subtle: 1px solid #dfe3ec;
+  --bg-secondary: #f7f8fb;
+  --space-compact: 0.375rem;
 }
 
 @layer utilities {
