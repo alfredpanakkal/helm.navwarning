@@ -486,6 +486,18 @@ async function startServer() {
     },
   });
 
+  // General API Route Rate Limiter (60 requests per minute per IP)
+  const apiGeneralLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: 'Too many requests. Rate limit is 60 requests per minute.',
+      code: 'GENERAL_RATE_LIMIT_EXCEEDED',
+    },
+  });
+
   // API Routes
   app.get('/api/health', (req, res) => {
     res.json({
@@ -1468,7 +1480,7 @@ ${rawPayloadText.slice(0, 2500)}
   });
 
   // Parse Markdown endpoint using deterministic parser or Gemini AI
-  app.post('/api/pipeline/parse-markdown', async (req, res) => {
+  app.post('/api/pipeline/parse-markdown', requireAdmin, aiRouteLimiter, async (req, res) => {
     try {
       const { markdown, navarea = 'AUTO', aiModel = 'gemini-3.1-flash-lite' } = req.body;
       if (!markdown || typeof markdown !== 'string') {
@@ -2398,7 +2410,7 @@ Instructions:
 
   // Proxy for FreeOpenAPI.dev shipping warnings
   // Hardcoded fixed host - never accepts or calls any caller-supplied URL
-  app.post('/api/freeopenapi/warnings', async (req, res) => {
+  app.post('/api/freeopenapi/warnings', requireAdmin, apiGeneralLimiter, async (req, res) => {
     try {
       const { apiKey, navArea } = req.body || {};
       if (!apiKey || !navArea) {

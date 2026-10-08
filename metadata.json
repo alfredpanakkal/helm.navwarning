@@ -1,0 +1,7 @@
+{
+  "name": "Helm.Warning - NAVAREA Maritime Safety Information System",
+  "description": "NAVAREA maritime navigational warning ingestion pipeline, cartographic visualization, and operational administration console.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -731,10 +731,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               type="button"
               onClick={() => {
                 if (leafletInstance.current) {
-                  const map = leafletInstance.current;
+                  const map = leafletInstance.current as any;
                   if (map._fullscreen) {
                     map._fullscreen.stop();
-                  } else {
+                  } else if (typeof map._fullscreen?.start === 'function') {
                     map._fullscreen.start();
                   }
                 }

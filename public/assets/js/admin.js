@@ -1,3 +1,45 @@
+// ═══════════ ADMIN DB ACCESS (ADMIN CONSOLE ONLY) ═══════════
+// Dedicated admin database operations isolated from public portal
+if (!window.hwDb) window.hwDb = {};
+Object.assign(window.hwDb, {
+  async fetchUnverified() {
+    if (!window.hwSupabase) return [];
+    try {
+      const { data, error } = await window.hwSupabase
+        .from('nav_warnings')
+        .select('*')
+        .eq('is_verified', false)
+        .eq('status', 'active');
+      return data || [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  async verifyWarning(id) {
+    if (!window.hwSupabase) return { error: 'No db connection' };
+    return await window.hwSupabase
+      .from('nav_warnings')
+      .update({ is_verified: true, verified_at: new Date().toISOString() })
+      .eq('warning_id', id);
+  },
+
+  async rejectWarning(id) {
+    if (!window.hwSupabase) return { error: 'No db connection' };
+    return await window.hwSupabase
+      .from('nav_warnings')
+      .update({ status: 'rejected' })
+      .eq('warning_id', id);
+  },
+
+  async publishImport(warnings) {
+    if (!window.hwSupabase) return { error: 'No db connection' };
+    return await window.hwSupabase
+      .from('nav_warnings')
+      .upsert(warnings, { onConflict: 'source_id, warning_id', ignoreDuplicates: true });
+  }
+});
+
 // ═══════════ STATE ═══════════
 const SESSION_KEY = 'hw_admin_session';
 const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours

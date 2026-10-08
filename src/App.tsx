@@ -9,7 +9,6 @@ import { UILegacySwitcher } from './components/UILegacySwitcher';
 import { useUILegacy } from './lib/uiFlags';
 import { WorkspaceView } from './components/WorkspaceView';
 import { SourceRegistryView } from './components/SourceRegistryView';
-import { SourceRegistryViewV2 } from './components/SourceRegistryViewV2';
 import { ManualParserView } from './components/ManualParserView';
 import { CsvUploaderView } from './components/CsvUploaderView';
 import { GenerationInspectorView } from './components/GenerationInspectorView';
@@ -17,7 +16,6 @@ import { EvidenceLockerView } from './components/EvidenceLockerView';
 import { SupabaseStatusView } from './components/SupabaseStatusView';
 import { WarningDetailModal } from './components/WarningDetailModal';
 import { IngestionProcedureModal } from './components/IngestionProcedureModal';
-import { IngestionProcedureModalV2 } from './components/IngestionProcedureModalV2';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from './types';
 import { ShieldCheck, RefreshCw } from 'lucide-react';
 import {
@@ -353,24 +351,13 @@ const [isIngestionProcedureOpen, setIsIngestionProcedureOpen] = useState(false);
 
         {/* Candidate Sources Registry */}
         <div className={activeTab === 'sources' ? 'block' : 'hidden'}>
-           {legacyUI ? (
-             <SourceRegistryView
-               sources={sources}
-               initialFilter={sourcesFilterStatus}
-               onToggleSource={handleToggleSource}
-               onTriggerRefresh={handleTriggerRefresh}
-               isRefreshing={isPipelineRefreshing}
-             />
-           ) : (
-             <SourceRegistryViewV2
-               sources={sources}
-               initialFilter={sourcesFilterStatus}
-               onToggleSource={handleToggleSource}
-               onTriggerRefresh={handleTriggerRefresh}
-               isRefreshing={isPipelineRefreshing}
-             />
-            )
-          }
+          <SourceRegistryView
+            sources={sources}
+            initialFilter={sourcesFilterStatus}
+            onToggleSource={handleToggleSource}
+            onTriggerRefresh={handleTriggerRefresh}
+            isRefreshing={isPipelineRefreshing}
+          />
         </div>
         {/* Admin Access Gate fallback for locked operational views */}
         {!isAdminMode && ['workspace', 'imports', 'manual', 'audit', 'evidence', 'supabase'].includes(activeTab) && (
@@ -467,11 +454,12 @@ const [isIngestionProcedureOpen, setIsIngestionProcedureOpen] = useState(false);
 
 
       {/* Warning Provenance Detail Modal */}
-       {selectedWarning && (
-         <WarningDetailModal
-           warning={selectedWarning}
-         />
-        )}
+      {selectedWarning && (
+        <WarningDetailModal
+          warning={selectedWarning}
+          onClose={() => setSelectedWarning(null)}
+        />
+      )}
         {/* Ingestion Procedure Modal - placeholder */}
 
       <UILegacySwitcher />

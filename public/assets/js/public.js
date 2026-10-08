@@ -19,7 +19,11 @@ function detectDevice(){
   else document.body.classList.add('is-desktop');
 }
 function debounce(fn,d){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),d)}}
-window.addEventListener('resize',debounce(()=>{detectDevice();if(window.map)window.map.invalidateSize()},250));
+window.addEventListener('resize',debounce(()=>{
+  detectDevice();
+  const m = getLeafletMap();
+  if(m) m.invalidateSize();
+},250));
 
 window.switchTab = function(tab){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
@@ -30,7 +34,11 @@ window.switchTab = function(tab){
   document.querySelector(`.nav-tab[data-tab="${tab}"]`)?.classList.add('active');
   document.querySelector(`.drawer-item[data-drawer-tab="${tab}"]`)?.classList.add('active');
   document.querySelector(`.bottom-nav-item[data-bottom-tab="${tab}"]`)?.classList.add('active');
-  if(tab==='map'){ if(!window.map) initMap(); else setTimeout(()=>window.map.invalidateSize(),100); }
+  if(tab==='map'){
+    const m = getLeafletMap();
+    if(!m) initMap();
+    else setTimeout(()=>m.invalidateSize(),100);
+  }
   window.scrollTo({top:0,behavior:'smooth'});
 };
 
@@ -43,23 +51,35 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){toggleDrawerIfOpen
 function toggleDrawerIfOpen(){ if(document.getElementById('drawer')?.classList.contains('open')) toggleDrawer(); }
 
 // ═══════════ MAP ═══════════
-let map, markerLayer;
+let leafletMap = null, markerLayer = null;
+function getLeafletMap() {
+  return leafletMap && typeof leafletMap.invalidateSize === 'function' ? leafletMap : null;
+}
+
 function initMap(){
+  if (leafletMap && typeof leafletMap.invalidateSize === 'function') return;
+  const mapEl = document.getElementById('map');
+  if (!mapEl || typeof L === 'undefined') return;
   const isMob=document.body.classList.contains('is-mobile');
-  map = L.map('map',{center:[30,0],zoom:isMob?2:3,worldCopyJump:true,zoomControl:!isMob,tap:true});
-  window.map = map;
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri, GEBCO, NOAA',maxZoom:13}).addTo(map);
-  if(!isMob) L.control.zoom({position:'bottomright'}).addTo(map);
-  markerLayer = L.layerGroup().addTo(map);
+  leafletMap = L.map('map',{center:[30,0],zoom:isMob?2:3,worldCopyJump:true,zoomControl:!isMob,tap:true});
+  window.leafletMap = leafletMap;
+  window.hwMap = leafletMap;
+  window.map = leafletMap;
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri, GEBCO, NOAA',maxZoom:13}).addTo(leafletMap);
+  if(!isMob) L.control.zoom({position:'bottomright'}).addTo(leafletMap);
+  markerLayer = L.layerGroup().addTo(leafletMap);
   warnings.filter(w=>w.status!=='rejected').forEach(addMarker);
   rebuildMapList();
 }
 function addMarker(w){
   const color=w.severity==='critical'?'#dc2626':w.severity==='high'?'#ea580c':'#64748b';
-  const m=L.circleMarker([w.latitude || w.lat, w.longitude || w.lng],{radius:document.body.classList.contains('is-mobile')?8:6,fillColor:color,color:'#fff',weight:2,fillOpacity:.9});
+  const lat = Number(w.latitude ?? w.lat);
+  const lng = Number(w.longitude ?? w.lng);
+  if (isNaN(lat) || isNaN(lng)) return;
+  const m=L.circleMarker([lat, lng],{radius:document.body.classList.contains('is-mobile')?8:6,fillColor:color,color:'#fff',weight:2,fillOpacity:.9});
   m.bindPopup(`<div style="font-family:system-ui;font-size:13px;min-width:180px"><strong>${w.warning_id || w.id}</strong> · ${w.navarea}<br>${w.title}</div>`,{maxWidth:250});
   m.on('click',()=>openWarningModal(w));
-  markerLayer.addLayer(m);
+  if(markerLayer) markerLayer.addLayer(m);
 }
 function rebuildMapList(){
   const list=document.getElementById('mapWarningList');
@@ -74,10 +94,22 @@ function rebuildMapList(){
   });
 }
 window.toggleLayer = function(name,vis){
-  if(!map)return;
-  if(name==='warnings'){ vis?markerLayer.addTo(map):map.removeLayer(markerLayer); }
+  const m = getLeafletMap();
+  if(!m || !markerLayer) return;
+  if(name==='warnings'){ vis?markerLayer.addTo(m):m.removeLayer(markerLayer); }
 };
-window.locateOnMap = function(){ if(currentWarning&&map){ switchTab('map'); map.setView([currentWarning.latitude || currentWarning.lat, currentWarning.longitude || currentWarning.lng],7,{animate:true}); closeWarningModal(); } };
+window.locateOnMap = function(){
+  const m = getLeafletMap();
+  if(currentWarning && m){
+    switchTab('map');
+    const lat = Number(currentWarning.latitude ?? currentWarning.lat);
+    const lng = Number(currentWarning.longitude ?? currentWarning.lng);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      m.setView([lat, lng],7,{animate:true});
+    }
+    closeWarningModal();
+  }
+};
 
 // ═══════════ TABLE / CARDS / STATS ═══════════
 function badge(cls,txt){return `<span class="badge-simple badge-${cls}"><span class="dot"></span> ${txt}</span>`}
@@ -159,17 +191,43 @@ window.refreshData = async function(){
 
 // ═══════════ MODAL / TOAST ═══════════
 let currentWarning, toastTimeout;
-window.openWarningModal = function(w){
+window.openWarningModal = async function(w){
   currentWarning=w;
   document.getElementById('modalTitle').textContent=`${w.warning_id || w.id} — ${w.navarea}`;
   document.getElementById('modalBody').innerHTML=`
-    <div class="detail-row"><div class="detail-label">Severity</div><div class="detail-value">${badge(w.severity==='high'?'high':'moderate',w.severity.toUpperCase())}</div></div>
+    <div class="detail-row"><div class="detail-label">Severity</div><div class="detail-value">${badge(w.severity==='high'?'high':w.severity==='critical'?'critical':'moderate',w.severity.toUpperCase())}</div></div>
     <div class="detail-row"><div class="detail-label">Issued</div><div class="detail-value">${w.issued_text || w.issued_date || w.issued}</div></div>
     <div class="detail-row"><div class="detail-label">Coordinates</div><div class="detail-value">${w.coordinates || w.coords}</div></div>
     <div class="detail-row"><div class="detail-label">Status</div><div class="detail-value">${statusBadge(w)}</div></div>
-    <div class="warning-text">${w.raw_text || w.text}</div>`;
+    <div class="warning-text" id="modalTextContainer"></div>`;
   document.getElementById('warningModal')?.classList.add('open');
   document.body.style.overflow='hidden';
+
+  const textContainer = document.getElementById('modalTextContainer');
+  if (!textContainer) return;
+
+  // Check if we already fetched the raw_text
+  if (w.raw_text) {
+    textContainer.innerText = w.raw_text;
+  } else if (w.text) {
+    textContainer.innerText = w.text;
+  } else {
+    // Show a loading state
+    textContainer.innerHTML = '<span class="loading-spinner">Loading bulletin text...</span>';
+    
+    // Fetch the details on demand
+    const fetchFn = typeof fetchWarningDetails === 'function'
+      ? fetchWarningDetails
+      : (window.hwDb && window.hwDb.fetchWarningDetails);
+
+    const details = fetchFn ? await fetchFn(w.id) : null;
+    if (details && details.raw_text) {
+      w.raw_text = details.raw_text; // Cache it in memory so we don't fetch it twice
+      textContainer.innerText = w.raw_text;
+    } else {
+      textContainer.innerText = "Error loading bulletin text.";
+    }
+  }
 };
 window.closeModal = function(e){ if(e.target===e.currentTarget) closeWarningModal(); };
 window.closeWarningModal = function(){ document.getElementById('warningModal')?.classList.remove('open'); document.body.style.overflow=''; };
@@ -192,10 +250,16 @@ async function loadWarnings() {
     warnings = SEED_WARNINGS;
   }
   updateStats(); populateTable(); populateCards();
+  if (markerLayer) {
+    markerLayer.clearLayers();
+    warnings.filter(w=>w.status!=='rejected').forEach(addMarker);
+    rebuildMapList();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async ()=>{
   detectDevice();
+  initMap();
   populateSources();
   await loadWarnings();
 });
