@@ -95,7 +95,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     isDarkBasemap,
     getVectorStyle,
     getCircleStyle,
-  } = useMapLayers('esri-ocean', ['esri-labels', 'openseamap']);
+  } = useMapLayers('osm-standard', ['openseamap']);
 
   // Vector & Marker Toggles
   const [showPolygons, setShowPolygons] = useState<boolean>(true);
@@ -771,7 +771,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 </div>
 
                 {/* Base Layer Switcher */}
-                <div className="grid grid-cols-3 gap-1 bg-gw-bg p-1 rounded-lg border border-gw-secondary text-[10px] font-mono font-bold">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 bg-gw-bg p-1 rounded-lg border border-gw-secondary text-[10px] font-mono font-bold">
                   {BASE_LAYERS.map((base) => (
                     <button
                       key={base.id}
@@ -788,7 +788,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                         ? 'ESRI Ocean'
                         : base.id === 'carto-voyager'
                         ? 'Voyager'
-                        : 'Dark All'}
+                        : base.id === 'carto-dark'
+                        ? 'Dark Matter'
+                        : base.id === 'carto-positron'
+                        ? 'Positron'
+                        : 'OSM'}
                     </button>
                   ))}
                 </div>

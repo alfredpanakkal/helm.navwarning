@@ -81,13 +81,16 @@ body.is-mobile .stat-value{font-size:15px}
 .map-container{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface-dark);height:520px}
 body.is-mobile .map-container{height:60vh;border-radius:8px}
 #map{height:100%;width:100%}
-.leaflet-control-zoom{display:none!important}
+.leaflet-control-zoom, .leaflet-control-attribution{display:none!important}
 .map-overlay{position:absolute;top:16px;left:16px;z-index:500}
-.map-layer-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;min-width:200px;box-shadow:0 4px 12px rgba(0,0,0,.08)}
-.map-layer-panel summary{font-weight:600;font-size:14px;cursor:pointer;padding:8px;list-style:none;min-height:44px;display:flex;align-items:center}
+.map-layer-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;min-width:210px;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.map-layer-panel summary{font-weight:600;font-size:14px;cursor:pointer;padding:8px 10px;list-style:none;min-height:44px;display:flex;align-items:center;user-select:none}
 .map-layer-panel summary::-webkit-details-marker{display:none}
-.map-layer-item{display:flex;align-items:center;gap:8px;font-size:14px;padding:8px;cursor:pointer;border-radius:4px;min-height:44px}
-.map-layer-item input{accent-color:var(--surface-dark);width:18px;height:18px}
+.map-layer-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);padding:6px 10px 2px}
+.map-layer-divider{height:1px;background:var(--border);margin:4px 6px}
+.map-layer-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 10px;cursor:pointer;border-radius:6px;min-height:36px;transition:background .15s}
+.map-layer-item:hover{background:var(--bg)}
+.map-layer-item input{accent-color:var(--surface-dark);width:16px;height:16px}
 .map-warning-list{position:absolute;top:16px;right:16px;width:300px;max-height:calc(100% - 32px);overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;z-index:500;box-shadow:0 4px 12px rgba(0,0,0,.08);transition:width .22s ease,max-height .22s ease,height .22s ease}
 .map-warning-list.is-minimized{max-height:44px;overflow:hidden}
 .map-warning-list.is-minimized .warning-item{display:none}
@@ -187,6 +190,17 @@ body.is-mobile .modal-body{padding:16px}
 .modal-footer{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface)}
 body.is-mobile .modal-footer{padding-bottom:calc(8px + var(--safe-bottom))}
 
+.navarea-select-wrapper{position:relative;display:inline-flex;align-items:center}
+.navarea-select{appearance:none;-webkit-appearance:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font:500 14px system-ui;padding:8px 34px 8px 12px;min-height:var(--touch-min);cursor:pointer;transition:border-color .15s,box-shadow .15s;line-height:1.4}
+.navarea-select:hover{border-color:var(--neutral)}
+.navarea-select:focus-visible{outline:2px solid var(--surface-dark);outline-offset:2px}
+.navarea-select-chevron{position:absolute;right:10px;pointer-events:none;width:14px;height:14px;stroke:var(--text-muted);stroke-width:2;fill:none}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+body.is-mobile .page-header .actions{width:100%}
+body.is-mobile .navarea-select-wrapper{flex:1 1 100%}
+body.is-mobile .navarea-select{width:100%}
+body.is-mobile .page-header .actions .btn{flex:1}
+
 .site-footer{background:var(--surface);border-top:1px solid var(--border);margin-top:64px;padding:24px;padding-bottom:calc(24px + var(--safe-bottom))}
 body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(--bottomnav-h))}
 .footer-inner{max-width:1400px;margin:0 auto;text-align:center;font-size:13px;color:var(--text-muted)}
@@ -233,6 +247,35 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
   <div class="page-header">
     <div><h1>Active Warnings</h1></div>
     <div class="actions">
+      <div class="navarea-select-wrapper">
+        <label for="mapNavAreaSelect" class="sr-only">Select Navigation Area</label>
+        <select id="mapNavAreaSelect" class="navarea-select" onchange="filterMapByNavArea(this.value)" aria-label="Select Navigation Area">
+          <option value="NA I" selected>NAVAREA I · North Atlantic / UK</option>
+          <option value="NA II">NAVAREA II · East Atlantic</option>
+          <option value="NA III">NAVAREA III · Mediterranean</option>
+          <option value="NA IV">NAVAREA IV · West Atlantic</option>
+          <option value="NA V">NAVAREA V · Brazil / SW Atlantic</option>
+          <option value="NA VI">NAVAREA VI · Argentina / SE Atlantic</option>
+          <option value="NA VII">NAVAREA VII · South Africa</option>
+          <option value="NA VIII">NAVAREA VIII · Indian Ocean</option>
+          <option value="NA IX">NAVAREA IX · Red Sea / Persian Gulf</option>
+          <option value="NA X">NAVAREA X · Australia</option>
+          <option value="NA XI">NAVAREA XI · East Asia / Japan</option>
+          <option value="NA XII">NAVAREA XII · East Pacific</option>
+          <option value="NA XIII">NAVAREA XIII · NW Pacific / Okhotsk</option>
+          <option value="NA XIV">NAVAREA XIV · New Zealand / S. Pacific</option>
+          <option value="NA XV">NAVAREA XV · Chile / SE Pacific</option>
+          <option value="NA XVI">NAVAREA XVI · Peru / E. South Pacific</option>
+          <option value="NA XVII">NAVAREA XVII · Arctic Canada (West)</option>
+          <option value="NA XVIII">NAVAREA XVIII · Arctic Canada (East)</option>
+          <option value="NA XIX">NAVAREA XIX · Arctic Norway</option>
+          <option value="NA XX">NAVAREA XX · Arctic Russia (Kara/Laptev)</option>
+          <option value="NA XXI">NAVAREA XXI · Arctic Russia (East Siberian)</option>
+        </select>
+        <svg class="navarea-select-chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
       <button class="btn btn-primary" onclick="refreshData()">Refresh Data</button>
       <button class="btn btn-secondary" onclick="switchTab('data')">Data Bank →</button>
     </div>
@@ -242,9 +285,17 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
     <div class="map-overlay">
       <details class="map-layer-panel">
         <summary>Layers</summary>
+        <div class="map-layer-section-title">Base Map</div>
+        <label class="map-layer-item"><input type="radio" name="basemap" value="carto-voyager" checked onchange="selectBaseMap(this.value)">CARTO Voyager</label>
+        <label class="map-layer-item"><input type="radio" name="basemap" value="carto-dark" onchange="selectBaseMap(this.value)">CARTO Dark Matter</label>
+        <label class="map-layer-item"><input type="radio" name="basemap" value="carto-positron" onchange="selectBaseMap(this.value)">CARTO Positron</label>
+        <label class="map-layer-item"><input type="radio" name="basemap" value="osm" onchange="selectBaseMap(this.value)">OpenStreetMap</label>
+        <label class="map-layer-item"><input type="radio" name="basemap" value="esri-ocean" onchange="selectBaseMap(this.value)">ESRI Ocean Base</label>
+        <div class="map-layer-divider"></div>
+        <div class="map-layer-section-title">Maritime Overlays</div>
         <label class="map-layer-item"><input type="checkbox" checked onchange="toggleLayer('warnings',this.checked)">Warning Markers</label>
+        <label class="map-layer-item"><input type="checkbox" checked onchange="toggleLayer('seamarks',this.checked)">OpenSeaMap Seamarks</label>
         <label class="map-layer-item"><input type="checkbox" onchange="toggleLayer('soundings',this.checked)">Ocean Soundings</label>
-        <label class="map-layer-item"><input type="checkbox" onchange="toggleLayer('seamarks',this.checked)">Seamarks</label>
       </details>
     </div>
     <div class="map-warning-list" id="mapWarningList">
@@ -263,7 +314,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
         </div>
       </div>
     </div>
-    <div class="map-attribution">© Esri · GEBCO · NOAA</div>
+    <div class="map-attribution">© OpenStreetMap contributors · CARTO · OpenSeaMap</div>
   </div>
 </div>
 
@@ -329,7 +380,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
   </div>
   <div class="advanced-filters" id="advancedFilters">
     <div class="filter-grid">
-      <div class="filter-group"><label>NAVAREA</label><select id="filter-navarea" onchange="applyFilters()"><option value="">All Regions</option><option value="NA I">NA I</option><option value="NA III">NA III</option><option value="NA IV">NA IV</option><option value="NA X">NA X</option><option value="NA XVII">NA XVII</option><option value="NA XVIII">NA XVIII</option></select></div>
+      <div class="filter-group"><label>NAVAREA</label><select id="filter-navarea" onchange="applyFilters()"><option value="">All Regions</option><option value="NA I">NA I · North Atlantic / UK</option><option value="NA II">NA II · East Atlantic</option><option value="NA III">NA III · Mediterranean</option><option value="NA IV">NA IV · West Atlantic</option><option value="NA VIII">NA VIII · Indian Ocean</option><option value="NA X">NA X · Australia</option><option value="NA XII">NA XII · East Pacific</option></select></div>
       <div class="filter-group"><label>Severity</label><select id="filter-severity" onchange="applyFilters()"><option value="">All</option><option value="critical">Critical</option><option value="high">High</option><option value="moderate">Moderate</option></select></div>
       <div class="filter-group"><label>Category</label><select id="filter-category" onchange="applyFilters()"><option value="">All</option><option value="military">Military</option><option value="drifting">Drifting</option><option value="general">General</option><option value="aton">AtoN</option><option value="subsea">Subsea</option></select></div>
     </div>

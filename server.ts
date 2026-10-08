@@ -2446,7 +2446,7 @@ Instructions:
       const { style, z, x, y } = req.params;
 
       // Allowlist only styles defined in src/config/mapLayers.ts
-      const ALLOWED_TILE_STYLES = ['voyager', 'dark_all'] as const;
+      const ALLOWED_TILE_STYLES = ['voyager', 'dark_all', 'light_all'] as const;
       if (!ALLOWED_TILE_STYLES.includes(style as any)) {
         return res.status(400).json({
           error: `Invalid tile style '${style}'. Allowed styles: ${ALLOWED_TILE_STYLES.join(', ')}`,
@@ -2482,7 +2482,10 @@ Instructions:
         });
       }
 
-      const apiKey = process.env.CARTO_API_KEY || 'cb1_3orr_1_f228f632545fb6733113f41c';
+      const rawApiKey = process.env.CARTO_API_KEY;
+      const apiKey = (rawApiKey && rawApiKey.trim().length > 0)
+        ? rawApiKey.trim()
+        : 'cb1_3orr_1_f228f632545fb6733113f41c';
       
       const subdomains = ['a', 'b', 'c', 'd'];
       const sub = subdomains[Math.floor(Math.random() * subdomains.length)];

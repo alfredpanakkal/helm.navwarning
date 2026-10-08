@@ -52,6 +52,124 @@ function toggleDrawerIfOpen(){ if(document.getElementById('drawer')?.classList.c
 
 // ═══════════ MAP ═══════════
 let leafletMap = null, markerLayer = null;
+let currentBaseLayer = null, osmBaseLayer = null, openSeaMapLayer = null, soundingsLayer = null;
+let currentBaseMapId = 'carto-voyager';
+let currentSelectedNavArea = 'NA I';
+
+const BASE_MAP_DEFS = {
+  'carto-voyager': {
+    name: 'CARTO Voyager',
+    url: '/api/tiles/carto/voyager/{z}/{x}/{y}',
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors · CARTO · OpenSeaMap'
+  },
+  'carto-dark': {
+    name: 'CARTO Dark Matter',
+    url: '/api/tiles/carto/dark_all/{z}/{x}/{y}',
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors · CARTO · OpenSeaMap'
+  },
+  'carto-positron': {
+    name: 'CARTO Positron',
+    url: '/api/tiles/carto/light_all/{z}/{x}/{y}',
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors · CARTO · OpenSeaMap'
+  },
+  'osm': {
+    name: 'OpenStreetMap',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors · OpenSeaMap'
+  },
+  'esri-ocean': {
+    name: 'ESRI Ocean Base',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
+    maxZoom: 13,
+    attribution: 'Tiles © Esri — GEBCO, NOAA · OpenSeaMap'
+  }
+};
+
+const NAVAREA_CENTERS = {
+  'NA I': { center: [56.0, 3.0], zoom: 5 },
+  'NA II': { center: [28.0, -15.0], zoom: 4 },
+  'NA III': { center: [36.0, 15.0], zoom: 5 },
+  'NA IV': { center: [28.0, -75.0], zoom: 4 },
+  'NA V': { center: [-20.0, -35.0], zoom: 4 },
+  'NA VI': { center: [-45.0, -55.0], zoom: 4 },
+  'NA VII': { center: [-35.0, 25.0], zoom: 4 },
+  'NA VIII': { center: [10.0, 75.0], zoom: 4 },
+  'NA IX': { center: [23.0, 58.0], zoom: 5 },
+  'NA X': { center: [-22.0, 135.0], zoom: 4 },
+  'NA XI': { center: [25.0, 130.0], zoom: 4 },
+  'NA XII': { center: [20.0, -120.0], zoom: 4 },
+  'NA XIII': { center: [50.0, 150.0], zoom: 4 },
+  'NA XIV': { center: [-40.0, 175.0], zoom: 4 },
+  'NA XV': { center: [-33.0, -80.0], zoom: 4 },
+  'NA XVI': { center: [-10.0, -85.0], zoom: 4 },
+  'NA XVII': { center: [72.0, -135.0], zoom: 3 },
+  'NA XVIII': { center: [72.0, -75.0], zoom: 3 },
+  'NA XIX': { center: [70.0, 15.0], zoom: 4 },
+  'NA XX': { center: [75.0, 75.0], zoom: 3 },
+  'NA XXI': { center: [75.0, 150.0], zoom: 3 }
+};
+
+function matchesNavArea(warnArea, targetArea) {
+  if (!targetArea) return true;
+  if (!warnArea) return false;
+  const normWarn = String(warnArea).trim().toUpperCase().replace(/^NAVAREA\s+/, '').replace(/^NA\s+/, '');
+  const normTarget = String(targetArea).trim().toUpperCase().replace(/^NAVAREA\s+/, '').replace(/^NA\s+/, '');
+  return normWarn === normTarget;
+}
+
+window.filterMapByNavArea = function(navArea) {
+  currentSelectedNavArea = navArea || '';
+
+  const mapSelect = document.getElementById('mapNavAreaSelect');
+  if (mapSelect && mapSelect.value !== currentSelectedNavArea) {
+    mapSelect.value = currentSelectedNavArea;
+  }
+  const dataBankSelect = document.getElementById('filter-navarea');
+  if (dataBankSelect && dataBankSelect.value !== currentSelectedNavArea) {
+    dataBankSelect.value = currentSelectedNavArea;
+    if (typeof applyFilters === 'function') {
+      applyFilters();
+    }
+  }
+
+  const filtered = warnings.filter(w => w.status !== 'rejected' && matchesNavArea(w.navarea, currentSelectedNavArea));
+
+  if (markerLayer) {
+    markerLayer.clearLayers();
+    filtered.forEach(addMarker);
+  }
+
+  rebuildMapList(filtered);
+
+  const mlb = document.getElementById('mapLiveBadge');
+  if (mlb) mlb.innerHTML = `<span class="dot"></span> ${filtered.length} live`;
+
+  const m = getLeafletMap();
+  if (m) {
+    if (currentSelectedNavArea) {
+      const coords = filtered
+        .map(w => [Number(w.latitude ?? w.lat), Number(w.longitude ?? w.lng)])
+        .filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
+
+      if (coords.length > 1) {
+        m.fitBounds(coords, { maxZoom: 6, padding: [40, 40], animate: true });
+      } else if (coords.length === 1) {
+        m.setView(coords[0], 6, { animate: true });
+      } else if (NAVAREA_CENTERS[currentSelectedNavArea]) {
+        const c = NAVAREA_CENTERS[currentSelectedNavArea];
+        m.setView(c.center, c.zoom, { animate: true });
+      }
+    } else {
+      const isMob = document.body.classList.contains('is-mobile');
+      m.setView([30, 0], isMob ? 2 : 3, { animate: true });
+    }
+  }
+};
+
 function getLeafletMap() {
   return leafletMap && typeof leafletMap.invalidateSize === 'function' ? leafletMap : null;
 }
@@ -61,14 +179,37 @@ function initMap(){
   const mapEl = document.getElementById('map');
   if (!mapEl || typeof L === 'undefined') return;
   const isMob=document.body.classList.contains('is-mobile');
-  leafletMap = L.map('map',{center:[30,0],zoom:isMob?2:3,worldCopyJump:true,zoomControl:false,tap:true});
+  leafletMap = L.map('map',{center:[30,0],zoom:isMob?2:3,worldCopyJump:true,zoomControl:false,attributionControl:false,tap:true});
   window.leafletMap = leafletMap;
   window.hwMap = leafletMap;
   window.map = leafletMap;
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri, GEBCO, NOAA',maxZoom:13}).addTo(leafletMap);
+
+  // Base cartography layer
+  const baseDef = BASE_MAP_DEFS[currentBaseMapId] || BASE_MAP_DEFS['carto-voyager'];
+  currentBaseLayer = L.tileLayer(baseDef.url, {
+    maxZoom: baseDef.maxZoom,
+    attribution: baseDef.attribution
+  }).addTo(leafletMap);
+  osmBaseLayer = currentBaseLayer;
+
+  // OpenSeaMap nautical seamarks overlay
+  openSeaMapLayer = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    opacity: 1.0,
+    attribution: 'Map style: &copy; <a href="http://www.openseamap.org">OpenSeaMap</a>'
+  });
+  openSeaMapLayer.on('tileerror', function() {
+    // OpenSeaMap tiles may be absent over deep ocean; handle errors gracefully
+  });
+  openSeaMapLayer.addTo(leafletMap);
+
   markerLayer = L.layerGroup().addTo(leafletMap);
-  warnings.filter(w=>w.status!=='rejected').forEach(addMarker);
-  rebuildMapList();
+  filterMapByNavArea(currentSelectedNavArea);
+
+  const attrEl = document.querySelector('.map-attribution');
+  if (attrEl) {
+    attrEl.textContent = baseDef.attribution;
+  }
 }
 function addMarker(w){
   const color=w.severity==='critical'?'#dc2626':w.severity==='high'?'#ea580c':'#64748b';
@@ -200,11 +341,27 @@ window.toggleInlineWarningById = function(rawId){
   }
 };
 
-function rebuildMapList(){
+function rebuildMapList(items = null){
   const list=document.getElementById('mapWarningList');
   if(!list) return;
-  list.querySelectorAll('.warning-item').forEach(e=>e.remove());
-  warnings.filter(w=>w.status!=='rejected').forEach(w=>{
+  list.querySelectorAll('.warning-item, .warning-item-empty').forEach(e=>e.remove());
+  const activeItems = items !== null
+    ? items
+    : warnings.filter(w=>w.status!=='rejected' && matchesNavArea(w.navarea, currentSelectedNavArea));
+
+  if (activeItems.length === 0) {
+    const emptyEl = document.createElement('div');
+    emptyEl.className = 'warning-item-empty';
+    emptyEl.style.padding = '18px 14px';
+    emptyEl.style.fontSize = '12px';
+    emptyEl.style.color = 'var(--text-muted)';
+    emptyEl.style.textAlign = 'center';
+    emptyEl.textContent = 'No active warnings in selected navigation area.';
+    list.appendChild(emptyEl);
+    return;
+  }
+
+  activeItems.forEach(w=>{
     const item=document.createElement('div');
     const wid = w.warning_id || w.id;
     item.className='warning-item';
@@ -228,10 +385,59 @@ function rebuildMapList(){
     }
   });
 }
+window.selectBaseMap = function(id){
+  const m = getLeafletMap();
+  if(!m || !BASE_MAP_DEFS[id]) return;
+  if(currentBaseMapId === id && currentBaseLayer && m.hasLayer(currentBaseLayer)) return;
+  if(currentBaseLayer){
+    m.removeLayer(currentBaseLayer);
+  }
+  currentBaseMapId = id;
+  const def = BASE_MAP_DEFS[id];
+  currentBaseLayer = L.tileLayer(def.url, {
+    maxZoom: def.maxZoom,
+    attribution: def.attribution
+  });
+  currentBaseLayer.addTo(m);
+  if(typeof currentBaseLayer.bringToBack === 'function'){
+    currentBaseLayer.bringToBack();
+  }
+  osmBaseLayer = currentBaseLayer;
+
+  const attrEl = document.querySelector('.map-attribution');
+  if(attrEl){
+    attrEl.textContent = def.attribution;
+  }
+};
+
 window.toggleLayer = function(name,vis){
   const m = getLeafletMap();
-  if(!m || !markerLayer) return;
-  if(name==='warnings'){ vis?markerLayer.addTo(m):m.removeLayer(markerLayer); }
+  if(!m) return;
+  if(name==='warnings' && markerLayer){
+    vis ? markerLayer.addTo(m) : m.removeLayer(markerLayer);
+  } else if(name==='seamarks'){
+    if(!openSeaMapLayer){
+      openSeaMapLayer = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        opacity: 1.0,
+        attribution: 'Map style: &copy; OpenSeaMap'
+      });
+      openSeaMapLayer.on('tileerror', function() {});
+    }
+    vis ? openSeaMapLayer.addTo(m) : m.removeLayer(openSeaMapLayer);
+  } else if(name==='soundings'){
+    if(vis){
+      if(!soundingsLayer){
+        soundingsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',{
+          attribution: 'Tiles &copy; Esri &mdash; NOAA, GEBCO',
+          maxZoom: 13
+        });
+      }
+      soundingsLayer.addTo(m);
+    } else if(soundingsLayer){
+      m.removeLayer(soundingsLayer);
+    }
+  }
 };
 
 window.toggleMinimizeWarningList = function(){
@@ -553,10 +759,26 @@ window.filterTable = function(){
 };
 window.applyFilters = function(){
   const na=document.getElementById('filter-navarea')?.value, sv=document.getElementById('filter-severity')?.value, ca=document.getElementById('filter-category')?.value;
-  const f=warnings.filter(w=>(!na||w.navarea===na)&&(!sv||w.severity===sv)&&(!ca||w.category===ca));
+  const f=warnings.filter(w=>(!na||matchesNavArea(w.navarea, na))&&(!sv||w.severity===sv)&&(!ca||w.category===ca));
   populateTable(f); populateCards(f);
   const n=[na,sv,ca].filter(Boolean).length, el=document.getElementById('activeFilterCount');
   if(el){ el.style.display=n?'inline-flex':'none'; el.textContent=n; }
+
+  if (na !== undefined && na !== currentSelectedNavArea) {
+    currentSelectedNavArea = na || '';
+    const mapSelect = document.getElementById('mapNavAreaSelect');
+    if (mapSelect && mapSelect.value !== currentSelectedNavArea) {
+      mapSelect.value = currentSelectedNavArea;
+    }
+    const filtered = warnings.filter(w=>w.status!=='rejected' && matchesNavArea(w.navarea, currentSelectedNavArea));
+    if (markerLayer) {
+      markerLayer.clearLayers();
+      filtered.forEach(addMarker);
+    }
+    rebuildMapList(filtered);
+    const mlb = document.getElementById('mapLiveBadge');
+    if (mlb) mlb.innerHTML = `<span class="dot"></span> ${filtered.length} live`;
+  }
 };
 function updateStats(){
   const live=warnings.filter(w=>w.status!=='rejected');
@@ -587,7 +809,7 @@ function populateSources(){
 }
 window.refreshData = async function(){
   await loadWarnings();
-  if(markerLayer){ markerLayer.clearLayers(); warnings.filter(w=>w.status!=='rejected').forEach(addMarker); rebuildMapList(); }
+  filterMapByNavArea(currentSelectedNavArea);
   showToast('Data refreshed — latest published generation loaded');
 };
 
@@ -652,11 +874,7 @@ async function loadWarnings() {
     warnings = SEED_WARNINGS;
   }
   updateStats(); populateTable(); populateCards();
-  if (markerLayer) {
-    markerLayer.clearLayers();
-    warnings.filter(w=>w.status!=='rejected').forEach(addMarker);
-    rebuildMapList();
-  }
+  filterMapByNavArea(currentSelectedNavArea);
 }
 
 document.addEventListener('DOMContentLoaded', async ()=>{
