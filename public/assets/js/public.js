@@ -217,7 +217,22 @@ function addMarker(w){
   const lng = Number(w.longitude ?? w.lng);
   if (isNaN(lat) || isNaN(lng)) return;
   const m=L.circleMarker([lat, lng],{radius:document.body.classList.contains('is-mobile')?8:6,fillColor:color,color:'#fff',weight:2,fillOpacity:.9});
-  m.bindPopup(`<div style="font-family:system-ui;font-size:13px;min-width:180px"><strong>${w.warning_id || w.id}</strong> · ${w.navarea}<br>${w.title}</div>`,{maxWidth:250});
+  const wid = w.warning_id || w.id;
+  const safeTitle = (w.title || '').replace(/"/g, '&quot;');
+  m.bindPopup(`
+    <div style="font-family:system-ui;font-size:13px;min-width:190px;line-height:1.4">
+      <div style="font-weight:700;display:flex;align-items:center;gap:6px">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color}"></span>
+        <span>${wid} · ${w.navarea}</span>
+      </div>
+      <div style="margin-top:4px;color:var(--text);font-size:12px">${safeTitle}</div>
+      <div style="margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end">
+        <button type="button" class="btn btn-sm btn-primary" style="font-size:11px;padding:2px 8px;min-height:26px" onclick="locateOnMapById('${encodeURIComponent(wid)}')">
+          View Bulletin
+        </button>
+      </div>
+    </div>
+  `,{maxWidth:260});
   m.on('click', () => {
     const wid = w.warning_id || w.id;
     const itemEl = Array.from(document.querySelectorAll('.warning-item')).find(el => el.dataset.warningId === wid);
@@ -407,8 +422,20 @@ window.selectBaseMap = function(id){
   const attrEl = document.querySelector('.map-attribution');
   if(attrEl){
     attrEl.textContent = def.attribution;
+    if(id === 'carto-dark'){
+      attrEl.style.background = 'rgba(15, 23, 42, 0.85)';
+      attrEl.style.color = '#94a3b8';
+    } else {
+      attrEl.style.background = 'rgba(255, 255, 255, 0.85)';
+      attrEl.style.color = 'var(--text-light)';
+    }
   }
 };
+
+window.resetMapView = function(){
+  filterMapByNavArea(currentSelectedNavArea);
+};
+window.locateMapView = window.resetMapView;
 
 window.toggleLayer = function(name,vis){
   const m = getLeafletMap();
@@ -487,10 +514,21 @@ window.locateOnMap = function(){
   const m = getLeafletMap();
   if(currentWarning && m){
     switchTab('map');
+    if(currentWarning.navarea && !matchesNavArea(currentWarning.navarea, currentSelectedNavArea)){
+      filterMapByNavArea(currentWarning.navarea);
+    }
     const lat = Number(currentWarning.latitude ?? currentWarning.lat);
     const lng = Number(currentWarning.longitude ?? currentWarning.lng);
     if (!isNaN(lat) && !isNaN(lng)) {
-      m.setView([lat, lng],7,{animate:true});
+      m.setView([lat, lng], 7, { animate: true });
+    }
+    const wid = currentWarning.warning_id || currentWarning.id;
+    const itemEl = Array.from(document.querySelectorAll('.warning-item')).find(el => el.dataset.warningId === wid);
+    if(itemEl) {
+      itemEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if(!itemEl.classList.contains('expanded')) {
+        toggleInlineWarning(currentWarning, itemEl);
+      }
     }
     closeWarningModal();
   }
@@ -677,18 +715,42 @@ window.locateOnMapById = function(rawId){
   const w = warnings.find(item => (item.warning_id || item.id) === id);
   if (!w) return;
   switchTab('map');
+  if(w.navarea && !matchesNavArea(w.navarea, currentSelectedNavArea)){
+    filterMapByNavArea(w.navarea);
+  }
   const lat = Number(w.latitude ?? w.lat);
   const lng = Number(w.longitude ?? w.lng);
   const m = getLeafletMap();
   if (m && !isNaN(lat) && !isNaN(lng)) {
-    m.setView([lat, lng], 7, { animate: true });
+    m.setView([lat, lng], Math.max(m.getZoom(), 7), { animate: true });
+    if (typeof m.closePopup === 'function') {
+      m.closePopup();
+    }
   }
+
+  // Ensure bottom Active Warnings sheet / drawer is expanded if collapsed
+  const sheet = document.getElementById('mapWarningList');
+  if (sheet && sheet.classList.contains('is-minimized')) {
+    sheet.classList.remove('is-minimized');
+    const minBtn = document.getElementById('btnMinWarningList');
+    if (minBtn) {
+      minBtn.title = 'Minimize';
+      minBtn.setAttribute('aria-label', 'Minimize active warnings list');
+      minBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    }
+  }
+
+  // Find matching warning card in bottom sheet
   const itemEl = Array.from(document.querySelectorAll('.warning-item')).find(el => el.dataset.warningId === id);
   if (itemEl) {
-    itemEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     if (!itemEl.classList.contains('expanded')) {
       toggleInlineWarning(w, itemEl);
     }
+    itemEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    itemEl.classList.add('warning-item-target');
+    setTimeout(() => {
+      itemEl.classList.remove('warning-item-target');
+    }, 2500);
   }
 };
 
