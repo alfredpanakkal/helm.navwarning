@@ -61,12 +61,11 @@ function initMap(){
   const mapEl = document.getElementById('map');
   if (!mapEl || typeof L === 'undefined') return;
   const isMob=document.body.classList.contains('is-mobile');
-  leafletMap = L.map('map',{center:[30,0],zoom:isMob?2:3,worldCopyJump:true,zoomControl:!isMob,tap:true});
+  leafletMap = L.map('map',{center:[30,0],zoom:isMob?2:3,worldCopyJump:true,zoomControl:false,tap:true});
   window.leafletMap = leafletMap;
   window.hwMap = leafletMap;
   window.map = leafletMap;
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',{attribution:'Esri, GEBCO, NOAA',maxZoom:13}).addTo(leafletMap);
-  if(!isMob) L.control.zoom({position:'bottomright'}).addTo(leafletMap);
   markerLayer = L.layerGroup().addTo(leafletMap);
   warnings.filter(w=>w.status!=='rejected').forEach(addMarker);
   rebuildMapList();
@@ -78,25 +77,205 @@ function addMarker(w){
   if (isNaN(lat) || isNaN(lng)) return;
   const m=L.circleMarker([lat, lng],{radius:document.body.classList.contains('is-mobile')?8:6,fillColor:color,color:'#fff',weight:2,fillOpacity:.9});
   m.bindPopup(`<div style="font-family:system-ui;font-size:13px;min-width:180px"><strong>${w.warning_id || w.id}</strong> · ${w.navarea}<br>${w.title}</div>`,{maxWidth:250});
-  m.on('click',()=>openWarningModal(w));
+  m.on('click', () => {
+    const wid = w.warning_id || w.id;
+    const itemEl = Array.from(document.querySelectorAll('.warning-item')).find(el => el.dataset.warningId === wid);
+    if (itemEl) {
+      itemEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (!itemEl.classList.contains('expanded')) {
+        toggleInlineWarning(w, itemEl);
+      }
+    } else {
+      openWarningModal(w);
+    }
+  });
   if(markerLayer) markerLayer.addLayer(m);
 }
+
+let expandedWarningId = null;
+
+async function toggleInlineWarning(w, itemEl){
+  const isCurrentlyExpanded = itemEl.classList.contains('expanded');
+  
+  // Collapse any currently expanded item
+  const list = document.getElementById('mapWarningList');
+  if (list) {
+    list.querySelectorAll('.warning-item.expanded').forEach(el => {
+      el.classList.remove('expanded');
+      const body = el.querySelector('.warning-expanded-body');
+      if (body) body.remove();
+    });
+  }
+
+  if (isCurrentlyExpanded) {
+    expandedWarningId = null;
+    return;
+  }
+
+  expandedWarningId = w.warning_id || w.id;
+  itemEl.classList.add('expanded');
+
+  // Focus map on marker
+  const lat = Number(w.latitude ?? w.lat);
+  const lng = Number(w.longitude ?? w.lng);
+  const m = getLeafletMap();
+  if (m && !isNaN(lat) && !isNaN(lng)) {
+    m.panTo([lat, lng], { animate: true });
+  }
+
+  const sevClass = w.severity === 'critical' ? 'critical' : w.severity === 'high' ? 'high' : 'moderate';
+  const verClass = w.is_verified ? 'verified' : 'neutral';
+  const verLabel = w.is_verified ? 'VERIFIED' : 'UNVERIFIED';
+
+  const expBody = document.createElement('div');
+  expBody.className = 'warning-expanded-body';
+  expBody.onclick = (e) => e.stopPropagation();
+
+  const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}, ${lng.toFixed(2)}` : 'N/A');
+  const issuedText = w.issued_text || w.issued_date || w.issued || 'N/A';
+  const wid = w.warning_id || w.id;
+
+  expBody.innerHTML = `
+    <div class="warning-expanded-badges">
+      ${badge(sevClass, (w.severity || 'HIGH').toUpperCase())}
+      ${badge(verClass, verLabel)}
+      ${w.category ? `<span class="badge-simple badge-neutral">${w.category.toUpperCase()}</span>` : ''}
+    </div>
+    <div class="warning-expanded-meta">
+      <div><strong>Issued:</strong> ${issuedText}</div>
+      <div><strong>Coordinates:</strong> ${coordsText}</div>
+    </div>
+    <div class="warning-expanded-text">Loading bulletin text...</div>
+    <div class="warning-expanded-actions">
+      <button type="button" class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); panToWarning('${encodeURIComponent(wid)}')">
+        <span>📍 Focus on Map</span>
+      </button>
+      <button type="button" class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); toggleInlineWarningById('${encodeURIComponent(wid)}')">
+        <span>Collapse</span>
+      </button>
+    </div>
+  `;
+
+  itemEl.appendChild(expBody);
+
+  const textEl = expBody.querySelector('.warning-expanded-text');
+  if (textEl) {
+    if (w.raw_text) {
+      textEl.innerText = w.raw_text;
+    } else if (w.text) {
+      textEl.innerText = w.text;
+    } else {
+      const fetchFn = typeof fetchWarningDetails === 'function'
+        ? fetchWarningDetails
+        : (window.hwDb && window.hwDb.fetchWarningDetails);
+      const details = fetchFn ? await fetchFn(w.id || w.warning_id) : null;
+      if (details && details.raw_text) {
+        w.raw_text = details.raw_text;
+        textEl.innerText = w.raw_text;
+      } else {
+        textEl.innerText = "No additional bulletin text available.";
+      }
+    }
+  }
+}
+
+window.panToWarning = function(rawId){
+  const id = decodeURIComponent(rawId);
+  const w = warnings.find(item => (item.warning_id || item.id) === id);
+  if (!w) return;
+  const lat = Number(w.latitude ?? w.lat);
+  const lng = Number(w.longitude ?? w.lng);
+  const m = getLeafletMap();
+  if (m && !isNaN(lat) && !isNaN(lng)) {
+    m.setView([lat, lng], Math.max(m.getZoom(), 6), { animate: true });
+  }
+};
+
+window.toggleInlineWarningById = function(rawId){
+  const id = decodeURIComponent(rawId);
+  const el = Array.from(document.querySelectorAll('.warning-item')).find(item => item.dataset.warningId === id);
+  const w = warnings.find(item => (item.warning_id || item.id) === id);
+  if (el && w) {
+    toggleInlineWarning(w, el);
+  }
+};
+
 function rebuildMapList(){
   const list=document.getElementById('mapWarningList');
   if(!list) return;
   list.querySelectorAll('.warning-item').forEach(e=>e.remove());
   warnings.filter(w=>w.status!=='rejected').forEach(w=>{
     const item=document.createElement('div');
-    item.className='warning-item'; item.onclick=()=>openWarningModal(w);
+    const wid = w.warning_id || w.id;
+    item.className='warning-item';
+    item.dataset.warningId = wid;
+    item.onclick=()=>toggleInlineWarning(w, item);
     const c=w.severity==='critical'?'var(--critical)':w.severity==='high'?'var(--high)':'var(--neutral)';
-    item.innerHTML=`<span class="severity-dot" style="background:${c}"></span><div><div class="warning-id">${w.warning_id || w.id} · ${w.navarea}</div><div class="warning-meta">${w.title}</div><div class="warning-meta">${w.issued_date || w.issued}</div></div>`;
+    item.innerHTML=`
+      <div class="warning-item-header">
+        <span class="severity-dot" style="background:${c}"></span>
+        <div class="warning-item-title-col">
+          <div class="warning-id">${wid} · ${w.navarea}</div>
+          <div class="warning-meta">${w.title}</div>
+          <div class="warning-meta">${w.issued_date || w.issued}</div>
+        </div>
+        <svg class="warning-item-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>`;
     list.appendChild(item);
+
+    if (expandedWarningId === wid) {
+      toggleInlineWarning(w, item);
+    }
   });
 }
 window.toggleLayer = function(name,vis){
   const m = getLeafletMap();
   if(!m || !markerLayer) return;
   if(name==='warnings'){ vis?markerLayer.addTo(m):m.removeLayer(markerLayer); }
+};
+
+window.toggleMinimizeWarningList = function(){
+  const el = document.getElementById('mapWarningList');
+  if(!el) return;
+  const isMin = el.classList.contains('is-minimized');
+  el.classList.remove('is-maximized');
+  el.classList.toggle('is-minimized', !isMin);
+  const minBtn = document.getElementById('btnMinWarningList');
+  if(minBtn) {
+    minBtn.title = !isMin ? 'Restore' : 'Minimize';
+    minBtn.setAttribute('aria-label', !isMin ? 'Restore active warnings list' : 'Minimize active warnings list');
+    minBtn.innerHTML = !isMin
+      ? '<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>'
+      : '<svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  }
+  const maxBtn = document.getElementById('btnMaxWarningList');
+  if(maxBtn) {
+    maxBtn.title = 'Maximize';
+    maxBtn.setAttribute('aria-label', 'Maximize active warnings list');
+    maxBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+  }
+};
+
+window.toggleMaximizeWarningList = function(){
+  const el = document.getElementById('mapWarningList');
+  if(!el) return;
+  const isMax = el.classList.contains('is-maximized');
+  el.classList.remove('is-minimized');
+  el.classList.toggle('is-maximized', !isMax);
+  const minBtn = document.getElementById('btnMinWarningList');
+  if(minBtn) {
+    minBtn.title = 'Minimize';
+    minBtn.setAttribute('aria-label', 'Minimize active warnings list');
+    minBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  }
+  const maxBtn = document.getElementById('btnMaxWarningList');
+  if(maxBtn) {
+    maxBtn.title = !isMax ? 'Restore' : 'Maximize';
+    maxBtn.setAttribute('aria-label', !isMax ? 'Restore active warnings list size' : 'Maximize active warnings list');
+    maxBtn.innerHTML = !isMax
+      ? '<svg viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
+      : '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+  }
 };
 window.locateOnMap = function(){
   const m = getLeafletMap();
@@ -117,17 +296,232 @@ function statusBadge(w){
   if(w.status==='rejected') return badge('neutral','REJECTED');
   return !w.is_verified ? badge('neutral','UNVERIFIED') : badge('verified','VERIFIED');
 }
+
+let expandedTableWarningId = null;
+
+function toggleTableDetailRow(w, tr) {
+  const wid = w.warning_id || w.id;
+  const isCurrentlyOpen = tr.classList.contains('table-row-selected');
+  const tb = document.getElementById('tableBody');
+  if (!tb) return;
+
+  // Remove existing detail row and selection
+  tb.querySelectorAll('.table-detail-row').forEach(row => row.remove());
+  tb.querySelectorAll('.table-row-selected').forEach(row => row.classList.remove('table-row-selected'));
+
+  if (isCurrentlyOpen) {
+    expandedTableWarningId = null;
+    return;
+  }
+
+  expandedTableWarningId = wid;
+  tr.classList.add('table-row-selected');
+
+  const detailTr = document.createElement('tr');
+  detailTr.className = 'table-detail-row';
+  detailTr.dataset.forWarning = wid;
+
+  const lat = Number(w.latitude ?? w.lat);
+  const lng = Number(w.longitude ?? w.lng);
+  const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}, ${lng.toFixed(2)}` : 'N/A');
+  const issuedText = w.issued_text || w.issued_date || w.issued || 'N/A';
+  const sevClass = w.severity === 'critical' ? 'critical' : w.severity === 'high' ? 'high' : 'moderate';
+  const verClass = w.is_verified ? 'verified' : 'neutral';
+  const verLabel = w.is_verified ? 'VERIFIED' : 'UNVERIFIED';
+
+  detailTr.innerHTML = `
+    <td colspan="7">
+      <div class="table-detail-container" onclick="event.stopPropagation()">
+        <div class="table-detail-header">
+          <div class="warning-expanded-badges">
+            ${badge(sevClass, (w.severity || 'HIGH').toUpperCase())}
+            ${badge(verClass, verLabel)}
+            ${w.category ? `<span class="badge-simple badge-neutral">${w.category.toUpperCase()}</span>` : ''}
+            <span style="font-weight:600;font-size:13px;color:var(--text)">${w.title}</span>
+          </div>
+          <div class="table-detail-actions">
+            <button type="button" class="btn btn-sm btn-primary" onclick="event.stopPropagation(); locateOnMapById('${encodeURIComponent(wid)}')">
+              <span>📍 View on Map</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); toggleTableDetailRowById('${encodeURIComponent(wid)}')">
+              <span>Collapse</span>
+            </button>
+          </div>
+        </div>
+        <div class="table-detail-meta">
+          <div><strong>NAVAREA:</strong> ${w.navarea}</div>
+          <div><strong>Issued:</strong> ${issuedText}</div>
+          <div><strong>Coordinates:</strong> ${coordsText}</div>
+          ${w.authority ? `<div><strong>Authority:</strong> ${w.authority}</div>` : ''}
+        </div>
+        <div class="table-detail-text">Loading bulletin text...</div>
+      </div>
+    </td>
+  `;
+
+  tr.after(detailTr);
+
+  const textEl = detailTr.querySelector('.table-detail-text');
+  if (textEl) {
+    if (w.raw_text) {
+      textEl.innerText = w.raw_text;
+    } else if (w.text) {
+      textEl.innerText = w.text;
+    } else {
+      const fetchFn = typeof fetchWarningDetails === 'function'
+        ? fetchWarningDetails
+        : (window.hwDb && window.hwDb.fetchWarningDetails);
+      const fetchPromise = fetchFn ? fetchFn(wid) : Promise.resolve(null);
+      fetchPromise.then(details => {
+        if (details && details.raw_text) {
+          w.raw_text = details.raw_text;
+          textEl.innerText = w.raw_text;
+        } else {
+          textEl.innerText = "No additional bulletin text available.";
+        }
+      }).catch(() => {
+        textEl.innerText = "Error loading bulletin text.";
+      });
+    }
+  }
+}
+
+let expandedCardWarningId = null;
+
+function toggleCardDetail(w, cardEl) {
+  const wid = w.warning_id || w.id;
+  const isCurrentlyOpen = cardEl.classList.contains('expanded');
+  const cl = document.getElementById('cardList');
+  if (!cl) return;
+
+  cl.querySelectorAll('.warning-card.expanded').forEach(c => {
+    c.classList.remove('expanded');
+    const body = c.querySelector('.warning-card-expanded-body');
+    if (body) body.remove();
+  });
+
+  if (isCurrentlyOpen) {
+    expandedCardWarningId = null;
+    return;
+  }
+
+  expandedCardWarningId = wid;
+  cardEl.classList.add('expanded');
+
+  const lat = Number(w.latitude ?? w.lat);
+  const lng = Number(w.longitude ?? w.lng);
+  const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}, ${lng.toFixed(2)}` : 'N/A');
+  const issuedText = w.issued_text || w.issued_date || w.issued || 'N/A';
+  const verClass = w.is_verified ? 'verified' : 'neutral';
+  const verLabel = w.is_verified ? 'VERIFIED' : 'UNVERIFIED';
+
+  const bodyEl = document.createElement('div');
+  bodyEl.className = 'warning-card-expanded-body';
+  bodyEl.onclick = (e) => e.stopPropagation();
+
+  bodyEl.innerHTML = `
+    <div class="warning-expanded-badges">
+      ${badge(verClass, verLabel)}
+      ${w.category ? `<span class="badge-simple badge-neutral">${w.category.toUpperCase()}</span>` : ''}
+    </div>
+    <div class="warning-expanded-meta">
+      <div><strong>Issued:</strong> ${issuedText}</div>
+      <div><strong>Coordinates:</strong> ${coordsText}</div>
+    </div>
+    <div class="warning-expanded-text">Loading bulletin text...</div>
+    <div class="warning-expanded-actions">
+      <button type="button" class="btn btn-sm btn-primary" onclick="event.stopPropagation(); locateOnMapById('${encodeURIComponent(wid)}')">
+        <span>📍 View on Map</span>
+      </button>
+      <button type="button" class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); toggleCardDetailById('${encodeURIComponent(wid)}')">
+        <span>Collapse</span>
+      </button>
+    </div>
+  `;
+
+  cardEl.appendChild(bodyEl);
+
+  const textEl = bodyEl.querySelector('.warning-expanded-text');
+  if (textEl) {
+    if (w.raw_text) {
+      textEl.innerText = w.raw_text;
+    } else if (w.text) {
+      textEl.innerText = w.text;
+    } else {
+      const fetchFn = typeof fetchWarningDetails === 'function'
+        ? fetchWarningDetails
+        : (window.hwDb && window.hwDb.fetchWarningDetails);
+      const fetchPromise = fetchFn ? fetchFn(wid) : Promise.resolve(null);
+      fetchPromise.then(details => {
+        if (details && details.raw_text) {
+          w.raw_text = details.raw_text;
+          textEl.innerText = w.raw_text;
+        } else {
+          textEl.innerText = "No additional bulletin text available.";
+        }
+      }).catch(() => {
+        textEl.innerText = "Error loading bulletin text.";
+      });
+    }
+  }
+}
+
+window.locateOnMapById = function(rawId){
+  const id = decodeURIComponent(rawId);
+  const w = warnings.find(item => (item.warning_id || item.id) === id);
+  if (!w) return;
+  switchTab('map');
+  const lat = Number(w.latitude ?? w.lat);
+  const lng = Number(w.longitude ?? w.lng);
+  const m = getLeafletMap();
+  if (m && !isNaN(lat) && !isNaN(lng)) {
+    m.setView([lat, lng], 7, { animate: true });
+  }
+  const itemEl = Array.from(document.querySelectorAll('.warning-item')).find(el => el.dataset.warningId === id);
+  if (itemEl) {
+    itemEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!itemEl.classList.contains('expanded')) {
+      toggleInlineWarning(w, itemEl);
+    }
+  }
+};
+
+window.toggleTableDetailRowById = function(rawId){
+  const id = decodeURIComponent(rawId);
+  const tr = Array.from(document.querySelectorAll('tr[data-warning-id]')).find(el => el.dataset.warningId === id);
+  const w = warnings.find(item => (item.warning_id || item.id) === id);
+  if (tr && w) {
+    toggleTableDetailRow(w, tr);
+  }
+};
+
+window.toggleCardDetailById = function(rawId){
+  const id = decodeURIComponent(rawId);
+  const c = Array.from(document.querySelectorAll('.warning-card')).find(el => el.dataset.warningId === id);
+  const w = warnings.find(item => (item.warning_id || item.id) === id);
+  if (c && w) {
+    toggleCardDetail(w, c);
+  }
+};
+
 function populateTable(filtered=warnings){
   const tb=document.getElementById('tableBody'); 
   if(!tb) return;
   tb.innerHTML='';
   const live=filtered.filter(w=>w.status!=='rejected');
   live.forEach(w=>{
-    const tr=document.createElement('tr'); tr.onclick=()=>openWarningModal(w);
-    tr.innerHTML=`<td><strong>${w.warning_id || w.id}</strong></td><td>${w.navarea}</td><td>${w.title}</td>
+    const tr=document.createElement('tr');
+    const wid = w.warning_id || w.id;
+    tr.dataset.warningId = wid;
+    tr.onclick=()=>toggleTableDetailRow(w, tr);
+    tr.innerHTML=`<td><strong>${wid}</strong> <svg class="row-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></td><td>${w.navarea}</td><td>${w.title}</td>
     <td>${badge(w.severity==='high'?'high':w.severity==='critical'?'critical':'moderate',w.severity.toUpperCase())}</td>
     <td>${w.issued_date || w.issued}</td><td>${w.coordinates || w.coords}</td><td>${statusBadge(w)}</td>`;
     tb.appendChild(tr);
+
+    if (expandedTableWarningId === wid) {
+      toggleTableDetailRow(w, tr);
+    }
   });
   const tc = document.getElementById('tableCount');
   if(tc) tc.textContent=`Showing 1–${live.length} of ${live.length}`;
@@ -137,11 +531,19 @@ function populateCards(filtered=warnings){
   if(!cl) return;
   cl.querySelectorAll('.warning-card').forEach(e=>e.remove());
   filtered.filter(w=>w.status!=='rejected').forEach(w=>{
-    const c=document.createElement('div'); c.className='warning-card'; c.onclick=()=>openWarningModal(w);
-    c.innerHTML=`<div class="warning-card-header"><span class="warning-card-id">${w.warning_id || w.id} · ${w.navarea}</span>${badge(w.severity==='high'?'high':'moderate',w.severity.toUpperCase())}</div>
+    const c=document.createElement('div');
+    const wid = w.warning_id || w.id;
+    c.className='warning-card';
+    c.dataset.warningId = wid;
+    c.onclick=()=>toggleCardDetail(w, c);
+    c.innerHTML=`<div class="warning-card-header"><span class="warning-card-id">${wid} · ${w.navarea}</span>${badge(w.severity==='high'?'high':'moderate',w.severity.toUpperCase())}</div>
     <div class="warning-card-title">${w.title}</div>
     <div class="warning-card-meta"><span>📍 ${w.navarea}</span><span>📅 ${w.issued_date || w.issued}</span><span>🎯 ${w.coordinates || w.coords}</span></div>`;
     cl.appendChild(c);
+
+    if (expandedCardWarningId === wid) {
+      toggleCardDetail(w, c);
+    }
   });
 }
 window.filterTable = function(){
