@@ -1,0 +1,103 @@
+name: Scrapling Hydrographic Crawler & Ingestion
+run-name: Scrapling Ingestion (${{ github.event_name == 'schedule' && 'Scheduled 4h Broadcast' || format('Manual {0}', inputs.navarea || 'ALL') }})
+
+on:
+  schedule:
+    # Run every 4 hours aligned with international maritime MSI broadcasts (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+    inputs:
+      navarea:
+        description: 'Target NAVAREA zone to ingest (leave blank for ALL)'
+        required: false
+        default: 'ALL'
+        type: choice
+        options:
+          - 'ALL'
+          - 'I'
+          - 'Baltic'
+          - 'IV'
+          - 'X'
+          - 'XIX'
+      sync_supabase:
+        description: 'Sync extracted warnings directly to Supabase PostgreSQL'
+        required: true
+        default: true
+        type: boolean
+      use_stealth:
+        description: 'Enable Playwright / Camoufox Cloudflare stealth solver'
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: scrapling-crawler-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  crawl-and-ingest:
+    name: Crawl Hydrographic Websites via Scrapling
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout Helm.Warning Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Scrapling Framework & Fetchers
+        run: |
+          python -m pip install --upgrade pip
+          pip install "scrapling[fetchers]"
+          # Install browser binaries for stealth fetchers (Playwright/Camoufox)
+          scrapling install || python -m playwright install --with-deps chromium
+
+      - name: Execute Scrapling Hydrographic Ingestion
+        id: scrapling-run
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          NAV_ARG=""
+          if [ "${{ inputs.navarea }}" != "ALL" ] && [ -n "${{ inputs.navarea }}" ]; then
+            NAV_ARG="--navarea ${{ inputs.navarea }}"
+          fi
+
+          SYNC_ARG=""
+          if [ "${{ inputs.sync_supabase }}" != "false" ]; then
+            SYNC_ARG="--sync-supabase"
+          fi
+
+          echo "Launching Scrapling with parameters: $NAV_ARG $SYNC_ARG"
+          python scripts/scrapling_ingest.py $NAV_ARG $SYNC_ARG --output ./scrapling-report.json
+
+      - name: Upload Scrapling Execution Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrapling-telemetry-report-${{ github.run_id }}
+          path: ./scrapling-report.json
+          retention-days: 14
+
+      - name: Ingestion Summary Log
+        run: |
+          if [ -f ./scrapling-report.json ]; then
+            python -c "
+import json
+data = json.load(open('./scrapling-report.json'))
+print('═════════════════════════════════════════════════════════')
+print('HELM.WARNING - SCRAPLING CRAWLER EXECUTION SUMMARY')
+print(f'Total Warnings Extracted: {data.get(\"total_warnings\", 0)}')
+print(f'Total Artifacts Cached:   {data.get(\"total_artifacts\", 0)}')
+print('Breakdown by Navigation Area:')
+for area, cnt in data.get('by_navarea', {}).items():
+    print(f'  • NAVAREA {area}: {cnt} notices')
+print('═════════════════════════════════════════════════════════')
+"
+          fi

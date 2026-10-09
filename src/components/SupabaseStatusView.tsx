@@ -258,6 +258,106 @@ CREATE TABLE IF NOT EXISTS public.sources_registry (
   health JSONB,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ══════════════════════════════════════════════════════════════
+-- NAVAREA SEGREGATED SCHEMAS & COMPLETE PARAMETER STORES
+-- Creates dedicated PostgreSQL schemas for all 21 NAVAREAs + Baltic
+-- ══════════════════════════════════════════════════════════════
+
+DO $$
+DECLARE
+  areas TEXT[] := ARRAY[
+    'navarea_1', 'navarea_baltic', 'navarea_2', 'navarea_3', 'navarea_4',
+    'navarea_5', 'navarea_6', 'navarea_7', 'navarea_8', 'navarea_9',
+    'navarea_10', 'navarea_11', 'navarea_12', 'navarea_13', 'navarea_14',
+    'navarea_15', 'navarea_16', 'navarea_17', 'navarea_18', 'navarea_19',
+    'navarea_20', 'navarea_21'
+  ];
+  schema_name TEXT;
+BEGIN
+  FOREACH schema_name IN ARRAY areas LOOP
+    EXECUTE format('CREATE SCHEMA IF NOT EXISTS %I', schema_name);
+
+    EXECUTE format('
+      CREATE TABLE IF NOT EXISTS %I.nav_warnings (
+        id UUID DEFAULT gen_random_uuid(),
+        warning_id TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        publisher_id TEXT,
+        navarea TEXT NOT NULL,
+        source_warning_id TEXT,
+        series TEXT,
+        warning_number TEXT,
+        warning_year INT,
+        title TEXT,
+        authority TEXT,
+        sub_area TEXT,
+        area_text TEXT,
+        risk_level TEXT DEFAULT ''high'',
+        urgency_score INT,
+        issued_date TEXT,
+        issued_text TEXT,
+        issued_at TIMESTAMPTZ,
+        valid_from TIMESTAMPTZ,
+        valid_to TIMESTAMPTZ,
+        valid_until_utc TIMESTAMPTZ,
+        coordinates TEXT,
+        latitude DOUBLE PRECISION,
+        longitude DOUBLE PRECISION,
+        spatial JSONB,
+        spatial_groups JSONB,
+        status TEXT DEFAULT ''active'',
+        status_basis TEXT,
+        category TEXT,
+        categories TEXT,
+        hazard_category TEXT,
+        charts TEXT,
+        web_link TEXT,
+        source_url TEXT,
+        raw_text TEXT NOT NULL,
+        is_cancelled BOOLEAN DEFAULT false,
+        cancellation_text TEXT,
+        extraction_method TEXT DEFAULT ''deterministic'',
+        generation_id TEXT,
+        evidence_trail JSONB,
+        is_verified BOOLEAN DEFAULT false,
+        verified_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        PRIMARY KEY (source_id, warning_id),
+        CONSTRAINT %I UNIQUE (source_id, warning_id)
+      )', schema_name, schema_name || '_uniq_warn');
+
+    EXECUTE format('
+      CREATE TABLE IF NOT EXISTS %I.raw_messages (
+        message_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        warning_id TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        full_raw_text TEXT NOT NULL,
+        subject_header TEXT,
+        received_timestamp TIMESTAMPTZ DEFAULT NOW(),
+        checksum_sha256 TEXT
+      )', schema_name);
+
+    EXECUTE format('ALTER TABLE %I.nav_warnings ENABLE ROW LEVEL SECURITY', schema_name);
+    EXECUTE format('ALTER TABLE %I.raw_messages ENABLE ROW LEVEL SECURITY', schema_name);
+
+    EXECUTE format('
+      DROP POLICY IF EXISTS %I ON %I.nav_warnings;
+      CREATE POLICY %I ON %I.nav_warnings FOR SELECT USING (status = ''active'');
+      
+      DROP POLICY IF EXISTS %I ON %I.nav_warnings;
+      CREATE POLICY %I ON %I.nav_warnings FOR ALL USING (auth.role() = ''authenticated'');
+
+      DROP POLICY IF EXISTS %I ON %I.raw_messages;
+      CREATE POLICY %I ON %I.raw_messages FOR ALL USING (auth.role() = ''authenticated'');
+    ', 
+      schema_name || '_pub_read', schema_name, schema_name || '_pub_read', schema_name,
+      schema_name || '_adm_all', schema_name, schema_name || '_adm_all', schema_name,
+      schema_name || '_msg_adm', schema_name, schema_name || '_msg_adm', schema_name
+    );
+  END LOOP;
+END $$;
 `;
 
   const handleCopySql = () => {

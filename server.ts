@@ -22,6 +22,7 @@ import { fetchWithRetry } from './src/utils/fetchWithRetry.js';
 import { validateLLMOutput } from './src/schemas/navWarningSchema.js';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact, NavAreaId, PipelineEvent, PipelineRunRecord } from './src/types.js';
 import scrapeNavwarnHandler from './api/scrape-navwarn.js';
+import scrapeScraplingHandler from './api/scrape-scrapling.js';
 import { securityHeadersMiddleware } from './server/securityHeaders.js';
 import {
   checkSupabaseHealth,
@@ -410,11 +411,17 @@ function splitIntoChunks(text: string, maxChunkSize = 10000): string[] {
 }
 
 async function startServer() {
-  // Hydrate initial state from Supabase if configured, eliminating reliance on static seeds
-  await hydrateDatabaseFromSupabase();
-
   const app = express();
-  const PORT = 3000;
+
+  // Parse CLI args and environment for PORT and HOST bindings
+  const args = process.argv.slice(2);
+  const portIndex = args.indexOf('--port');
+  const cliPort = portIndex !== -1 && args[portIndex + 1] ? parseInt(args[portIndex + 1], 10) : undefined;
+  const PORT = cliPort || Number(process.env.PORT) || 3000;
+
+  const hostIndex = args.indexOf('--host');
+  const cliHost = hostIndex !== -1 && args[hostIndex + 1] ? args[hostIndex + 1] : undefined;
+  const HOST = cliHost || process.env.HOST || '0.0.0.0';
 
   // 1. Trust first proxy hop (e.g. Cloud Run load balancer) so express-rate-limit sees real client IPs
   app.set('trust proxy', 1);
@@ -472,6 +479,9 @@ async function startServer() {
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
+    validate: {
+      keyGeneratorIpFallback: false,
+    },
     keyGenerator: (req) => {
       // Key strictly on the admin user id populated by requireAdmin
       const user = (req as any).user;
@@ -2512,24 +2522,36 @@ Instructions:
 
   // Vercel Cron Scraper Route Integration
   app.all('/api/scrape-navwarn', scrapeNavwarnHandler);
+  app.all('/api/scrape-scrapling', scrapeScraplingHandler);
+  app.all('/api/scraper/scrapling', scrapeScraplingHandler);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
+    app.get('/admin', (req, res) => {
+      res.sendFile(path.join(distPath, 'admin.html'));
+    });
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`NavWarn Ingestion Server running on http://0.0.0.0:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`NavWarn Ingestion Server running on http://${HOST}:${PORT}`);
+    // Hydrate initial state from Supabase asynchronously in background without delaying server binding
+    hydrateDatabaseFromSupabase().catch((err) => {
+      console.warn('[Data Pipeline] Background hydration error:', err?.message || err);
+    });
   });
 }
 

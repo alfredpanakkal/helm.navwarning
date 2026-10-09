@@ -5,6 +5,20 @@ let supabaseClient: SupabaseClient | null = null;
 let lastUsedUrl = '';
 let lastUsedKey = '';
 
+export function getNavareaSchemaName(navarea: string): string {
+  const clean = (navarea || '').trim().toUpperCase();
+  if (clean === 'BALTIC') return 'navarea_baltic';
+  const romanMap: Record<string, string> = {
+    'I': 'navarea_1', 'II': 'navarea_2', 'III': 'navarea_3', 'IV': 'navarea_4',
+    'V': 'navarea_5', 'VI': 'navarea_6', 'VII': 'navarea_7', 'VIII': 'navarea_8',
+    'IX': 'navarea_9', 'X': 'navarea_10', 'XI': 'navarea_11', 'XII': 'navarea_12',
+    'XIII': 'navarea_13', 'XIV': 'navarea_14', 'XV': 'navarea_15', 'XVI': 'navarea_16',
+    'XVII': 'navarea_17', 'XVIII': 'navarea_18', 'XIX': 'navarea_19', 'XX': 'navarea_20',
+    'XXI': 'navarea_21'
+  };
+  return romanMap[clean] || `navarea_${clean.toLowerCase()}`;
+}
+
 export function getSupabaseClient(): SupabaseClient | null {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key =
@@ -116,46 +130,74 @@ export async function syncWarningsToSupabase(warnings: NavWarning[]): Promise<{ 
         }
       }
 
+      const issuedDateStr = w.issued_date || (w.issued_at ? w.issued_at.slice(0, 10) : new Date().toISOString().slice(0, 10));
+      const year = w.warning_year || (issuedDateStr ? parseInt(issuedDateStr.slice(0, 4), 10) : new Date().getFullYear());
+
       return {
         source_id: w.source_id || 'manual-import',
         warning_id: w.source_warning_id || w.warning_number || w.warning_id,
+        publisher_id: w.publisher_id || null,
+        series: w.series || `NAVAREA ${w.navarea || 'IV'}`,
+        warning_number: w.warning_number || null,
+        warning_year: year,
         title: w.title || null,
         raw_text: w.raw_text || '',
-        issued_date: w.issued_date || new Date().toISOString().slice(0, 10),
+        issued_date: issuedDateStr,
+        issued_text: w.issued_text || w.issued_date || null,
+        issued_at: w.issued_at || null,
+        valid_from: w.valid_from || null,
+        valid_to: w.valid_to || null,
+        valid_until_utc: (w as any).valid_until_utc || w.valid_to || null,
         navarea: w.navarea || 'IV',
         area_text: w.area_text || null,
         sub_area: w.sub_area || null,
         authority: w.authority || null,
         source_url: w.source_url || w.web_link || null,
-        risk_level: w.risk_level || null,
+        risk_level: w.risk_level || w.ai_triage?.risk_level || 'high',
+        urgency_score: w.urgency_score || null,
         extraction_method: w.extraction_method || 'deterministic',
         generation_id: w.generation_id || null,
-        issued_text: w.issued_text || w.issued_date || null,
         latitude: lat,
         longitude: lng,
         valid_until: w.valid_until || w.valid_to || null,
         validity: w.validity || null,
         charts: w.charts || null,
         categories: w.categories || null,
+        category: (w as any).category || w.categories || null,
+        hazard_category: w.hazard_category || w.ai_triage?.hazard_category || null,
         web_link: w.web_link || w.source_url || null,
         spatial: w.spatial?.geometries?.length ? { geometries: w.spatial.geometries } : null,
         spatial_groups: (w as any).spatial_groups || (w.spatial as any)?.spatial_groups || null,
         evidence_trail: (w as any).evidence_trail || (w.spatial as any)?.evidence_trail || null,
-        valid_until_utc: (w as any).valid_until_utc || w.valid_to || null,
         is_cancelled: (w as any).is_cancelled ?? (w.status === 'cancelled'),
         cancellation_text: (w as any).cancellation_text || null,
+        is_verified: (w as any).is_verified ?? false,
+        verified_at: (w as any).verified_at || null,
+        updated_at: new Date().toISOString(),
       };
     });
 
-    // Also persist raw messages
+    // Also persist raw messages with SHA-256 hash
     const rawRows = warnings
-      .filter(w => Boolean(w.raw_text))
-      .map(w => ({
-        warning_id: w.source_warning_id || w.warning_number || w.warning_id,
-        source_id: w.source_id || 'manual-import',
-        full_raw_text: w.raw_text,
-        subject_header: w.title || `${w.series || 'WARNING'} ${w.warning_number || ''}`,
-      }));
+      .filter((w) => Boolean(w.raw_text))
+      .map((w) => {
+        let checksum: string | null = null;
+        try {
+          // Dynamic crypto import/require
+          const crypto = require('crypto');
+          checksum = crypto.createHash('sha256').update(w.raw_text).digest('hex');
+        } catch {
+          checksum = null;
+        }
+
+        return {
+          warning_id: w.source_warning_id || w.warning_number || w.warning_id,
+          source_id: w.source_id || 'manual-import',
+          full_raw_text: w.raw_text,
+          subject_header: w.title || `${w.series || 'WARNING'} ${w.warning_number || ''}`,
+          checksum_sha256: checksum,
+        };
+      });
 
     if (rawRows.length > 0) {
       try {
@@ -165,7 +207,7 @@ export async function syncWarningsToSupabase(warnings: NavWarning[]): Promise<{ 
       }
     }
 
-    // Chunk in batches of 100
+    // Chunk in batches of 100 for public.nav_warnings
     const CHUNK_SIZE = 100;
     for (let i = 0; i < payload.length; i += CHUNK_SIZE) {
       const chunk = payload.slice(i, i + CHUNK_SIZE);
@@ -180,6 +222,27 @@ export async function syncWarningsToSupabase(warnings: NavWarning[]): Promise<{ 
         return { success: false, error: `nav_warnings: ${error.message}` };
       }
     }
+
+    // Attempt NAVAREA-segregated schema routing for isolated storage
+    try {
+      const areaGroups = new Map<string, typeof payload>();
+      for (const row of payload) {
+        const schema = getNavareaSchemaName(row.navarea);
+        if (!areaGroups.has(schema)) areaGroups.set(schema, []);
+        areaGroups.get(schema)!.push(row);
+      }
+
+      for (const [schemaName, schemaRows] of areaGroups.entries()) {
+        try {
+          await client.schema(schemaName).from('nav_warnings').upsert(schemaRows, { onConflict: 'source_id,warning_id' });
+        } catch {
+          // Non-blocking: will populate when individual NAVAREA schema migration is executed
+        }
+      }
+    } catch {
+      // Non-blocking error handling for custom schemas
+    }
+
     return { success: true };
   } catch (err: any) {
     console.warn('Supabase syncWarnings exception:', err);
