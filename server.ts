@@ -35,9 +35,9 @@ import {
 
 // In-memory persistent state for server runtime
 let sourcesDb: SourceRegistryItem[] = [...INITIAL_SOURCES_REGISTRY];
-let warningsDb: NavWarning[] = [...INITIAL_WARNINGS];
-let generationsDb: IngestionGeneration[] = [...INITIAL_GENERATIONS];
-let artifactsDb: RawArtifact[] = [...INITIAL_ARTIFACTS];
+let warningsDb: NavWarning[] = [];
+let generationsDb: IngestionGeneration[] = [];
+let artifactsDb: RawArtifact[] = [];
 
 let lastPipelineRun: PipelineRunRecord | null = null;
 let isPipelineRunning = false;
@@ -175,7 +175,7 @@ async function hydrateDatabaseFromSupabase(): Promise<void> {
       });
     }
 
-    const { data: sourcesData } = await client.from('source_registry').select('*');
+    const { data: sourcesData } = await client.from('sources_registry').select('*');
     if (sourcesData && sourcesData.length > 0) {
       sourcesDb = sourcesData as unknown as SourceRegistryItem[];
     }

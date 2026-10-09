@@ -927,13 +927,9 @@ window.showToast = function(m){
 async function loadWarnings() {
   if (window.hwDb) {
     const data = await window.hwDb.fetchActiveWarnings();
-    if (data && data.length > 0) {
-      warnings = data;
-    } else {
-      warnings = SEED_WARNINGS;
-    }
+    warnings = Array.isArray(data) ? data : [];
   } else {
-    warnings = SEED_WARNINGS;
+    warnings = [];
   }
   updateStats(); populateTable(); populateCards();
   filterMapByNavArea(currentSelectedNavArea);

@@ -62,16 +62,16 @@ export default function App() {
   };
 
   // Core Data Bank State
-  const [warnings, setWarnings] = useState<NavWarning[]>(INITIAL_WARNINGS);
+  const [warnings, setWarnings] = useState<NavWarning[]>([]);
   const [sources, setSources] = useState<SourceRegistryItem[]>(INITIAL_SOURCES_REGISTRY);
-  const [generations, setGenerations] = useState<IngestionGeneration[]>(INITIAL_GENERATIONS);
-  const [artifacts, setArtifacts] = useState<RawArtifact[]>(INITIAL_ARTIFACTS);
+  const [generations, setGenerations] = useState<IngestionGeneration[]>([]);
+  const [artifacts, setArtifacts] = useState<RawArtifact[]>([]);
   const [isPipelineRefreshing, setIsPipelineRefreshing] = useState(false);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
 
-const [isIngestionProcedureOpen, setIsIngestionProcedureOpen] = useState(false);
+  const [isIngestionProcedureOpen, setIsIngestionProcedureOpen] = useState(false);
 
   const loadData = async () => {
     setIsLoadingData(true);
@@ -84,10 +84,10 @@ const [isIngestionProcedureOpen, setIsIngestionProcedureOpen] = useState(false);
         fetchArtifacts(),
       ]);
 
-      if (apiSources.length > 0) setSources(apiSources);
-      if (apiWarnings.length > 0) setWarnings(apiWarnings);
-      if (apiGens.length > 0) setGenerations(apiGens);
-      if (apiArts.length > 0) setArtifacts(apiArts);
+      if (apiSources && apiSources.length > 0) setSources(apiSources);
+      setWarnings(apiWarnings || []);
+      setGenerations(apiGens || []);
+      setArtifacts(apiArts || []);
 
       setIsOfflineMode(false);
     } catch (err: any) {

@@ -226,13 +226,8 @@ export async function fetchWarnings(params?: {
     if (!res.ok) throw new Error('Failed to fetch warnings from local API');
     return await res.json();
   } catch (err) {
-    console.warn('API fetchWarnings error, returning INITIAL_WARNINGS fallback:', err);
-    try {
-      const { INITIAL_WARNINGS } = await import('../data/sourcesRegistry');
-      return INITIAL_WARNINGS;
-    } catch {
-      return [];
-    }
+    console.warn('API fetchWarnings error:', err);
+    return [];
   }
 }
 
