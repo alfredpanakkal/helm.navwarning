@@ -88,16 +88,5 @@ jobs:
       - name: Ingestion Summary Log
         run: |
           if [ -f ./scrapling-report.json ]; then
-            python -c "
-import json
-data = json.load(open('./scrapling-report.json'))
-print('═════════════════════════════════════════════════════════')
-print('HELM.WARNING - SCRAPLING CRAWLER EXECUTION SUMMARY')
-print(f'Total Warnings Extracted: {data.get(\"total_warnings\", 0)}')
-print(f'Total Artifacts Cached:   {data.get(\"total_artifacts\", 0)}')
-print('Breakdown by Navigation Area:')
-for area, cnt in data.get('by_navarea', {}).items():
-    print(f'  • NAVAREA {area}: {cnt} notices')
-print('═════════════════════════════════════════════════════════')
-"
+            python -c "import json; d=json.load(open('./scrapling-report.json')); print('Total Warnings Extracted:', d.get('total_warnings', 0)); print('NAVAREA Breakdown:', d.get('by_navarea', {}))"
           fi
