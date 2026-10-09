@@ -875,6 +875,30 @@ window.refreshData = async function(){
   showToast('Data refreshed — latest published generation loaded');
 };
 
+window.refreshSupabaseConnection = async function(){
+  const btn = document.getElementById('btnRefreshSupabase');
+  const origText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.7';
+    btn.innerHTML = `<span style="display:inline-block;margin-right:6px;">↻</span><span>Connecting...</span>`;
+  }
+  showToast('Refreshing connection with Supabase...');
+  try {
+    await loadWarnings();
+    filterMapByNavArea(currentSelectedNavArea);
+    showToast(`Supabase live: ${warnings.length} active warnings synchronized`);
+  } catch (err) {
+    showToast('Supabase connection notice: ' + (err.message || 'Failed to reconnect'));
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.innerHTML = origText;
+    }
+  }
+};
+
 // ═══════════ MODAL / TOAST ═══════════
 let currentWarning, toastTimeout;
 window.openWarningModal = async function(w){
