@@ -16,8 +16,9 @@ export function securityHeadersMiddleware(req: Request, res: Response, next: Nex
   // 2. Control Referrer policy
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-  // 3. X-Frame-Options (allow iframe embedding for AI Studio preview while protecting against malicious framing)
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  // 3. X-Frame-Options is intentionally omitted because frame-ancestors in CSP governs
+  // allowed embedding in AI Studio (https://*.google.com, https://ai.studio, https://*.run.app)
+  // Setting SAMEORIGIN would break AI Studio's cross-origin iframe preview.
 
   // 4. X-XSS-Protection legacy safeguard
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -26,7 +27,7 @@ export function securityHeadersMiddleware(req: Request, res: Response, next: Nex
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
 
   // 6. Explicit Content-Security-Policy (CSP)
-  const scriptSources = ["'self'", "https://unpkg.com"];
+  const scriptSources = ["'self'", "https://unpkg.com", "https://cdn.jsdelivr.net"];
   if (isDev) {
     scriptSources.push("'unsafe-inline'", "'unsafe-eval'");
   }
