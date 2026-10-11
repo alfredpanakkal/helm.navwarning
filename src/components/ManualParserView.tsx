@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { NavWarning } from '../types';
 import { EcdisFeatureEditor } from './EcdisFeatureEditor';
-import { FileText, Sparkles, CheckCircle2, AlertTriangle, Copy, ArrowRight, Edit3, Database, RefreshCw } from 'lucide-react';
+import { FileText, Sparkles, CheckCircle2, AlertTriangle, Copy, ArrowRight, Edit3, Database, RefreshCw, ShieldCheck, ShieldAlert, Anchor, Compass } from 'lucide-react';
 import { saveImportedWarningsToSupabase } from '../services/api';
 
 interface ManualParserViewProps {
-  onParseManual: (rawText: string, navarea: string, mode?: 'hybrid' | 'llm' | 'regex', aiModel?: string) => Promise<{ warning: NavWarning; ai_parsing_failed?: boolean; ai_error?: string | null }>;
+  onParseManual: (
+    rawText: string,
+    navarea: string,
+    mode?: 'hybrid' | 'llm' | 'regex' | 'jhod_structured',
+    aiModel?: string
+  ) => Promise<{ warning: NavWarning; ai_parsing_failed?: boolean; ai_error?: string | null; jhodOutput?: any }>;
   onSelectWarning: (warning: NavWarning) => void;
 }
 
@@ -17,8 +22,8 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
     `NAVAREA I 0145/26 NORTH SEA, FORTIES. DRILLING RIG 'VALARIS 122' ESTABLISHED IN POSITION 57-45.8N 001-12.4E. SAFETY ZONE 500 METRES RADIUS ESTABLISHED. ALL SHIPS KEEP CLEAR.`
   );
   const [navarea, setNavarea] = useState('I');
-  const [parseMode, setParseMode] = useState<'hybrid' | 'llm' | 'regex'>('hybrid');
-  const [aiModel, setAiModel] = useState<string>('mistral-small-latest');
+  const [parseMode, setParseMode] = useState<'hybrid' | 'llm' | 'regex' | 'jhod_structured'>('hybrid');
+  const [aiModel, setAiModel] = useState<string>('gemini-3.1-flash-lite');
   const [isParsing, setIsParsing] = useState(false);
   const [parsedResults, setParsedResults] = useState<NavWarning[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -185,6 +190,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                 className="bg-gw-bg border-2 border-gw-primary text-gw-primary text-xs px-3 py-1.5 rounded font-mono font-bold focus:outline-none focus:border-gw-accent transition-colors"
               >
                 <option value="hybrid">✨ Auto (Rules First → Mistral → Gemini)</option>
+                <option value="jhod_structured">🇯🇵 JHOD Gemini 3.1 Flash-Lite (Strict Schema)</option>
                 <option value="regex">⚡ Deterministic Rules Only (No AI)</option>
                 <option value="llm">🤖 Direct AI Test (Override Rules)</option>
               </select>
@@ -192,20 +198,22 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">
-                {parseMode === 'hybrid' ? 'AI Escalation' : 'AI Model'}
+                {parseMode === 'hybrid' ? 'AI Escalation' : parseMode === 'jhod_structured' ? 'Grounding Guard' : 'AI Model'}
               </label>
               <select
                 value={aiModel}
                 onChange={(e) => setAiModel(e.target.value)}
                 className="bg-gw-bg border-2 border-gw-primary text-gw-primary text-xs px-3 py-1.5 rounded font-mono font-bold focus:outline-none focus:border-gw-accent transition-colors"
-                disabled={parseMode === 'regex' || parseMode === 'hybrid'}
+                disabled={parseMode === 'regex' || parseMode === 'hybrid' || parseMode === 'jhod_structured'}
               >
-                {parseMode === 'hybrid' ? (
+                {parseMode === 'jhod_structured' ? (
+                  <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Zero Hallucination)</option>
+                ) : parseMode === 'hybrid' ? (
                   <option value="auto">Auto: Mistral-Small → Gemini Flash-Lite</option>
                 ) : (
                   <>
-                    <option value="mistral-small-latest">Mistral Small (1st Priority)</option>
-                    <option value="gemini-flash-lite-latest">Gemini Flash Lite (Fallback)</option>
+                    <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Recommended)</option>
+                    <option value="mistral-small-latest">Mistral Small</option>
                   </>
                 )}
               </select>
@@ -213,7 +221,14 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">Paste Unstructured Warning Text</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">Paste Unstructured Warning Text</label>
+              {parseMode === 'jhod_structured' && (
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-blue-50 text-blue-800 border border-blue-300 rounded">
+                  WWNWS / JHOD Schema Active
+                </span>
+              )}
+            </div>
             <textarea
               rows={8}
               value={rawText}
@@ -231,17 +246,32 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
           )}
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() =>
-                setRawText(
-                  `NAVAREA III 0102/26 WESTERN MEDITERRANEAN SEA. GUNNERY EXERCISES 150000 UTC TO 182359 UTC SEP IN AREA BOUNDED BY 37-12N 009-45E, 37-25N 010-10E, 37-05N 010-20E. SHIPS TO KEEP SAFE DISTANCE.\n---\nNAVAREA III 0103/26 EASTERN MEDITERRANEAN. CABLE LAYING OPERATIONS BY C/S DEPENDABLE FROM 20 SEP TO 30 SEP ALONG TRACK: 34-10N 032-15E TO 33-50N 033-05E. 1NM BERTH REQUESTED.`
-                )
-              }
-              className="text-xs text-gw-accent hover:text-gw-primary transition-colors underline font-mono font-bold uppercase text-left"
-            >
-              Load Sample Bulk Text
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setRawText(
+                    `NAVAREA III 0102/26 WESTERN MEDITERRANEAN SEA. GUNNERY EXERCISES 150000 UTC TO 182359 UTC SEP IN AREA BOUNDED BY 37-12N 009-45E, 37-25N 010-10E, 37-05N 010-20E. SHIPS TO KEEP SAFE DISTANCE.\n---\nNAVAREA III 0103/26 EASTERN MEDITERRANEAN. CABLE LAYING OPERATIONS BY C/S DEPENDABLE FROM 20 SEP TO 30 SEP ALONG TRACK: 34-10N 032-15E TO 33-50N 033-05E. 1NM BERTH REQUESTED.`
+                  )
+                }
+                className="text-xs text-gw-accent hover:text-gw-primary transition-colors underline font-mono font-bold uppercase text-left"
+              >
+                Sample Bulk Text
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRawText(
+                    `NO.26-0453 Date:2026/10/09 13 UTC\n\nNORTH PACIFIC, MARSHALLS.\nDERELICT BARGE ADRIFT IN VICINITY OF\n05-05.79N 167-14.00E AT 090330Z OCT.\nCANCEL 0449/26.\nCANCEL THIS MSG 120330Z OCT.`
+                  );
+                  setNavarea('XI');
+                  setParseMode('jhod_structured');
+                }}
+                className="text-xs text-indigo-700 hover:text-indigo-900 transition-colors underline font-mono font-bold uppercase text-left"
+              >
+                🇯🇵 Sample JHOD NAVAREA XI Telex
+              </button>
+            </div>
 
             <button
               type="submit"
@@ -299,17 +329,32 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     </div>
 
                     <div>
-                      <span className="text-gw-accent uppercase font-bold text-[10px]">Extraction Method:</span>
-                      <div className="flex items-center gap-2 mt-0.5 font-mono">
+                      <span className="text-gw-accent uppercase font-bold text-[10px]">Extraction Method & Integrity:</span>
+                      <div className="flex flex-wrap items-center gap-2 mt-0.5 font-mono">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                            parsedResult.extraction_method === 'llm_assisted'
+                            parsedResult.extraction_method === 'gemini_structured_output'
+                              ? 'bg-emerald-100 text-emerald-900 border border-emerald-400'
+                              : parsedResult.extraction_method === 'deterministic_hallucination_fallback'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-400'
+                              : parsedResult.extraction_method === 'llm_assisted'
                               ? 'bg-amber-100 text-amber-900 border border-amber-400'
                               : 'bg-green-100 text-green-900 border border-green-400'
                           }`}
                         >
-                          {parsedResult.extraction_method === 'llm_assisted' ? 'LLM assisted' : 'Deterministic'}
+                          {parsedResult.extraction_method === 'gemini_structured_output'
+                            ? 'Gemini 3.1 Structured Schema'
+                            : parsedResult.extraction_method === 'deterministic_hallucination_fallback'
+                            ? 'Hallucination Fallback'
+                            : parsedResult.extraction_method === 'llm_assisted'
+                            ? 'LLM assisted'
+                            : 'Deterministic'}
                         </span>
+                        {parsedResult.hazard_category && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-900 border border-blue-300">
+                            Hazard: {parsedResult.hazard_category}
+                          </span>
+                        )}
                         {parsedResult.extraction_confidence && (
                           <span className="text-gw-accent font-bold">
                             Confidence: {(parsedResult.extraction_confidence * 100).toFixed(0)}%
@@ -317,6 +362,68 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                         )}
                       </div>
                     </div>
+
+                    {/* Grounding & Hallucination Guard Banner */}
+                    {parsedResult.extraction_method === 'gemini_structured_output' && (
+                      <div className="p-2 bg-emerald-50 border border-emerald-300 rounded text-xs text-emerald-900 flex items-center gap-2 font-medium">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Verbatim Grounding Verified: coordinates match raw telex exactly (Zero Hallucination).</span>
+                      </div>
+                    )}
+                    {parsedResult.extraction_method === 'deterministic_hallucination_fallback' && (
+                      <div className="p-2 bg-amber-50 border border-amber-400 rounded text-xs text-amber-900 flex items-center gap-2 font-medium">
+                        <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Hallucination Guard Engaged: ungrounded coordinates rejected. Deterministic coordinates preserved & flagged.</span>
+                      </div>
+                    )}
+
+                    {/* Extracted Details Drawer */}
+                    {((parsedResult as any).details || (parsedResult.cancels && parsedResult.cancels.length > 0) || parsedResult.valid_to) && (
+                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded space-y-1 text-xs">
+                        <span className="text-gw-accent uppercase font-bold text-[10px] block">Extracted Telex Attributes:</span>
+                        <div className="flex flex-wrap gap-2 text-[11px] font-mono">
+                          {(parsedResult as any).details?.vessel?.name && (
+                            <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
+                              🚢 Vessel: {(parsedResult as any).details.vessel.name} ({(parsedResult as any).details.vessel.role || 'operation'})
+                            </span>
+                          )}
+                          {(parsedResult as any).details?.aton?.name && (
+                            <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
+                              💡 AtoN: {(parsedResult as any).details.aton.name} [{(parsedResult as any).details.aton.state}]
+                            </span>
+                          )}
+                          {(parsedResult as any).details?.operation?.type && (
+                            <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
+                              ⚙️ Operation: {(parsedResult as any).details.operation.type}
+                            </span>
+                          )}
+                          {parsedResult.cancels && parsedResult.cancels.length > 0 && (
+                            <span className="bg-amber-50 text-amber-900 px-2 py-0.5 rounded border border-amber-300">
+                              ❌ Cancels: {parsedResult.cancels.join(', ')}
+                            </span>
+                          )}
+                          {parsedResult.valid_to && (
+                            <span className="bg-blue-50 text-blue-900 px-2 py-0.5 rounded border border-blue-300">
+                              ⏱️ Expiry: {new Date(parsedResult.valid_to).toUTCString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Unparsed Lines Audit */}
+                    {(parsedResult as any).unparsed_lines && (parsedResult as any).unparsed_lines.length > 0 && (
+                      <div className="p-2 bg-slate-50 border border-slate-200 rounded text-[11px] font-mono text-slate-700">
+                        <span className="font-bold text-slate-800">
+                          Preserved Unparsed Lines ({(parsedResult as any).unparsed_lines.length}):
+                        </span>
+                        <ul className="list-disc list-inside mt-1 space-y-0.5 text-[10px] text-slate-600">
+                          {(parsedResult as any).unparsed_lines.map((line: string, i: number) => (
+                            <li key={i}>{line}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
                     <div>
                       <span className="text-gw-accent uppercase font-bold text-[10px]">IMO ECDIS Intermediate Layer (MSC.232 Manual Update):</span>

@@ -20,6 +20,13 @@ import { parseCoordinatesDeterministic, parseWithFallback, NAVAREA_BOUNDS } from
 import { parseMarkdownToWarnings } from './src/utils/markdownParser.js';
 import { fetchWithRetry } from './src/utils/fetchWithRetry.js';
 import { validateLLMOutput } from './src/schemas/navWarningSchema.js';
+import {
+  jhodSystemInstruction,
+  jhodResponseSchema,
+  verifyCoordinateGrounded,
+  convertJhodToNavWarning,
+  JhodWarningOutput,
+} from './src/schemas/jhodAiContract.js';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact, NavAreaId, PipelineEvent, PipelineRunRecord } from './src/types.js';
 import scrapeNavwarnHandler from './api/scrape-navwarn.js';
 import scrapeScraplingHandler from './api/scrape-scrapling.js';
@@ -287,7 +294,7 @@ async function callMistralFallback(prompt: string, schema?: any, specificModel?:
   return null;
 }
 
-async function generateContentWithRetry(ai: any, prompt: string, model: string, schema?: any) {
+async function generateContentWithRetry(ai: any, prompt: string, model: string, schema?: any, systemInstruction?: string) {
   // Enforce max 10,000 characters prompt bound
   const boundedPrompt = prompt.slice(0, 10000);
   const wantsGeminiFirst = model && model.toLowerCase().startsWith('gemini');
@@ -296,7 +303,8 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
     // FIRST PRIORITY: Try Mistral (mistral-small-latest or user-specified model) first
     const mistralModel = model && model.toLowerCase().startsWith('mistral') ? model : 'mistral-small-latest';
     console.log(`[AI Parsing Engine] Attempting first priority: Mistral AI (${mistralModel})...`);
-    const mistralRes = await callMistralFallback(boundedPrompt, schema, mistralModel);
+    const mistralPrompt = systemInstruction ? `${systemInstruction}\n\n${boundedPrompt}` : boundedPrompt;
+    const mistralRes = await callMistralFallback(mistralPrompt, schema, mistralModel);
     if (mistralRes && mistralRes.text) {
       console.log(`[AI Parsing Engine] Successfully parsed using Mistral (${mistralRes.modelUsed}).`);
       return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
@@ -309,7 +317,8 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
     // If Gemini is not configured, try Mistral as last resort if not tried yet
     if (wantsGeminiFirst) {
       console.warn(`[AI Parsing Engine] Gemini client not configured, attempting Mistral fallback...`);
-      const mistralRes = await callMistralFallback(boundedPrompt, schema, 'mistral-small-latest');
+      const mistralPrompt = systemInstruction ? `${systemInstruction}\n\n${boundedPrompt}` : boundedPrompt;
+      const mistralRes = await callMistralFallback(mistralPrompt, schema, 'mistral-small-latest');
       if (mistralRes && mistralRes.text) {
         return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
       }
@@ -328,6 +337,9 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
       if (schema) {
         config.responseMimeType = 'application/json';
         config.responseSchema = schema;
+      }
+      if (systemInstruction) {
+        config.systemInstruction = systemInstruction;
       }
 
       // 30-second timeout on Gemini calls
@@ -2214,6 +2226,51 @@ Instructions:
       // Step 1: Run deterministic regex parsing (Tier 1)
       const deterministicSpatial = parseCoordinatesDeterministic(rawText, navarea as NavAreaId);
 
+      // Special Mode: JHOD NAVAREA XI Structured Extraction with Hallucination Guard
+      if (mode === 'jhod_structured') {
+        const ai = getGeminiClient();
+        if (!ai) {
+          return res.status(503).json({ error: 'Gemini client unavailable (GEMINI_API_KEY missing)' });
+        }
+        const selectedModel = normalizeGeminiModel(aiModel || 'gemini-3.1-flash-lite');
+        const response = await ai.models.generateContent({
+          model: selectedModel,
+          contents: rawText,
+          config: {
+            systemInstruction: jhodSystemInstruction,
+            responseMimeType: 'application/json',
+            responseSchema: jhodResponseSchema as any,
+            temperature: 0,
+          },
+        });
+        const jhodResult: JhodWarningOutput = JSON.parse(response.text || '{}');
+        const { grounded } = verifyCoordinateGrounded(rawText, jhodResult.geometries);
+        let warning: NavWarning;
+        if (grounded) {
+          warning = convertJhodToNavWarning(jhodResult, rawText, true);
+        } else {
+          console.warn('[JHOD Hallucination Guard Triggered]: AI emitted coordinates not in raw telex. Falling back to deterministic parser.');
+          warning = convertJhodToNavWarning(jhodResult, rawText, false);
+          warning.spatial = deterministicSpatial;
+          warning.extraction_method = 'deterministic_hallucination_fallback';
+          warning.is_verified = false;
+        }
+        warningsDb.unshift(warning);
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          try {
+            await syncWarningsToSupabase([warning]);
+          } catch (_) {}
+        }
+        return res.json({
+          warning,
+          extraction_method: warning.extraction_method,
+          ai_parsing_failed: !grounded,
+          ai_error: grounded ? null : 'Hallucination Guard Triggered: AI coordinates not present verbatim in raw telex text.',
+          jhodOutput: jhodResult,
+        });
+      }
+
       const manualHash = crypto.createHash('sha256').update(rawText).digest('hex').substring(0, 8).toUpperCase();
 
       // Extract cancellation / expiry deterministically
@@ -2415,6 +2472,81 @@ Instructions:
     } catch (err: any) {
       console.error('Manual parse endpoint error:', err);
       res.status(500).json({ error: err.message || 'Manual parse failed' });
+    }
+  });
+
+  // Dedicated Route: JHOD NAVAREA XI Structured Extraction with Hallucination Guard
+  app.post('/api/ai/parse-jhod', requireAdmin, aiRouteLimiter, async (req, res) => {
+    try {
+      const { rawText, navarea = 'XI', aiModel = 'gemini-3.1-flash-lite' } = req.body;
+      if (!rawText || typeof rawText !== 'string') {
+        return res.status(400).json({ error: 'rawText string is required' });
+      }
+
+      const ai = getGeminiClient();
+      if (!ai) {
+        return res.status(503).json({ error: 'Gemini AI client not initialized (GEMINI_API_KEY missing)' });
+      }
+
+      const selectedModel = normalizeGeminiModel(aiModel);
+
+      const response = await ai.models.generateContent({
+        model: selectedModel,
+        contents: rawText,
+        config: {
+          systemInstruction: jhodSystemInstruction,
+          responseMimeType: 'application/json',
+          responseSchema: jhodResponseSchema as any,
+          temperature: 0,
+        },
+      });
+
+      const responseText = response.text || '';
+      const jhodResult: JhodWarningOutput = JSON.parse(responseText);
+
+      // Run Zero-Tolerance Coordinate Hallucination Guard
+      const { grounded } = verifyCoordinateGrounded(rawText, jhodResult.geometries);
+
+      let warning: NavWarning;
+      if (grounded) {
+        warning = convertJhodToNavWarning(jhodResult, rawText, true);
+      } else {
+        console.warn('[JHOD Hallucination Guard Triggered]: AI emitted coordinates not in raw telex. Falling back to deterministic parser.');
+        warning = convertJhodToNavWarning(jhodResult, rawText, false);
+        const deterministicSpatial = parseCoordinatesDeterministic(rawText, (navarea as NavAreaId) || 'XI');
+        warning.spatial = deterministicSpatial;
+        warning.extraction_method = 'deterministic_hallucination_fallback';
+        warning.is_verified = false;
+        warning.validation.geometry = 'pending';
+      }
+
+      // Store in memory database
+      warningsDb.unshift(warning);
+
+      // Sync to Supabase if client is ready
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        try {
+          await syncWarningsToSupabase([warning]);
+        } catch (dbErr) {
+          console.warn('[JHOD Parser] Supabase sync warning:', dbErr);
+        }
+      }
+
+      return res.json({
+        success: true,
+        warning,
+        jhodOutput: jhodResult,
+        hallucinationGuardTriggered: !grounded,
+        extractionMethod: warning.extraction_method,
+        auditNotes: warning.unparsed_lines || [],
+      });
+    } catch (err: any) {
+      console.error('[JHOD Parser Error]:', err);
+      return res.status(500).json({
+        success: false,
+        error: err.message || 'Failed to process JHOD bulletin with structured output schema',
+      });
     }
   });
 

@@ -449,11 +449,45 @@ export async function triggerPipelineRefresh(sourceId?: string): Promise<{
   }
 }
 
-export async function parseManualWarning(rawText: string, navarea?: string, mode: 'hybrid' | 'llm' | 'regex' = 'hybrid', aiModel: string = 'mistral-small-latest'): Promise<{
+export interface JhodParseResponse {
+  success: boolean;
+  warning?: NavWarning;
+  jhodOutput?: any;
+  hallucinationGuardTriggered?: boolean;
+  extractionMethod?: string;
+  auditNotes?: string[];
+  error?: string;
+}
+
+export async function parseJhodWarning(
+  rawText: string,
+  navarea = 'XI',
+  aiModel = 'gemini-3.1-flash-lite'
+): Promise<JhodParseResponse> {
+  const headers = await getAdminHeaders();
+  const res = await fetch('/api/ai/parse-jhod', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ rawText, navarea, aiModel }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to parse JHOD telex with Gemini Structured Output');
+  }
+  return await res.json();
+}
+
+export async function parseManualWarning(
+  rawText: string,
+  navarea?: string,
+  mode: 'hybrid' | 'llm' | 'regex' | 'jhod_structured' = 'hybrid',
+  aiModel: string = 'mistral-small-latest'
+): Promise<{
   warning: NavWarning;
-  extraction_method: 'deterministic' | 'llm_assisted';
+  extraction_method: 'deterministic' | 'llm_assisted' | 'gemini_structured_output' | 'deterministic_hallucination_fallback';
   ai_parsing_failed?: boolean;
   ai_error?: string | null;
+  jhodOutput?: any;
 }> {
   const headers = await getAdminHeaders();
   const res = await fetch('/api/pipeline/parse-manual', {

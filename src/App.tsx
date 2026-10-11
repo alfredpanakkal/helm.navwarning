@@ -185,7 +185,12 @@ export default function App() {
     }
   };
 
-  const handleParseManual = async (rawText: string, navarea: string, mode: 'hybrid' | 'llm' | 'regex' = 'hybrid', aiModel: string = 'mistral-small-latest'): Promise<{ warning: NavWarning; ai_parsing_failed?: boolean; ai_error?: string | null }> => {
+  const handleParseManual = async (
+    rawText: string,
+    navarea: string,
+    mode: 'hybrid' | 'llm' | 'regex' | 'jhod_structured' = 'hybrid',
+    aiModel: string = 'gemini-3.1-flash-lite'
+  ): Promise<{ warning: NavWarning; ai_parsing_failed?: boolean; ai_error?: string | null }> => {
     try {
       const res = await parseManualWarning(rawText, navarea, mode, aiModel);
       if (res.warning) {

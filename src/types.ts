@@ -174,7 +174,12 @@ export interface NavWarning {
   raw_artifact_ref: string;
   content_hash: string;
   parser_version: string;
-  extraction_method: 'deterministic' | 'llm_assisted' | 'manual_paste';
+  extraction_method:
+    | 'deterministic'
+    | 'llm_assisted'
+    | 'manual_paste'
+    | 'gemini_structured_output'
+    | 'deterministic_hallucination_fallback';
   extraction_confidence?: number;
 
   first_seen_at: string;
@@ -182,6 +187,12 @@ export interface NavWarning {
   not_in_force_observed_at: string | null;
 
   generation_id: string;
+
+  is_verified?: boolean;
+  unparsed_lines?: string[];
+  details?: any;
+  confidence?: number;
+  in_force_numbers?: string[];
 
   validation: {
     identity: string;
