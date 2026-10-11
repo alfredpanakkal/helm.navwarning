@@ -1,108 +1,181 @@
-# JHOD NAVAREA XI Structured-Output Parser & Hallucination Guard
+# Implementation Plan (Locked & Polished): NAVWARN Ingestion Pipeline — P0 Safety Hardening & Multi-NAVAREA Architecture
 
-A specialized, certified Maritime Safety Information (MSI) extraction pipeline for Japan Hydrographic-Oceanographic Department (JHOD) NAVAREA XI telex bulletins, powered by Gemini 3.1 Flash Lite structured output (`config.responseSchema`), with a zero-tolerance coordinate hallucination guard and deterministic fallback.
+## 1. Executive Summary & Design Principles
+This production-ready plan establishes **P0 Safety / Correctness Hardening** and a **Universal Multi-NAVAREA Plugin Architecture** with dual-layer safety nets, strict hemisphere defect quarantine, and zero regressions on the certified JHOD NAVAREA XI pipeline.
 
-## User Review & Critical Decisions
-
-> [!IMPORTANT]
-> The architectural directions below were confirmed in Phase 1 clarification:
-
-- **Confirmed Integration Surface**: Fully wired into both the backend API (`server.ts` routes `/api/ai/parse-jhod` and `/api/parse-manual`) and the frontend Manual Parser UI (`ManualParserView.tsx`).
-- **Confirmed Hallucination Policy**: If Gemini emits any coordinates not found verbatim in the raw input block, the system rejects the AI geometries, falls back to deterministic regex parsing, and flags the notice for watchstander review (`is_verified: false`, audit note tagged).
-- **Confirmed Default Model**: `gemini-3.1-flash-lite` configured with `temperature: 0`, `responseMimeType: "application/json"`, and the OpenAPI response schema.
-
----
-
-## 1. Overview & Core Concept
-
-### What It Does
-Converts unstructured, hard-wrapped radio-telex text blocks from JHOD (Japan Coast Guard) NAVAREA XI bulletins into strictly validated WGS 84 geographic warnings and in-force manifest records.
-
-### Target Audience & Persona
-Maritime watchstanders, ECDIS navigators, and safety officers reviewing high-traffic Western Pacific sea lanes (Japan, Marshall Islands, South China Sea, East China Sea).
-
-### Key Value
-- **Zero Coordinate Invention**: Every latitude and longitude must have an exact character-for-character origin in the raw bulletin.
-- **No-Data-Loss Contract**: Any unparsed lines (e.g. advisory remarks, tsunami warnings) are captured in `unparsed_lines` and preserved in the audit log.
-- **Bi-Modal Processing**: Distinguishes between individual operational warnings and multi-warning `IN_FORCE_MANIFEST` status blocks.
-
----
-
-## 2. User Experience & Visual Design
-
-### Key User Flows
-1. **Manual Parser Workflow (`ManualParserView.tsx`)**:
-   - The operator selects the **"JHOD NAVAREA XI (Japan)"** preset button or pastes a telex block (e.g., `NO.26-0453`).
-   - The UI displays an active **"Gemini Structured Output (JHOD Schema)"** badge.
-   - Upon clicking **Parse**, the system invokes the backend endpoint.
-   - If the AI coordinates match the input verbatim, a green **"Verbatim Grounding Verified"** badge appears with parsed geometries on the Leaflet map preview.
-   - If the hallucination guard triggers, an amber warning banner appears: *"Hallucination Guard Engaged: Raw text lacked verbatim coordinate; fell back to deterministic parser"*.
-2. **Batch & API Ingestion**:
-   - Ingestion jobs send blocks to `/api/ai/parse-jhod`, receiving normalized `NavWarning` records ready for Supabase persistence in schema `navarea_11`.
-
-### Interactive Feedback & States
-- **Parsing Spinner**: Displays model status (*"Gemini 3.1 Flash Lite structured extraction in progress..."*).
-- **Inspection Drawer**: Shows extracted details (AtoN light characteristics, towed cable lengths, work vessel names, and cancellation references).
-- **Audit Line Counter**: Highlights the count of unparsed lines to ensure 100% data traceability.
+### Confirmed Principles & Directives:
+1. **Explicit Hemisphere Integrity Guard (Boolean Check)**:
+   - For every candidate coordinate pair, evaluate:
+     ```typescript
+     const hasLatHem = /[NS]/i.test(latPart);
+     const hasLonHem = /[EW]/i.test(lonPart);
+     ```
+   - If `!hasLatHem || !hasLonHem`, and no explicit global convention statement applies:
+     - Flag immediately as `PARTIAL_HEMISPHERE` (if one exists) or `AMBIGUOUS_HEMISPHERE` (if neither exists).
+     - Explicitly populate `has_lat_hem: Boolean(hasLatHem)` and `has_lon_hem: Boolean(hasLonHem)` on `AmbiguousPosition`.
+     - **Dual-Layer Empty Geometry Policy**:
+       - *Layer 1 (Coordinate Parser)*: Return `geometries: []`, push to `ambiguous_positions` and `unparsed_lines`.
+       - *Layer 2 (Warning Assembly / Ingestion Gate)*: If `ambiguous_positions.length > 0` or `data_quality === 'AMBIGUOUS'`, wipe `geometries: []` and force `spatial = null` on the top-level warning to prevent any automated map render.
+2. **Suggested Hemisphere — Strict Guard**:
+   - `suggested_lat_dir` and `suggested_lon_dir` are **ONLY** populated when the resolved plugin declares an explicit `defaultHemisphereConvention` and the NAVAREA is verified single-hemisphere (e.g. Baltic $\rightarrow$ N/E).
+   - Under the universal plugin or multi-hemisphere NAVAREAs, suggestions remain strictly `undefined` to eliminate automated guessing.
+3. **Broadened Radius Normalisation Pattern**:
+   - Regex matches:
+     ```typescript
+     /(?:(?:WITHIN\s+(?:A\s+)?)?RADIUS\s*(?:OF\s+)?|WITHIN\s+)\s*([0-9]+(?:\.[0-9]+)?)\s*(MILES?|NAUTICAL\s+MILES?|NM|METRES?|METERS?|M)\b/i
+     ```
+   - Catches: `RADIUS OF 0.6 MILES`, `WITHIN A RADIUS OF 500 METRES`, `WITHIN 0.6 MILES`, and `RADIUS 500 METRES`.
+   - Converts metres to nautical miles ($1\text{ NM} = 1852\text{ m}$, rounded to 3 decimal places) and retains `raw_radius_text` and `raw_stated_unit` even if normalisation fails.
+4. **Data Quality Roll-Up (Worst-of Policy)**:
+   - Priority hierarchy: `INVALID` > `AMBIGUOUS` > `INFERRED` > `EXPLICIT`.
+   - Feature-level rating attached to every geometry. Warning-level rating represents the worst rating across geometries, parsing anomalies, and grounding checks.
+5. **Structured Grounding Diagnostics Attached to Warning**:
+   - The full `GroundingDiagnostic` record is attached directly to `NavWarning.grounding_diagnostic` (not buried only in geometries) so operators can immediately see why a warning was verified or flagged.
+6. **Universal Plugin Architecture with Regional Overrides**:
+   - Isolates `jhodXiPlugin.ts` (100% preserving certified Rules 1–13, telex splitting, in-force reconciliation, OpenAPI schema).
+   - Introduces `NavareaPlugin` interface supporting optional `coordinatePatterns` and `geometryKeywordMap`.
+   - Provides `universalPlugin.ts` as standard IMO/IHO fallback for NAVAREAs I through XXI.
 
 ---
 
-## 3. Key Product Decisions & Trade-Offs
+## 2. Core Technical Specifications
 
-### Decision 1: Dedicated Contract Module (`src/schemas/jhodAiContract.ts`)
-- **Chosen Approach**: Isolate the system instruction, OpenAPI `responseSchema`, and TypeScript interfaces in a dedicated contract file.
-- **Why**: Clean separation of concerns; simplifies unit testing and enables copy-paste synchronization with Google AI Studio prompts.
-- **Alternatives Considered**: Inlining the 100-line JSON schema inside `server.ts` was rejected due to maintainability and testing complexity.
+### A. Data Schema Updates (`src/types/index.ts` & `src/schemas/jhodAiContract.ts`)
+```typescript
+export type DataQualityRating = 'EXPLICIT' | 'INFERRED' | 'AMBIGUOUS' | 'INVALID';
 
-### Decision 2: Verbatim Coordinate Hallucination Guard
-- **Chosen Approach**: Before accepting AI geometries, normalize whitespace and verify that every substring in `raw_coordinate_text` appears inside the raw input block.
-- **Why**: Maritime safety mandates absolute navigational integrity. An LLM must never hallucinate a reef or drifting barge coordinate.
-- **Fallback**: Automatically runs `parseCoordinatesDeterministic` and marks `extraction_method: "deterministic_hallucination_fallback"`.
+export interface AmbiguousPosition {
+  raw_text: string;
+  reason: 'AMBIGUOUS_HEMISPHERE' | 'PARTIAL_HEMISPHERE' | 'MALFORMED' | 'UNRESOLVED_ROLE';
+  has_lat_hem: boolean;
+  has_lon_hem: boolean;
+  suggested_lat_dir?: 'N' | 'S';
+  suggested_lon_dir?: 'E' | 'W';
+  line_number?: number;
+}
 
----
+export interface GroundingDiagnostic {
+  grounded: boolean;
+  checked_count: number;
+  matched_phrases: string[];
+  unmatched_phrases: string[];
+  rejection_reason?: string;
+  timestamp: string;
+}
 
-## 4. Technical Architecture & Data Strategy
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        RAW JHOD TELEX INPUT                            │
-│  "NO.26-0453 Date:2026/10/09 13 UTC ... 05-05.79N 167-14.00E ..."     │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   BACKEND ROUTE (/api/ai/parse-jhod)                   │
-│  - Gemini 3.1 Flash Lite (@google/genai SDK)                           │
-│  - System Instruction: certified MSI parser rules                      │
-│  - Config: responseSchema (OpenAPI subset) + responseMimeType JSON     │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   HALLUCINATION GUARD & AUDIT CHECK                    │
-│  - Check: raw_coordinate_text ⊆ raw_input_block                        │
-│  ├─ PASS ──► Convert to NavWarning (WGS 84 GeoJSON + Details)          │
-│  └─ FAIL ──► Deterministic Fallback + Flag is_verified: false          │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                   ┌────────────────┴────────────────┐
-                   ▼                                 ▼
-┌─────────────────────────────────────┐  ┌───────────────────────────────┐
-│       MANUAL PARSER VIEW (UI)       │  │   SUPABASE DATABASE (navarea_11│
-│  - Map preview                      │  │   & public.nav_warnings)      │
-│  - Geometry inspection              │  │  - Verbatim raw_messages      │
-│  - AtoN / Vessel / Cable badges     │  │  - Parsed warning attributes  │
-└─────────────────────────────────────┘  └───────────────────────────────┘
+export interface RadiusSpecification {
+  raw_text: string;
+  stated_value: number;
+  stated_unit: 'NM' | 'MILE' | 'METRE' | 'M';
+  raw_stated_unit: string;
+  radius_nm: number;
+}
 ```
 
-### Component & File Mapping
-- **`src/schemas/jhodAiContract.ts`**: Contains `jhodSystemInstruction`, `jhodResponseSchema`, TypeScript types (`JhodWarningOutput`), and the `verifyCoordinateGrounded()` guard.
-- **`server.ts`**:
-  - Implements route `POST /api/ai/parse-jhod`.
-  - Updates `/api/parse-manual` to support `mode: "jhod_structured"`.
-  - Connects `@google/genai` with model `gemini-3.1-flash-lite`.
-- **`src/components/ManualParserView.tsx`**:
-  - Adds JHOD NAVAREA XI template button.
-  - Adds parsing mode toggle and validation badges.
-- **`src/services/api.ts`**:
-  - Exports `parseJhodWarning(rawText: string)`.
+### B. Ordered Regex Precedence with Explicit Boolean Checks (`src/utils/coordinateParser.ts`)
+The parser evaluates candidate coordinate pairs sequentially:
+1. **Tier 1A - Sub-Second DMS**:
+   `(\d{1,3})[°\s\-](\d{1,2})[′'\s\-](\d{1,2}\.\d+)[″"]?\s*([NS])[\s,]+(\d{1,3})[°\s\-](\d{1,2})[′'\s\-](\d{1,2}\.\d+)[″"]?\s*([EW])`
+2. **Tier 1B - Standard DMS**:
+   `(\d{1,3})[°\s\-](\d{1,2})[′'\s\-](\d{1,2})[″"]?\s*([NS])[\s,]+(\d{1,3})[°\s\-](\d{1,2})[′'\s\-](\d{1,2})[″"]?\s*([EW])`
+3. **Tier 1C - Decimal Minutes (High Precision)**:
+   `(\d{1,3})[°\s\-](\d{1,2}\.\d+)[′']?\s*([NS])[\s,]+(\d{1,3})[°\s\-](\d{1,2}\.\d+)[′']?\s*([EW])`
+4. **Tier 1D - Integer Minutes**:
+   `(\d{1,3})[°\s\-](\d{1,2})[′']?\s*([NS])[\s,]+(\d{1,3})[°\s\-](\d{1,2})[′']?\s*([EW])`
+5. **Tier 1E - Decimal Degrees**:
+   `(\d{1,3}\.\d+)[°]?\s*([NS])[\s,]+(\d{1,3}\.\d+)[°]?\s*([EW])`
+6. **Tier 1F - Space/Punctuation Telex (e.g. 11 52 N 146 04 E)**:
+   `(\d{1,3})\s+(\d{1,2}(?:\.\d+)?)\s*([NS])[\s,]+(\d{1,3})\s+(\d{1,2}(?:\.\d+)?)\s*([EW])`
+7. **Tier 1G - Hemisphere Integrity & Defect Quarantine**:
+   - Broad pre-filter detects candidate coordinate tuples (numbers followed by optional degrees/minutes/separators and optional single hemisphere letters, e.g. `16-54.1N 134-39.5` or `04-32-31.8 114-01-36.0`).
+   - Check:
+     ```typescript
+     const hasLatHem = /[NS]/i.test(latPart);
+     const hasLonHem = /[EW]/i.test(lonPart);
+     ```
+   - If `!hasLatHem || !hasLonHem` and no global convention:
+     - Quarantine as `PARTIAL_HEMISPHERE` (if one is true) or `AMBIGUOUS_HEMISPHERE` (if neither is true).
+     - Populate `has_lat_hem: hasLatHem` and `has_lon_hem: hasLonHem`.
+     - Log matched tier as `Tier-1G-Quarantine`.
+     - Empty `geometries: []`.
+     - If plugin provides `defaultHemisphereConvention` and is single-hemisphere, set `suggested_lat_dir` / `suggested_lon_dir`, otherwise leave undefined.
+
+### C. Radius Unit Normalisation Helper (`src/utils/coordinateParser.ts`)
+```typescript
+export function parseRadiusSpecification(text: string): RadiusSpecification | null {
+  const regex = /(?:(?:WITHIN\s+(?:A\s+)?)?RADIUS\s*(?:OF\s+)?|WITHIN\s+)\s*([0-9]+(?:\.[0-9]+)?)\s*(MILES?|NAUTICAL\s+MILES?|NM|METRES?|METERS?|M)\b/i;
+  const match = regex.exec(text);
+  if (!match) return null;
+  const val = parseFloat(match[1]);
+  const rawUnit = match[2];
+  const unitStr = rawUnit.toUpperCase();
+  const isMetres = unitStr.startsWith('M') && !unitStr.startsWith('MI');
+  const radius_nm = isMetres ? Math.round((val / 1852) * 1000) / 1000 : Math.round(val * 1000) / 1000;
+  return {
+    raw_text: match[0],
+    stated_value: val,
+    stated_unit: isMetres ? 'METRE' : 'NM',
+    raw_stated_unit: rawUnit,
+    radius_nm,
+  };
+}
+```
+
+### D. Modular Plugin Architecture (`src/schemas/plugins/`)
+- **`types.ts`**:
+  ```typescript
+  export interface NavareaPlugin {
+    navareaId: NavAreaId | 'UNIVERSAL';
+    identityRegex: RegExp;
+    cancellationPatterns: RegExp[];
+    defaultHemisphereConvention?: { latDir: 'N' | 'S'; lonDir: 'E' | 'W' };
+    coordinatePatterns?: RegExp[];
+    geometryKeywordMap?: Record<string, SemanticGeometryType>;
+    systemInstruction: string;
+    parseIdentity(rawText: string): { number: string; year: number; referenceId: string } | null;
+  }
+  ```
+- **`jhodXiPlugin.ts`**: Implements `NavareaPlugin` for JHOD NAVAREA XI, preserving Rules 1–13, telex splitting, in-force reconciliation, and OpenAPI schema.
+- **`universalPlugin.ts`**: Standard IMO/IHO fallback for NAVAREAs I through XXI.
+- **`registry.ts`**: Plugin dispatcher with fallback to `universalPlugin`.
+
+### E. Belt-and-Suspenders Empty Geometry Enforcement
+In warning assembly:
+```typescript
+if ((warning.ambiguous_positions && warning.ambiguous_positions.length > 0) || warning.data_quality === 'AMBIGUOUS' || warning.data_quality === 'INVALID') {
+  warning.spatial = null;
+  warning.geometries = [];
+}
+```
+
+### F. Operator Review UI Updates (`src/components/ManualParserView.tsx`)
+1. **Data Quality Pill**:
+   - `EXPLICIT` (Emerald pill)
+   - `INFERRED` (Amber pill)
+   - `AMBIGUOUS` (Rose pill with quarantine icon)
+   - `INVALID` (Dark red pill)
+2. **Quarantined Positions Banner**:
+   - Displays defect details (missing latitude hemisphere vs missing longitude hemisphere).
+   - If `suggested_lat_dir` / `suggested_lon_dir` are present, provides one-click manual confirmation button.
+3. **Grounding Diagnostics Panel**:
+   - Expandable inspector showing `grounding_diagnostic.matched_phrases` and `unmatched_phrases`.
+
+---
+
+## 3. Comprehensive Test Matrix
+
+1. **JHOD NAVAREA XI Regression Test Suite**:
+   - All 19 raw notices from corpus (`0455/26` through `0034/26`).
+   - Expect 100% pass on identity, manifest reconciliation, geometry grounding, and self-cancels.
+2. **Hemisphere Integrity Tests**:
+   - *Completely absent*: `DERELICT BARGE IN 11-52 146-04` $\rightarrow$ Quarantined as `AMBIGUOUS_HEMISPHERE`, `has_lat_hem: false`, `has_lon_hem: false`, `geometries: []`, `data_quality: AMBIGUOUS`.
+   - *Partial hemisphere*: `HATCH COVER IN 16-54.1N 134-39.5` (missing E) $\rightarrow$ Quarantined as `PARTIAL_HEMISPHERE`, `has_lat_hem: true`, `has_lon_hem: false`, `geometries: []`, `data_quality: AMBIGUOUS`.
+3. **Radius Normalisation Tests**:
+   - `RADIUS OF 0.6 MILES` $\rightarrow$ `0.6` NM.
+   - `WITHIN 0.6 MILES` $\rightarrow$ `0.6` NM.
+   - `RADIUS 500 METRES` $\rightarrow$ `0.270` NM.
+   - `WITHIN A RADIUS OF 500 METRES` $\rightarrow$ `0.270` NM.
+4. **Universal Plugin Routing**:
+   - Test sample warnings from NAVAREA I, IV, and V.
+5. **Codebase Verification**:
+   - `lint_applet` and `compile_applet` must pass cleanly.

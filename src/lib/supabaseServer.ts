@@ -89,7 +89,8 @@ export async function checkSupabaseHealth(): Promise<{
     if (genRes.error) errors.push(`ingestion_generations: ${genRes.error.message}`);
     if (artRes.error) errors.push(`raw_artifacts: ${artRes.error.message}`);
 
-    const isConnected = errors.length === 0;
+    // If the primary nav_warnings table is accessible, the database connection is fundamentally operational
+    const isConnected = !warnRes.error;
 
     return {
       connected: isConnected,
@@ -100,7 +101,7 @@ export async function checkSupabaseHealth(): Promise<{
         generations: genRes.count || 0,
         artifacts: artRes.count || 0,
       },
-      error: isConnected ? undefined : errors.join(' | '),
+      error: errors.length > 0 ? errors.join(' | ') : undefined,
     };
   } catch (err: any) {
     return {

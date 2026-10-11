@@ -98,12 +98,42 @@ export interface AiTriageResult {
   original_snippet?: string;
 }
 
+export type DataQualityRating = 'EXPLICIT' | 'INFERRED' | 'AMBIGUOUS' | 'INVALID';
+
+export interface AmbiguousPosition {
+  raw_text: string;
+  reason: 'AMBIGUOUS_HEMISPHERE' | 'PARTIAL_HEMISPHERE' | 'MALFORMED' | 'UNRESOLVED_ROLE';
+  has_lat_hem: boolean;
+  has_lon_hem: boolean;
+  suggested_lat_dir?: 'N' | 'S';
+  suggested_lon_dir?: 'E' | 'W';
+  line_number?: number;
+}
+
+export interface GroundingDiagnostic {
+  grounded: boolean;
+  checked_count: number;
+  matched_phrases: string[];
+  unmatched_phrases: string[];
+  rejection_reason?: string;
+  timestamp: string;
+}
+
+export interface RadiusSpecification {
+  raw_text: string;
+  stated_value: number;
+  stated_unit: 'NM' | 'MILE' | 'METRE' | 'M';
+  raw_stated_unit: string;
+  radius_nm: number;
+}
+
 export interface SpatialGeometry {
   type: 'Point' | 'Polygon' | 'LineString' | 'Circle';
   // Coordinates are [lng, lat]
   coordinates: number[] | number[][] | number[][][];
   radius_nm?: number;
   label?: string;
+  data_quality?: DataQualityRating;
 }
 
 export interface SpatialCircle {
@@ -116,7 +146,10 @@ export interface SpatialData {
   geometries: SpatialGeometry[];
   circles: SpatialCircle[];
   raw_coordinate_text: string[];
-  validation_status: 'passed' | 'out_of_bounds' | 'not_present' | 'invalid_format';
+  validation_status: 'passed' | 'out_of_bounds' | 'not_present' | 'invalid_format' | 'warning';
+  data_quality?: DataQualityRating;
+  ambiguous_positions?: AmbiguousPosition[];
+  radius_specifications?: RadiusSpecification[];
 }
 
 export interface NavWarning {
@@ -193,6 +226,12 @@ export interface NavWarning {
   details?: any;
   confidence?: number;
   in_force_numbers?: string[];
+
+  // P0 Safety & Correctness Hardening
+  data_quality?: DataQualityRating;
+  ambiguous_positions?: AmbiguousPosition[];
+  grounding_diagnostic?: GroundingDiagnostic;
+  radius_specifications?: RadiusSpecification[];
 
   validation: {
     identity: string;

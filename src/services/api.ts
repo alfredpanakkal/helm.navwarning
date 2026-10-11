@@ -477,6 +477,42 @@ export async function parseJhodWarning(
   return await res.json();
 }
 
+export interface JhodBatchParseResponse {
+  success: boolean;
+  total: number;
+  warnings: NavWarning[];
+  manifestSummary?: {
+    manifestId: string;
+    inForceNumbers: string[];
+    cancelledByManifest: string[];
+    reconciledActiveCount: number;
+    newlyDeactivatedCount: number;
+    deactivatedIds: string[];
+  } | null;
+  groundedCount: number;
+  fallbackCount: number;
+  error?: string;
+}
+
+export async function parseJhodBatch(
+  rawText: string,
+  navarea = 'XI',
+  aiModel = 'gemini-3.1-flash-lite',
+  autoReconcile = true
+): Promise<JhodBatchParseResponse> {
+  const headers = await getAdminHeaders();
+  const res = await fetch('/api/pipeline/parse-jhod-batch', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ rawText, navarea, aiModel, autoReconcile }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to parse batch JHOD bulletins');
+  }
+  return await res.json();
+}
+
 export async function parseManualWarning(
   rawText: string,
   navarea?: string,

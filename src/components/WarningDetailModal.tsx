@@ -14,6 +14,7 @@ import {
 } from '../utils/nauticalExport';
 import {
   ShieldCheck,
+  ShieldAlert,
   Globe,
   MapPin,
   Clock,
@@ -282,6 +283,90 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 </div>
               )}
 
+              {/* Operator Quarantine Banner if AMBIGUOUS or INVALID */}
+              {((warning.ambiguous_positions && warning.ambiguous_positions.length > 0) ||
+                warning.data_quality === 'AMBIGUOUS' ||
+                warning.data_quality === 'INVALID') && (
+                <div className="p-4 bg-rose-50 border-2 border-rose-500 rounded-xl space-y-2">
+                  <div className="flex items-center gap-2 text-rose-900 font-bold font-mono text-xs uppercase">
+                    <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>⚠️ Operator Quarantine: Automated Charting Blocked</span>
+                  </div>
+                  <p className="text-[11px] text-rose-800 leading-relaxed font-sans">
+                    This warning contains coordinates with missing or ambiguous hemisphere identifiers, or failed grounding checks. In accordance with maritime safety rules, geometric mapping is blocked until manually reconciled.
+                  </p>
+                  {warning.ambiguous_positions && warning.ambiguous_positions.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="text-[10px] font-mono font-bold uppercase text-rose-900">Quarantined Position Candidates:</div>
+                      {warning.ambiguous_positions.map((pos, pidx) => (
+                        <div key={pidx} className="bg-white/80 p-2 rounded border border-rose-300 font-mono text-[11px] space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-rose-900">{pos.raw_text}</span>
+                            <span className="text-[10px] bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded font-bold uppercase">
+                              {pos.reason}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-slate-600 flex items-center gap-3">
+                            <span>Lat Hem: {pos.has_lat_hem ? '✓ Present' : '✗ Missing'}</span>
+                            <span>Lon Hem: {pos.has_lon_hem ? '✓ Present' : '✗ Missing'}</span>
+                            {pos.suggested_lat_dir && (
+                              <span className="text-blue-700 font-bold">Suggested: {pos.suggested_lat_dir}/{pos.suggested_lon_dir}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Grounding Diagnostic Box */}
+              {warning.grounding_diagnostic && (
+                <div className="p-3 bg-slate-50 border border-slate-300 rounded-xl space-y-1.5 font-mono text-xs">
+                  <div className="flex items-center justify-between font-bold text-slate-800 text-[11px] uppercase">
+                    <span className="flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Coordinate Grounding Diagnostic</span>
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      warning.grounding_diagnostic.grounded
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : 'bg-rose-100 text-rose-800 border border-rose-300'
+                    }`}>
+                      {warning.grounding_diagnostic.grounded ? 'GROUNDED (100% VERBATIM)' : 'UNGROUNDED'}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-600 space-y-1">
+                    <div>Checked: {warning.grounding_diagnostic.checked_count} coordinate phrase(s)</div>
+                    {warning.grounding_diagnostic.matched_phrases.length > 0 && (
+                      <div className="text-emerald-700 truncate">
+                        Matched: {warning.grounding_diagnostic.matched_phrases.join(', ')}
+                      </div>
+                    )}
+                    {warning.grounding_diagnostic.unmatched_phrases.length > 0 && (
+                      <div className="text-rose-700 font-bold">
+                        Unmatched / Hallucinated: {warning.grounding_diagnostic.unmatched_phrases.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Radius Specification Box if present */}
+              {warning.radius_specifications && warning.radius_specifications.length > 0 && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl space-y-1 font-mono text-xs">
+                  <div className="text-[10px] font-bold text-blue-900 uppercase">Radius Specification (Normalised)</div>
+                  {warning.radius_specifications.map((r, ridx) => (
+                    <div key={ridx} className="text-[11px] text-blue-800 flex items-center justify-between">
+                      <span>"{r.raw_text}"</span>
+                      <span className="font-bold bg-white px-2 py-0.5 rounded border border-blue-300 text-blue-900">
+                        {r.radius_nm} NM ({r.stated_value} {r.stated_unit})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Provenance & Metadata Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-gw-bg p-3.5 rounded-xl border border-gw-primary font-mono text-[11px]">
                 <div>
@@ -289,9 +374,15 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                   <div className="text-gw-primary font-bold truncate">{warning.publisher_id || 'N/A'}</div>
                 </div>
                 <div>
-                  <div className="text-gw-accent uppercase font-bold text-[10px]">Extraction Method</div>
-                  <div className="text-gw-primary font-bold uppercase">
-                    {warning.extraction_method === 'llm_assisted' ? 'LLM Assisted' : 'Deterministic'}
+                  <div className="text-gw-accent uppercase font-bold text-[10px]">Data Quality</div>
+                  <div className={`font-bold uppercase text-[11px] ${
+                    warning.data_quality === 'EXPLICIT'
+                      ? 'text-emerald-700'
+                      : warning.data_quality === 'INFERRED'
+                      ? 'text-amber-700'
+                      : 'text-rose-700'
+                  }`}>
+                    {warning.data_quality || 'EXPLICIT'}
                   </div>
                 </div>
                 <div>
@@ -326,8 +417,24 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 </div>
 
                 {coordinatePoints.length === 0 ? (
-                  <div className="p-8 text-center bg-gw-bg rounded-xl border border-gw-secondary text-gw-accent font-mono">
-                    No discrete boundary coordinates parsed for this notice.
+                  <div className={`p-6 text-center rounded-xl border font-mono ${
+                    warning.ambiguous_positions && warning.ambiguous_positions.length > 0
+                      ? 'bg-rose-50 border-rose-300 text-rose-800'
+                      : 'bg-gw-bg border-gw-secondary text-gw-accent'
+                  }`}>
+                    {warning.ambiguous_positions && warning.ambiguous_positions.length > 0 ? (
+                      <div className="space-y-1.5">
+                        <div className="font-bold flex items-center justify-center gap-1.5 text-rose-900">
+                          <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
+                          <span>Geometry Quarantined (Defective Hemisphere / Safety Policy)</span>
+                        </div>
+                        <p className="text-xs text-rose-700 max-w-lg mx-auto">
+                          Automated spatial geometry generation was suppressed because coordinate candidates lacked full hemisphere indicators.
+                        </p>
+                      </div>
+                    ) : (
+                      <span>No discrete boundary coordinates parsed for this notice.</span>
+                    )}
                   </div>
                 ) : (
                   <div className="overflow-x-auto border-2 border-gw-primary rounded-xl shadow-xs">

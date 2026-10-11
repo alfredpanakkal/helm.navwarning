@@ -26,7 +26,11 @@ import {
   verifyCoordinateGrounded,
   convertJhodToNavWarning,
   JhodWarningOutput,
+  splitJhodTelexStream,
+  reconcileInForceManifest,
+  ManifestReconciliationResult,
 } from './src/schemas/jhodAiContract.js';
+import { getNavareaPlugin } from './src/schemas/plugins/registry.js';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact, NavAreaId, PipelineEvent, PipelineRunRecord } from './src/types.js';
 import scrapeNavwarnHandler from './api/scrape-navwarn.js';
 import scrapeScraplingHandler from './api/scrape-scrapling.js';
@@ -2244,16 +2248,26 @@ Instructions:
           },
         });
         const jhodResult: JhodWarningOutput = JSON.parse(response.text || '{}');
-        const { grounded } = verifyCoordinateGrounded(rawText, jhodResult.geometries);
+        const { grounded, diagnostic } = verifyCoordinateGrounded(rawText, jhodResult.geometries);
         let warning: NavWarning;
         if (grounded) {
-          warning = convertJhodToNavWarning(jhodResult, rawText, true);
+          warning = convertJhodToNavWarning(jhodResult, rawText, true, diagnostic);
         } else {
           console.warn('[JHOD Hallucination Guard Triggered]: AI emitted coordinates not in raw telex. Falling back to deterministic parser.');
-          warning = convertJhodToNavWarning(jhodResult, rawText, false);
+          warning = convertJhodToNavWarning(jhodResult, rawText, false, diagnostic);
           warning.spatial = deterministicSpatial;
+          warning.data_quality = deterministicSpatial.data_quality;
+          warning.ambiguous_positions = deterministicSpatial.ambiguous_positions;
+          warning.radius_specifications = deterministicSpatial.radius_specifications;
           warning.extraction_method = 'deterministic_hallucination_fallback';
           warning.is_verified = false;
+        }
+
+        // Dual-Layer Empty Geometry Enforcement (Layer 2)
+        if ((warning.ambiguous_positions && warning.ambiguous_positions.length > 0) || warning.data_quality === 'AMBIGUOUS' || warning.data_quality === 'INVALID') {
+          warning.spatial = null as any;
+          warning.latitude = null;
+          warning.longitude = null;
         }
         warningsDb.unshift(warning);
         const supabase = getSupabaseClient();
@@ -2453,12 +2467,31 @@ Instructions:
         last_seen_at: nowIso,
         not_in_force_observed_at: null,
         generation_id: 'gen-manual-session',
+        data_quality: deterministicSpatial.data_quality,
+        ambiguous_positions: deterministicSpatial.ambiguous_positions,
+        radius_specifications: deterministicSpatial.radius_specifications,
         validation: {
           identity: 'passed',
           dates: 'passed',
-          geometry: extractedData.spatial.validation_status,
+          geometry: extractedData.spatial?.validation_status || 'passed',
         },
       };
+
+      // Layer 2 Empty Geometry Enforcement (Belt-and-suspenders)
+      if (
+        (newWarn.ambiguous_positions && newWarn.ambiguous_positions.length > 0) ||
+        newWarn.data_quality === 'AMBIGUOUS' ||
+        newWarn.data_quality === 'INVALID'
+      ) {
+        newWarn.spatial = {
+          geometries: [],
+          circles: [],
+          raw_coordinate_text: [],
+          validation_status: 'invalid_format' as any,
+        };
+        newWarn.latitude = null;
+        newWarn.longitude = null;
+      }
 
       // Store in memory database
       warningsDb.unshift(newWarn);
@@ -2505,19 +2538,33 @@ Instructions:
       const jhodResult: JhodWarningOutput = JSON.parse(responseText);
 
       // Run Zero-Tolerance Coordinate Hallucination Guard
-      const { grounded } = verifyCoordinateGrounded(rawText, jhodResult.geometries);
+      const { grounded, diagnostic } = verifyCoordinateGrounded(rawText, jhodResult.geometries);
 
       let warning: NavWarning;
       if (grounded) {
-        warning = convertJhodToNavWarning(jhodResult, rawText, true);
+        warning = convertJhodToNavWarning(jhodResult, rawText, true, diagnostic);
       } else {
         console.warn('[JHOD Hallucination Guard Triggered]: AI emitted coordinates not in raw telex. Falling back to deterministic parser.');
-        warning = convertJhodToNavWarning(jhodResult, rawText, false);
-        const deterministicSpatial = parseCoordinatesDeterministic(rawText, (navarea as NavAreaId) || 'XI');
+        warning = convertJhodToNavWarning(jhodResult, rawText, false, diagnostic);
+        const plugin = getNavareaPlugin(navarea, rawText);
+        const deterministicSpatial = parseCoordinatesDeterministic(rawText, (navarea as NavAreaId) || 'XI', {
+          defaultHemisphereConvention: plugin.defaultHemisphereConvention,
+          isSingleHemisphere: plugin.isSingleHemisphere,
+        });
         warning.spatial = deterministicSpatial;
+        warning.data_quality = deterministicSpatial.data_quality;
+        warning.ambiguous_positions = deterministicSpatial.ambiguous_positions;
+        warning.radius_specifications = deterministicSpatial.radius_specifications;
         warning.extraction_method = 'deterministic_hallucination_fallback';
         warning.is_verified = false;
         warning.validation.geometry = 'pending';
+      }
+
+      // Dual-Layer Empty Geometry Enforcement (Layer 2)
+      if ((warning.ambiguous_positions && warning.ambiguous_positions.length > 0) || warning.data_quality === 'AMBIGUOUS' || warning.data_quality === 'INVALID') {
+        warning.spatial = null as any;
+        warning.latitude = null;
+        warning.longitude = null;
       }
 
       // Store in memory database
@@ -2546,6 +2593,248 @@ Instructions:
       return res.status(500).json({
         success: false,
         error: err.message || 'Failed to process JHOD bulletin with structured output schema',
+      });
+    }
+  });
+
+  // Dedicated Route: Batch JHOD NAVAREA XI Telex Stream Parsing & Manifest Reconciliation
+  app.post('/api/pipeline/parse-jhod-batch', requireAdmin, aiRouteLimiter, async (req, res) => {
+    try {
+      const { rawText, navarea = 'XI', aiModel = 'gemini-3.1-flash-lite', autoReconcile = true } = req.body;
+      if (!rawText || typeof rawText !== 'string') {
+        return res.status(400).json({ error: 'rawText string is required' });
+      }
+
+      const blocks = splitJhodTelexStream(rawText);
+      if (blocks.length === 0) {
+        return res.status(400).json({ error: 'No valid bulletin blocks detected' });
+      }
+
+      const ai = getGeminiClient();
+      const selectedModel = normalizeGeminiModel(aiModel);
+
+      const parsedResults: {
+        warning: NavWarning;
+        jhodOutput?: JhodWarningOutput;
+        hallucinationGuardTriggered: boolean;
+      }[] = [];
+
+      let manifestOutput: JhodWarningOutput | null = null;
+
+      // Process each block with either Gemini structured output or deterministic fallback
+      for (const block of blocks) {
+        let grounded = true;
+        let warning: NavWarning;
+        let jhodResult: JhodWarningOutput | null = null;
+
+        if (ai) {
+          try {
+            const response = await ai.models.generateContent({
+              model: selectedModel,
+              contents: block,
+              config: {
+                systemInstruction: jhodSystemInstruction,
+                responseMimeType: 'application/json',
+                responseSchema: jhodResponseSchema as any,
+                temperature: 0,
+              },
+            });
+            const responseText = response.text || '';
+            jhodResult = JSON.parse(responseText);
+            const guardCheck = verifyCoordinateGrounded(block, jhodResult?.geometries);
+            grounded = guardCheck.grounded;
+
+            if (grounded && jhodResult) {
+              warning = convertJhodToNavWarning(jhodResult, block, true, guardCheck.diagnostic);
+            } else {
+              warning = convertJhodToNavWarning(jhodResult!, block, false, guardCheck.diagnostic);
+              const plugin = getNavareaPlugin(navarea, block);
+              const deterministicSpatial = parseCoordinatesDeterministic(block, (navarea as NavAreaId) || 'XI', {
+                defaultHemisphereConvention: plugin.defaultHemisphereConvention,
+                isSingleHemisphere: plugin.isSingleHemisphere,
+              });
+              warning.spatial = deterministicSpatial;
+              warning.data_quality = deterministicSpatial.data_quality;
+              warning.ambiguous_positions = deterministicSpatial.ambiguous_positions;
+              warning.radius_specifications = deterministicSpatial.radius_specifications;
+              warning.extraction_method = 'deterministic_hallucination_fallback';
+              warning.is_verified = false;
+            }
+          } catch (aiErr: any) {
+            console.warn('[JHOD Batch] AI parsing failed for block, falling back to deterministic:', aiErr.message);
+            const plugin = getNavareaPlugin(navarea, block);
+            const deterministicSpatial = parseCoordinatesDeterministic(block, (navarea as NavAreaId) || 'XI', {
+              defaultHemisphereConvention: plugin.defaultHemisphereConvention,
+              isSingleHemisphere: plugin.isSingleHemisphere,
+            });
+            const nowIso = new Date().toISOString();
+            const headerMatch = block.match(/NO\.(\d{2})-(\d{4})/i);
+            const num = headerMatch ? headerMatch[2] : '0000';
+            const yr = headerMatch ? 2000 + parseInt(headerMatch[1], 10) : new Date().getFullYear();
+            const ref = `${num}/${String(yr).slice(-2)}`;
+            const isManifest = /MESSAGES IN FORCE/i.test(block);
+
+            warning = {
+              schema_version: 1,
+              warning_id: `warn-jhod-xi-${ref.replace('/', '-')}`,
+              publisher_id: 'jhod-japan',
+              source_id: 'jhod-navarea-11',
+              navarea: 'XI',
+              series: isManifest ? 'NAVAREA XI IN-FORCE MANIFEST' : 'NAVAREA XI',
+              source_warning_id: ref,
+              warning_number: num,
+              warning_year: yr,
+              issued_at: nowIso,
+              issued_date: nowIso.slice(0, 10),
+              issued_time_precision: 'day',
+              issued_text: nowIso.slice(0, 10),
+              valid_from: nowIso,
+              valid_to: null,
+              cancelled_at: null,
+              status: 'active',
+              status_basis: isManifest ? 'listed_in_complete_in_force_publication' : 'manual_user_override',
+              area_text: 'NORTH PACIFIC, NAVAREA XI',
+              original_language: 'en',
+              raw_text: block,
+              translated_text: null,
+              spatial: deterministicSpatial,
+              supersedes: [],
+              cancels: [],
+              source_url: 'https://www1.kaiho.mlit.go.jp/jhd-e.html',
+              raw_artifact_ref: 'jhod-telex-batch',
+              content_hash: crypto.createHash('sha256').update(block).digest('hex'),
+              parser_version: 'deterministic-v1.0',
+              extraction_method: 'deterministic',
+              extraction_confidence: deterministicSpatial.geometries.length > 0 ? 0.95 : 0.6,
+              first_seen_at: nowIso,
+              last_seen_at: nowIso,
+              not_in_force_observed_at: null,
+              generation_id: `gen-jhod-${Date.now()}`,
+              is_verified: deterministicSpatial.ambiguous_positions?.length === 0,
+              data_quality: deterministicSpatial.data_quality,
+              ambiguous_positions: deterministicSpatial.ambiguous_positions,
+              radius_specifications: deterministicSpatial.radius_specifications,
+              validation: {
+                identity: 'valid',
+                dates: 'valid',
+                geometry: deterministicSpatial.validation_status,
+              },
+            };
+          }
+        } else {
+          // Pure deterministic fallback
+          const plugin = getNavareaPlugin(navarea, block);
+          const deterministicSpatial = parseCoordinatesDeterministic(block, (navarea as NavAreaId) || 'XI', {
+            defaultHemisphereConvention: plugin.defaultHemisphereConvention,
+            isSingleHemisphere: plugin.isSingleHemisphere,
+          });
+          const nowIso = new Date().toISOString();
+          const headerMatch = block.match(/NO\.(\d{2})-(\d{4})/i);
+          const num = headerMatch ? headerMatch[2] : '0000';
+          const yr = headerMatch ? 2000 + parseInt(headerMatch[1], 10) : new Date().getFullYear();
+          const ref = `${num}/${String(yr).slice(-2)}`;
+          const isManifest = /MESSAGES IN FORCE/i.test(block);
+
+          warning = {
+            schema_version: 1,
+            warning_id: `warn-jhod-xi-${ref.replace('/', '-')}`,
+            publisher_id: 'jhod-japan',
+            source_id: 'jhod-navarea-11',
+            navarea: 'XI',
+            series: isManifest ? 'NAVAREA XI IN-FORCE MANIFEST' : 'NAVAREA XI',
+            source_warning_id: ref,
+            warning_number: num,
+            warning_year: yr,
+            issued_at: nowIso,
+            issued_date: nowIso.slice(0, 10),
+            issued_time_precision: 'day',
+            issued_text: nowIso.slice(0, 10),
+            valid_from: nowIso,
+            valid_to: null,
+            cancelled_at: null,
+            status: 'active',
+            status_basis: isManifest ? 'listed_in_complete_in_force_publication' : 'manual_user_override',
+            area_text: 'NORTH PACIFIC, NAVAREA XI',
+            original_language: 'en',
+            raw_text: block,
+            translated_text: null,
+            spatial: deterministicSpatial,
+            supersedes: [],
+            cancels: [],
+            source_url: 'https://www1.kaiho.mlit.go.jp/jhd-e.html',
+            raw_artifact_ref: 'jhod-telex-batch',
+            content_hash: crypto.createHash('sha256').update(block).digest('hex'),
+            parser_version: 'deterministic-v1.0',
+            extraction_method: 'deterministic',
+            extraction_confidence: deterministicSpatial.geometries.length > 0 ? 0.95 : 0.6,
+            first_seen_at: nowIso,
+            last_seen_at: nowIso,
+            not_in_force_observed_at: null,
+            generation_id: `gen-jhod-${Date.now()}`,
+            is_verified: deterministicSpatial.ambiguous_positions?.length === 0,
+            data_quality: deterministicSpatial.data_quality,
+            ambiguous_positions: deterministicSpatial.ambiguous_positions,
+            radius_specifications: deterministicSpatial.radius_specifications,
+            validation: {
+              identity: 'valid',
+              dates: 'valid',
+              geometry: deterministicSpatial.validation_status,
+            },
+          };
+        }
+
+        // Dual-Layer Empty Geometry Enforcement (Layer 2)
+        if ((warning.ambiguous_positions && warning.ambiguous_positions.length > 0) || warning.data_quality === 'AMBIGUOUS' || warning.data_quality === 'INVALID') {
+          warning.spatial = null as any;
+          warning.latitude = null;
+          warning.longitude = null;
+        }
+
+        if (jhodResult?.block_type === 'in_force_manifest' || /MESSAGES IN FORCE/i.test(block)) {
+          manifestOutput = jhodResult;
+        }
+
+        parsedResults.push({
+          warning,
+          jhodOutput: jhodResult || undefined,
+          hallucinationGuardTriggered: !grounded,
+        });
+
+        // Store into server in-memory database
+        warningsDb.unshift(warning);
+      }
+
+      // Manifest Reconciliation
+      let manifestSummary: ManifestReconciliationResult | null = null;
+      if (manifestOutput && autoReconcile) {
+        const reconciliation = reconcileInForceManifest(manifestOutput, warningsDb);
+        warningsDb = reconciliation.reconciledWarnings;
+        manifestSummary = reconciliation.result;
+      }
+
+      // Sync batch to Supabase if client is ready
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        try {
+          await syncWarningsToSupabase(parsedResults.map((r) => r.warning));
+        } catch (dbErr) {
+          console.warn('[JHOD Batch] Supabase sync warning:', dbErr);
+        }
+      }
+
+      return res.json({
+        success: true,
+        total: blocks.length,
+        warnings: parsedResults.map((r) => r.warning),
+        manifestSummary,
+        groundedCount: parsedResults.filter((r) => !r.hallucinationGuardTriggered).length,
+        fallbackCount: parsedResults.filter((r) => r.hallucinationGuardTriggered).length,
+      });
+    } catch (err: any) {
+      console.error('[JHOD Batch Error]:', err);
+      return res.status(500).json({
+        success: false,
+        error: err.message || 'Failed to process JHOD batch telex stream',
       });
     }
   });

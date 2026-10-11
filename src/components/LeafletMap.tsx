@@ -364,7 +364,12 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   });
 
   const renderedWarnings = filteredWarnings.filter(
-    (w) => w.status === 'active' && !hiddenWarningIds.has(w.warning_id)
+    (w) =>
+      w.status === 'active' &&
+      !hiddenWarningIds.has(w.warning_id) &&
+      w.data_quality !== 'AMBIGUOUS' &&
+      w.data_quality !== 'INVALID' &&
+      (!w.ambiguous_positions || w.ambiguous_positions.length === 0)
   );
 
   const autoFrameMap = useCallback((activeList: NavWarning[]) => {
@@ -416,6 +421,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
     renderedWarnings.forEach((w) => {
       const coords = getLeafletLatLng(w.spatial, w.latitude, w.longitude);
+      // Skip Null Island / ungrounded warnings
+      if (coords[0] === 0 && coords[1] === 0) {
+        return;
+      }
+
       const isIsolated = isolatedWarning?.warning_id === w.warning_id;
       const severity: WarningSeverityLevel =
         w.extraction_confidence === 1

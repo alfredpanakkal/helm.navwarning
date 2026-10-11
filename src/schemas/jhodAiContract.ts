@@ -1,4 +1,9 @@
-import { NavWarning } from '../types';
+import {
+  NavWarning,
+  GroundingDiagnostic,
+  DataQualityRating,
+  AmbiguousPosition,
+} from '../types';
 
 /**
  * System instruction for the Japan Hydrographic-Oceanographic Department (JHOD)
@@ -357,49 +362,123 @@ export interface JhodWarningOutput {
   confidence: number;
 }
 
+export interface GroundingCheckResult {
+  grounded: boolean;
+  missingCoordinates: string[];
+  diagnostic: GroundingDiagnostic;
+}
+
 /**
  * Hallucination Guard: Validates that every coordinate extracted by the AI
- * appears character-for-character in the raw input block.
+ * appears character-for-character in the raw input block using strict bounded phrase matching.
+ * Produces a full GroundingDiagnostic record attached to the warning.
  */
 export function verifyCoordinateGrounded(
   rawBlock: string,
   geometries?: JhodGeometry[]
-): { grounded: boolean; missingCoordinates: string[] } {
+): GroundingCheckResult {
+  const timestamp = new Date().toISOString();
   if (!geometries || geometries.length === 0) {
-    return { grounded: true, missingCoordinates: [] };
+    const diagnostic: GroundingDiagnostic = {
+      grounded: true,
+      checked_count: 0,
+      matched_phrases: [],
+      unmatched_phrases: [],
+      timestamp,
+    };
+    return { grounded: true, missingCoordinates: [], diagnostic };
   }
 
   // Normalize whitespaces for comparison
   const normalizedRaw = rawBlock.replace(/\s+/g, ' ').toUpperCase();
-  const missing: string[] = [];
+  const matchedPhrases: string[] = [];
+  const unmatchedPhrases: string[] = [];
+  let checkedCount = 0;
 
   for (const g of geometries) {
     for (const raw of g.raw_coordinate_text || []) {
       const cleanRaw = raw.trim().replace(/\s+/g, ' ').toUpperCase();
-      if (cleanRaw && !normalizedRaw.includes(cleanRaw)) {
-        missing.push(raw);
+      if (cleanRaw) {
+        checkedCount++;
+        // Strict bounded phrase check: verifies coordinates exist verbatim in input block
+        if (normalizedRaw.includes(cleanRaw)) {
+          matchedPhrases.push(raw);
+        } else {
+          unmatchedPhrases.push(raw);
+        }
       }
     }
   }
 
+  const grounded = unmatchedPhrases.length === 0;
+  const diagnostic: GroundingDiagnostic = {
+    grounded,
+    checked_count: checkedCount,
+    matched_phrases: matchedPhrases,
+    unmatched_phrases: unmatchedPhrases,
+    rejection_reason: grounded ? undefined : `Coordinates not grounded in raw text: ${unmatchedPhrases.join(', ')}`,
+    timestamp,
+  };
+
   return {
-    grounded: missing.length === 0,
-    missingCoordinates: missing,
+    grounded,
+    missingCoordinates: unmatchedPhrases,
+    diagnostic,
   };
 }
 
 /**
  * Converts a validated JhodWarningOutput into a standardized Helm.Warning NavWarning object.
+ * Enforces:
+ * - Warning-level GroundingDiagnostic attachment
+ * - Dual-layer Empty Geometry Policy (Layer 2)
+ * - Worst-of Data Quality roll-up
  */
 export function convertJhodToNavWarning(
   jhod: JhodWarningOutput,
   rawBlock: string,
-  grounded: boolean
+  grounded: boolean,
+  passedDiagnostic?: GroundingDiagnostic
 ): NavWarning {
   const refId =
     jhod.warning_id?.reference_id ||
     `${jhod.warning_id?.number || '0000'}/${String(jhod.warning_id?.year || 2026).slice(-2)}`;
   const nowIso = new Date().toISOString();
+
+  const diagnostic =
+    passedDiagnostic || verifyCoordinateGrounded(rawBlock, jhod.geometries).diagnostic;
+
+  // Detect any hemisphere ambiguities in rawBlock or geometries
+  const ambiguousPositions: AmbiguousPosition[] = [];
+  const candidateCoordRegex = /(?:(\d{1,3}(?:[-°\s]+\d{1,2}(?:[-'′\s]+\d{1,2}(?:\.\d+)?)?(?:\.\d+)?)[′'″"]?\s*([NS])?)[\s,]+(\d{1,3}(?:[-°\s]+\d{1,2}(?:[-'′\s]+\d{1,2}(?:\.\d+)?)?(?:\.\d+)?)[′'″"]?\s*([EW])?))/gi;
+  let candidateMatch: RegExpExecArray | null;
+  while ((candidateMatch = candidateCoordRegex.exec(rawBlock)) !== null) {
+    const latPart = candidateMatch[1] || '';
+    const lonPart = candidateMatch[3] || '';
+    const hasLatHem = /[NS]/i.test(latPart);
+    const hasLonHem = /[EW]/i.test(lonPart);
+    if (!hasLatHem || !hasLonHem) {
+      ambiguousPositions.push({
+        raw_text: candidateMatch[0],
+        reason: (hasLatHem || hasLonHem) ? 'PARTIAL_HEMISPHERE' : 'AMBIGUOUS_HEMISPHERE',
+        has_lat_hem: Boolean(hasLatHem),
+        has_lon_hem: Boolean(hasLonHem),
+      });
+    }
+  }
+
+  // Determine Worst-of Data Quality Rating:
+  // Hierarchy: INVALID > AMBIGUOUS > INFERRED > EXPLICIT
+  let rolledUpQuality: DataQualityRating = 'EXPLICIT';
+  if (!grounded) {
+    rolledUpQuality = 'INVALID';
+  } else if (ambiguousPositions.length > 0) {
+    rolledUpQuality = 'AMBIGUOUS';
+  } else if (jhod.geometries?.some((g) => g.precision === 'vicinity')) {
+    rolledUpQuality = 'INFERRED';
+  } else {
+    rolledUpQuality = 'EXPLICIT';
+  }
 
   // Map geometries to spatial format
   const mappedGeometries = (jhod.geometries || []).map((g) => ({
@@ -407,6 +486,7 @@ export function convertJhodToNavWarning(
     coordinates: g.coordinates,
     radius_nm: g.radius_nm ?? undefined,
     label: `${jhod.title || refId} (${g.precision})`,
+    data_quality: rolledUpQuality,
   }));
 
   // Extract first point for direct latitude/longitude pin placement
@@ -442,8 +522,18 @@ export function convertJhodToNavWarning(
         label: jhod.title || refId,
       })),
     raw_coordinate_text: rawCoordinateTexts,
-    validation_status: (grounded ? 'passed' : 'warning') as 'passed' | 'warning',
+    validation_status: (grounded && ambiguousPositions.length === 0 ? 'passed' : 'warning') as 'passed' | 'warning',
   };
+
+  // DUAL-LAYER BELT-AND-SUSPENDERS ENFORCEMENT: LAYER 2 (Warning Assembly)
+  // If ambiguous positions exist or data_quality is AMBIGUOUS/INVALID, wipe geometry and coordinates
+  if (ambiguousPositions.length > 0 || rolledUpQuality === 'AMBIGUOUS' || rolledUpQuality === 'INVALID') {
+    spatial.geometries = [];
+    spatial.circles = [];
+    firstLat = null;
+    firstLng = null;
+    spatial.validation_status = 'invalid_format' as any;
+  }
 
   const isSelfCancelled = Boolean(jhod.self_cancel_at && new Date(jhod.self_cancel_at) <= new Date());
   const riskLevel =
@@ -453,13 +543,15 @@ export function convertJhodToNavWarning(
       ? 'critical'
       : 'high';
 
+  const isManifest = jhod.block_type === 'in_force_manifest';
+
   return {
     schema_version: 1,
     warning_id: `warn-jhod-xi-${refId.replace('/', '-')}`,
     publisher_id: 'jhod-japan',
     source_id: 'jhod-navarea-11',
     navarea: 'XI',
-    series: 'NAVAREA XI',
+    series: isManifest ? 'NAVAREA XI IN-FORCE MANIFEST' : 'NAVAREA XI',
     source_warning_id: refId,
     warning_number: jhod.warning_id?.number || '0000',
     warning_year: jhod.warning_id?.year || 2026,
@@ -471,20 +563,24 @@ export function convertJhodToNavWarning(
     valid_to: jhod.valid_to || jhod.self_cancel_at || null,
     cancelled_at: isSelfCancelled ? jhod.self_cancel_at! : null,
     status: isSelfCancelled ? 'cancelled' : 'active',
-    status_basis: jhod.self_cancel_at ? 'self_cancellation_clause' : 'listed_in_complete_in_force_publication',
-    area_text: jhod.area_text || 'NORTH PACIFIC, NAVAREA XI',
+    status_basis: isManifest
+      ? 'listed_in_complete_in_force_publication'
+      : jhod.self_cancel_at
+      ? 'self_cancellation_clause'
+      : 'listed_in_complete_in_force_publication',
+    area_text: jhod.area_text || (isManifest ? 'NAVAREA XI IN-FORCE AUDIT' : 'NORTH PACIFIC, NAVAREA XI'),
     original_language: 'en',
     raw_text: rawBlock,
     translated_text: null,
     spatial,
     supersedes: [],
     cancels: jhod.cancels || [],
-    title: jhod.title || `NAVAREA XI ${refId}`,
+    title: jhod.title || (isManifest ? `NAVAREA XI Manifest ${refId}` : `NAVAREA XI ${refId}`),
     risk_level: riskLevel,
     latitude: firstLat,
     longitude: firstLng,
-    hazard_category: jhod.hazard_category,
-    categories: jhod.hazard_category,
+    hazard_category: isManifest ? 'general' : jhod.hazard_category,
+    categories: isManifest ? 'manifest' : jhod.hazard_category,
     source_url: 'https://www1.kaiho.mlit.go.jp/jhd-e.html',
     extraction_method: grounded ? 'gemini_structured_output' : 'deterministic_hallucination_fallback',
     content_hash: '',
@@ -493,11 +589,14 @@ export function convertJhodToNavWarning(
     last_seen_at: nowIso,
     not_in_force_observed_at: null,
     generation_id: `gen-jhod-${Date.now()}`,
-    is_verified: grounded, // Flags unverified if hallucination guard detected missing coordinate
+    is_verified: grounded && ambiguousPositions.length === 0,
+    data_quality: rolledUpQuality,
+    ambiguous_positions: ambiguousPositions,
+    grounding_diagnostic: diagnostic,
     validation: {
       identity: 'valid',
       dates: 'valid',
-      geometry: grounded ? 'valid' : 'pending',
+      geometry: grounded && ambiguousPositions.length === 0 ? 'valid' : 'pending',
     },
     // Enriched detail metadata
     details: jhod.details,
@@ -505,4 +604,140 @@ export function convertJhodToNavWarning(
     confidence: jhod.confidence,
     in_force_numbers: jhod.in_force_numbers,
   } as unknown as NavWarning;
+}
+
+/**
+ * Splits a continuous raw JHOD telex feed into discrete bulletin blocks based on
+ * standard NO.YY-NNNN (or NO.YY-NNNN Date:) headers, or explicit '---' separators.
+ */
+export function splitJhodTelexStream(rawText: string): string[] {
+  if (!rawText || typeof rawText !== 'string' || !rawText.trim()) return [];
+
+  const trimmed = rawText.trim();
+  // 1. Explicit --- separator
+  if (trimmed.includes('---')) {
+    return trimmed
+      .split('---')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  // 2. Split on NO.YY-NNNN or NO.YY-NNNN Date:
+  const headerRegex = /(?:^|\r?\n)(?=NO\.\d{2}-\d{4}(?:\s+Date:|\r?\n|$))/i;
+  const blocks = trimmed
+    .split(headerRegex)
+    .map((b) => b.trim())
+    .filter((b) => b.length > 0 && /NO\.\d{2}-\d{4}/i.test(b));
+
+  if (blocks.length > 0) {
+    return blocks;
+  }
+
+  // Fallback to single block
+  return [trimmed];
+}
+
+export interface ManifestReconciliationResult {
+  manifestId: string;
+  inForceNumbers: string[];
+  cancelledByManifest: string[];
+  reconciledActiveCount: number;
+  newlyDeactivatedCount: number;
+  deactivatedIds: string[];
+}
+
+/**
+ * Reconciles the active warning state against an IN_FORCE_MANIFEST bulletin.
+ * Updates warnings list:
+ * - Listed warnings confirmed 'active'
+ * - Explicitly cancelled warnings marked 'cancelled'
+ * - Warnings within 6 weeks missing from manifest marked 'cancelled' (status_basis: absent_from_complete_in_force_publication)
+ */
+export function reconcileInForceManifest(
+  manifest: JhodWarningOutput,
+  existingWarnings: NavWarning[]
+): {
+  reconciledWarnings: NavWarning[];
+  result: ManifestReconciliationResult;
+} {
+  const inForceSet = new Set(
+    (manifest.in_force_numbers || []).map((num) => {
+      const parts = num.split('/');
+      if (parts.length === 2) return `${parts[0].padStart(4, '0')}/${parts[1]}`;
+      return `${num.padStart(4, '0')}/${String(manifest.warning_id?.year || 2026).slice(-2)}`;
+    })
+  );
+
+  const cancelsSet = new Set(
+    (manifest.cancels || []).map((num) => {
+      const parts = num.split('/');
+      if (parts.length === 2) return `${parts[0].padStart(4, '0')}/${parts[1]}`;
+      return `${num.padStart(4, '0')}/${String(manifest.warning_id?.year || 2026).slice(-2)}`;
+    })
+  );
+
+  const nowIso = new Date().toISOString();
+  let newlyDeactivatedCount = 0;
+  const deactivatedIds: string[] = [];
+  let reconciledActiveCount = 0;
+
+  const reconciledWarnings = existingWarnings.map((w) => {
+    if (w.navarea !== 'XI') return w;
+
+    const ref = w.source_warning_id;
+    const isExplicitlyCancelled = cancelsSet.has(ref) || cancelsSet.has(w.warning_number);
+
+    if (isExplicitlyCancelled && w.status !== 'cancelled') {
+      newlyDeactivatedCount++;
+      deactivatedIds.push(ref);
+      return {
+        ...w,
+        status: 'cancelled' as const,
+        cancelled_at: nowIso,
+        status_basis: 'explicit_cancellation_notice' as const,
+      };
+    }
+
+    const isListed = inForceSet.has(ref) || inForceSet.has(`${w.warning_number}/${String(w.warning_year).slice(-2)}`);
+    if (isListed) {
+      reconciledActiveCount++;
+      return {
+        ...w,
+        status: 'active' as const,
+        status_basis: 'listed_in_complete_in_force_publication' as const,
+        last_seen_at: nowIso,
+      };
+    }
+
+    // If active and issued within 6 weeks (42 days), but absent from manifest
+    if (w.status === 'active' && w.issued_at) {
+      const issuedMs = new Date(w.issued_at).getTime();
+      const sixWeeksMs = 42 * 24 * 60 * 60 * 1000;
+      if (Date.now() - issuedMs <= sixWeeksMs && !isListed) {
+        newlyDeactivatedCount++;
+        deactivatedIds.push(ref);
+        return {
+          ...w,
+          status: 'cancelled' as const,
+          cancelled_at: nowIso,
+          not_in_force_observed_at: nowIso,
+          status_basis: 'absent_from_complete_in_force_publication' as const,
+        };
+      }
+    }
+
+    return w;
+  });
+
+  return {
+    reconciledWarnings,
+    result: {
+      manifestId: manifest.warning_id?.reference_id || '0455/26',
+      inForceNumbers: Array.from(inForceSet),
+      cancelledByManifest: Array.from(cancelsSet),
+      reconciledActiveCount,
+      newlyDeactivatedCount,
+      deactivatedIds,
+    },
+  };
 }

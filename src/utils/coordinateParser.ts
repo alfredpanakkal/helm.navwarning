@@ -9,7 +9,10 @@ import {
   GeometryIntent,
   FeatureInference,
   FeatureConfidence,
-  FeatureRoleHint
+  FeatureRoleHint,
+  DataQualityRating,
+  AmbiguousPosition,
+  RadiusSpecification,
 } from '../types';
 
 export const NAVAREA_BOUNDS: Record<NavAreaId, BoundingBox> = {
@@ -121,6 +124,9 @@ export interface EnhancedSpatialData extends SpatialData {
   conflict_reason?: string;
   escalation_triggers?: EscalationCondition[];
   review_required?: boolean;
+  data_quality?: DataQualityRating;
+  ambiguous_positions?: AmbiguousPosition[];
+  radius_specifications?: RadiusSpecification[];
 }
 
 /**
@@ -135,13 +141,58 @@ export function dmsToDecimal(deg: number, min: number, sec: number, dir: string)
 }
 
 /**
- * Parses coordinate pair strings with comprehensive support for DMS, decimal, hyphenated, compact, and hemisphere rules.
- * Never silently guesses hemispheres when missing (returns null or flags AMBIGUOUS_HEMISPHERE).
+ * P0 Safety: Broadened radius normalisation pattern covering:
+ * - RADIUS OF 0.6 MILES
+ * - WITHIN A RADIUS OF 500 METRES
+ * - WITHIN 0.6 MILES
+ * - RADIUS 500 METRES
+ * Converts metres to nautical miles (1 NM = 1852 m, rounded to 3 decimal places) and retains raw text/units.
+ */
+export function parseRadiusSpecification(text: string): RadiusSpecification | null {
+  if (!text || typeof text !== 'string') return null;
+  const regex = /(?:(?:WITHIN\s+(?:A\s+)?)?RADIUS\s*(?:OF\s+)?|WITHIN\s+)\s*([0-9]+(?:\.[0-9]+)?)\s*(MILES?|NAUTICAL\s+MILES?|NM|METRES?|METERS?|M)\b/i;
+  const match = regex.exec(text);
+  if (!match) return null;
+  const val = parseFloat(match[1]);
+  if (isNaN(val)) return null;
+  const rawUnit = match[2];
+  const unitStr = rawUnit.toUpperCase();
+  const isMetres = unitStr.startsWith('M') && !unitStr.startsWith('MI');
+  const radius_nm = isMetres ? Math.round((val / 1852) * 1000) / 1000 : Math.round(val * 1000) / 1000;
+  return {
+    raw_text: match[0],
+    stated_value: val,
+    stated_unit: isMetres ? 'METRE' : 'NM',
+    raw_stated_unit: rawUnit,
+    radius_nm,
+  };
+}
+
+export interface ParseCoordinatePairResult {
+  lngLat: [number, number] | null;
+  hemisphereAmbiguous: boolean;
+  raw: string;
+  matchedTier?: string;
+  defectReason?: 'AMBIGUOUS_HEMISPHERE' | 'PARTIAL_HEMISPHERE';
+  hasLatHem?: boolean;
+  hasLonHem?: boolean;
+  dataQuality?: DataQualityRating;
+}
+
+/**
+ * Parses coordinate pair strings with comprehensive 7-tier ordered precedence:
+ * Tier 1A: Sub-Second DMS
+ * Tier 1B: Standard DMS
+ * Tier 1C: Decimal Minutes (High Precision)
+ * Tier 1D: Integer Minutes
+ * Tier 1E: Decimal Degrees
+ * Tier 1F: Space/Punctuation Telex
+ * Tier 1G: Hemisphere Integrity & Defect Quarantine with explicit boolean checks
  */
 export function parseSingleCoordinatePair(
   text: string,
   globalHemisphereConvention?: { latDir: string; lonDir: string } | null
-): { lngLat: [number, number] | null; hemisphereAmbiguous: boolean; raw: string } {
+): ParseCoordinatePairResult {
   if (!text || typeof text !== 'string') return { lngLat: null, hemisphereAmbiguous: false, raw: text };
 
   const raw = text;
@@ -152,76 +203,154 @@ export function parseSingleCoordinatePair(
     .replace(/\([^\)]+\)/g, '')
     .trim();
 
-  // Pattern 1: Explicit DMS with N/S and E/W
-  const pattern1 = /(\d{1,3})(?:[°\s\-]|Â°)+(\d{1,2}(?:\.\d+)?)['′"]?\s*(?:(\d{1,2}(?:\.\d+)?)\s*["″]\s*)?([NS])[\s,]+(?:\bPt\s*\d+:\s*)?(\d{1,3})(?:[°\s\-]|Â°)+(\d{1,2}(?:\.\d+)?)['′"]?\s*(?:(\d{1,2}(?:\.\d+)?)\s*["″]\s*)?([EW])/i;
-  const match1 = clean.match(pattern1);
-  if (match1) {
-    const lat = dmsToDecimal(parseFloat(match1[1]), parseFloat(match1[2]), match1[3] ? parseFloat(match1[3]) : 0, match1[4].toUpperCase());
-    const lng = dmsToDecimal(parseFloat(match1[5]), parseFloat(match1[6]), match1[7] ? parseFloat(match1[7]) : 0, match1[8].toUpperCase());
-    return { lngLat: [lng, lat], hemisphereAmbiguous: false, raw };
+  // Tier 1A: Sub-Second DMS (e.g. 04-32-31.8S 114-01-36.0E)
+  const tier1A = /(\d{1,3})[-°\s]+(\d{1,2})[-'′\s]+(\d{1,2}\.\d+)\s*["″]?\s*([NS])[\s,]+(\d{1,3})[-°\s]+(\d{1,2})[-'′\s]+(\d{1,2}\.\d+)\s*["″]?\s*([EW])/i;
+  const m1A = clean.match(tier1A);
+  if (m1A) {
+    const lat = dmsToDecimal(parseFloat(m1A[1]), parseFloat(m1A[2]), parseFloat(m1A[3]), m1A[4].toUpperCase());
+    const lng = dmsToDecimal(parseFloat(m1A[5]), parseFloat(m1A[6]), parseFloat(m1A[7]), m1A[8].toUpperCase());
+    return { lngLat: [lng, lat], hemisphereAmbiguous: false, raw, matchedTier: 'Tier-1A-SubSecond-DMS', dataQuality: 'EXPLICIT', hasLatHem: true, hasLonHem: true };
   }
 
-  // Pattern 2: Decimal degrees with optional N/S E/W
-  const patternDec = /(-?\d{1,3}\.\d+)\s*°?\s*([NS])?[\s,]+(-?\d{1,3}\.\d+)\s*°?\s*([EW])?/i;
-  const matchDec = clean.match(patternDec);
-  if (matchDec) {
-    let lat = parseFloat(matchDec[1]);
-    let latDir = matchDec[2]?.toUpperCase();
-    let lng = parseFloat(matchDec[3]);
-    let lonDir = matchDec[4]?.toUpperCase();
+  // Tier 1B: Standard DMS (e.g. 28-15-15N 146-29-47E)
+  const tier1B = /(\d{1,3})[-°\s]+(\d{1,2})[-'′\s]+(\d{1,2})\s*["″]?\s*([NS])[\s,]+(\d{1,3})[-°\s]+(\d{1,2})[-'′\s]+(\d{1,2})\s*["″]?\s*([EW])/i;
+  const m1B = clean.match(tier1B);
+  if (m1B) {
+    const lat = dmsToDecimal(parseFloat(m1B[1]), parseFloat(m1B[2]), parseFloat(m1B[3]), m1B[4].toUpperCase());
+    const lng = dmsToDecimal(parseFloat(m1B[5]), parseFloat(m1B[6]), parseFloat(m1B[7]), m1B[8].toUpperCase());
+    return { lngLat: [lng, lat], hemisphereAmbiguous: false, raw, matchedTier: 'Tier-1B-Standard-DMS', dataQuality: 'EXPLICIT', hasLatHem: true, hasLonHem: true };
+  }
 
-    if (!latDir || !lonDir) {
-      if (globalHemisphereConvention) {
-        if (!latDir) latDir = globalHemisphereConvention.latDir;
-        if (!lonDir) lonDir = globalHemisphereConvention.lonDir;
-      } else {
-        return { lngLat: null, hemisphereAmbiguous: true, raw };
-      }
-    }
+  // Tier 1C: Decimal Minutes (High Precision e.g. 16-54.1N 134-39.5E or 05-05.79N 167-14.00E)
+  const tier1C = /(\d{1,3})[-°\s]+(\d{1,2}\.\d+)['′]?\s*([NS])[\s,]+(\d{1,3})[-°\s]+(\d{1,2}\.\d+)['′]?\s*([EW])/i;
+  const m1C = clean.match(tier1C);
+  if (m1C) {
+    const lat = dmsToDecimal(parseFloat(m1C[1]), parseFloat(m1C[2]), 0, m1C[3].toUpperCase());
+    const lng = dmsToDecimal(parseFloat(m1C[4]), parseFloat(m1C[5]), 0, m1C[6].toUpperCase());
+    return { lngLat: [lng, lat], hemisphereAmbiguous: false, raw, matchedTier: 'Tier-1C-Decimal-Minutes', dataQuality: 'EXPLICIT', hasLatHem: true, hasLonHem: true };
+  }
 
+  // Tier 1D: Integer Minutes (e.g. 11-52N 146-04E or 20-28N 072-28E)
+  const tier1D = /(\d{1,3})[-°\s]+(\d{1,2})['′]?\s*([NS])[\s,]+(\d{1,3})[-°\s]+(\d{1,2})['′]?\s*([EW])/i;
+  const m1D = clean.match(tier1D);
+  if (m1D) {
+    const lat = dmsToDecimal(parseFloat(m1D[1]), parseFloat(m1D[2]), 0, m1D[3].toUpperCase());
+    const lng = dmsToDecimal(parseFloat(m1D[4]), parseFloat(m1D[5]), 0, m1D[6].toUpperCase());
+    return { lngLat: [lng, lat], hemisphereAmbiguous: false, raw, matchedTier: 'Tier-1D-Integer-Minutes', dataQuality: 'EXPLICIT', hasLatHem: true, hasLonHem: true };
+  }
+
+  // Tier 1E: Decimal Degrees (e.g. 07.5N 080.8W or 7.5000N 80.8000W)
+  const tier1E = /(-?\d{1,3}\.\d+)\s*°?\s*([NS])[\s,]+(-?\d{1,3}\.\d+)\s*°?\s*([EW])/i;
+  const m1E = clean.match(tier1E);
+  if (m1E) {
+    let lat = parseFloat(m1E[1]);
+    const latDir = m1E[2].toUpperCase();
+    let lng = parseFloat(m1E[3]);
+    const lonDir = m1E[4].toUpperCase();
     if (latDir === 'S') lat = -Math.abs(lat);
     if (lonDir === 'W') lng = -Math.abs(lng);
-    return { lngLat: [Number(lng.toFixed(5)), Number(lat.toFixed(5))], hemisphereAmbiguous: false, raw };
+    return { lngLat: [Number(lng.toFixed(5)), Number(lat.toFixed(5))], hemisphereAmbiguous: false, raw, matchedTier: 'Tier-1E-Decimal-Degrees', dataQuality: 'EXPLICIT', hasLatHem: true, hasLonHem: true };
   }
 
-  // Pattern 3: Integer degrees + minutes without explicit symbols (e.g. 20-28N 072-28E or 20-28 072-28)
-  const pattern3 = /(\d{1,3})[-°\s]+(\d{1,2}(?:\.\d+)?)\s*([NS])?[\s,]+(\d{1,3})[-°\s]+(\d{1,2}(?:\.\d+)?)\s*([EW])?/i;
-  const match3 = clean.match(pattern3);
-  if (match3) {
-    let latDeg = parseFloat(match3[1]);
-    let latMin = parseFloat(match3[2]);
-    let latDir = match3[3] ? match3[3].toUpperCase() : null;
+  // Tier 1F: Space/Punctuation Telex (e.g. 11 52 N 146 04 E)
+  const tier1F = /(\d{1,3})\s+(\d{1,2}(?:\.\d+)?)\s*([NS])[\s,]+(\d{1,3})\s+(\d{1,2}(?:\.\d+)?)\s*([EW])/i;
+  const m1F = clean.match(tier1F);
+  if (m1F) {
+    const lat = dmsToDecimal(parseFloat(m1F[1]), parseFloat(m1F[2]), 0, m1F[3].toUpperCase());
+    const lng = dmsToDecimal(parseFloat(m1F[4]), parseFloat(m1F[5]), 0, m1F[6].toUpperCase());
+    return { lngLat: [lng, lat], hemisphereAmbiguous: false, raw, matchedTier: 'Tier-1F-Space-Telex', dataQuality: 'EXPLICIT', hasLatHem: true, hasLonHem: true };
+  }
 
-    let lonDeg = parseFloat(match3[4]);
-    let lonMin = parseFloat(match3[5]);
-    let lonDir = match3[6] ? match3[6].toUpperCase() : null;
+  // Tier 1G: Hemisphere Integrity & Defect Quarantine with explicit boolean checks
+  // Detect candidate tuples containing coordinate numbers where hemisphere letters may be absent or partial
+  const tier1GCandidate = /(?:(\d{1,3}(?:[-°\s]+\d{1,2}(?:[-'′\s]+\d{1,2}(?:\.\d+)?)?(?:\.\d+)?)[′'″"]?\s*([NS])?)[\s,]+(\d{1,3}(?:[-°\s]+\d{1,2}(?:[-'′\s]+\d{1,2}(?:\.\d+)?)?(?:\.\d+)?)[′'″"]?\s*([EW])?))/i;
+  const m1G = clean.match(tier1GCandidate);
+  if (m1G) {
+    const latPart = m1G[1] || '';
+    const lonPart = m1G[3] || '';
+    // Critical boolean check as specified in plan Directive 1
+    const hasLatHem = /[NS]/i.test(latPart);
+    const hasLonHem = /[EW]/i.test(lonPart);
 
-    if (!latDir || !lonDir) {
+    if (!hasLatHem || !hasLonHem) {
+      // Check if global convention rescues this
       if (globalHemisphereConvention) {
-        if (!latDir) latDir = globalHemisphereConvention.latDir;
-        if (!lonDir) lonDir = globalHemisphereConvention.lonDir;
-      } else {
-        return { lngLat: null, hemisphereAmbiguous: true, raw };
-      }
-    }
+        const latNums = latPart.match(/\d+(?:\.\d+)?/g);
+        const lonNums = lonPart.match(/\d+(?:\.\d+)?/g);
+        if (latNums && lonNums) {
+          const latDeg = parseFloat(latNums[0]);
+          const latMin = latNums.length > 1 ? parseFloat(latNums[1]) : 0;
+          const latSec = latNums.length > 2 ? parseFloat(latNums[2]) : 0;
+          const lonDeg = parseFloat(lonNums[0]);
+          const lonMin = lonNums.length > 1 ? parseFloat(lonNums[1]) : 0;
+          const lonSec = lonNums.length > 2 ? parseFloat(lonNums[2]) : 0;
 
-    const lat = dmsToDecimal(latDeg, latMin, 0, latDir || 'N');
-    const lng = dmsToDecimal(lonDeg, lonMin, 0, lonDir || 'E');
-    return { lngLat: [lng, lat], hemisphereAmbiguous: false, raw };
+          const lat = dmsToDecimal(latDeg, latMin, latSec, hasLatHem ? (m1G[2] || 'N').toUpperCase() : globalHemisphereConvention.latDir);
+          const lng = dmsToDecimal(lonDeg, lonMin, lonSec, hasLonHem ? (m1G[4] || 'E').toUpperCase() : globalHemisphereConvention.lonDir);
+          return {
+            lngLat: [lng, lat],
+            hemisphereAmbiguous: false,
+            raw,
+            matchedTier: 'Tier-1G-Rescued-Convention',
+            dataQuality: 'INFERRED',
+            hasLatHem: Boolean(hasLatHem),
+            hasLonHem: Boolean(hasLonHem),
+          };
+        }
+      }
+
+      // No convention -> Strict Quarantine!
+      const defectReason: 'PARTIAL_HEMISPHERE' | 'AMBIGUOUS_HEMISPHERE' =
+        (hasLatHem || hasLonHem) ? 'PARTIAL_HEMISPHERE' : 'AMBIGUOUS_HEMISPHERE';
+
+      return {
+        lngLat: null,
+        hemisphereAmbiguous: true,
+        raw,
+        matchedTier: 'Tier-1G-Quarantine',
+        defectReason,
+        hasLatHem: Boolean(hasLatHem),
+        hasLonHem: Boolean(hasLonHem),
+        dataQuality: 'AMBIGUOUS',
+      };
+    }
   }
 
-  // Check if numbers exist but hemispheres are completely missing
+  // Bare numbers fallback check
   const hasNumbers = /\d{1,3}/.test(clean);
-  if (hasNumbers && !/[NS]/i.test(clean) && !/[EW]/i.test(clean)) {
-    if (globalHemisphereConvention) {
-      const fallbackCleanMatch = clean.match(/(\d{1,3})[^0-9]+(\d{1,2}(?:\.\d+)?)[\s,]+(\d{1,3})[^0-9]+(\d{1,2}(?:\.\d+)?)/);
-      if (fallbackCleanMatch) {
-        const lat = dmsToDecimal(parseFloat(fallbackCleanMatch[1]), parseFloat(fallbackCleanMatch[2]), 0, globalHemisphereConvention.latDir);
-        const lng = dmsToDecimal(parseFloat(fallbackCleanMatch[3]), parseFloat(fallbackCleanMatch[4]), 0, globalHemisphereConvention.lonDir);
-        return { lngLat: [lng, lat], hemisphereAmbiguous: false, raw };
+  if (hasNumbers) {
+    const hasLatHem = /[NS]/i.test(clean);
+    const hasLonHem = /[EW]/i.test(clean);
+    if (!hasLatHem || !hasLonHem) {
+      if (globalHemisphereConvention) {
+        const fallbackNums = clean.match(/\d+(?:\.\d+)?/g);
+        if (fallbackNums && fallbackNums.length >= 2) {
+          const lat = dmsToDecimal(parseFloat(fallbackNums[0]), parseFloat(fallbackNums[1]), 0, globalHemisphereConvention.latDir);
+          const lng = fallbackNums.length >= 4
+            ? dmsToDecimal(parseFloat(fallbackNums[2]), parseFloat(fallbackNums[3]), 0, globalHemisphereConvention.lonDir)
+            : dmsToDecimal(parseFloat(fallbackNums[2] || '0'), 0, 0, globalHemisphereConvention.lonDir);
+          return {
+            lngLat: [lng, lat],
+            hemisphereAmbiguous: false,
+            raw,
+            matchedTier: 'Tier-1G-Fallback-Convention',
+            dataQuality: 'INFERRED',
+            hasLatHem: Boolean(hasLatHem),
+            hasLonHem: Boolean(hasLonHem),
+          };
+        }
       }
+      return {
+        lngLat: null,
+        hemisphereAmbiguous: true,
+        raw,
+        matchedTier: 'Tier-1G-Quarantine',
+        defectReason: (hasLatHem || hasLonHem) ? 'PARTIAL_HEMISPHERE' : 'AMBIGUOUS_HEMISPHERE',
+        hasLatHem: Boolean(hasLatHem),
+        hasLonHem: Boolean(hasLonHem),
+        dataQuality: 'AMBIGUOUS',
+      };
     }
-    return { lngLat: null, hemisphereAmbiguous: true, raw };
   }
 
   return { lngLat: null, hemisphereAmbiguous: false, raw };
@@ -230,13 +359,22 @@ export function parseSingleCoordinatePair(
 /**
  * TIER 1: Evidence-based Deterministic NAVWARN Spatial Interpretation Engine
  */
-export function parseCoordinatesDeterministic(rawText: string, navarea?: NavAreaId): EnhancedSpatialData {
+export function parseCoordinatesDeterministic(
+  rawText: string,
+  navarea?: NavAreaId,
+  options?: {
+    defaultHemisphereConvention?: { latDir: 'N' | 'S'; lonDir: 'E' | 'W' };
+    isSingleHemisphere?: boolean;
+  }
+): EnhancedSpatialData {
   const geometries: EnhancedSpatialGeometry[] = [];
   const circles: SpatialCircle[] = [];
   const rawCoordinateText: string[] = [];
   const evidenceTrail: EvidenceItem[] = [];
   const spatialGroups: CoordinateGroup[] = [];
   const escalationTriggers: EscalationCondition[] = [];
+  const ambiguousPositions: AmbiguousPosition[] = [];
+  const radiusSpecifications: RadiusSpecification[] = [];
 
   if (!rawText || typeof rawText !== 'string') {
     return {
@@ -249,6 +387,9 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
       coordinate_validity: 'VALID',
       geometry_validation: 'VALID',
       escalation_triggers: [],
+      data_quality: 'EXPLICIT',
+      ambiguous_positions: [],
+      radius_specifications: [],
     };
   }
 
@@ -262,7 +403,49 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
     evidenceTrail.push({ rule: 'EXPLICIT_HEMISPHERE_CONVENTION', matched_text: 'ALL POSITIONS ARE IN NORTH AND EAST' });
   }
 
-  let hemisphereAmbiguousFound = false;
+  // Parse radius specification if present (broadened pattern)
+  const radiusSpec = parseRadiusSpecification(sanitizedText);
+  if (radiusSpec) {
+    radiusSpecifications.push(radiusSpec);
+    evidenceTrail.push({
+      rule: 'RADIUS_SPECIFICATION_DETECTED',
+      matched_text: radiusSpec.raw_text,
+      result: { radius_nm: radiusSpec.radius_nm, stated_value: radiusSpec.stated_value, unit: radiusSpec.stated_unit },
+    });
+  }
+
+  // Pre-filter candidate detection for Tier 1G quarantine across the full text
+  // Checks any pair of numbers that resemble coordinates but lack full or partial hemisphere indicators
+  const candidateCoordRegex = /(?:(\d{1,3}(?:[-°\s]+\d{1,2}(?:[-'′\s]+\d{1,2}(?:\.\d+)?)?(?:\.\d+)?)[′'″"]?\s*([NS])?)[\s,]+(\d{1,3}(?:[-°\s]+\d{1,2}(?:[-'′\s]+\d{1,2}(?:\.\d+)?)?(?:\.\d+)?)[′'″"]?\s*([EW])?))/gi;
+  let candidateMatch: RegExpExecArray | null;
+  while ((candidateMatch = candidateCoordRegex.exec(sanitizedText)) !== null) {
+    const candidateStr = candidateMatch[0];
+    const parsedCandidate = parseSingleCoordinatePair(candidateStr, globalConvention);
+    if (parsedCandidate.hemisphereAmbiguous) {
+      const isSingleHemi = Boolean(options?.isSingleHemisphere);
+      const defConv = options?.defaultHemisphereConvention;
+      ambiguousPositions.push({
+        raw_text: candidateStr,
+        reason: parsedCandidate.defectReason || 'AMBIGUOUS_HEMISPHERE',
+        has_lat_hem: Boolean(parsedCandidate.hasLatHem),
+        has_lon_hem: Boolean(parsedCandidate.hasLonHem),
+        // Suggested hemisphere ONLY populated if plugin explicitly declared a single-hemisphere convention
+        suggested_lat_dir: isSingleHemi && defConv ? defConv.latDir : undefined,
+        suggested_lon_dir: isSingleHemi && defConv ? defConv.lonDir : undefined,
+      });
+      evidenceTrail.push({
+        rule: 'DEFECTIVE_HEMISPHERE_QUARANTINED',
+        matched_text: candidateStr,
+        result: {
+          defect: parsedCandidate.defectReason,
+          hasLatHem: parsedCandidate.hasLatHem,
+          hasLonHem: parsedCandidate.hasLonHem,
+        },
+      });
+    }
+  }
+
+  let hemisphereAmbiguousFound = ambiguousPositions.length > 0;
 
   // 1. Check for Multi-Area Lettered Sub-blocks (e.g. (A), (B), (C), (D) as in NAVWARN 977/26)
   const subAreaRegex = /\(([A-Z])\)\s*([^()]+(?:,|\s)[^()]+(?:\([^)]+\))?)/gi;
@@ -379,8 +562,8 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
       evidenceTrail.push({ rule: 'LINE_WIDTH_CORRIDOR_RULE', matched_text: corridorMatch[0], result: { offset_nm: corridorWidth } });
     }
 
-    // D. Extract All Standard Coordinate Pairs
-    const globalCoordPattern = /(\d{1,3}(?:[°\s\-]|Â°)+\d{1,2}(?:\.\d+)?[^\d,]*[NS][\s,]+(?:\bPt\s*\d+:\s*)?\d{1,3}(?:[°\s\-]|Â°)+\d{1,2}(?:\.\d+)?[^\d,]*[EW])/gi;
+    // D. Extract All Standard Coordinate Pairs (DMS, DDM, DD, with hyphens or symbols)
+    const globalCoordPattern = /(?:(?:(\d{1,2}(?:\.\d+)?)\s*°?\s*([NS])[\s,]+(\d{1,3}(?:\.\d+)?)\s*°?\s*([EW]))|(?:(\d{1,2})[-°\s]+(\d{1,2})[-'′\s]+(\d{1,2}(?:\.\d+)?)\s*["″]?\s*([NS])[\s,]+(\d{1,3})[-°\s]+(\d{1,2})[-'′\s]+(\d{1,2}(?:\.\d+)?)\s*["″]?\s*([EW]))|(?:(\d{1,2})[-°\s]+(\d{1,2}(?:\.\d+)?)\s*([NS])[\s,]+(\d{1,3})[-°\s]+(\d{1,2}(?:\.\d+)?)\s*([EW])))/gi;
     const allPairMatches = sanitizedText.match(globalCoordPattern) || [];
     const parsedPoints: { lngLat: [number, number]; raw: string; role: CoordinateRole }[] = [];
 
@@ -406,6 +589,34 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
         uniquePoints.push(pt);
       }
     });
+
+    // Check for trailing radius statements or parsed radius normalisation (broadened pattern)
+    const activeRadius = radiusSpec ? radiusSpec.radius_nm : undefined;
+
+    if (activeRadius !== undefined && circles.length === 0 && uniquePoints.length > 0) {
+      const centerPoint = uniquePoints[0].lngLat;
+      circles.push({
+        center: centerPoint,
+        radius_nm: activeRadius,
+        label: `Danger Zone (${activeRadius} NM Radius)`,
+      });
+      geometries.push({
+        type: 'Circle',
+        semantic_type: 'POINT_WITH_RADIUS',
+        coordinates: centerPoint,
+        radius_nm: activeRadius,
+        label: `${activeRadius} NM Radius Area`,
+        inference_mode: 'EXPLICIT',
+        confidence_level: 'VERIFIED',
+        evidence: [
+          {
+            rule: 'RADIUS_SPECIFICATION_APPLIED',
+            matched_text: radiusSpec ? radiusSpec.raw_text : '',
+          },
+        ],
+      });
+      rawCoordinateText.push(radiusSpec ? radiusSpec.raw_text : '');
+    }
 
     const rawCoordsOnly = uniquePoints.map((p) => p.lngLat);
 
@@ -461,7 +672,7 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
           spatial_group_id: groupId,
           evidence: [{ rule: 'EXPLICIT_LINE_INDICATOR' }],
         });
-      } else if (rawCoordsOnly.length === 1) {
+      } else if (rawCoordsOnly.length === 1 && activeRadius === undefined) {
         geometries.push({
           type: 'Point',
           semantic_type: derivedRadius ? 'POINT_WITH_RADIUS' : 'POINT',
@@ -472,7 +683,7 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
           confidence_level: 'VERIFIED',
           evidence: [{ rule: 'SINGLE_COORDINATE_POINT' }],
         });
-      } else if (rawCoordsOnly.length > 1) {
+      } else if (rawCoordsOnly.length > 1 && activeRadius === undefined) {
         geometries.push({
           type: 'Point',
           semantic_type: 'MULTI_POINT',
@@ -486,11 +697,16 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
     }
   }
 
-  // Check Escalation Conditions
-  if (hemisphereAmbiguousFound) {
+  // DUAL-LAYER SAFETY NET: LAYER 1 (Coordinate Parser)
+  // If ambiguous or partial hemisphere defects exist without convention, strictly wipe geometries
+  if (ambiguousPositions.length > 0 || hemisphereAmbiguousFound) {
+    geometries.length = 0;
+    circles.length = 0;
+    spatialGroups.length = 0;
     escalationTriggers.push('AMBIGUOUS_HEMISPHERE');
   }
-  if (geometries.length === 0 && /\d{1,3}/.test(sanitizedText)) {
+
+  if (geometries.length === 0 && /\d{1,3}/.test(sanitizedText) && ambiguousPositions.length === 0) {
     escalationTriggers.push('COORDINATES_PRESENT_BUT_NOT_PARSED');
   }
 
@@ -522,11 +738,29 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
     }
   }
 
-  if (hemisphereAmbiguousFound) {
+  if (hemisphereAmbiguousFound || ambiguousPositions.length > 0) {
     coordinateValidity = 'INVALID';
     geometryValidation = 'INVALID';
     validation_status = 'invalid_format';
   }
+
+  // DATA QUALITY WORST-OF ROLL-UP:
+  // Priority hierarchy: INVALID > AMBIGUOUS > INFERRED > EXPLICIT
+  let rolledUpQuality: DataQualityRating = 'EXPLICIT';
+  if (validation_status === 'out_of_bounds' || coordinateValidity === 'INVALID' || geometryValidation === 'INVALID') {
+    rolledUpQuality = (ambiguousPositions.length > 0 || hemisphereAmbiguousFound) ? 'AMBIGUOUS' : 'INVALID';
+  } else if (ambiguousPositions.length > 0 || hemisphereAmbiguousFound) {
+    rolledUpQuality = 'AMBIGUOUS';
+  } else if (globalConvention !== null || geometries.some(g => g.inference_mode === 'INFERRED')) {
+    rolledUpQuality = 'INFERRED';
+  } else {
+    rolledUpQuality = 'EXPLICIT';
+  }
+
+  // Tag feature-level data_quality on every geometry
+  geometries.forEach((g) => {
+    g.data_quality = rolledUpQuality;
+  });
 
   return {
     geometries,
@@ -534,12 +768,15 @@ export function parseCoordinatesDeterministic(rawText: string, navarea?: NavArea
     spatial_groups: spatialGroups,
     raw_coordinate_text: Array.from(new Set(rawCoordinateText)),
     validation_status,
-    hemisphere_status: hemisphereAmbiguousFound ? 'AMBIGUOUS_HEMISPHERE' : 'EXPLICIT',
+    hemisphere_status: (hemisphereAmbiguousFound || ambiguousPositions.length > 0) ? 'AMBIGUOUS_HEMISPHERE' : 'EXPLICIT',
     navarea_relation: navareaRelation,
     coordinate_validity: coordinateValidity,
     geometry_validation: geometryValidation,
     escalation_triggers: escalationTriggers,
-    review_required: escalationTriggers.length > 0,
+    review_required: escalationTriggers.length > 0 || ambiguousPositions.length > 0,
+    data_quality: rolledUpQuality,
+    ambiguous_positions: ambiguousPositions,
+    radius_specifications: radiusSpecifications,
   };
 }
 
@@ -579,6 +816,9 @@ export function getLeafletLatLng(
   directLat?: number | null,
   directLng?: number | null
 ): [number, number] {
+  if (spatial && (spatial.data_quality === 'AMBIGUOUS' || spatial.data_quality === 'INVALID')) {
+    return [0, 0];
+  }
   if (
     typeof directLat === 'number' &&
     typeof directLng === 'number' &&
@@ -597,6 +837,7 @@ export function getLeafletLatLng(
   }
   if (spatial.geometries && spatial.geometries.length > 0) {
     for (const g of spatial.geometries) {
+      if (g.data_quality === 'AMBIGUOUS' || g.data_quality === 'INVALID') continue;
       const pt = findFirstPoint(g?.coordinates);
       if (pt && typeof pt[0] === 'number' && typeof pt[1] === 'number') {
         return [pt[1], pt[0]];

@@ -259,6 +259,13 @@ CREATE TABLE IF NOT EXISTS public.sources_registry (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Grant access permissions for service_role, authenticated, and anon:
+GRANT ALL ON TABLE public.nav_warnings TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.raw_artifacts TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.sources_registry TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.ingestion_generations TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.raw_messages TO anon, authenticated, service_role;
+
 -- ══════════════════════════════════════════════════════════════
 -- NAVAREA SEGREGATED SCHEMAS & COMPLETE PARAMETER STORES
 -- Creates dedicated PostgreSQL schemas for all 21 NAVAREAs + Baltic
