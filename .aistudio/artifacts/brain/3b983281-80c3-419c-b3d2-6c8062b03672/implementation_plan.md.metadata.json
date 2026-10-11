@@ -1,6 +1,6 @@
 {
-  "summary":  "Final locked implementation plan with minor polish incorporated: explicit boolean flag population on AmbiguousPosition, robust coordinate candidate pre-filter for Tier 1G to catch single-hemisphere patterns, and preservation of raw_stated_unit alongside normalized radius. Plan is ready for execution.",
-  "updatedAt":  "2026-10-11T08:10:52.794734683Z",
+  "summary":  "Implementation Plan v4 — Full-Corpus NAVAREA Warning Plotting System.\nIncorporates:\n- Generalization discipline with a frozen 15% held-out slice and explicit failure triage protocol (new pattern vs accepted noise).\n- Deterministic lifecycle resolution chain with timestamp-based contradiction resolution and explicit CANCEL precedence over earlier lists.\n- Partial and truncated in-force list handling (fixture IX 529/24) with visible UI badges and prefix-scoped oracle assertions.\n- Keyword classification hygiene rules (strict boundaries, DEMOLITION ordnance co-occurrence, MINE critical mapping) and 8-fixture adversarial test suite.\n- Reinstated binding acceptance criteria tables: 17-pattern golden fixture suite, 5,000-warning performance budgets, and comprehensive risk/mitigation register.\n- M3 Lifecycle effort marked as L, and visual design note detailing the hazardIcons.ts SVG registry.",
+  "updatedAt":  "2026-10-11T13:58:53.878171547Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

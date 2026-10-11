@@ -135,6 +135,16 @@ export const WarningHierarchyLines: React.FC<WarningHierarchyLinesProps> = ({
               COASTAL
             </span>
           )}
+          {/TRUNCATED/i.test(w.raw_text || '') && (
+            <span className="text-[8px] font-mono font-bold px-1 rounded bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
+              LIST TRUNCATED
+            </span>
+          )}
+          {(!w.spatial?.geometries?.length && !w.spatial?.circles?.length && !w.latitude) && (
+            <span className="text-[8px] font-mono font-bold px-1 rounded bg-orange-100 text-orange-900 border border-orange-300 shrink-0">
+              {/IN\s+FORCE/i.test(w.raw_text || '') ? 'UNPLOTTED: META_LIST' : 'UNPLOTTED: NO_COORDS'}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {line1Right}

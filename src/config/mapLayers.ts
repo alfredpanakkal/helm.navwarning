@@ -23,6 +23,7 @@ export const MAP_PANES: Record<string, PaneDefinition> = {
   soundingsPane: { name: 'soundingsPane', zIndex: 250, pointerEvents: 'none' },
   seamarksPane: { name: 'seamarksPane', zIndex: 300, pointerEvents: 'none' },
   navWarnVectorPane: { name: 'navWarnVectorPane', zIndex: 400 },
+  navWarnHaloPane: { name: 'navWarnHaloPane', zIndex: 500, pointerEvents: 'none' },
   navWarnMarkerPane: { name: 'navWarnMarkerPane', zIndex: 600 },
 };
 

@@ -33,6 +33,9 @@ import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
 import { useMapLayers, WarningSeverityLevel } from '../hooks/useMapLayers';
 import { useUILegacy } from '../lib/uiFlags';
 import { WarningHierarchyLines } from './WarningItemV2';
+import { classifyWarning } from '../parsers/warningClassifier';
+import { renderHazardBadgeHtml } from '../utils/hazardIcons';
+import { parseBerthAndRadius } from '../parsers/berthParser';
 
 export type ScopeFilterType = 'all' | 'navarea' | 'coastal';
 
@@ -83,6 +86,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const unclusteredGroupRef = useRef<L.LayerGroup | null>(null);
   const vectorLayersGroupRef = useRef<L.LayerGroup | null>(null);
   const jumpBeaconRef = useRef<L.Marker | null>(null);
+  const hoverHaloLayerRef = useRef<L.Circle | null>(null);
 
   // Layer configuration and dynamic styling state
   const {
@@ -427,29 +431,41 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       }
 
       const isIsolated = isolatedWarning?.warning_id === w.warning_id;
-      const severity: WarningSeverityLevel =
-        w.extraction_confidence === 1
-          ? 'critical'
-          : w.extraction_confidence >= 0.8
-          ? 'high'
-          : 'moderate';
+      const classification = classifyWarning(w.raw_text || w.area_text || '');
+      const statedBerth = parseBerthAndRadius(w.raw_text || '');
 
-      // Marker element with high-contrast palette
-      const icon = L.divIcon({
-        className: 'nw-marker-wrap',
-        html: `<div class="nw-marker ${
-          w.extraction_confidence === 1
-            ? 'sev-critical'
-            : isDarkBasemap
-            ? 'sev-high-dark'
-            : 'sev-high'
-        }"></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
-      });
+      // Determine geometry presence
+      const hasPolygons = Boolean(
+        w.spatial?.geometries?.some(
+          (g) => g.type === 'Polygon' && Array.isArray(g.coordinates) && g.coordinates.length > 0
+        )
+      );
+      const hasCircles = Boolean(w.spatial?.circles && w.spatial.circles.length > 0);
 
-      if (activeMarkerLayer) {
-        // Marker rendered in navWarnMarkerPane (z-index 600)
+      // User Decision: Hide center point when area or circle is visible
+      const hideCenterPoint = showPolygons && (hasPolygons || hasCircles);
+
+      // User Decision: Pulsating animation for active firing or live hazard zones
+      const isLiveFiring =
+        classification.category === 'mil_fire' ||
+        /GUNNERY|FIRING\s+EXERCISE|MISSILE\s+FIRING|ROCKET\s+LAUNCH/i.test(w.raw_text || '');
+
+      // Render Point Marker only if center point is NOT suppressed
+      if (!hideCenterPoint && activeMarkerLayer) {
+        const badgeHtml = renderHazardBadgeHtml(
+          classification.category,
+          classification.displayStyle,
+          isLiveFiring,
+          w.sub_area || undefined
+        );
+
+        const icon = L.divIcon({
+          className: 'nw-marker-wrap',
+          html: badgeHtml,
+          iconSize: [26, 26],
+          iconAnchor: [13, 13],
+        });
+
         const m = L.marker(coords, {
           icon,
           pane: 'navWarnMarkerPane',
@@ -457,12 +473,41 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
         m.on('click', () => onSelectWarning(w));
         m.on('contextmenu', (e: L.LeafletMouseEvent) => handleLayerContextMenu(e, w, coords));
+
+        // User Decision: Show hazard radius buffer on hover for single point warnings
+        m.on('mouseover', () => {
+          if (!leafletInstance.current) return;
+          if (hoverHaloLayerRef.current) {
+            leafletInstance.current.removeLayer(hoverHaloLayerRef.current);
+            hoverHaloLayerRef.current = null;
+          }
+          const radiusNm = statedBerth?.radiusNm ?? statedBerth?.clearanceNm ?? 0.5;
+          const radiusMeters = radiusNm * 1852;
+          const halo = L.circle(coords, {
+            pane: 'navWarnHaloPane',
+            radius: radiusMeters,
+            color: classification.displayStyle === 'critical' ? '#dc2626' : '#ea580c',
+            weight: 1.5,
+            dashArray: '4, 4',
+            fillColor: classification.displayStyle === 'critical' ? '#dc2626' : '#ea580c',
+            fillOpacity: 0.14,
+          }).addTo(leafletInstance.current);
+          hoverHaloLayerRef.current = halo;
+        });
+
+        m.on('mouseout', () => {
+          if (leafletInstance.current && hoverHaloLayerRef.current) {
+            leafletInstance.current.removeLayer(hoverHaloLayerRef.current);
+            hoverHaloLayerRef.current = null;
+          }
+        });
       }
 
       // Geometries rendered in navWarnVectorPane (z-index 400)
       if (showPolygons && vectorGroup) {
-        const polyStyle = getVectorStyle(severity, isIsolated);
+        const polyStyle = getVectorStyle(classification.severity as WarningSeverityLevel, isIsolated);
 
+        // 1. Polygons & Polylines / Corridors
         if (w.spatial?.geometries) {
           w.spatial.geometries.forEach((geom) => {
             if (geom.type === 'Polygon' && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
@@ -482,13 +527,35 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
                 });
               } catch {
-                // Malformed geometry fallback
+                // Malformed polygon fallback
+              }
+            } else if (
+              (geom.type === 'LineString' || (geom as any).type === 'Polyline') &&
+              Array.isArray(geom.coordinates) &&
+              geom.coordinates.length > 0
+            ) {
+              // User Decision: Render linear polyline corridors for cable and tow routes
+              try {
+                const latLngs: L.LatLngExpression[] = (geom.coordinates as any[]).map((pt) => [pt[1], pt[0]]);
+                const polyline = L.polyline(latLngs, {
+                  color: classification.displayStyle === 'critical' ? '#dc2626' : '#059669',
+                  weight: 3,
+                  dashArray: '6, 6',
+                  pane: 'navWarnVectorPane',
+                }).addTo(vectorGroup);
+
+                polyline.on('click', () => onSelectWarning(w));
+                polyline.on('contextmenu', (e: L.LeafletMouseEvent) => {
+                  handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
+                });
+              } catch {
+                // Malformed polyline fallback
               }
             }
           });
         }
 
-        // Circular hazard buffers
+        // 2. Circular hazard exclusion buffers
         if (w.spatial?.circles) {
           const circleStyle = getCircleStyle(isIsolated);
           w.spatial.circles.forEach((circ) => {
@@ -530,6 +597,16 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     }, 150);
     return () => clearTimeout(timer);
   }, [isSidebarOpen]);
+
+  // Robust container resize and visibility observer (handles tab switches & responsive layout)
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const observer = new ResizeObserver(() => {
+      leafletInstance.current?.invalidateSize();
+    });
+    observer.observe(mapRef.current);
+    return () => observer.disconnect();
+  }, [mapReady]);
 
   // Jump-to-coordinate executor
   const handleExecuteJump = (input: string) => {

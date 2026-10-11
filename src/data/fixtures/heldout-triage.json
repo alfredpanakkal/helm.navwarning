@@ -1,0 +1,10 @@
+{
+  "NAVAREA IX 103/24": {
+    "status": "accepted_noise",
+    "explanation": "Rig under tow contains 2 waypoints (origin and destination); categorized as rig with relocation/polyline archetype depending on tow ladder step."
+  },
+  "NAVAREA IX 203/24": {
+    "status": "accepted_noise",
+    "explanation": "Wreck notice with no explicit numeric coordinates; categorized as wreck, archetype: none, routed to gazetteer / list panel with unplotted: no_coordinates."
+  }
+}

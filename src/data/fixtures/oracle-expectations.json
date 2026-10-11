@@ -1,0 +1,36 @@
+{
+  "inForceLists": {
+    "NAVAREA IX 364/24": {
+      "entryCount": 34,
+      "cancelledRefs": [
+        "NAVAREA IX 360/24"
+      ]
+    },
+    "NAVAREA IX 350/24": {
+      "entryCount": 14,
+      "cancelledRefs": [
+        "NAVAREA IX 340/24"
+      ]
+    },
+    "NAVAREA IV 978/24": {
+      "entryCount": 21,
+      "cancelledRefs": [
+        "NAVAREA IV 857/24",
+        "NAVAREA IV 961/24",
+        "NAVAREA IV 977/24"
+      ]
+    }
+  },
+  "textUnavailableIds": [
+    "NAVAREA IX 118/23",
+    "NAVAREA IX 254/24",
+    "NAVAREA IX 441/24",
+    "NAVAREA IX 442/24",
+    "NAVAREA IX 484/24",
+    "NAVAREA IX 571/24",
+    "NAVAREA IX 578/24",
+    "NAVAREA IV 7/24",
+    "NAVAREA IV 190/24"
+  ],
+  "textUnavailableCount": 9
+}

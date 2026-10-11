@@ -1,0 +1,187 @@
+[
+  {
+    "warningId": "NAVAREA IX 354/24",
+    "category": "sar",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IV 961/24",
+    "category": "sar",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IX 601/24",
+    "category": "sar",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IX 365/24",
+    "category": "mil_fire",
+    "archetype": "polygon"
+  },
+  {
+    "warningId": "NAVAREA IV 870/24",
+    "category": "mil_fire",
+    "archetype": "polygon"
+  },
+  {
+    "warningId": "NAVAREA IV 1002/24",
+    "category": "mil_fire",
+    "archetype": "polygon"
+  },
+  {
+    "warningId": "NAVAREA IX 201/24",
+    "category": "uxo",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IV 967/24",
+    "category": "uxo",
+    "archetype": "point_radius"
+  },
+  {
+    "warningId": "NAVAREA IX 603/24",
+    "category": "uxo",
+    "archetype": "point_radius"
+  },
+  {
+    "warningId": "NAVAREA IV 1004/24",
+    "category": "weather",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IX 604/24",
+    "category": "weather",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IV 979/24",
+    "category": "ice",
+    "archetype": "polyline"
+  },
+  {
+    "warningId": "NAVAREA IV 1005/24",
+    "category": "ice",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IX 328/24",
+    "category": "security",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IX 84/24",
+    "category": "security",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IV 1006/24",
+    "category": "security",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IX 189/24",
+    "category": "drift",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IV 842/24",
+    "category": "drift",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IV 1007/24",
+    "category": "drift",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IX 203/24",
+    "category": "wreck",
+    "archetype": "none"
+  },
+  {
+    "warningId": "NAVAREA IV 1008/24",
+    "category": "wreck",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IV 649/24",
+    "category": "cable",
+    "archetype": "corridor"
+  },
+  {
+    "warningId": "NAVAREA IX 484/25",
+    "category": "cable",
+    "archetype": "polyline"
+  },
+  {
+    "warningId": "NAVAREA IV 1009/24",
+    "category": "cable",
+    "archetype": "corridor"
+  },
+  {
+    "warningId": "NAVAREA IX 261/24",
+    "category": "survey",
+    "archetype": "point_radius"
+  },
+  {
+    "warningId": "NAVAREA IX 358/24",
+    "category": "survey",
+    "archetype": "point_radius"
+  },
+  {
+    "warningId": "NAVAREA IV 1010/24",
+    "category": "survey",
+    "archetype": "point_radius"
+  },
+  {
+    "warningId": "NAVAREA IX 214/24",
+    "category": "rig",
+    "archetype": "point_radius"
+  },
+  {
+    "warningId": "NAVAREA IX 103/24",
+    "category": "rig",
+    "archetype": "polyline"
+  },
+  {
+    "warningId": "NAVAREA IV 1011/24",
+    "category": "rig",
+    "archetype": "point_radius"
+  },
+  {
+    "warningId": "NAVAREA IX 355/24",
+    "category": "aton",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IV 551/24",
+    "category": "aton",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IX 611/24",
+    "category": "aton",
+    "archetype": "point"
+  },
+  {
+    "warningId": "NAVAREA IX 612/24",
+    "category": "restricted",
+    "archetype": "point_radius"
+  },
+  {
+    "warningId": "NAVAREA IV 1013/24",
+    "category": "restricted",
+    "archetype": "point_radius"
+  },
+  {
+    "warningId": "NAVAREA IX 285/24",
+    "category": "ops",
+    "archetype": "point_radius"
+  },
+  {
+    "warningId": "NAVAREA IV 1014/24",
+    "category": "ops",
+    "archetype": "point"
+  }
+]
