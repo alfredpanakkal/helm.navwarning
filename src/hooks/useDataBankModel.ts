@@ -12,8 +12,10 @@ import {
 import {
   useInForceStatus,
   getInForceStatusForNavarea,
+  clearInForceStatusCache,
   type InForceStatusResult,
 } from './useInForceStatus';
+import { FEATURE_FLAGS } from '../lib/featureFlags';
 
 export interface DataBankProps {
   warnings: NavWarning[];
@@ -409,6 +411,13 @@ export function useDataBankModel({
   const getInForceStatus = (navarea: string): InForceStatusResult | null => {
     return getInForceStatusForNavarea(navarea, warnings);
   };
+
+  // Cache clearing effect on model lifecycle
+  useEffect(() => {
+    return () => {
+      clearInForceStatusCache();
+    };
+  }, []);
 
   return {
     warnings,
