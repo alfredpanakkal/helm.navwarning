@@ -55,7 +55,7 @@ export function securityHeadersMiddleware(req: Request, res: Response, next: Nex
     // server.arcgisonline.com serves the default esri-ocean basemap and the
     // esri-labels overlay (src/config/mapLayers.ts); without it in img-src the
     // default chart imagery is blocked by CSP and the map renders blank.
-    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openseamap.org https://server.arcgisonline.com https://unpkg.com https://*.supabase.co",
+    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openseamap.org https://server.arcgisonline.com https://*.basemaps.cartocdn.com https://unpkg.com https://*.supabase.co",
     `connect-src ${connectSources.join(' ')}`,
     "frame-ancestors 'self' https://*.google.com https://ai.studio https://*.run.app",
     "object-src 'none'",

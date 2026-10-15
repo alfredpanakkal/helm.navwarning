@@ -1,5 +1,11 @@
 {
   "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/tiles/carto/:style/:z/:x/:y",
+      "destination": "/api/tiles/carto?style=:style&z=:z&x=:x&y=:y"
+    }
+  ],
   "headers": [
     {
       "source": "/admin",
