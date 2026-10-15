@@ -53,11 +53,34 @@ export function extractWarnings(text: string, sourceId: string, defaultNavarea: 
     let directLat: number | null = null;
     let directLng: number | null = null;
 
+    // Extract direct lat/lng from any geometry type, not just Point
     if (spatial.geometries?.length > 0) {
       const geom = spatial.geometries[0];
       if (geom.type === 'Point' && Array.isArray(geom.coordinates) && geom.coordinates.length >= 2) {
         directLng = Number(geom.coordinates[0]);
         directLat = Number(geom.coordinates[1]);
+      } else if (geom.type === 'Polygon' && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
+        // Use first vertex of polygon for direct lat/lng
+        const firstRing = geom.coordinates[0];
+        if (Array.isArray(firstRing) && firstRing.length > 0 && Array.isArray(firstRing[0]) && firstRing[0].length >= 2) {
+          directLng = Number(firstRing[0][0]);
+          directLat = Number(firstRing[0][1]);
+        }
+      } else if (geom.type === 'LineString' && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
+        // Use first point of line for direct lat/lng
+        if (Array.isArray(geom.coordinates[0]) && geom.coordinates[0].length >= 2) {
+          directLng = Number(geom.coordinates[0][0]);
+          directLat = Number(geom.coordinates[0][1]);
+        }
+      }
+    }
+    
+    // Also extract from circles
+    if (!directLat && !directLng && spatial.circles?.length > 0) {
+      const circle = spatial.circles[0];
+      if (Array.isArray(circle.center) && circle.center.length >= 2) {
+        directLng = Number(circle.center[0]);
+        directLat = Number(circle.center[1]);
       }
     }
 

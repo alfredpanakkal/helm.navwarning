@@ -698,12 +698,12 @@ export function parseCoordinatesDeterministic(
   }
 
   // DUAL-LAYER SAFETY NET: LAYER 1 (Coordinate Parser)
-  // If ambiguous or partial hemisphere defects exist without convention, strictly wipe geometries
+  // If ambiguous or partial hemisphere defects exist without convention, mark for review
+  // but preserve parsed geometries to allow rendering with appropriate warnings
   if (ambiguousPositions.length > 0 || hemisphereAmbiguousFound) {
-    geometries.length = 0;
-    circles.length = 0;
-    spatialGroups.length = 0;
     escalationTriggers.push('AMBIGUOUS_HEMISPHERE');
+    // Note: We no longer wipe geometries here - instead we mark data_quality
+    // and let downstream consumers decide how to handle ambiguous data
   }
 
   if (geometries.length === 0 && /\d{1,3}/.test(sanitizedText) && ambiguousPositions.length === 0) {
@@ -741,7 +741,11 @@ export function parseCoordinatesDeterministic(
   if (hemisphereAmbiguousFound || ambiguousPositions.length > 0) {
     coordinateValidity = 'INVALID';
     geometryValidation = 'INVALID';
-    validation_status = 'invalid_format';
+    // Keep validation_status as 'passed' if we have geometries, but mark data_quality as AMBIGUOUS
+    // This allows rendering with appropriate warnings rather than silently dropping
+    if (geometries.length === 0 && circles.length === 0) {
+      validation_status = 'invalid_format';
+    }
   }
 
   // DATA QUALITY WORST-OF ROLL-UP:
@@ -811,14 +815,65 @@ export function formatSpatialCoordinates(spatial: SpatialData | undefined | null
   return 'N/A';
 }
 
+function calculatePolygonCentroid(coords: number[][][] | number[][]): [number, number] {
+  // Calculate centroid of a polygon (first ring only if multi-ring)
+  // coords can be Polygon ([[ring]]), MultiPolygon ([[ring1], [ring2]]), or just a ring
+  let ring: number[][];
+  if (Array.isArray(coords) && coords.length > 0) {
+    const first = coords[0];
+    if (Array.isArray(first) && first.length > 0 && Array.isArray(first[0])) {
+      ring = first as number[][];
+    } else {
+      ring = coords as number[][];
+    }
+  } else {
+    ring = coords as number[][];
+  }
+  
+  if (!Array.isArray(ring) || ring.length === 0) return [0, 0];
+  
+  let sumLng = 0;
+  let sumLat = 0;
+  let count = 0;
+  
+  for (const pt of ring) {
+    if (Array.isArray(pt) && pt.length >= 2 && typeof pt[0] === 'number' && typeof pt[1] === 'number') {
+      sumLng += pt[0];
+      sumLat += pt[1];
+      count++;
+    }
+  }
+  
+  if (count === 0) return [0, 0];
+  return [sumLat / count, sumLng / count];
+}
+
+function calculateLineMidpoint(coords: number[][]): [number, number] {
+  // Calculate midpoint of a line
+  if (!Array.isArray(coords) || coords.length === 0) return [0, 0];
+  if (coords.length === 1) {
+    const pt = coords[0];
+    if (Array.isArray(pt) && pt.length >= 2) {
+      return [pt[1] as number, pt[0] as number];
+    }
+    return [0, 0];
+  }
+  
+  const first = coords[0];
+  const last = coords[coords.length - 1];
+  if (Array.isArray(first) && first.length >= 2 && Array.isArray(last) && last.length >= 2) {
+    return [(first[1] as number + last[1] as number) / 2, (first[0] as number + last[0] as number) / 2];
+  }
+  return [0, 0];
+}
+
 export function getLeafletLatLng(
   spatial: SpatialData | undefined | null,
   directLat?: number | null,
   directLng?: number | null
 ): [number, number] {
-  if (spatial && (spatial.data_quality === 'AMBIGUOUS' || spatial.data_quality === 'INVALID')) {
-    return [0, 0];
-  }
+  // Priority: direct lat/lng > circles > polygons > lines > first point
+  
   if (
     typeof directLat === 'number' &&
     typeof directLng === 'number' &&
@@ -828,22 +883,57 @@ export function getLeafletLatLng(
   ) {
     return [directLat, directLng];
   }
+  
   if (!spatial) return [0, 0];
-  if (spatial.circles && spatial.circles.length > 0 && Array.isArray(spatial.circles[0].center)) {
-    const [lng, lat] = spatial.circles[0].center;
-    if (typeof lng === 'number' && typeof lat === 'number') {
-      return [lat, lng];
+  
+  // Don't return [0,0] just because data_quality is AMBIGUOUS - we still want to show the geometry
+  // The data_quality flag is for UI display purposes, not for preventing rendering
+  if (spatial.data_quality === 'INVALID') {
+    return [0, 0];
+  }
+  
+  // Circles: return center
+  if (spatial.circles && spatial.circles.length > 0) {
+    for (const c of spatial.circles) {
+      if (Array.isArray(c.center) && c.center.length >= 2 && typeof c.center[0] === 'number' && typeof c.center[1] === 'number') {
+        return [c.center[1], c.center[0]];
+      }
     }
   }
+  
+  // Geometries: prefer polygons, then lines, then points
   if (spatial.geometries && spatial.geometries.length > 0) {
+    // Find first valid polygon and return its centroid
     for (const g of spatial.geometries) {
-      if (g.data_quality === 'AMBIGUOUS' || g.data_quality === 'INVALID') continue;
+      if (g.type === 'Polygon' && Array.isArray(g.coordinates)) {
+        const coords = g.coordinates as number[][][] | number[][];
+        const centroid = calculatePolygonCentroid(coords);
+        if (centroid[0] !== 0 || centroid[1] !== 0) {
+          return centroid;
+        }
+      }
+    }
+    
+    // Find first valid line and return its midpoint
+    for (const g of spatial.geometries) {
+      if (g.type === 'LineString' && Array.isArray(g.coordinates)) {
+        const coords = g.coordinates as number[][];
+        const midpoint = calculateLineMidpoint(coords);
+        if (midpoint[0] !== 0 || midpoint[1] !== 0) {
+          return midpoint;
+        }
+      }
+    }
+    
+    // Fall back to first point from any geometry
+    for (const g of spatial.geometries) {
       const pt = findFirstPoint(g?.coordinates);
       if (pt && typeof pt[0] === 'number' && typeof pt[1] === 'number') {
         return [pt[1], pt[0]];
       }
     }
   }
+  
   return [0, 0];
 }
 

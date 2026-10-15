@@ -2264,10 +2264,12 @@ Instructions:
         }
 
         // Dual-Layer Empty Geometry Enforcement (Layer 2)
+        // Updated: No longer wipe geometries for ambiguous positions - preserve for rendering
+        // but mark as unverified. This allows polygons/circles/lines to be displayed with
+        // appropriate warnings rather than silently falling back to points.
         if ((warning.ambiguous_positions && warning.ambiguous_positions.length > 0) || warning.data_quality === 'AMBIGUOUS' || warning.data_quality === 'INVALID') {
-          warning.spatial = null as any;
-          warning.latitude = null;
-          warning.longitude = null;
+          warning.is_verified = false;
+          // Keep spatial data but ensure it's marked appropriately
         }
         warningsDb.unshift(warning);
         const supabase = getSupabaseClient();
@@ -2478,19 +2480,16 @@ Instructions:
       };
 
       // Layer 2 Empty Geometry Enforcement (Belt-and-suspenders)
+      // Updated: No longer wipe geometries for ambiguous positions - preserve for rendering
+      // but mark as unverified. This allows polygons/circles/lines to be displayed with
+      // appropriate warnings rather than silently falling back to points.
       if (
         (newWarn.ambiguous_positions && newWarn.ambiguous_positions.length > 0) ||
         newWarn.data_quality === 'AMBIGUOUS' ||
         newWarn.data_quality === 'INVALID'
       ) {
-        newWarn.spatial = {
-          geometries: [],
-          circles: [],
-          raw_coordinate_text: [],
-          validation_status: 'invalid_format' as any,
-        };
-        newWarn.latitude = null;
-        newWarn.longitude = null;
+        newWarn.is_verified = false;
+        // Keep spatial data but ensure it's marked appropriately
       }
 
       // Store in memory database
@@ -2561,10 +2560,12 @@ Instructions:
       }
 
       // Dual-Layer Empty Geometry Enforcement (Layer 2)
+      // Updated: No longer wipe geometries for ambiguous positions - preserve for rendering
+      // but mark as unverified. This allows polygons/circles/lines to be displayed with
+      // appropriate warnings rather than silently falling back to points.
       if ((warning.ambiguous_positions && warning.ambiguous_positions.length > 0) || warning.data_quality === 'AMBIGUOUS' || warning.data_quality === 'INVALID') {
-        warning.spatial = null as any;
-        warning.latitude = null;
-        warning.longitude = null;
+        warning.is_verified = false;
+        // Keep spatial data but ensure it's marked appropriately
       }
 
       // Store in memory database
@@ -2784,10 +2785,12 @@ Instructions:
         }
 
         // Dual-Layer Empty Geometry Enforcement (Layer 2)
+        // Updated: No longer wipe geometries for ambiguous positions - preserve for rendering
+        // but mark as unverified. This allows polygons/circles/lines to be displayed with
+        // appropriate warnings rather than silently falling back to points.
         if ((warning.ambiguous_positions && warning.ambiguous_positions.length > 0) || warning.data_quality === 'AMBIGUOUS' || warning.data_quality === 'INVALID') {
-          warning.spatial = null as any;
-          warning.latitude = null;
-          warning.longitude = null;
+          warning.is_verified = false;
+          // Keep spatial data but ensure it's marked appropriately
         }
 
         if (jhodResult?.block_type === 'in_force_manifest' || /MESSAGES IN FORCE/i.test(block)) {
