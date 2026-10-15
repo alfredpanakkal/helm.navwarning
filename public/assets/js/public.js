@@ -10,6 +10,55 @@ const SEED_WARNINGS = [
  {id:"0311/26",navarea:"NA X",title:"Australian Waters — Hazard",severity:"high",issued:"2026-09-14",issued_text:"140200 UTC SEP 2026",coords:"-16.75, 148.21",lat:-16.75,lng:148.21,status:"active",category:"general",text:"NAVAREA X 0311/26 AUSTRALIAN WATERS. HAZARD REPORTED.",is_verified:false}
 ];
 
+// ═══════════ BULLETIN & DATE HELPERS ═══════════
+function getBulletinText(obj) {
+  if (!obj || typeof obj !== 'object') return '';
+  const text = (
+    obj.bulletin ||
+    obj.raw_text ||
+    obj.text ||
+    obj.rawText ||
+    obj.raw_nav_warning ||
+    obj.body ||
+    obj.details ||
+    obj.message ||
+    obj.content ||
+    obj.description ||
+    ''
+  );
+  return typeof text === 'string' ? text.trim() : String(text || '');
+}
+
+function formatWarningDate(w) {
+  if (!w || typeof w !== 'object') return 'N/A';
+  const val = w.issued_date || w.issued || w.date || w.issued_text || w.issued_at || w.timestamp || w.created_at;
+  if (!val) return 'N/A';
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return 'N/A';
+    if (trimmed.includes('T') && !isNaN(Date.parse(trimmed))) {
+      try {
+        return trimmed.split('T')[0];
+      } catch (_) {}
+    }
+    return trimmed;
+  }
+  if (typeof val === 'number') {
+    try {
+      return new Date(val).toISOString().split('T')[0];
+    } catch (_) {}
+  }
+  return String(val);
+}
+
+function formatWarningIssuedText(w) {
+  if (!w || typeof w !== 'object') return 'N/A';
+  const val = w.issued_text || w.issued_date || w.issued || w.date || w.issued_at || w.timestamp || w.created_at;
+  if (!val) return 'N/A';
+  const str = String(val).trim();
+  return (str && str !== 'undefined' && str !== 'null') ? str : 'N/A';
+}
+
 // ═══════════ DEVICE / NAV ═══════════
 function detectDevice(){
   const w=window.innerWidth, ua=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
@@ -328,7 +377,7 @@ async function toggleInlineWarning(w, itemEl){
   expBody.onclick = (e) => e.stopPropagation();
 
   const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}, ${lng.toFixed(2)}` : 'N/A');
-  const issuedText = w.issued_text || w.issued_date || w.issued || 'N/A';
+  const issuedText = formatWarningIssuedText(w);
   const wid = w.warning_id || w.id;
 
   expBody.innerHTML = `
@@ -356,20 +405,22 @@ async function toggleInlineWarning(w, itemEl){
 
   const textEl = expBody.querySelector('.warning-expanded-text');
   if (textEl) {
-    if (w.raw_text) {
-      textEl.innerText = w.raw_text;
-    } else if (w.text) {
-      textEl.innerText = w.text;
+    const existing = getBulletinText(w);
+    if (existing) {
+      textEl.innerText = existing;
     } else {
       const fetchFn = typeof fetchWarningDetails === 'function'
         ? fetchWarningDetails
         : (window.hwDb && window.hwDb.fetchWarningDetails);
-      const details = fetchFn ? await fetchFn(w.id || w.warning_id) : null;
-      if (details && details.raw_text) {
-        w.raw_text = details.raw_text;
-        textEl.innerText = w.raw_text;
+      const details = fetchFn ? await fetchFn(w.id || wid || w) : null;
+      const text = getBulletinText(details);
+      if (text) {
+        w.raw_text = text;
+        w.bulletin = text;
+        textEl.innerText = text;
       } else {
-        textEl.innerText = "No additional bulletin text available.";
+        const fallbackText = getBulletinText(w) || w.area_text || w.title;
+        textEl.innerText = fallbackText || "No additional bulletin text available.";
       }
     }
   }
@@ -429,7 +480,7 @@ function rebuildMapList(items = null){
         <div class="warning-item-title-col">
           <div class="warning-id">${wid} · ${w.navarea}</div>
           <div class="warning-meta">${w.title}</div>
-          <div class="warning-meta">${w.issued_date || w.issued}</div>
+          <div class="warning-meta">${formatWarningDate(w)}</div>
         </div>
         <svg class="warning-item-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
       </div>`;
@@ -652,24 +703,27 @@ function toggleTableDetailRow(w, tr) {
 
   const textEl = detailTr.querySelector('.table-detail-text');
   if (textEl) {
-    if (w.raw_text) {
-      textEl.innerText = w.raw_text;
-    } else if (w.text) {
-      textEl.innerText = w.text;
+    const existing = getBulletinText(w);
+    if (existing) {
+      textEl.innerText = existing;
     } else {
       const fetchFn = typeof fetchWarningDetails === 'function'
         ? fetchWarningDetails
         : (window.hwDb && window.hwDb.fetchWarningDetails);
-      const fetchPromise = fetchFn ? fetchFn(wid) : Promise.resolve(null);
+      const fetchPromise = fetchFn ? fetchFn(w.id || wid || w) : Promise.resolve(null);
       fetchPromise.then(details => {
-        if (details && details.raw_text) {
-          w.raw_text = details.raw_text;
-          textEl.innerText = w.raw_text;
+        const text = getBulletinText(details);
+        if (text) {
+          w.raw_text = text;
+          w.bulletin = text;
+          textEl.innerText = text;
         } else {
-          textEl.innerText = "No additional bulletin text available.";
+          const fallbackText = getBulletinText(w) || w.area_text || w.title;
+          textEl.innerText = fallbackText || "No additional bulletin text available.";
         }
       }).catch(() => {
-        textEl.innerText = "Error loading bulletin text.";
+        const fallbackText = getBulletinText(w);
+        textEl.innerText = fallbackText || "Error loading bulletin text.";
       });
     }
   }
@@ -706,7 +760,7 @@ function toggleCardDetail(w, cardEl) {
   const lat = Number(w.latitude ?? w.lat);
   const lng = Number(w.longitude ?? w.lng);
   const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}, ${lng.toFixed(2)}` : 'N/A');
-  const issuedText = w.issued_text || w.issued_date || w.issued || 'N/A';
+  const issuedText = formatWarningIssuedText(w);
   const verClass = w.is_verified ? 'verified' : 'neutral';
   const verLabel = w.is_verified ? 'VERIFIED' : 'UNVERIFIED';
 
@@ -738,24 +792,27 @@ function toggleCardDetail(w, cardEl) {
 
   const textEl = bodyEl.querySelector('.warning-expanded-text');
   if (textEl) {
-    if (w.raw_text) {
-      textEl.innerText = w.raw_text;
-    } else if (w.text) {
-      textEl.innerText = w.text;
+    const existing = getBulletinText(w);
+    if (existing) {
+      textEl.innerText = existing;
     } else {
       const fetchFn = typeof fetchWarningDetails === 'function'
         ? fetchWarningDetails
         : (window.hwDb && window.hwDb.fetchWarningDetails);
-      const fetchPromise = fetchFn ? fetchFn(wid) : Promise.resolve(null);
+      const fetchPromise = fetchFn ? fetchFn(w.id || wid || w) : Promise.resolve(null);
       fetchPromise.then(details => {
-        if (details && details.raw_text) {
-          w.raw_text = details.raw_text;
-          textEl.innerText = w.raw_text;
+        const text = getBulletinText(details);
+        if (text) {
+          w.raw_text = text;
+          w.bulletin = text;
+          textEl.innerText = text;
         } else {
-          textEl.innerText = "No additional bulletin text available.";
+          const fallbackText = getBulletinText(w) || w.area_text || w.title;
+          textEl.innerText = fallbackText || "No additional bulletin text available.";
         }
       }).catch(() => {
-        textEl.innerText = "Error loading bulletin text.";
+        const fallbackText = getBulletinText(w);
+        textEl.innerText = fallbackText || "Error loading bulletin text.";
       });
     }
   }
@@ -844,7 +901,7 @@ function populateTable(filtered=warnings){
     };
     tr.innerHTML=`<td><strong>${wid}</strong> <svg class="row-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"/></svg></td><td>${w.navarea}</td><td>${w.title}</td>
     <td>${badge(w.severity==='high'?'high':w.severity==='critical'?'critical':'moderate',w.severity.toUpperCase())}</td>
-    <td>${w.issued_date || w.issued}</td><td>${w.coordinates || w.coords}</td><td>${statusBadge(w)}</td>`;
+    <td>${formatWarningDate(w)}</td><td>${w.coordinates || w.coords || 'N/A'}</td><td>${statusBadge(w)}</td>`;
     tb.appendChild(tr);
 
     if (expandedTableWarningId === wid) {
@@ -867,7 +924,7 @@ function populateCards(filtered=warnings){
     c.innerHTML=`<button type="button" class="warning-card-toggle" aria-expanded="${isExpanded ? 'true' : 'false'}" aria-label="Warning ${wid}, ${w.navarea}, ${w.title}. Click or press Enter to toggle details." style="background:none;border:none;padding:0;margin:0;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:8px">
       <div class="warning-card-header"><span class="warning-card-id">${wid} · ${w.navarea}</span>${badge(w.severity==='high'?'high':'moderate',w.severity.toUpperCase())}</div>
       <div class="warning-card-title">${w.title}</div>
-      <div class="warning-card-meta"><span>📍 ${w.navarea}</span><span>📅 ${w.issued_date || w.issued}</span><span>🎯 ${w.coordinates || w.coords}</span></div>
+      <div class="warning-card-meta"><span>📍 ${w.navarea}</span><span>📅 ${formatWarningDate(w)}</span><span>🎯 ${w.coordinates || w.coords || 'N/A'}</span></div>
     </button>`;
     
     const toggleBtn = c.querySelector('.warning-card-toggle');
@@ -979,8 +1036,8 @@ window.openWarningModal = async function(w){
   document.getElementById('modalTitle').textContent=`${w.warning_id || w.id} — ${w.navarea}`;
   document.getElementById('modalBody').innerHTML=`
     <div class="detail-row"><div class="detail-label">Severity</div><div class="detail-value">${badge(w.severity==='high'?'high':w.severity==='critical'?'critical':'moderate',w.severity.toUpperCase())}</div></div>
-    <div class="detail-row"><div class="detail-label">Issued</div><div class="detail-value">${w.issued_text || w.issued_date || w.issued}</div></div>
-    <div class="detail-row"><div class="detail-label">Coordinates</div><div class="detail-value">${w.coordinates || w.coords}</div></div>
+    <div class="detail-row"><div class="detail-label">Issued</div><div class="detail-value">${formatWarningIssuedText(w)}</div></div>
+    <div class="detail-row"><div class="detail-label">Coordinates</div><div class="detail-value">${w.coordinates || w.coords || 'N/A'}</div></div>
     <div class="detail-row"><div class="detail-label">Status</div><div class="detail-value">${statusBadge(w)}</div></div>
     <div class="warning-text" id="modalTextContainer"></div>`;
   if(modalOverlay){
@@ -994,11 +1051,10 @@ window.openWarningModal = async function(w){
   const textContainer = document.getElementById('modalTextContainer');
   if (!textContainer) return;
 
-  // Check if we already fetched the raw_text
-  if (w.raw_text) {
-    textContainer.innerText = w.raw_text;
-  } else if (w.text) {
-    textContainer.innerText = w.text;
+  // Check if we already fetched or hold the bulletin text
+  const existing = getBulletinText(w);
+  if (existing) {
+    textContainer.innerText = existing;
   } else {
     // Show a loading state
     textContainer.innerHTML = '<span class="loading-spinner">Loading bulletin text...</span>';
@@ -1008,12 +1064,15 @@ window.openWarningModal = async function(w){
       ? fetchWarningDetails
       : (window.hwDb && window.hwDb.fetchWarningDetails);
 
-    const details = fetchFn ? await fetchFn(w.id) : null;
-    if (details && details.raw_text) {
-      w.raw_text = details.raw_text; // Cache it in memory so we don't fetch it twice
-      textContainer.innerText = w.raw_text;
+    const details = fetchFn ? await fetchFn(w.id || w.warning_id || w) : null;
+    const text = getBulletinText(details);
+    if (text) {
+      w.raw_text = text; // Cache it in memory so we don't fetch it twice
+      w.bulletin = text;
+      textContainer.innerText = text;
     } else {
-      textContainer.innerText = "Error loading bulletin text.";
+      const fallbackText = getBulletinText(w) || w.area_text || w.title;
+      textContainer.innerText = fallbackText || "No additional bulletin text available.";
     }
   }
 };
