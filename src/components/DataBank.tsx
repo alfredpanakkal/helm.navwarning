@@ -16,6 +16,8 @@ import {
 import { HAZARD_CATEGORIES, HazardCategory } from '../utils/warningAnalyzer';
 import { IngestionProcedureModal } from './IngestionProcedureModal';
 import { DataBankWarningList } from './DataBankWarningList';
+import { InForceCoverageBanner } from './InForceCoverageBanner';
+import { MissingWarningsDrawer } from './MissingWarningsDrawer';
 import { useDataBankModel, ALL_NAVAREAS, CoordFilterType, type DataBankProps } from '../hooks/useDataBankModel';
 
 export { ALL_NAVAREAS };
@@ -40,6 +42,7 @@ export const DataBank: React.FC<DataBankProps> = ({
   onOpenConsole,
   onNavigate
 }) => {
+  const [showMissingDrawer, setShowMissingDrawer] = React.useState(false);
   const model = useDataBankModel({ warnings, initialStatusFilter, initialNavAreaFilter });
   const {
     searchTerm,
@@ -220,6 +223,17 @@ export const DataBank: React.FC<DataBankProps> = ({
           )}
         </div>
       </div>
+
+      {/* In-Force Coverage Banner when NAVAREA is selected */}
+      {selectedNavArea !== 'ALL' && model.inForceStatus && (
+        <InForceCoverageBanner
+          status={model.inForceStatus}
+          navarea={selectedNavArea}
+          onViewMissing={() => setShowMissingDrawer(true)}
+          onTriggerRefresh={onTriggerRefresh ? () => onTriggerRefresh() : undefined}
+          isRefreshing={isRefreshing}
+        />
+      )}
 
       {/* Executive Operational Brief Card & Category Filter Pills */}
       <div className="bg-secondary border-2 border-gw-primary rounded-xl p-4 sm:p-5 shadow-xs flex flex-col gap-4">
@@ -696,6 +710,16 @@ export const DataBank: React.FC<DataBankProps> = ({
             onCommitWarnings([newWarn]);
           }
         }}
+      />
+
+      {/* Missing Warnings Drawer */}
+      <MissingWarningsDrawer
+        isOpen={showMissingDrawer}
+        onClose={() => setShowMissingDrawer(false)}
+        navarea={selectedNavArea}
+        missingIds={model.inForceStatus?.missingWarningIds || []}
+        onFetchMissing={onTriggerRefresh ? () => onTriggerRefresh() : undefined}
+        isFetching={isRefreshing}
       />
     </div>
   );

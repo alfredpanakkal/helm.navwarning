@@ -4,6 +4,8 @@ import { DataBankStatusBar } from './DataBankStatusBar';
 import { DataBankControls } from './DataBankControls';
 import { DataBankSummary } from './DataBankSummary';
 import { IngestionProcedureModal } from './IngestionProcedureModal';
+import { InForceCoverageBanner } from './InForceCoverageBanner';
+import { MissingWarningsDrawer } from './MissingWarningsDrawer';
 import { useDataBankModel, type DataBankProps } from '../hooks/useDataBankModel';
 
 /**
@@ -22,6 +24,7 @@ export const DataBankV2: React.FC<DataBankProps> = ({
   initialStatusFilter,
   initialNavAreaFilter
 }) => {
+  const [showMissingDrawer, setShowMissingDrawer] = React.useState(false);
   const model = useDataBankModel({ warnings, initialStatusFilter, initialNavAreaFilter });
 
   return (
@@ -36,9 +39,29 @@ export const DataBankV2: React.FC<DataBankProps> = ({
         <DataBankControls model={model} />
       </div>
 
+      {/* In-Force Coverage Banner when NAVAREA is selected */}
+      {model.selectedNavArea !== 'ALL' && model.inForceStatus && (
+        <InForceCoverageBanner
+          status={model.inForceStatus}
+          navarea={model.selectedNavArea}
+          onViewMissing={() => setShowMissingDrawer(true)}
+          onTriggerRefresh={onTriggerRefresh}
+          isRefreshing={isRefreshing}
+        />
+      )}
+
       <DataBankWarningList model={model} onLocate={onLocate} onVerifyWarning={onVerifyWarning} sources={sources} />
 
       <DataBankSummary model={model} sources={sources} />
+
+      <MissingWarningsDrawer
+        isOpen={showMissingDrawer}
+        onClose={() => setShowMissingDrawer(false)}
+        navarea={model.selectedNavArea}
+        missingIds={model.inForceStatus?.missingWarningIds || []}
+        onFetchMissing={onTriggerRefresh ? () => onTriggerRefresh() : undefined}
+        isFetching={isRefreshing}
+      />
 
       <IngestionProcedureModal
         isOpen={model.isProcedureModalOpen}

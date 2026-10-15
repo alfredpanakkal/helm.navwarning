@@ -3,6 +3,7 @@ import { Calendar, MapPin } from 'lucide-react';
 import { NavWarning, SourceRegistryItem } from '../types';
 import { formatSpatialCoordinates } from '../utils/coordinateParser';
 import { resolveIssuingAuthority } from '../utils/warningAnalyzer';
+import { WarningStatusBadge } from './WarningStatusBadge';
 
 export type WarningSeverityBand = 'CRITICAL' | 'HIGH' | 'MODERATE';
 
@@ -145,6 +146,7 @@ export const WarningHierarchyLines: React.FC<WarningHierarchyLinesProps> = ({
               {/IN\s+FORCE/i.test(w.raw_text || '') ? 'UNPLOTTED: META_LIST' : 'UNPLOTTED: NO_COORDS'}
             </span>
           )}
+          <WarningStatusBadge warning={w} compact />
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {line1Right}

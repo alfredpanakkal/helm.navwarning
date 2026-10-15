@@ -16,7 +16,7 @@ export const DEFAULT_FLAGS = {
   inForceSnapshots: true,
 
   // Phase 4+: Future flags
-  inForceUIDisplay: false,
+  inForceUIDisplay: true,
   inForceFallbackToLifecycle: true,
 };
 

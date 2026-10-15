@@ -20,6 +20,7 @@ import { formatSpatialCoordinates } from '../utils/coordinateParser';
 import { DataBankModel, SortDirection, SortField } from '../hooks/useDataBankModel';
 import { useUILegacy } from '../lib/uiFlags';
 import { WarningHierarchyLines, WarningItemDetails } from './WarningItemV2';
+import { WarningStatusBadge } from './WarningStatusBadge';
 
 export interface DataBankWarningListProps {
   model: DataBankModel;
@@ -211,6 +212,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                               <span className="font-black text-xs text-gw-primary group-hover:underline font-mono">
                                 {w.source_warning_id}
                               </span>
+                              <WarningStatusBadge warning={w} compact />
                               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${analyzedItem.categoryMeta.badgeClass}`}>
                                 {analyzedItem.categoryMeta.shortLabel}
                               </span>
@@ -784,7 +786,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 className="grid grid-cols-[140px_80px_1fr_90px_130px_110px_90px_60px] p-3 border-b border-gw-secondary text-xs items-center gap-2.5 hover:bg-gw-bg/60 transition-colors cursor-pointer group"
                 onClick={() => onLocate(w)}
               >
-                <div className="font-bold text-gw-primary group-hover:underline truncate">{w.source_warning_id}</div>
+                <div className="font-bold text-gw-primary group-hover:underline truncate flex items-center gap-1.5">
+                  <span className="truncate">{w.source_warning_id}</span>
+                  <WarningStatusBadge warning={w} compact />
+                </div>
                 <div>
                   <span className="inline-flex items-center justify-center px-2 py-0.5 bg-gw-bg border border-gw-secondary rounded text-[10px] font-bold text-gw-primary">
                     NA {w.navarea}
