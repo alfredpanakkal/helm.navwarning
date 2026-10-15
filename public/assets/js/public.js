@@ -591,15 +591,20 @@ function toggleTableDetailRow(w, tr) {
 
   // Remove existing detail row and selection
   tb.querySelectorAll('.table-detail-row').forEach(row => row.remove());
-  tb.querySelectorAll('.table-row-selected').forEach(row => row.classList.remove('table-row-selected'));
+  tb.querySelectorAll('.table-row-selected').forEach(row => {
+    row.classList.remove('table-row-selected');
+    row.setAttribute('aria-expanded', 'false');
+  });
 
   if (isCurrentlyOpen) {
     expandedTableWarningId = null;
+    tr.setAttribute('aria-expanded', 'false');
     return;
   }
 
   expandedTableWarningId = wid;
   tr.classList.add('table-row-selected');
+  tr.setAttribute('aria-expanded', 'true');
 
   const detailTr = document.createElement('tr');
   detailTr.className = 'table-detail-row';
@@ -680,17 +685,23 @@ function toggleCardDetail(w, cardEl) {
 
   cl.querySelectorAll('.warning-card.expanded').forEach(c => {
     c.classList.remove('expanded');
+    const toggleBtn = c.querySelector('.warning-card-toggle');
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
     const body = c.querySelector('.warning-card-expanded-body');
     if (body) body.remove();
   });
 
   if (isCurrentlyOpen) {
     expandedCardWarningId = null;
+    const toggleBtn = cardEl.querySelector('.warning-card-toggle');
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
     return;
   }
 
   expandedCardWarningId = wid;
   cardEl.classList.add('expanded');
+  const cardToggleBtn = cardEl.querySelector('.warning-card-toggle');
+  if (cardToggleBtn) cardToggleBtn.setAttribute('aria-expanded', 'true');
 
   const lat = Number(w.latitude ?? w.lat);
   const lng = Number(w.longitude ?? w.lng);
@@ -822,7 +833,6 @@ function populateTable(filtered=warnings){
     const wid = w.warning_id || w.id;
     tr.dataset.warningId = wid;
     tr.setAttribute('tabindex', '0');
-    tr.setAttribute('role', 'button');
     tr.setAttribute('aria-expanded', expandedTableWarningId === wid ? 'true' : 'false');
     tr.setAttribute('aria-label', `Warning ${wid}, ${w.navarea}, ${w.title}. Click or press Enter to toggle details.`);
     tr.onclick=()=>toggleTableDetailRow(w, tr);
@@ -853,23 +863,24 @@ function populateCards(filtered=warnings){
     const wid = w.warning_id || w.id;
     c.className='warning-card';
     c.dataset.warningId = wid;
-    c.setAttribute('tabindex', '0');
-    c.setAttribute('role', 'button');
-    c.setAttribute('aria-expanded', expandedCardWarningId === wid ? 'true' : 'false');
-    c.setAttribute('aria-label', `Warning ${wid}, ${w.navarea}, ${w.title}. Click or press Enter to toggle details.`);
-    c.onclick=()=>toggleCardDetail(w, c);
-    c.onkeydown=(e)=>{
-      if(e.key === 'Enter' || e.key === ' '){
-        e.preventDefault();
+    const isExpanded = expandedCardWarningId === wid;
+    c.innerHTML=`<button type="button" class="warning-card-toggle" aria-expanded="${isExpanded ? 'true' : 'false'}" aria-label="Warning ${wid}, ${w.navarea}, ${w.title}. Click or press Enter to toggle details." style="background:none;border:none;padding:0;margin:0;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:8px">
+      <div class="warning-card-header"><span class="warning-card-id">${wid} · ${w.navarea}</span>${badge(w.severity==='high'?'high':'moderate',w.severity.toUpperCase())}</div>
+      <div class="warning-card-title">${w.title}</div>
+      <div class="warning-card-meta"><span>📍 ${w.navarea}</span><span>📅 ${w.issued_date || w.issued}</span><span>🎯 ${w.coordinates || w.coords}</span></div>
+    </button>`;
+    
+    const toggleBtn = c.querySelector('.warning-card-toggle');
+    if (toggleBtn) {
+      toggleBtn.onclick = (e) => {
+        e.stopPropagation();
         toggleCardDetail(w, c);
-      }
-    };
-    c.innerHTML=`<div class="warning-card-header"><span class="warning-card-id">${wid} · ${w.navarea}</span>${badge(w.severity==='high'?'high':'moderate',w.severity.toUpperCase())}</div>
-    <div class="warning-card-title">${w.title}</div>
-    <div class="warning-card-meta"><span>📍 ${w.navarea}</span><span>📅 ${w.issued_date || w.issued}</span><span>🎯 ${w.coordinates || w.coords}</span></div>`;
+      };
+    }
+    
     cl.appendChild(c);
 
-    if (expandedCardWarningId === wid) {
+    if (isExpanded) {
       toggleCardDetail(w, c);
     }
   });

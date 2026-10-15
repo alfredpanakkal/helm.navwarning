@@ -230,10 +230,12 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
     <a href="/" class="logo"><span class="logo-badge" aria-hidden="true">HW</span><span>Helm.Warning</span></a>
 
     <!-- PUBLIC NAV ONLY — no admin -->
-    <nav class="main-nav" aria-label="Main navigation" role="tablist">
-      <button class="nav-tab active" data-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" id="tab-btn-map" onclick="switchTab('map')">Map View <span class="badge" id="nav-map-badge">0</span></button>
-      <button class="nav-tab" data-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" id="tab-btn-data" onclick="switchTab('data')">Data Bank <span class="badge" id="nav-data-badge">0</span></button>
-      <button class="nav-tab" data-tab="sources" role="tab" aria-selected="false" aria-controls="tab-sources" id="tab-btn-sources" onclick="switchTab('sources')">Sources</button>
+    <nav class="main-nav" aria-label="Main navigation">
+      <div role="tablist" aria-label="Main navigation views" style="display:flex;gap:4px">
+        <button class="nav-tab active" data-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" id="tab-btn-map" onclick="switchTab('map')">Map View <span class="badge" id="nav-map-badge">0</span></button>
+        <button class="nav-tab" data-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" id="tab-btn-data" onclick="switchTab('data')">Data Bank <span class="badge" id="nav-data-badge">0</span></button>
+        <button class="nav-tab" data-tab="sources" role="tab" aria-selected="false" aria-controls="tab-sources" id="tab-btn-sources" onclick="switchTab('sources')">Sources</button>
+      </div>
     </nav>
 
 
@@ -492,10 +494,12 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 </div>
 </main>
 
-<nav class="bottom-nav" aria-label="Mobile bottom navigation" role="tablist">
-  <button class="bottom-nav-item active" data-bottom-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" onclick="switchTab('map')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg><span>Map</span><span class="bottom-badge" id="bottomBadge">0</span></button>
-  <button class="bottom-nav-item" data-bottom-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" onclick="switchTab('data')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg><span>Data</span></button>
-  <button class="bottom-nav-item" data-bottom-tab="sources" role="tab" aria-selected="false" aria-controls="tab-sources" onclick="switchTab('sources')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg><span>Sources</span></button>
+<nav class="bottom-nav" aria-label="Mobile bottom navigation">
+  <div role="tablist" aria-label="Mobile navigation views" style="display:flex;width:100%;align-items:center">
+    <button class="bottom-nav-item active" data-bottom-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" onclick="switchTab('map')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg><span>Map</span><span class="bottom-badge" id="bottomBadge">0</span></button>
+    <button class="bottom-nav-item" data-bottom-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" onclick="switchTab('data')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg><span>Data</span></button>
+    <button class="bottom-nav-item" data-bottom-tab="sources" role="tab" aria-selected="false" aria-controls="tab-sources" onclick="switchTab('sources')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg><span>Sources</span></button>
+  </div>
 </nav>
 
 <footer class="site-footer">

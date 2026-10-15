@@ -10,6 +10,9 @@
 <link rel="stylesheet" href="/assets/css/tokens.css">
 <link rel="stylesheet" href="/assets/css/components.css">
 <style>
+.skip-link{position:fixed;left:-9999px;top:0;background:var(--surface-dark);color:#fff;padding:8px 16px;z-index:10001;border-radius:0 0 8px 0;text-decoration:none;font:600 13px system-ui;transition:left .15s ease}
+.skip-link:focus{left:0;outline:2px solid var(--verified);outline-offset:2px}
+#adminMain:focus{outline:none}
 /* ═══ LOGIN GATE ═══ */
 #loginView{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--surface-dark)}
 .login-card{background:var(--surface);border-radius:16px;padding:40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
@@ -170,6 +173,7 @@
 </style>
 </head>
 <body>
+<a href="#adminMain" class="skip-link">Skip to main content</a>
 
 <!-- ═══════════════ LOGIN GATE ═══════════════ -->
 <div id="loginView">
@@ -205,12 +209,14 @@
 </header>
 
 <main class="main" id="adminMain" tabindex="-1">
-  <nav class="admin-subnav" aria-label="Admin console navigation" role="tablist">
-    <button class="asub-btn active" data-sub="overview" role="tab" aria-selected="true" onclick="switchAdminSub('overview')">Overview</button>
-    <button class="asub-btn" data-sub="pipeline" role="tab" aria-selected="false" onclick="switchAdminSub('pipeline')">Pipeline</button>
-    <button class="asub-btn" data-sub="import" role="tab" aria-selected="false" onclick="switchAdminSub('import')">Import</button>
-    <button class="asub-btn" data-sub="verify" role="tab" aria-selected="false" onclick="switchAdminSub('verify')">Verify <span class="asub-badge" id="verifyBadge" style="display:none">0</span></button>
-    <button class="asub-btn" data-sub="system" role="tab" aria-selected="false" onclick="switchAdminSub('system')">System</button>
+  <nav class="admin-subnav" aria-label="Admin console navigation">
+    <div role="tablist" aria-label="Admin console sections" style="display:flex;gap:4px;width:100%;align-items:center">
+      <button class="asub-btn active" data-sub="overview" role="tab" aria-selected="true" onclick="switchAdminSub('overview')">Overview</button>
+      <button class="asub-btn" data-sub="pipeline" role="tab" aria-selected="false" onclick="switchAdminSub('pipeline')">Pipeline</button>
+      <button class="asub-btn" data-sub="import" role="tab" aria-selected="false" onclick="switchAdminSub('import')">Import</button>
+      <button class="asub-btn" data-sub="verify" role="tab" aria-selected="false" onclick="switchAdminSub('verify')">Verify <span class="asub-badge" id="verifyBadge" style="display:none">0</span></button>
+      <button class="asub-btn" data-sub="system" role="tab" aria-selected="false" onclick="switchAdminSub('system')">System</button>
+    </div>
   </nav>
 
   <!-- OVERVIEW -->
