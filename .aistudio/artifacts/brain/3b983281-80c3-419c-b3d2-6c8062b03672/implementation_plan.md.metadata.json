@@ -1,6 +1,6 @@
 {
-  "summary":  "Implementation Plan v4 — Full-Corpus NAVAREA Warning Plotting System.\nIncorporates:\n- Generalization discipline with a frozen 15% held-out slice and explicit failure triage protocol (new pattern vs accepted noise).\n- Deterministic lifecycle resolution chain with timestamp-based contradiction resolution and explicit CANCEL precedence over earlier lists.\n- Partial and truncated in-force list handling (fixture IX 529/24) with visible UI badges and prefix-scoped oracle assertions.\n- Keyword classification hygiene rules (strict boundaries, DEMOLITION ordnance co-occurrence, MINE critical mapping) and 8-fixture adversarial test suite.\n- Reinstated binding acceptance criteria tables: 17-pattern golden fixture suite, 5,000-warning performance budgets, and comprehensive risk/mitigation register.\n- M3 Lifecycle effort marked as L, and visual design note detailing the hazardIcons.ts SVG registry.",
-  "updatedAt":  "2026-10-11T13:58:53.878171547Z",
-  "requestFeedback":  true,
-  "userFacing":  true
+  "summary": "NAVAREA v4 Test Restore & Validation Plan:\n- Restores the four components from the test kit across two stages: Files 1 & 2 (src/riglistParser.ts and pipeline integration), then Files 3 & 4 (src/__tests__/riglist-probe.test.ts and src/__tests__/navarea-stress.test.ts).\n- Validates the 43-position extraction, negative W-longitudes, and 4-group structure for NAVAREA I 223/26 in the riglist probe.\n- Executes the full stress & adversarial test suite with 0 failures on S1–S4 blocker assertions.\n- Preserves the deterministic lifecycle engine precedence chain (contradiction count at 2, both arbitrations verified).",
+  "updatedAt": "2026-10-13T08:40:28.638160833Z",
+  "requestFeedback": true,
+  "userFacing": true
 }

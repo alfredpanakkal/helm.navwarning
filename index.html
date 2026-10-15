@@ -11,6 +11,9 @@
 <link rel="stylesheet" href="/assets/css/tokens.css">
 <link rel="stylesheet" href="/assets/css/components.css">
 <style>
+.skip-link{position:fixed;left:-9999px;top:0;background:var(--surface-dark);color:#fff;padding:8px 16px;z-index:10001;border-radius:0 0 8px 0;text-decoration:none;font:600 13px system-ui;transition:left .15s ease}
+.skip-link:focus{left:0;outline:2px solid var(--verified);outline-offset:2px}
+#main:focus{outline:none}
 .site-header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1000;padding-top:var(--safe-top)}
 .header-inner{max-width:1400px;margin:0 auto;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:56px}
 .logo{font:600 18px system-ui;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:8px;flex-shrink:0}
@@ -31,8 +34,8 @@ body.is-mobile .menu-toggle,body.is-tablet .menu-toggle{display:flex}
 
 .drawer-overlay{position:fixed;inset:0;background:rgba(15,23,42,.4);z-index:1500;opacity:0;visibility:hidden;transition:.25s}
 .drawer-overlay.open{opacity:1;visibility:visible}
-.drawer{position:fixed;top:0;left:0;bottom:0;width:280px;max-width:82vw;background:var(--surface);z-index:1600;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding-top:var(--safe-top)}
-.drawer.open{transform:translateX(0)}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:280px;max-width:82vw;background:var(--surface);z-index:1600;transform:translateX(-100%);visibility:hidden;transition:transform .3s cubic-bezier(.4,0,.2,1),visibility .3s;display:flex;flex-direction:column;padding-top:var(--safe-top)}
+.drawer.open{transform:translateX(0);visibility:visible}
 .drawer-header{padding:24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;font-weight:600}
 .drawer-nav{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
 .drawer-item{display:flex;align-items:center;gap:14px;padding:14px;border-radius:8px;border:none;background:none;font:500 16px system-ui;color:var(--text);cursor:pointer;min-height:44px;text-align:left;width:100%}
@@ -112,7 +115,7 @@ body.is-mobile .map-warning-list.is-maximized{top:10px;bottom:10px;max-height:ca
 .panel-btn{width:26px;height:26px;border-radius:6px;border:1px solid transparent;background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--text-muted);padding:0;transition:.15s}
 .panel-btn:hover{background:var(--bg);color:var(--text);border-color:var(--border)}
 .panel-btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none}
-.panel-header h3{font:600 14px system-ui}
+.panel-header h2, .panel-header h3{font:600 14px system-ui;margin:0}
 .warning-item{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column;gap:6px;min-height:44px;transition:background .15s,box-shadow .2s}
 .warning-item:hover{background:rgba(15,23,42,.02)}
 .warning-item.expanded{background:var(--bg);border-left:3px solid var(--surface-dark)}
@@ -220,41 +223,41 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 </style>
 </head>
 <body>
-<a href="#main" class="skip-link" style="position:fixed;left:-9999px;top:0;background:var(--surface-dark);color:#fff;padding:8px 16px;z-index:10001;border-radius:0 0 8px 0;">Skip to main content</a>
+<a href="#main" class="skip-link">Skip to main content</a>
 
 <header class="site-header">
   <div class="header-inner">
-    <a href="/" class="logo"><span class="logo-badge">HW</span><span>Helm.Warning</span></a>
+    <a href="/" class="logo"><span class="logo-badge" aria-hidden="true">HW</span><span>Helm.Warning</span></a>
 
     <!-- PUBLIC NAV ONLY — no admin -->
-    <nav class="main-nav">
-      <button class="nav-tab active" data-tab="map" onclick="switchTab('map')">Map View <span class="badge" id="nav-map-badge">0</span></button>
-      <button class="nav-tab" data-tab="data" onclick="switchTab('data')">Data Bank <span class="badge" id="nav-data-badge">0</span></button>
-      <button class="nav-tab" data-tab="sources" onclick="switchTab('sources')">Sources</button>
+    <nav class="main-nav" aria-label="Main navigation" role="tablist">
+      <button class="nav-tab active" data-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" id="tab-btn-map" onclick="switchTab('map')">Map View <span class="badge" id="nav-map-badge">0</span></button>
+      <button class="nav-tab" data-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" id="tab-btn-data" onclick="switchTab('data')">Data Bank <span class="badge" id="nav-data-badge">0</span></button>
+      <button class="nav-tab" data-tab="sources" role="tab" aria-selected="false" aria-controls="tab-sources" id="tab-btn-sources" onclick="switchTab('sources')">Sources</button>
     </nav>
 
 
-    <button class="menu-toggle" onclick="toggleDrawer()" aria-label="Menu">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <button class="menu-toggle" onclick="toggleDrawer()" aria-label="Navigation Menu" aria-expanded="false" aria-controls="drawer">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
   </div>
 </header>
 
-<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
-<nav class="drawer" id="drawer">
-  <div class="drawer-header"><span class="logo-badge">HW</span> Helm.Warning</div>
+<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()" aria-hidden="true"></div>
+<nav class="drawer" id="drawer" aria-label="Mobile drawer navigation" aria-hidden="true">
+  <div class="drawer-header"><span class="logo-badge" aria-hidden="true">HW</span> Helm.Warning</div>
   <div class="drawer-nav">
-    <button class="drawer-item active" data-drawer-tab="map" onclick="switchTab('map');toggleDrawer()"><svg viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>Map View<span class="badge" id="drawer-map-badge">0</span></button>
-    <button class="drawer-item" data-drawer-tab="data" onclick="switchTab('data');toggleDrawer()"><svg viewBox="0 0 24 24"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>Data Bank<span class="badge">0</span></button>
-    <button class="drawer-item" data-drawer-tab="sources" onclick="switchTab('sources');toggleDrawer()"><svg viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>Sources</button>
+    <button class="drawer-item active" data-drawer-tab="map" onclick="switchTab('map');toggleDrawer()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>Map View<span class="badge" id="drawer-map-badge">0</span></button>
+    <button class="drawer-item" data-drawer-tab="data" onclick="switchTab('data');toggleDrawer()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>Data Bank<span class="badge">0</span></button>
+    <button class="drawer-item" data-drawer-tab="sources" onclick="switchTab('sources');toggleDrawer()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>Sources</button>
   </div>
   <div class="drawer-footer">Automated decision-support system.<br>Not a substitute for GMDSS.</div>
 </nav>
 
-<main id="main" class="main">
+<main id="main" class="main" tabindex="-1">
 
 <!-- MAP -->
-<div class="tab-panel active" id="tab-map">
+<div class="tab-panel active" id="tab-map" role="tabpanel" aria-labelledby="tab-btn-map">
   <div class="page-header">
     <div><h1>Active Warnings</h1><p class="subtitle" id="mapSubtitle">0 in-force across 0 NAVAREAs</p></div>
     <div class="actions">
@@ -313,24 +316,24 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
         <label class="map-layer-item"><input type="checkbox" onchange="toggleLayer('soundings',this.checked)">Ocean Soundings</label>
       </details>
     </div>
-    <div class="map-ctrl-topright" aria-label="Map Navigation Controls">
+    <div class="map-ctrl-topright" role="toolbar" aria-label="Map Navigation Controls">
       <button type="button" class="map-recenter-pill-btn" onclick="resetMapView()" title="Re-center / Locate" aria-label="Re-center navigation area on map">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8"/></svg>
         <span>Re-center</span>
       </button>
     </div>
     <div class="map-warning-list" id="mapWarningList">
       <div class="panel-header">
         <div style="display:flex;align-items:center;gap:8px">
-          <h3>Active Warnings</h3>
+          <h2>Active Warnings</h2>
           <span class="badge-simple badge-active" id="mapLiveBadge"><span class="dot"></span> 0 live</span>
         </div>
         <div class="panel-actions">
           <button type="button" class="panel-btn" id="btnMinWarningList" onclick="toggleMinimizeWarningList()" title="Minimize" aria-label="Minimize active warnings list">
-            <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
           <button type="button" class="panel-btn" id="btnMaxWarningList" onclick="toggleMaximizeWarningList()" title="Maximize" aria-label="Maximize active warnings list">
-            <svg id="iconMaxWarningList" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            <svg id="iconMaxWarningList" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
           </button>
         </div>
       </div>
@@ -340,12 +343,12 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 </div>
 
 <!-- DATA BANK -->
-<div class="tab-panel" id="tab-data">
+<div class="tab-panel" id="tab-data" role="tabpanel" aria-labelledby="tab-btn-data" hidden>
   <div class="page-header">
     <div><h1>Data Bank</h1><p class="subtitle" id="dataSubtitle">0 published warnings</p></div>
     <div class="actions">
       <button class="btn btn-primary" id="btnRefreshSupabase" onclick="refreshSupabaseConnection()">
-        <svg style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+        <svg style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
         <span>Refresh Supabase</span>
       </button>
       <button class="btn btn-secondary" onclick="showToast('Export not available for public users')">Export</button>
@@ -402,19 +405,77 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
     </div>
   </div>
   <div class="filter-bar">
-    <div class="search"><input type="search" placeholder="Search warnings..." id="searchInput" oninput="filterTable()"></div>
-    <button class="btn btn-ghost" onclick="document.getElementById('advancedFilters').classList.toggle('open')">Filters <span id="activeFilterCount" class="badge-simple badge-neutral" style="display:none">0</span></button>
+    <div class="search">
+      <label for="searchInput" class="sr-only">Search warnings</label>
+      <input type="search" placeholder="Search warnings..." id="searchInput" oninput="filterTable()" aria-label="Search warnings">
+    </div>
+    <button class="btn btn-ghost" id="btnToggleFilters" onclick="toggleAdvancedFilters()" aria-expanded="false" aria-controls="advancedFilters">Filters <span id="activeFilterCount" class="badge-simple badge-neutral" style="display:none">0</span></button>
   </div>
   <div class="advanced-filters" id="advancedFilters">
     <div class="filter-grid">
-      <div class="filter-group"><label>NAVAREA</label><select id="filter-navarea" onchange="applyFilters()"><option value="">All Regions</option><option value="NA I">NA I · North Atlantic / UK</option><option value="NA II">NA II · East Atlantic</option><option value="NA III">NA III · Mediterranean</option><option value="NA IV">NA IV · West Atlantic</option><option value="NA V">NA V · Brazil / SW Atlantic</option><option value="NA VI">NA VI · Argentina / SE Atlantic</option><option value="NA VII">NA VII · South Africa</option><option value="NA VIII">NA VIII · Indian Ocean</option><option value="NA IX">NA IX · Red Sea / Persian Gulf</option><option value="NA X">NA X · Australia</option><option value="NA XI">NA XI · East Asia / Japan</option><option value="NA XII">NA XII · East Pacific</option><option value="NA XIII">NA XIII · NW Pacific / Okhotsk</option><option value="NA XIV">NA XIV · New Zealand / S. Pacific</option><option value="NA XV">NA XV · Chile / SE Pacific</option><option value="NA XVI">NA XVI · Peru / E. South Pacific</option><option value="NA XVII">NA XVII · Arctic Canada (West)</option><option value="NA XVIII">NA XVIII · Arctic Canada (East)</option><option value="NA XIX">NA XIX · Arctic Norway</option><option value="NA XX">NA XX · Arctic Russia (Kara/Laptev)</option><option value="NA XXI">NA XXI · Arctic Russia (East Siberian)</option></select></div>
-      <div class="filter-group"><label>Severity</label><select id="filter-severity" onchange="applyFilters()"><option value="">All</option><option value="critical">Critical</option><option value="high">High</option><option value="moderate">Moderate</option></select></div>
-      <div class="filter-group"><label>Category</label><select id="filter-category" onchange="applyFilters()"><option value="">All</option><option value="military">Military</option><option value="drifting">Drifting</option><option value="general">General</option><option value="aton">AtoN</option><option value="subsea">Subsea</option></select></div>
+      <div class="filter-group">
+        <label for="filter-navarea">NAVAREA</label>
+        <select id="filter-navarea" onchange="applyFilters()" aria-label="Filter by NAVAREA">
+          <option value="">All Regions</option>
+          <option value="NA I">NA I · North Atlantic / UK</option>
+          <option value="NA II">NA II · East Atlantic</option>
+          <option value="NA III">NA III · Mediterranean</option>
+          <option value="NA IV">NA IV · West Atlantic</option>
+          <option value="NA V">NA V · Brazil / SW Atlantic</option>
+          <option value="NA VI">NA VI · Argentina / SE Atlantic</option>
+          <option value="NA VII">NA VII · South Africa</option>
+          <option value="NA VIII">NA VIII · Indian Ocean</option>
+          <option value="NA IX">NA IX · Red Sea / Persian Gulf</option>
+          <option value="NA X">NA X · Australia</option>
+          <option value="NA XI">NA XI · East Asia / Japan</option>
+          <option value="NA XII">NA XII · East Pacific</option>
+          <option value="NA XIII">NA XIII · NW Pacific / Okhotsk</option>
+          <option value="NA XIV">NA XIV · New Zealand / S. Pacific</option>
+          <option value="NA XV">NA XV · Chile / SE Pacific</option>
+          <option value="NA XVI">NA XVI · Peru / E. South Pacific</option>
+          <option value="NA XVII">NA XVII · Arctic Canada (West)</option>
+          <option value="NA XVIII">NA XVIII · Arctic Canada (East)</option>
+          <option value="NA XIX">NA XIX · Arctic Norway</option>
+          <option value="NA XX">NA XX · Arctic Russia (Kara/Laptev)</option>
+          <option value="NA XXI">NA XXI · Arctic Russia (East Siberian)</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-severity">Severity</label>
+        <select id="filter-severity" onchange="applyFilters()" aria-label="Filter by Severity">
+          <option value="">All</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="moderate">Moderate</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-category">Category</label>
+        <select id="filter-category" onchange="applyFilters()" aria-label="Filter by Category">
+          <option value="">All</option>
+          <option value="military">Military</option>
+          <option value="drifting">Drifting</option>
+          <option value="general">General</option>
+          <option value="aton">AtoN</option>
+          <option value="subsea">Subsea</option>
+        </select>
+      </div>
     </div>
   </div>
   <div class="data-table-container">
     <table class="data-table">
-      <thead><tr><th>ID</th><th>Area</th><th>Title</th><th>Severity</th><th>Issued</th><th>Coords</th><th>Status</th></tr></thead>
+      <caption class="sr-only">Navigational Warnings Data Bank</caption>
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Area</th>
+          <th scope="col">Title</th>
+          <th scope="col">Severity</th>
+          <th scope="col">Issued</th>
+          <th scope="col">Coords</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
       <tbody id="tableBody"></tbody>
     </table>
     <div class="table-footer"><span id="tableCount">Showing 1–0 of 0</span><span>Rows: 10</span></div>
@@ -423,7 +484,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 </div>
 
 <!-- SOURCES -->
-<div class="tab-panel" id="tab-sources">
+<div class="tab-panel" id="tab-sources" role="tabpanel" aria-labelledby="tab-btn-sources" hidden>
   <div class="page-header">
     <div><h1>Source Registry</h1><p class="subtitle">14 verified feeds across 21 NAVAREAs</p></div>
   </div>
@@ -431,10 +492,10 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 </div>
 </main>
 
-<nav class="bottom-nav">
-  <button class="bottom-nav-item active" data-bottom-tab="map" onclick="switchTab('map')"><svg viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg><span>Map</span><span class="bottom-badge" id="bottomBadge">0</span></button>
-  <button class="bottom-nav-item" data-bottom-tab="data" onclick="switchTab('data')"><svg viewBox="0 0 24 24"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg><span>Data</span></button>
-  <button class="bottom-nav-item" data-bottom-tab="sources" onclick="switchTab('sources')"><svg viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg><span>Sources</span></button>
+<nav class="bottom-nav" aria-label="Mobile bottom navigation" role="tablist">
+  <button class="bottom-nav-item active" data-bottom-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" onclick="switchTab('map')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg><span>Map</span><span class="bottom-badge" id="bottomBadge">0</span></button>
+  <button class="bottom-nav-item" data-bottom-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" onclick="switchTab('data')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg><span>Data</span></button>
+  <button class="bottom-nav-item" data-bottom-tab="sources" role="tab" aria-selected="false" aria-controls="tab-sources" onclick="switchTab('sources')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg><span>Sources</span></button>
 </nav>
 
 <footer class="site-footer">
@@ -444,9 +505,9 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
   </div>
 </footer>
 
-<div class="modal-overlay" id="warningModal" onclick="closeModal(event)">
+<div class="modal-overlay" id="warningModal" onclick="closeModal(event)" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
   <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-header"><h2 id="modalTitle">Warning</h2><button class="modal-close" onclick="closeWarningModal()" aria-label="Close">✕</button></div>
+    <div class="modal-header"><h2 id="modalTitle">Warning</h2><button class="modal-close" onclick="closeWarningModal()" aria-label="Close warning details">✕</button></div>
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeWarningModal()">Close</button>
@@ -455,7 +516,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- Data & Logic Scripts -->
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>

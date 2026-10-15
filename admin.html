@@ -204,14 +204,14 @@
   </div>
 </header>
 
-<main class="main">
-  <div class="admin-subnav">
-    <button class="asub-btn active" data-sub="overview" onclick="switchAdminSub('overview')">Overview</button>
-    <button class="asub-btn" data-sub="pipeline" onclick="switchAdminSub('pipeline')">Pipeline</button>
-    <button class="asub-btn" data-sub="import" onclick="switchAdminSub('import')">Import</button>
-    <button class="asub-btn" data-sub="verify" onclick="switchAdminSub('verify')">Verify <span class="asub-badge" id="verifyBadge" style="display:none">0</span></button>
-    <button class="asub-btn" data-sub="system" onclick="switchAdminSub('system')">System</button>
-  </div>
+<main class="main" id="adminMain" tabindex="-1">
+  <nav class="admin-subnav" aria-label="Admin console navigation" role="tablist">
+    <button class="asub-btn active" data-sub="overview" role="tab" aria-selected="true" onclick="switchAdminSub('overview')">Overview</button>
+    <button class="asub-btn" data-sub="pipeline" role="tab" aria-selected="false" onclick="switchAdminSub('pipeline')">Pipeline</button>
+    <button class="asub-btn" data-sub="import" role="tab" aria-selected="false" onclick="switchAdminSub('import')">Import</button>
+    <button class="asub-btn" data-sub="verify" role="tab" aria-selected="false" onclick="switchAdminSub('verify')">Verify <span class="asub-badge" id="verifyBadge" style="display:none">0</span></button>
+    <button class="asub-btn" data-sub="system" role="tab" aria-selected="false" onclick="switchAdminSub('system')">System</button>
+  </nav>
 
   <!-- OVERVIEW -->
   <div class="admin-sub active" id="admin-overview">
@@ -263,7 +263,8 @@
       <div class="wiz-nav"><span></span><button class="btn btn-primary" onclick="wizardGo(2)">Continue →</button></div>
     </div>
     <div class="wpanel" id="wstep2">
-      <textarea class="wiz-textarea" id="wizInput" placeholder="Paste mixed maritime feed, bulletin, or web dump..." oninput="updateWizCount()"></textarea>
+      <label for="wizInput" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Raw Warning Bulletin Text</label>
+      <textarea class="wiz-textarea" id="wizInput" aria-label="Raw warning bulletin text" placeholder="Paste mixed maritime feed, bulletin, or web dump..." oninput="updateWizCount()"></textarea>
       <div class="wiz-count"><span id="wizCountLabel">0 lines · 0 KB</span></div>
       <div class="wiz-nav">
         <button class="btn btn-secondary" onclick="wizardGo(1)">← Back</button>

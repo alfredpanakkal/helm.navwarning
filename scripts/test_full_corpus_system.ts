@@ -90,11 +90,11 @@ const patterns: Array<{ name: string; id: string; assertFn: (w: any) => void }> 
     assertFn: (w) => assert.strictEqual(w.category, 'sar'),
   },
   {
-    name: 'Ice tracklines (IV 979, IV 977 superseded)',
+    name: 'Ice tracklines (IV 979, IV 977 cross-cancelled over supersession)',
     id: '977',
     assertFn: (w) => {
       assert.strictEqual(w.category, 'ice');
-      assert.strictEqual(w.lifecycle.resolutionRule, 'supersession');
+      assert.strictEqual(w.lifecycle.resolutionRule, 'cross_cancel');
     },
   },
   {

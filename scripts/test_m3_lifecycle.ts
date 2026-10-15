@@ -47,10 +47,13 @@ const entities979 = extractNamedEntities(iv979!.rawText);
 assert.ok(entities977.includes('INTERNATIONAL ICE PATROL'), 'IV 977 must have entity INTERNATIONAL ICE PATROL');
 assert.ok(entities979.includes('INTERNATIONAL ICE PATROL'), 'IV 979 must have entity INTERNATIONAL ICE PATROL');
 
-assert.strictEqual(iv977?.lifecycle.inForce, false, 'IV 977 must be superseded');
-assert.strictEqual(iv977?.lifecycle.resolutionRule, 'supersession', 'IV 977 resolutionRule must be supersession');
-assert.ok(iv977?.lifecycle.supersededBy?.some(r => r.includes('979')), 'IV 977 supersededBy must include IV 979');
-console.log('✓ IV 977 correctly superseded by IV 979 with shared entity evidence.');
+assert.strictEqual(iv977?.lifecycle.inForce, false, 'IV 977 must be inactive');
+assert.strictEqual(iv977?.lifecycle.resolutionRule, 'cross_cancel', 'IV 977 resolutionRule must be cross_cancel (Tier 2 beats Tier 4)');
+assert.ok(iv977?.lifecycle.resolutionRefs?.some(r => r.includes('978')), 'IV 977 resolutionRefs must include canceller 978');
+const iv977Conflict = contradictionsLogged.find(c => c.targetId.includes('977'));
+assert.ok(iv977Conflict, 'Must log contradiction arbitration for IV 977');
+assert.strictEqual(iv977Conflict?.winningRule, 'cross_cancel', 'Winning rule must be cross_cancel');
+console.log('✓ IV 977 correctly arbitrated: Tier 2 cross_cancel takes precedence over Tier 4 supersession.');
 
 // 6. Test Partial / Truncated In-Force List Handling (IX 529/24)
 console.log('\n4. Testing Partial / Truncated In-Force List Handling (IX 529/24)...');

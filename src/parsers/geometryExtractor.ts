@@ -89,8 +89,9 @@ export function extractGeometry(rawText: string): ExtractedGeometryResult {
   }
 
   // 4. Linear Corridor check: cable, tow convoy, pipeline with safety berth / width
-  const isCorridor = /(?:CABLE|PIPELINE|TOWING|TOW\s+CONVOY)\b/i.test(rawText) && /(?:ALONG\s+(?:ROUTE|TRACK|LINE)|ROUTE:|TRACK:)/i.test(rawText);
-  if (isCorridor && coords.length >= 2) {
+  const isCorridorLine = /(?:CABLE|PIPELINE|TOWING|TOW\s+CONVOY)\b/i.test(rawText) && /(?:ALONG\s+(?:ROUTE|TRACK|LINE)|ROUTE:|TRACK:)/i.test(rawText);
+  const hasCorridorClearance = Boolean(berth?.clearanceNm || berth?.radiusNm || /(?:BUFFER|WIDTH|CORRIDOR|SAFETY\s+ZONE|WIDE\s+BERTH)\b/i.test(rawText));
+  if (isCorridorLine && hasCorridorClearance && coords.length >= 2) {
     const clearance = berth?.clearanceNm ?? berth?.radiusNm ?? 0.5;
     return {
       geometry: {

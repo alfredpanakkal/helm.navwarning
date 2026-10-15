@@ -26,14 +26,35 @@ window.addEventListener('resize',debounce(()=>{
 },250));
 
 window.switchTab = function(tab){
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>{
+    p.classList.remove('active');
+    p.hidden = true;
+  });
+  document.querySelectorAll('.nav-tab').forEach(t=>{
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
   document.querySelectorAll('.drawer-item').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.bottom-nav-item').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+tab)?.classList.add('active');
-  document.querySelector(`.nav-tab[data-tab="${tab}"]`)?.classList.add('active');
+  document.querySelectorAll('.bottom-nav-item').forEach(t=>{
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
+  const panel = document.getElementById('tab-'+tab);
+  if(panel){
+    panel.classList.add('active');
+    panel.hidden = false;
+  }
+  const mainTab = document.querySelector(`.nav-tab[data-tab="${tab}"]`);
+  if(mainTab){
+    mainTab.classList.add('active');
+    mainTab.setAttribute('aria-selected', 'true');
+  }
   document.querySelector(`.drawer-item[data-drawer-tab="${tab}"]`)?.classList.add('active');
-  document.querySelector(`.bottom-nav-item[data-bottom-tab="${tab}"]`)?.classList.add('active');
+  const bottomTab = document.querySelector(`.bottom-nav-item[data-bottom-tab="${tab}"]`);
+  if(bottomTab){
+    bottomTab.classList.add('active');
+    bottomTab.setAttribute('aria-selected', 'true');
+  }
   if(tab==='map'){
     const m = getLeafletMap();
     if(!m) initMap();
@@ -43,9 +64,28 @@ window.switchTab = function(tab){
 };
 
 window.toggleDrawer = function(){
-  document.getElementById('drawer')?.classList.toggle('open');
-  document.getElementById('drawerOverlay')?.classList.toggle('open');
-  document.body.style.overflow=document.getElementById('drawer')?.classList.contains('open')?'hidden':'';
+  const drawer = document.getElementById('drawer');
+  const overlay = document.getElementById('drawerOverlay');
+  const toggleBtn = document.querySelector('.menu-toggle');
+  const isOpen = drawer?.classList.toggle('open');
+  overlay?.classList.toggle('open');
+  if(toggleBtn){
+    toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+  if(drawer){
+    drawer.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+  }
+  document.body.style.overflow = isOpen ? 'hidden' : '';
+};
+
+window.toggleAdvancedFilters = function(){
+  const af = document.getElementById('advancedFilters');
+  const btn = document.getElementById('btnToggleFilters');
+  if(!af) return;
+  const isOpen = af.classList.toggle('open');
+  if(btn){
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
 };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){toggleDrawerIfOpen();closeWarningModal();} });
 function toggleDrawerIfOpen(){ if(document.getElementById('drawer')?.classList.contains('open')) toggleDrawer(); }
@@ -781,8 +821,18 @@ function populateTable(filtered=warnings){
     const tr=document.createElement('tr');
     const wid = w.warning_id || w.id;
     tr.dataset.warningId = wid;
+    tr.setAttribute('tabindex', '0');
+    tr.setAttribute('role', 'button');
+    tr.setAttribute('aria-expanded', expandedTableWarningId === wid ? 'true' : 'false');
+    tr.setAttribute('aria-label', `Warning ${wid}, ${w.navarea}, ${w.title}. Click or press Enter to toggle details.`);
     tr.onclick=()=>toggleTableDetailRow(w, tr);
-    tr.innerHTML=`<td><strong>${wid}</strong> <svg class="row-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></td><td>${w.navarea}</td><td>${w.title}</td>
+    tr.onkeydown=(e)=>{
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        toggleTableDetailRow(w, tr);
+      }
+    };
+    tr.innerHTML=`<td><strong>${wid}</strong> <svg class="row-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"/></svg></td><td>${w.navarea}</td><td>${w.title}</td>
     <td>${badge(w.severity==='high'?'high':w.severity==='critical'?'critical':'moderate',w.severity.toUpperCase())}</td>
     <td>${w.issued_date || w.issued}</td><td>${w.coordinates || w.coords}</td><td>${statusBadge(w)}</td>`;
     tb.appendChild(tr);
@@ -803,7 +853,17 @@ function populateCards(filtered=warnings){
     const wid = w.warning_id || w.id;
     c.className='warning-card';
     c.dataset.warningId = wid;
+    c.setAttribute('tabindex', '0');
+    c.setAttribute('role', 'button');
+    c.setAttribute('aria-expanded', expandedCardWarningId === wid ? 'true' : 'false');
+    c.setAttribute('aria-label', `Warning ${wid}, ${w.navarea}, ${w.title}. Click or press Enter to toggle details.`);
     c.onclick=()=>toggleCardDetail(w, c);
+    c.onkeydown=(e)=>{
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        toggleCardDetail(w, c);
+      }
+    };
     c.innerHTML=`<div class="warning-card-header"><span class="warning-card-id">${wid} · ${w.navarea}</span>${badge(w.severity==='high'?'high':'moderate',w.severity.toUpperCase())}</div>
     <div class="warning-card-title">${w.title}</div>
     <div class="warning-card-meta"><span>📍 ${w.navarea}</span><span>📅 ${w.issued_date || w.issued}</span><span>🎯 ${w.coordinates || w.coords}</span></div>`;
@@ -900,9 +960,11 @@ window.refreshSupabaseConnection = async function(){
 };
 
 // ═══════════ MODAL / TOAST ═══════════
-let currentWarning, toastTimeout;
+let currentWarning, toastTimeout, previousFocusedElement = null;
 window.openWarningModal = async function(w){
+  previousFocusedElement = document.activeElement;
   currentWarning=w;
+  const modalOverlay = document.getElementById('warningModal');
   document.getElementById('modalTitle').textContent=`${w.warning_id || w.id} — ${w.navarea}`;
   document.getElementById('modalBody').innerHTML=`
     <div class="detail-row"><div class="detail-label">Severity</div><div class="detail-value">${badge(w.severity==='high'?'high':w.severity==='critical'?'critical':'moderate',w.severity.toUpperCase())}</div></div>
@@ -910,7 +972,12 @@ window.openWarningModal = async function(w){
     <div class="detail-row"><div class="detail-label">Coordinates</div><div class="detail-value">${w.coordinates || w.coords}</div></div>
     <div class="detail-row"><div class="detail-label">Status</div><div class="detail-value">${statusBadge(w)}</div></div>
     <div class="warning-text" id="modalTextContainer"></div>`;
-  document.getElementById('warningModal')?.classList.add('open');
+  if(modalOverlay){
+    modalOverlay.classList.add('open');
+    modalOverlay.setAttribute('aria-hidden', 'false');
+    const closeBtn = modalOverlay.querySelector('.modal-close');
+    if(closeBtn) setTimeout(()=>closeBtn.focus(), 50);
+  }
   document.body.style.overflow='hidden';
 
   const textContainer = document.getElementById('modalTextContainer');
@@ -940,7 +1007,17 @@ window.openWarningModal = async function(w){
   }
 };
 window.closeModal = function(e){ if(e.target===e.currentTarget) closeWarningModal(); };
-window.closeWarningModal = function(){ document.getElementById('warningModal')?.classList.remove('open'); document.body.style.overflow=''; };
+window.closeWarningModal = function(){
+  const modalOverlay = document.getElementById('warningModal');
+  if(modalOverlay){
+    modalOverlay.classList.remove('open');
+    modalOverlay.setAttribute('aria-hidden', 'true');
+  }
+  document.body.style.overflow='';
+  if(previousFocusedElement && typeof previousFocusedElement.focus === 'function'){
+    previousFocusedElement.focus();
+  }
+};
 window.showToast = function(m){
   const t=document.getElementById('toast'); if(!t) return;
   t.textContent=m; t.classList.add('show');
