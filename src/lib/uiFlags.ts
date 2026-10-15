@@ -11,7 +11,8 @@ export function isUILegacy(): boolean {
   } catch {
     /* private-mode localStorage can throw; fall through to env default */
   }
-  return import.meta.env.VITE_HW_CLASSIC_UI === '1';
+  const envVal = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_HW_CLASSIC_UI) || (typeof process !== 'undefined' && process.env?.VITE_HW_CLASSIC_UI);
+  return envVal === '1';
 }
 
 function subscribe(onStoreChange: () => void): () => void {

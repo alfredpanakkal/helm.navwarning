@@ -9,6 +9,11 @@ import {
   AnalyzedWarning,
   DataBankAnalytics,
 } from '../utils/warningAnalyzer';
+import {
+  useInForceStatus,
+  getInForceStatusForNavarea,
+  type InForceStatusResult,
+} from './useInForceStatus';
 
 export interface DataBankProps {
   warnings: NavWarning[];
@@ -123,6 +128,9 @@ export interface DataBankModel {
   shiftFirstPage: () => void;
   shiftLastPage: () => void;
   shiftToPage: (p: number) => void;
+
+  inForceStatus: InForceStatusResult;
+  getInForceStatus: (navarea: string) => InForceStatusResult | null;
 }
 
 /**
@@ -395,6 +403,13 @@ export function useDataBankModel({
     return [1, '...', validPage - 1, validPage, validPage + 1, '...', totalPages];
   }, [totalPages, validPage]);
 
+  // In-Force Status computation for the active NAVAREA filter and pure per-area lookup
+  const inForceStatus = useInForceStatus(selectedNavArea, warnings);
+
+  const getInForceStatus = (navarea: string): InForceStatusResult | null => {
+    return getInForceStatusForNavarea(navarea, warnings);
+  };
+
   return {
     warnings,
     searchTerm,
@@ -457,5 +472,7 @@ export function useDataBankModel({
     shiftFirstPage,
     shiftLastPage,
     shiftToPage,
+    inForceStatus,
+    getInForceStatus,
   };
 }

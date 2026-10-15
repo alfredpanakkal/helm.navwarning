@@ -35,6 +35,6 @@ function UILegacySwitcherControl() {
   );
 }
 
-export const UILegacySwitcher: React.FC = import.meta.env.DEV
+export const UILegacySwitcher: React.FC = (typeof import.meta !== 'undefined' && import.meta.env?.DEV)
   ? UILegacySwitcherControl
   : () => null;

@@ -17,6 +17,7 @@ export const DEFAULT_FLAGS = {
 
   // Phase 4+: Future flags
   inForceUIDisplay: false,
+  inForceFallbackToLifecycle: true,
 };
 
 export type FeatureFlagKey = keyof typeof DEFAULT_FLAGS;
