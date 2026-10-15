@@ -342,3 +342,5 @@ export async function syncSourcesToSupabase(sources: SourceRegistryItem[]): Prom
     return { success: false, error: err.message || String(err) };
   }
 }
+
+export { syncInForceSnapshot } from '../services/snapshotService';

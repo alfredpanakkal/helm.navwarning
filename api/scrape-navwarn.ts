@@ -8,6 +8,12 @@ import { verifyAdminRequest } from '../server/auth.js';
 import { parseCoordinatesDeterministic } from '../src/utils/coordinateParser.js';
 import { extractNavAreaFromText, extractWarningNumberAndYear } from '../src/utils/markdownParser.js';
 import type { NavWarning, NavAreaId, RawArtifact } from '../src/types.js';
+import type { RawMessageBlock } from '../src/types/navarea.js';
+import { isInForceList, parseInForceListAsync } from '../src/parsers/inForceListParser.js';
+import type { ParsedInForceList } from '../src/parsers/inForceListParser.js';
+import { extractIssuedAtFromList, syncInForceSnapshot } from '../src/services/snapshotService.js';
+import type { InForceSnapshot } from '../src/types/snapshot.js';
+import { FEATURE_FLAGS } from '../src/lib/featureFlags.js';
 
 function detectHazardCategory(text: string): string {
   const upper = text.toUpperCase();
@@ -30,6 +36,95 @@ function extractCancellation(text: string): { isCancelled: boolean; cancellation
     return { isCancelled: true, cancellationText: match[0].trim() };
   }
   return { isCancelled: false, cancellationText: null };
+}
+
+export interface ProcessInForceResult {
+  isList: boolean;
+  parsed?: ParsedInForceList;
+  snapshot?: InForceSnapshot;
+  warning?: NavWarning;
+  error?: string;
+}
+
+/**
+ * Detects, parses, and persists in-force list bulletins into in_force_snapshots.
+ */
+export async function processInForceList(
+  rawBlock: string,
+  sourceId: string,
+  defaultNavarea: string,
+  options?: { isAuthoritative?: boolean; fallbackWarningId?: string }
+): Promise<ProcessInForceResult> {
+  if (!isInForceList(rawBlock)) {
+    return { isList: false };
+  }
+
+  const detectedArea = extractNavAreaFromText(rawBlock) || (defaultNavarea as NavAreaId) || 'IV';
+  const { warningNumber, warningYear, referenceId } = extractWarningNumberAndYear(rawBlock);
+  const finalWarningId =
+    referenceId ||
+    options?.fallbackWarningId ||
+    `warn-${crypto.createHash('md5').update(rawBlock).digest('hex').substring(0, 10)}`;
+
+  const num = typeof warningNumber === 'number' ? warningNumber : parseInt(String(warningNumber || 0), 10) || 0;
+  const yr = typeof warningYear === 'number' ? warningYear : parseInt(String(warningYear || 0), 10) || (new Date().getFullYear() % 100);
+
+  // Parse in-force list using async parser (with deterministic-first + AI fallback)
+  const messageBlock: RawMessageBlock = {
+    warningId: finalWarningId,
+    navarea: detectedArea,
+    number: num,
+    year: yr,
+    rawHeader: rawBlock.slice(0, 100),
+    rawBody: rawBlock,
+    rawText: rawBlock,
+    regionTokens: [],
+    charts: [],
+    filePosition: 0,
+    sourceFeed: sourceId,
+  };
+
+  const parsed = await parseInForceListAsync(messageBlock);
+
+  if (!parsed.isList) {
+    return { isList: false };
+  }
+
+  // Extract issued timestamp
+  const issuedDateObj = extractIssuedAtFromList(rawBlock) || new Date();
+  const issuedIso = issuedDateObj.toISOString();
+
+  let snapshot: InForceSnapshot | undefined;
+  let syncError: string | undefined;
+
+  // Persist snapshot if feature flag is active
+  if (FEATURE_FLAGS.inForceSnapshots) {
+    const isAuthoritative = options?.isAuthoritative ?? !parsed.isPartialList;
+    const syncRes = await syncInForceSnapshot({
+      navarea: detectedArea,
+      snapshotWarningId: finalWarningId,
+      sourceId,
+      issuedAt: issuedIso,
+      issueDate: parsed.asOfDate || issuedIso.slice(0, 10),
+      entries: parsed.inForceEntries,
+      cancelledRefs: parsed.cancelledRefs,
+      isPartial: parsed.isPartialList,
+      isAuthoritative,
+    });
+
+    if (syncRes.success && syncRes.snapshot) {
+      snapshot = syncRes.snapshot;
+    } else if (syncRes.error) {
+      syncError = syncRes.error;
+    }
+  }
+
+  return {
+    isList: true,
+    parsed,
+    snapshot,
+    error: syncError,
+  };
 }
 
 // Complete deterministic parser gathering all individual warning parameters
@@ -216,6 +311,27 @@ export default async function scrapeNavwarnHandler(req: Request, res: Response) 
       // 2. Complete warning parameter extraction and segregated sync
       const warnings = extractWarnings(rawContent, source.id, source.navarea);
 
+      // 3. Process in-force list snapshots
+      const potentialBlocks = rawContent.split(/(?=NAVAREA|WARNING|NOTICE)/i);
+      let snapshotsSaved = 0;
+      for (const block of potentialBlocks) {
+        const rawBlock = block.trim();
+        if (rawBlock.length < 25) continue;
+        if (isInForceList(rawBlock)) {
+          const inForceRes = await processInForceList(rawBlock, source.id, source.navarea);
+          if (inForceRes.snapshot) {
+            snapshotsSaved++;
+          }
+        }
+      }
+
+      if (snapshotsSaved === 0 && isInForceList(rawContent)) {
+        const inForceRes = await processInForceList(rawContent, source.id, source.navarea);
+        if (inForceRes.snapshot) {
+          snapshotsSaved++;
+        }
+      }
+
       if (warnings.length > 0) {
         const syncRes = await syncWarningsToSupabase(warnings);
         if (!syncRes.success) {
@@ -227,6 +343,7 @@ export default async function scrapeNavwarnHandler(req: Request, res: Response) 
         source: source.id,
         status: 'success',
         extracted: warnings.length,
+        snapshots: snapshotsSaved,
       });
 
     } catch (err: any) {
