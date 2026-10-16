@@ -21,6 +21,7 @@ import { DataBankModel, SortDirection, SortField } from '../hooks/useDataBankMod
 import { useUILegacy } from '../lib/uiFlags';
 import { WarningHierarchyLines, WarningItemDetails } from './WarningItemV2';
 import { WarningStatusBadge } from './WarningStatusBadge';
+import { getWarningBulletinText, getWarningDate } from '../utils/warningHelpers';
 
 export interface DataBankWarningListProps {
   model: DataBankModel;
@@ -226,7 +227,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                             <div className="flex items-center gap-3 text-[11px] text-gw-accent mt-1 font-mono">
                               <span>{analyzedItem.coordinatesDisplay}</span>
                               <span>•</span>
-                              <span>Issued: {w.issued_date}</span>
+                              <span>Issued: {getWarningDate(w)}</span>
                             </div>
                           </div>
                         </div>
@@ -503,7 +504,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">Issued Date</span>
                         <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5 text-gw-accent shrink-0" />
-                          <span>{w.issued_date}</span>
+                          <span>{getWarningDate(w)}</span>
                         </div>
                       </div>
                     </div>
@@ -515,7 +516,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigator.clipboard.writeText(w.raw_text || w.issued_text);
+                            navigator.clipboard.writeText(getWarningBulletinText(w));
                           }}
                           className="text-[10px] text-gw-primary hover:text-gw-accent font-bold uppercase underline"
                         >
@@ -523,7 +524,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         </button>
                       </div>
                       <div className="p-2.5 bg-white border border-gw-secondary rounded text-[11px] text-gw-primary font-mono leading-relaxed max-h-36 overflow-y-auto no-scrollbar">
-                        {w.raw_text || w.issued_text}
+                        {getWarningBulletinText(w)}
                       </div>
                     </div>
 
@@ -806,7 +807,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 <div className="text-[11px] text-gw-accent font-mono truncate">
                   {formatSpatialCoordinates(w.spatial)}
                 </div>
-                <div className="text-[11px] text-gw-accent whitespace-nowrap">{w.issued_date}</div>
+                <div className="text-[11px] text-gw-accent whitespace-nowrap">{getWarningDate(w)}</div>
                 <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase">
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                     w.status === 'active' ? 'bg-green-600' : w.status === 'unverified' ? 'bg-amber-500' : 'bg-zinc-400'

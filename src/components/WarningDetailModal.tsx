@@ -3,6 +3,7 @@ import { NavWarning } from '../types';
 import { EcdisFeatureEditor } from './EcdisFeatureEditor';
 import { extractEcdisIntermediateLayer } from '../utils/coordinateParser';
 import { copyToClipboard } from '../utils/coordinateConversion';
+import { getWarningBulletinText, getWarningDate } from '../utils/warningHelpers';
 import {
   extractWarningKeywords,
   extractWarningCoordinateList,
@@ -139,12 +140,10 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                   {warning.status === 'active' ? '● Active' : '○ Cancelled'}
                 </span>
 
-                {warning.issued_date && (
                   <span className="flex items-center gap-1 text-[11px] font-mono text-gw-accent font-bold px-1.5 py-0.5">
                     <Clock className="w-3.5 h-3.5" />
-                    <span>{warning.issued_date} UTC</span>
+                    <span>{getWarningDate(warning)} UTC</span>
                   </span>
-                )}
               </div>
 
               {/* Title & Warning Code */}
@@ -246,7 +245,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                     <span>Verbatim Raw NAVTEX / Broadcast Notice</span>
                   </span>
                   <button
-                    onClick={() => handleCopy(warning.raw_text, 'raw')}
+                    onClick={() => handleCopy(getWarningBulletinText(warning), 'raw')}
                     className="flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg hover:bg-gw-primary hover:text-gw-bg border border-gw-primary rounded text-xs font-mono font-bold uppercase transition-all"
                   >
                     {copiedType === 'raw' ? (
@@ -264,7 +263,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 </div>
 
                 <pre className="bg-gw-primary text-gw-secondary p-4 sm:p-5 rounded-xl font-mono text-xs sm:text-sm whitespace-pre-wrap leading-relaxed max-h-[380px] overflow-y-auto shadow-inner border border-gw-primary select-all">
-                  {warning.raw_text || warning.issued_text || 'No verbatim broadcast text recorded.'}
+                  {getWarningBulletinText(warning)}
                 </pre>
               </div>
 

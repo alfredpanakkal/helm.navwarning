@@ -4,6 +4,7 @@ import { NavWarning, SourceRegistryItem } from '../types';
 import { formatSpatialCoordinates } from '../utils/coordinateParser';
 import { resolveIssuingAuthority } from '../utils/warningAnalyzer';
 import { WarningStatusBadge } from './WarningStatusBadge';
+import { getWarningBulletinText, getWarningDate } from '../utils/warningHelpers';
 
 export type WarningSeverityBand = 'CRITICAL' | 'HIGH' | 'MODERATE';
 
@@ -221,8 +222,7 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
         <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5 text-gw-accent shrink-0" />
           <span className="font-mono truncate">
-            {w.issued_text || w.issued_date}
-            {w.issued_text && w.issued_date ? <span className="text-gw-accent"> · {w.issued_date}</span> : null}
+            {getWarningDate(w)}
           </span>
         </div>
       </div>
@@ -234,7 +234,7 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              navigator.clipboard.writeText(w.raw_text || w.issued_text);
+              navigator.clipboard.writeText(getWarningBulletinText(w));
             }}
             className="text-[10px] text-gw-primary hover:text-gw-accent font-bold uppercase underline"
           >
@@ -242,7 +242,7 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
           </button>
         </div>
         <div className="p-2.5 bg-white border border-gw-secondary rounded text-[11px] text-gw-primary font-mono leading-relaxed max-h-36 overflow-y-auto no-scrollbar">
-          {w.raw_text || w.issued_text}
+          {getWarningBulletinText(w)}
         </div>
       </div>
 

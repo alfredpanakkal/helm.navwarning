@@ -193,6 +193,16 @@ export interface NavWarning {
   latitude?: number | null;
   longitude?: number | null;
   valid_until?: string | null;
+  
+  // Alternative schema keys for robustness
+  bulletin?: string;
+  rawText?: string;
+  text?: string;
+  body?: string;
+  message?: string;
+  issued?: string;
+  date?: string;
+  timestamp?: string | number;
   validity?: string | null;
   charts?: string | null;
   categories?: string | null;
