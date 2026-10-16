@@ -3,7 +3,7 @@ import { NavWarning } from '../types';
 import { EcdisFeatureEditor } from './EcdisFeatureEditor';
 import { extractEcdisIntermediateLayer } from '../utils/coordinateParser';
 import { copyToClipboard } from '../utils/coordinateConversion';
-import { getWarningBulletinText, getWarningDate } from '../utils/warningHelpers';
+import { getWarningBulletinText, getWarningDate, getWarningPositionCount } from '../utils/warningHelpers';
 import {
   extractWarningKeywords,
   extractWarningCoordinateList,
@@ -78,6 +78,8 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
 
   if (!warning) return null;
 
+  const positionCount = getWarningPositionCount(warning);
+
   const warningIdCode = warning.source_warning_id || `NAVAREA ${warning.navarea} ${warning.warning_number}/${warning.warning_year}`;
   const keywords = extractWarningKeywords(warning.raw_text || warning.issued_text || warning.area_text);
   const coordinatePoints = extractWarningCoordinateList(warning);
@@ -144,6 +146,11 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                     <Clock className="w-3.5 h-3.5" />
                     <span>{getWarningDate(warning)} UTC</span>
                   </span>
+                  {positionCount > 1 && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                      Positions: {positionCount}
+                    </span>
+                  )}
               </div>
 
               {/* Title & Warning Code */}

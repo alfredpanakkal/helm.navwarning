@@ -4,7 +4,7 @@ import { NavWarning, SourceRegistryItem } from '../types';
 import { formatSpatialCoordinates } from '../utils/coordinateParser';
 import { resolveIssuingAuthority } from '../utils/warningAnalyzer';
 import { WarningStatusBadge } from './WarningStatusBadge';
-import { getWarningBulletinText, getWarningDate } from '../utils/warningHelpers';
+import { getWarningBulletinText, getWarningDate, getWarningPositionCount } from '../utils/warningHelpers';
 
 export type WarningSeverityBand = 'CRITICAL' | 'HIGH' | 'MODERATE';
 
@@ -187,6 +187,7 @@ export interface WarningItemDetailsProps {
  */
 export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning: w }) => {
   const conf = w.extraction_confidence;
+  const positionCount = getWarningPositionCount(w);
   return (
     <div className="mt-2 p-3 bg-gw-bg/60 border-t border-gw-secondary/60 space-y-2.5 text-[11px] animate-in fade-in duration-150">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -218,7 +219,14 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
       </div>
 
       <div>
-        <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">Issued</span>
+        <div className="flex justify-between items-center mb-0.5">
+          <span className="text-[10px] font-bold uppercase text-gw-accent">Issued</span>
+          {positionCount > 1 && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+              Positions: {positionCount}
+            </span>
+          )}
+        </div>
         <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5 text-gw-accent shrink-0" />
           <span className="font-mono truncate">

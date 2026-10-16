@@ -512,19 +512,43 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           w.spatial.geometries.forEach((geom) => {
             if (geom.type === 'Polygon' && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
               try {
-                const ringCoords = geom.coordinates[0];
-                const latLngs: L.LatLngExpression[] = Array.isArray(ringCoords)
-                  ? (ringCoords as any[]).map((pt) => [pt[1], pt[0]])
-                  : (geom.coordinates as any[]).map((pt) => [pt[1], pt[0]]);
+                const latLngs = (geom.coordinates[0] as number[][]).map(([lng, lat]) => [lat, lng] as [number, number]);
 
                 const poly = L.polygon(latLngs, {
-                  ...polyStyle,
-                  pane: 'navWarnVectorPane',
-                }).addTo(vectorGroup);
-
+                  color: '#2563eb',       // Clean marine blue border
+                  weight: 2,
+                  opacity: 0.9,
+                  fillColor: '#3b82f6',   // Semi-transparent blue fill
+                  fillOpacity: 0.25,
+                  pane: 'navWarnVectorPane'
+                });
                 poly.on('click', () => onSelectWarning(w));
                 poly.on('contextmenu', (e: L.LeafletMouseEvent) => {
                   handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
+                });
+                vectorGroup.addLayer(poly);
+
+                latLngs.forEach((latLng, idx) => {
+                  const vertexMarker = L.circleMarker(latLng, {
+                    radius: 5,
+                    fillColor: '#fbbf24', // Amber/yellow accent
+                    color: '#d97706',
+                    weight: 1.5,
+                    fillOpacity: 0.95,
+                    pane: 'navWarnVectorPane'
+                  });
+                  vertexMarker.bindTooltip(`Vertex ${idx + 1}: ${latLng[0].toFixed(3)}°, ${latLng[1].toFixed(3)}°`, {
+                    direction: 'top',
+                    offset: [0, -5]
+                  });
+                  vertexMarker.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    onSelectWarning(w);
+                  });
+                  vertexMarker.on('contextmenu', (e: L.LeafletMouseEvent) => {
+                    handleLayerContextMenu(e, w, latLng);
+                  });
+                  vectorGroup.addLayer(vertexMarker);
                 });
               } catch {
                 // Malformed polygon fallback
@@ -568,6 +592,29 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   pane: 'navWarnVectorPane',
                   radius: radiusM,
                 }).addTo(vectorGroup);
+
+                circleLayer.bindTooltip(`Radius: ${circ.radius_nm} NM`, {
+                  direction: 'center',
+                  permanent: false
+                });
+
+                const centerMarker = L.circleMarker(center, {
+                  radius: 5,
+                  fillColor: '#f59e0b',
+                  color: '#78350f',
+                  weight: 1.5,
+                  fillOpacity: 0.95,
+                  pane: 'navWarnVectorPane'
+                });
+                centerMarker.bindTooltip(`Center: ${circ.radius_nm} NM Radius`, { direction: 'top', offset: [0, -5] });
+                centerMarker.on('click', (e) => {
+                  L.DomEvent.stopPropagation(e);
+                  onSelectWarning(w);
+                });
+                centerMarker.on('contextmenu', (e: L.LeafletMouseEvent) => {
+                  handleLayerContextMenu(e, w, center);
+                });
+                vectorGroup.addLayer(centerMarker);
 
                 circleLayer.on('click', () => onSelectWarning(w));
                 circleLayer.on('contextmenu', (e: L.LeafletMouseEvent) => handleLayerContextMenu(e, w, center));

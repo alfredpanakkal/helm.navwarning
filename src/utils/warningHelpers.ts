@@ -38,3 +38,18 @@ export function getWarningDate(w?: Partial<NavWarning> | null): string {
 
   return 'N/A';
 }
+
+export function getWarningPositionCount(w?: Partial<NavWarning> | null): number {
+  if (!w) return 0;
+  if (w.spatial?.circles && w.spatial.circles.length > 0) {
+    return w.spatial.circles.length;
+  }
+  const poly = w.spatial?.geometries?.find((g) => g.type === 'Polygon');
+  if (poly && Array.isArray(poly.coordinates[0])) {
+    return (poly.coordinates[0] as any[]).length;
+  }
+  if (w.spatial?.raw_coordinate_text && w.spatial.raw_coordinate_text.length > 0) {
+    return w.spatial.raw_coordinate_text.length;
+  }
+  return (w.latitude && w.longitude) ? 1 : 0;
+}
