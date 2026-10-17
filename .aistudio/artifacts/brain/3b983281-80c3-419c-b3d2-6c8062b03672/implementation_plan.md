@@ -1,105 +1,113 @@
-# NAVAREA v4 Test Restore & Comprehensive Validation Plan
+# Implementation Plan: Standalone Complete Frontend Single HTML File
 
-A deterministic recovery and validation workflow to restore the NAVAREA v4 test harness, integrate the standalone `src/riglistParser.ts`, run the full probe and adversarial stress test suites, and produce certified scorecards without modifying test assertions.
-
----
-
-## User Review & Critical Decisions
-
-> [!IMPORTANT]
-> The delivery strategy and file placement have been confirmed:
-> - **Two-Stage Restore Delivery**: Code blocks will be received and integrated in two sequential batches: Files 1 & 2 first (`src/riglistParser.ts` and pipeline wiring), followed by Files 3 & 4 (`riglist-probe.test.ts` and `navarea-stress.test.ts`).
-> - **Root-Relative Module Placement**: The riglist parser is positioned at `src/riglistParser.ts` to maintain 100% path compatibility with existing test imports.
-> - **Zero Test Modification Invariant**: Test assertions in `riglist-probe.test.ts` and `navarea-stress.test.ts` remain strictly immutable. Any divergence between parser output and test expectation must be resolved in the parser implementation or reported as an evidence-backed spec conflict.
-> - **Precedence Chain Integrity**: The resolved contradiction log (2 arbitrations: IX 103/24 in-force membership vs stale supersession, and IV 977/24 Tier 2 cross-cancel over Tier 4 supersession) remains intact and protected against regression.
+Build a complete, production-grade, self-contained single HTML file (`public/export/helm-warning-complete.html`) uniting both the **Public Maritime Portal** and the **Gated Admin Console**, with all CSS tokens, vendor libraries (Leaflet, Supabase JS), and client operational logic inlined for 100% offline functionality.
 
 ---
 
-## 1. Overview & Core Concept
+## 1. Overview & Scope
 
-### What It Does
-Restores the comprehensive test harness for the NAVAREA v4 maritime safety pipeline. It integrates the high-density RIGLIST parser (extracting drilling units, coordinates, and regional sectors from complex tabular telexes such as NAVAREA I 223/26), installs the dedicated evaluation probe and stress suites, and executes full verification across all spatial archetypes, coordinate repairs, and lifecycle transitions.
+### Core Objective
+Produce a single, standalone distribution file (`public/export/helm-warning-complete.html`) that can be opened locally in any browser (via `file://` or static HTTP server) without external CDN or asset dependencies.
 
-### Target Audience & Persona
-Navigational analysts, maritime safety auditors, and test engineers verifying zero silent drops, precise spatial coordinates (including negative W-longitudes), and rock-solid rule precedence across global NAVAREA broadcasts.
-
-### Key Value
-- **Full Ingestion Accountability**: Proves every single rig entry and hazardous entity is parsed with precise spatial coordinates.
-- **Auditable Rig Extraction**: Captures all 43 rig positions, negative West longitudes, and 4 distinct geographical groups from NAVAREA I 223/26.
-- **Zero-Drop Blocker Defense**: Ensures S1–S4 blocker requirements in the stress test suite pass cleanly with detailed scorecards.
+### What is Included
+1. **Public Portal**:
+   - Interactive Leaflet maritime chart with layer controls, quick-recenter pill, and floating warning list.
+   - NAVAREA Data Bank with live search, multi-level dropdown filters (NAVAREA, Severity, Category), inline accordion inspection (`.table-detail-row`), and mobile cards.
+   - Executive statistics strip (in-force count, global coverage %, critical/high tally, georeferencing status).
+   - Global Hydrographic Source Registry cards with status badges and authority metadata.
+2. **Admin Console & Login Gate**:
+   - Secure login view with session persistence in `sessionStorage` (2-hour expiry).
+   - 5 Operational Sub-tabs: Overview (Attention items & quick actions), Pipeline Orchestrator (live stage visualization), Bulk Import Wizard (4-step parsing & atomic publishing), Verification Queue (human-in-the-loop triage), and System Diagnostics (AI connectivity & database schema).
+   - Seamless top-bar transition between Public Site view and Admin Console.
+3. **100% Offline Self-Containment**:
+   - Inlined vendor libraries: Leaflet v1.9.4 JS & CSS directly from local `node_modules/leaflet/dist/`.
+   - Inlined Supabase client: `@supabase/supabase-js` v2 UMD bundle from `node_modules/@supabase/supabase-js/dist/umd/supabase.js`.
+   - Inlined design system tokens (`tokens.css`) and modular components (`components.css`).
+   - Built-in maritime fallback dataset (`SEED_WARNINGS`) ensuring full functionality even when disconnected from the live Supabase database.
 
 ---
 
 ## 2. User Experience & Visual Design
 
-### Test Execution & Scorecard Reporting Flow
-1. **Stage 1 Intake**:
-   - Ingest and verify `src/riglistParser.ts` (File 1) and any pipeline wiring (File 2).
-   - Ensure clean compilation and export compatibility with existing parsers.
+### Unified Layout & View State Machine
+- **Default State**: Public Maritime Portal (`#main`), featuring the Map View with active warnings list and Data Bank.
+- **Admin Access**: Discrete "Admin Console" entry in the header menu or direct access trigger.
+- **Gated Authentication**: Clicking "Admin" opens the dark security modal/view (`#loginView`). Authenticated sessions transition to `#adminView` displaying the 5 administrative sub-tabs.
+- **Return to Portal**: Admin console includes a "View Site ↗" header link and "Sign Out" button to switch back instantly.
 
-2. **Stage 2 Intake**:
-   - Ingest and place `src/__tests__/riglist-probe.test.ts` (File 3) and `src/__tests__/navarea-stress.test.ts` (File 4).
-   - Verify unescaped template literals, intact regexes, and pristine test syntax.
-
-3. **Automated Suite Execution**:
-   - Execute `npx vitest run riglist-probe.test.ts` to evaluate the 43-rig extraction, coordinate sign conversion (W → negative), and quadrant sector grouping.
-   - Execute `npx vitest run navarea-stress.test.ts` to evaluate S1–S4 blocker scenarios and stress criteria.
-
-4. **Transparent Scorecard Publication**:
-   - Output both complete test run scorecards in the terminal and chat summary with exact assertion pass/fail matrices and timing.
+### Design Tokens & Aesthetics
+- **Colors**:
+  - Backgrounds: `--bg: #fafafa`, `--surface: #ffffff`, `--surface-dark: #0f172a`, `--border: #e2e8f0`
+  - Text Hierarchy: Primary `--text: #1e293b`, Muted `--text-muted: #64748b`, Subtle `--text-light: #94a3b8`
+  - Hazard Accents: Critical `--critical: #dc2626`, High `--high: #ea580c`, Active `--active: #059669`, Verified `--verified: #0d9488`, Neutral `--neutral: #64748b`
+- **Typography**: Clean system UI font stack (`system-ui, -apple-system, sans-serif`) with monospace tabular numbers for coordinates and timestamps (`ui-monospace, monospace`).
+- **Responsive Layout**: Fluid breakpoints for Mobile ($\le 768\text{px}$ with bottom navigation and touch drawers), Tablet ($769\text{px} - 1024\text{px}$), and Desktop ($> 1024\text{px}$).
 
 ---
 
-## 3. Key Product Decisions & Trade-Offs
+## 3. Technical Architecture & Inlining Strategy
 
-### Decision 1: Root-Relative `src/riglistParser.ts` Placement
-- **Chosen Approach**: Place `riglistParser.ts` directly in `src/` rather than inside `src/parsers/`.
-- **Why**: Existing test suites import directly from `../riglistParser` or `src/riglistParser`. Preserving this location avoids re-export indirection and prevents test file churn.
-- **Alternatives Considered**: Placing in `src/parsers/riglistParser.ts` with re-exports in `src/index.ts` was considered, but rejected to guarantee zero edits to test imports.
-
-### Decision 2: Strict Coordinate Sign Handling (West / South Conversion)
-- **Chosen Approach**: Rig coordinates with `W` hemisphere suffix are parsed to negative decimal longitudes (`-DDD.dddd`), and `S` latitudes to negative decimal latitudes.
-- **Why**: Navigational cartography (Leaflet/GIS) strictly requires signed decimal degrees for accurate spatial geometry.
-
-### Decision 3: Sector and Group Preservation
-- **Chosen Approach**: Group rig entries into their 4 respective geographical zones (e.g., North Sea, Norwegian Sea, English Channel, West of Shetland) as demarcated in NAVAREA I 223/26.
-- **Why**: Preserves operational context so mariners can filter and isolate drilling units by operating basin.
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│             public/export/helm-warning-complete.html                   │
+├────────────────────────────────────────────────────────────────────────┤
+│ <head>                                                                 │
+│   ├─ Meta tags (viewport-fit=cover, theme-color, title)                │
+│   ├─ <style> Leaflet CSS (inlined from node_modules)                   │
+│   ├─ <style> Tokens & Components CSS (tokens.css + components.css)     │
+│   └─ <style> Portal & Admin Responsive Layout CSS                      │
+├────────────────────────────────────────────────────────────────────────┤
+│ <body>                                                                 │
+│   ├─ Skip links & Top navigation header                                │
+│   ├─ Public Portal Markup:                                             │
+│   │   ├─ Tab: Map View (#tab-map, #map, layer drawer, warning list)   │
+│   │   ├─ Tab: Data Bank (#tab-data, metrics grid, table, mobile cards) │
+│   │   └─ Tab: Sources Registry (#tab-sources, grid cards)              │
+│   ├─ Login Gate Markup (#loginView, form, error banners)               │
+│   ├─ Admin Console Markup (#adminView):                                │
+│   │   ├─ Sub-tab: Overview (#admin-overview, attention alert panel)    │
+│   │   ├─ Sub-tab: Pipeline (#admin-pipeline, 4-stage pipeline tracker) │
+│   │   ├─ Sub-tab: Import (#admin-import, 4-step wizard)                │
+│   │   ├─ Sub-tab: Verify (#admin-verify, human verification cards)     │
+│   │   └─ Sub-tab: System (#admin-system, AI model & DB diagnostics)    │
+│   ├─ Shared Modals (Warning Detail Modal, Toasts)                      │
+│   ├─ <script> Leaflet JS (inlined from node_modules)                   │
+│   ├─ <script> Supabase JS UMD (inlined from node_modules)              │
+│   └─ <script> Unified Runtime Controller (public + admin state logic)  │
+└────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 4. Technical Architecture & Data Strategy
+## 4. Implementation Steps
 
-### Component & Execution Flow
+### Step 1: Prepare Inlined Asset Payloads
+- Read `node_modules/leaflet/dist/leaflet.css` and `node_modules/leaflet/dist/leaflet.js`.
+- Read `node_modules/@supabase/supabase-js/dist/umd/supabase.js`.
+- Read `public/assets/css/tokens.css` and `public/assets/css/components.css`.
+- Merge custom layout and responsive styles from `index.html` and `admin.html`.
 
-```
-┌────────────────────────────────────────────────────────┐
-│            NAVAREA I 223/26 Tabular Rig Telex          │
-│               (43 Rigs across 4 Groups)                │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│               src/riglistParser.ts                     │
-│  ├─ Header & Group Demarcation Extractor               │
-│  ├─ Rig Name & Status Tokenizer                        │
-│  ├─ Coordinate Parser (Deg/Min to Signed Decimal)      │
-│  └─ Group Aggregator (4 Groups, 43 Entities)           │
-└───────────────────────────┬────────────────────────────┘
-                            │
-              ┌─────────────┴─────────────┐
-              ▼                           ▼
-┌───────────────────────────┐ ┌───────────────────────────┐
-│  riglist-probe.test.ts    │ │   navarea-stress.test.ts  │
-│  • 43 Positions Asserted  │ │  • S1: Adversarial Spans  │
-│  • Negative W-Longitudes  │ │  • S2: Coordinate Zoo     │
-│  • 4 Groups Validated     │ │  • S3: Lifecycle Invariants│
-│  • Zero Dropped Entities  │ │  • S4: Blocker Matrix     │
-└───────────────────────────┘ └───────────────────────────┘
-```
+### Step 2: Combine Public Portal and Admin HTML Markup
+- Assemble unified HTML structure in `public/export/helm-warning-complete.html`.
+- Integrate public header with a discrete "Admin Console" link.
+- Include all public views (`#tab-map`, `#tab-data`, `#tab-sources`) and modal templates.
+- Include admin views (`#loginView` and `#adminView` with all 5 operational workspaces).
 
-### Next Steps Upon Approval
-1. Request the user paste Files 1 & 2 (`src/riglistParser.ts` and integration code).
-2. Write and compile the parser modules.
-3. Request the user paste Files 3 & 4 (`riglist-probe.test.ts` and `navarea-stress.test.ts`).
-4. Execute `npx vitest run riglist-probe.test.ts` and `npx vitest run navarea-stress.test.ts`.
-5. Present the complete test scorecards.
+### Step 3: Integrate and Harmonize JavaScript Runtime
+- Unify `supabase.js`, `public.js`, and `admin.js` into a cohesive, namespace-safe execution script.
+- Ensure the live Supabase client gracefully falls back to local storage and seed records when offline.
+- Enable smooth view switching:
+  - `switchTab('map' | 'data' | 'sources')` for public tabs.
+  - `openAdmin()` / `returnToPublic()` to toggle between public portal and admin workspace.
+  - `switchAdminSub('overview' | 'pipeline' | 'import' | 'verify' | 'system')` for admin sub-tabs.
+
+### Step 4: Verification & Offline Validation
+- Test file generation and verify that no external stylesheet (`<link rel="stylesheet">`) or script (`<script src="...">`) dependencies remain.
+- Validate DOM rendering, tab switching, map initialization, and modal triggers via automated smoke tests or browser verification.
+
+---
+
+## 5. Rollback & Safety Invariant
+- This operation only creates a new distribution file at `public/export/helm-warning-complete.html`.
+- It does **not** overwrite the active `index.html`, `admin.html`, or React source files in `src/`.
+- The live production app and dev server continue to operate without interference.
