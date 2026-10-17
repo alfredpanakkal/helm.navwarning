@@ -21,7 +21,7 @@ import { DataBankModel, SortDirection, SortField } from '../hooks/useDataBankMod
 import { useUILegacy } from '../lib/uiFlags';
 import { WarningHierarchyLines, WarningItemDetails } from './WarningItemV2';
 import { WarningStatusBadge } from './WarningStatusBadge';
-import { getWarningBulletinText, getWarningDate } from '../utils/warningHelpers';
+import { getWarningBulletinText, getWarningDate, getWarningPositionCount } from '../utils/warningHelpers';
 
 export interface DataBankWarningListProps {
   model: DataBankModel;
@@ -197,6 +197,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                     }
 
                     const isCritical = w.extraction_confidence === 1;
+                    const positionCount = getWarningPositionCount(w);
 
                     return (
                       <div
@@ -220,6 +221,11 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${isCritical ? 'bg-gw-primary' : 'bg-gw-tertiary'}`}>
                                 {isCritical ? 'CRITICAL' : 'HIGH'}
                               </span>
+                              {positionCount > 1 && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                                  Positions: {positionCount}
+                                </span>
+                              )}
                             </div>
                             <p className="text-xs text-gw-primary font-medium mt-1 line-clamp-1">
                               {w.issued_text}
@@ -790,6 +796,11 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 <div className="font-bold text-gw-primary group-hover:underline truncate flex items-center gap-1.5">
                   <span className="truncate">{w.source_warning_id}</span>
                   <WarningStatusBadge warning={w} compact />
+                  {getWarningPositionCount(w) > 1 && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 shrink-0 font-mono">
+                      Pos: {getWarningPositionCount(w)}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <span className="inline-flex items-center justify-center px-2 py-0.5 bg-gw-bg border border-gw-secondary rounded text-[10px] font-bold text-gw-primary">

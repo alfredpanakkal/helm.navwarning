@@ -36,6 +36,16 @@ import { WarningHierarchyLines } from './WarningItemV2';
 import { classifyWarning } from '../parsers/warningClassifier';
 import { renderHazardBadgeHtml } from '../utils/hazardIcons';
 import { parseBerthAndRadius } from '../parsers/berthParser';
+import {
+  computeDistanceNm,
+  computePolygonAreaSqNm,
+  computeCentroid,
+  computeLineCorridor,
+  parseClearanceDirective,
+  parseDriftVector,
+  formatWgs84Dms,
+} from '../core/coordinates';
+import { SpatialPlotType } from '../types/maritime';
 
 export type ScopeFilterType = 'all' | 'navarea' | 'coastal';
 
@@ -104,6 +114,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   // Vector & Marker Toggles
   const [showPolygons, setShowPolygons] = useState<boolean>(true);
   const [enableClusters, setEnableClusters] = useState<boolean>(true);
+  const [activePlotType, setActivePlotType] = useState<SpatialPlotType>('all');
+  const [isLegendOpen, setIsLegendOpen] = useState<boolean>(false);
+  const [isMobileSheetExpanded, setIsMobileSheetExpanded] = useState<boolean>(false);
 
   // Sidebar & Filter States
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -513,20 +526,42 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             if (geom.type === 'Polygon' && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
               try {
                 const latLngs = (geom.coordinates[0] as number[][]).map(([lng, lat]) => [lat, lng] as [number, number]);
+                const areaSqNm = computePolygonAreaSqNm(latLngs);
+                const centroid = computeCentroid(latLngs);
 
                 const poly = L.polygon(latLngs, {
                   color: '#2563eb',       // Clean marine blue border
                   weight: 2,
+                  dashArray: '6, 6',     // Nautical dashed perimeter
                   opacity: 0.9,
                   fillColor: '#3b82f6',   // Semi-transparent blue fill
                   fillOpacity: 0.25,
                   pane: 'navWarnVectorPane'
+                });
+                poly.bindTooltip(`${w.source_warning_id || 'Warning'}${areaSqNm > 0 ? ` · ${areaSqNm} sq NM` : ''}`, {
+                  direction: 'center',
+                  permanent: false
                 });
                 poly.on('click', () => onSelectWarning(w));
                 poly.on('contextmenu', (e: L.LeafletMouseEvent) => {
                   handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
                 });
                 vectorGroup.addLayer(poly);
+
+                // Centroid Metric Badge
+                if (areaSqNm > 0 && centroid[0] !== 0) {
+                  const metricBadge = L.marker(centroid, {
+                    icon: L.divIcon({
+                      className: 'polygon-metric-pill',
+                      html: `<div style="background: rgba(15, 23, 42, 0.85); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 2px 7px; border-radius: 9999px; font-family: monospace; font-size: 10px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3); pointer-events: auto; cursor: pointer;">${w.source_warning_id || w.warning_id} · ${areaSqNm} sq NM</div>`,
+                      iconSize: [0, 0],
+                      iconAnchor: [45, 10]
+                    }),
+                    pane: 'navWarnVectorPane'
+                  });
+                  metricBadge.on('click', () => onSelectWarning(w));
+                  vectorGroup.addLayer(metricBadge);
+                }
 
                 latLngs.forEach((latLng, idx) => {
                   const vertexMarker = L.circleMarker(latLng, {
@@ -537,7 +572,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     fillOpacity: 0.95,
                     pane: 'navWarnVectorPane'
                   });
-                  vertexMarker.bindTooltip(`Vertex ${idx + 1}: ${latLng[0].toFixed(3)}°, ${latLng[1].toFixed(3)}°`, {
+                  const dmsLabel = formatWgs84Dms(latLng[0], latLng[1]);
+                  vertexMarker.bindTooltip(`Vertex ${idx + 1}: ${dmsLabel} (${latLng[0].toFixed(3)}°, ${latLng[1].toFixed(3)}°)`, {
                     direction: 'top',
                     offset: [0, -5]
                   });
@@ -560,7 +596,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             ) {
               // User Decision: Render linear polyline corridors for cable and tow routes
               try {
-                const latLngs: L.LatLngExpression[] = (geom.coordinates as any[]).map((pt) => [pt[1], pt[0]]);
+                const latLngs: [number, number][] = (geom.coordinates as any[]).map((pt) => [pt[1], pt[0]]);
                 const polyline = L.polyline(latLngs, {
                   color: classification.displayStyle === 'critical' ? '#dc2626' : '#059669',
                   weight: 3,
@@ -572,6 +608,27 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 polyline.on('contextmenu', (e: L.LeafletMouseEvent) => {
                   handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
                 });
+
+                // Corridor calculation
+                const directive = parseClearanceDirective(w.raw_text || w.issued_text || '');
+                const corridorWidth = directive ? (directive.radiusNm * 2) : 2.0;
+                const corridor = computeLineCorridor(latLngs, corridorWidth);
+                if (corridor.boundaryPolygon && corridor.boundaryPolygon.length > 2) {
+                  const corridorPoly = L.polygon(corridor.boundaryPolygon, {
+                    color: '#0ea5e9',
+                    weight: 1.5,
+                    dashArray: '4, 4',
+                    opacity: 0.7,
+                    fillColor: '#38bdf8',
+                    fillOpacity: 0.12,
+                    pane: 'navWarnVectorPane'
+                  });
+                  corridorPoly.bindTooltip(`Corridor: ${corridor.lengthNm} NM · Berth: ±${(corridor.widthNm / 2).toFixed(1)} NM`, {
+                    direction: 'center'
+                  });
+                  corridorPoly.on('click', () => onSelectWarning(w));
+                  vectorGroup.addLayer(corridorPoly);
+                }
               } catch {
                 // Malformed polyline fallback
               }
@@ -623,6 +680,50 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               }
             }
           });
+        }
+
+        // 3. Directive-derived circular clearance and drift vectors if no explicit circles exist
+        if ((!w.spatial?.circles || w.spatial.circles.length === 0) && w.latitude && w.longitude) {
+          const directive = parseClearanceDirective(w.raw_text || w.issued_text || '');
+          if (directive) {
+            try {
+              const center: [number, number] = [w.latitude, w.longitude];
+              const radiusM = directive.radiusNm * 1852;
+              const circleLayer = L.circle(center, {
+                color: '#ea580c',
+                weight: 1.5,
+                dashArray: '4, 4',
+                fillColor: '#ea580c',
+                fillOpacity: 0.15,
+                pane: 'navWarnVectorPane',
+                radius: radiusM,
+              }).addTo(vectorGroup);
+
+              circleLayer.bindTooltip(`${directive.rawText} (${directive.radiusNm} NM)`, { direction: 'center' });
+              circleLayer.on('click', () => onSelectWarning(w));
+            } catch {
+              // fallback
+            }
+          }
+
+          // Drift vector for unmoored/drifting hazards
+          const drift = parseDriftVector([w.latitude, w.longitude], w.raw_text || w.issued_text || '');
+          if (drift) {
+            try {
+              const driftLine = L.polyline([drift.origin, drift.destination], {
+                color: '#f59e0b',
+                weight: 2.5,
+                dashArray: '3, 6',
+                pane: 'navWarnVectorPane'
+              }).addTo(vectorGroup);
+              driftLine.bindTooltip(`${drift.directionLabel}${drift.speedKts ? ` @ ${drift.speedKts} kts` : ''} (~${drift.distanceNm} NM)`, {
+                direction: 'center'
+              });
+              driftLine.on('click', () => onSelectWarning(w));
+            } catch {
+              // fallback
+            }
+          }
         }
       }
     });

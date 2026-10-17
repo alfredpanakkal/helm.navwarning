@@ -4,6 +4,12 @@ export interface NavAreaZone {
   subTitle: string;
   center: [number, number]; // [lat, lng]
   zoom: number;
+  bounds?: {
+    minLat: number;
+    maxLat: number;
+    minLng: number;
+    maxLng: number;
+  };
 }
 
 export const NAVAREA_ZONE_LIST: NavAreaZone[] = [

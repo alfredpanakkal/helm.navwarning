@@ -239,3 +239,159 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   MULTI-PLOT MARITIME MAP SPATIAL STYLES & MOBILE ADAPTATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Numbered Corner Vertex Pins */
+.vertex-pin {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fbbf24;
+  color: #78350f;
+  border: 1.5px solid #d97706;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+/* Touch hit-box expansion for mobile (20px -> 36px) */
+.vertex-pin::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+}
+.vertex-pin:hover {
+  transform: scale(1.2);
+  background: #f59e0b;
+}
+.vertex-pin:active {
+  transform: scale(0.92);
+}
+
+/* Centroid Surface Area Badge */
+.centroid-metric-badge {
+  background: rgba(15, 23, 42, 0.92);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  padding: 3px 9px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  backdrop-filter: blur(4px);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.centroid-metric-badge:hover {
+  transform: scale(1.08);
+  background: #0f172a;
+  border-color: #38bdf8;
+}
+.centroid-metric-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38bdf8;
+}
+
+/* Radial Measurement Badge for Safety Zones */
+.radial-measure-badge {
+  background: rgba(245, 158, 11, 0.95);
+  color: #78350f;
+  border: 1px solid #b45309;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  pointer-events: none;
+}
+
+/* Route Terminus Marker (Point A / Point B) */
+.route-terminus-pin {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: #06b6d4;
+  color: #083344;
+  border: 1.5px solid #0e7490;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s ease;
+}
+.route-terminus-pin:hover {
+  transform: scale(1.2);
+}
+.route-terminus-pin:active {
+  transform: scale(0.92);
+}
+
+/* Drift Vector Arrowhead */
+.drift-arrow-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ea580c;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.4));
+  pointer-events: none;
+}
+
+/* Touch Momentum Scrolling Container */
+.touch-momentum-scroll {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.touch-momentum-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile Bottom Sheet Drag Handle */
+.bottom-sheet-drag-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: #94a3b8;
+  margin: 6px auto;
+  cursor: grab;
+}
+
+/* Active tap feedback for touch elements */
+.touch-tap-active:active {
+  transform: scale(0.92);
+}
+
+/* Responsive NAVAREA Select Full Width on mobile */
+@media (max-width: 768px) {
+  .navarea-select-wrapper {
+    width: 100% !important;
+  }
+  .navarea-select {
+    width: 100% !important;
+  }
+}
+
