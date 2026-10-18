@@ -37,7 +37,7 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
           </h3>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="table-scroll-container">
           <table className="w-full text-left text-xs text-gw-primary">
             <thead className="bg-gw-bg text-gw-accent font-mono uppercase text-[10px] border-b border-gw-secondary">
               <tr>
@@ -74,7 +74,7 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
           </h3>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="table-scroll-container">
           {generations.length === 0 ? (
             <div className="p-8 text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-gw-bg border border-gw-primary text-gw-accent flex items-center justify-center mx-auto">

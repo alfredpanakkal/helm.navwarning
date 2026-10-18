@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { DisclaimerBanner } from './components/DisclaimerBanner';
 import { Footer } from './components/Footer';
@@ -45,9 +45,26 @@ export type TabType =
   | 'evidence'
   | 'supabase';
 
+const VALID_TABS: TabType[] = ['map', 'databank', 'sources', 'workspace', 'imports', 'manual', 'audit', 'evidence', 'supabase'];
+
+function parseHashRoute(hashStr: string): { tab: TabType; statusFilter?: string } {
+  const cleanHash = hashStr.replace(/^#\/?/, '');
+  if (!cleanHash) return { tab: 'map' };
+
+  const [pathPart, queryPart] = cleanHash.split('?');
+  const tabCandidate = pathPart.toLowerCase() as TabType;
+  const tab: TabType = VALID_TABS.includes(tabCandidate) ? tabCandidate : 'map';
+
+  const params = new URLSearchParams(queryPart || '');
+  const statusFilter = params.get('status') || undefined;
+
+  return { tab, statusFilter };
+}
+
 export default function App() {
   const legacyUI = useUILegacy();
-  const [activeTab, setActiveTab] = useState<TabType>('map');
+  const initialRoute = typeof window !== 'undefined' ? parseHashRoute(window.location.hash) : { tab: 'map' as TabType };
+  const [activeTab, setActiveTab] = useState<TabType>(initialRoute.tab);
   const [selectedWarning, setSelectedWarning] = useState<NavWarning | null>(null);
   const [isolatedWarning, setIsolatedWarning] = useState<NavWarning | null>(null);
 
@@ -56,10 +73,10 @@ export default function App() {
     return localStorage.getItem('helm_admin_mode') === 'true';
   });
 
-  const setIsAdminMode = (val: boolean) => {
+  const setIsAdminMode = useCallback((val: boolean) => {
     setIsAdminModeState(val);
     localStorage.setItem('helm_admin_mode', String(val));
-  };
+  }, []);
 
   // Core Data Bank State
   const [warnings, setWarnings] = useState<NavWarning[]>([]);
@@ -72,6 +89,42 @@ export default function App() {
   const [dataError, setDataError] = useState<string | null>(null);
 
   const [isIngestionProcedureOpen, setIsIngestionProcedureOpen] = useState(false);
+
+  // Filter state for navigation deep linking
+  const [dataBankStatusFilter, setDataBankStatusFilter] = useState<string>(initialRoute.statusFilter || 'ALL');
+  const [sourcesFilterStatus, setSourcesFilterStatus] = useState<string>('ALL');
+
+  // Sync hash routing on window.location.hash change (Back/Forward buttons)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const route = parseHashRoute(window.location.hash);
+      setActiveTab(route.tab);
+      if (route.statusFilter) {
+        setDataBankStatusFilter(route.statusFilter);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Update window.location.hash when activeTab or filters change in React
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let newHash = `#/${activeTab}`;
+    const params = new URLSearchParams();
+    if (activeTab === 'databank' && dataBankStatusFilter !== 'ALL') {
+      params.set('status', dataBankStatusFilter);
+    }
+    if (activeTab === 'sources' && sourcesFilterStatus !== 'ALL') {
+      params.set('status', sourcesFilterStatus);
+    }
+    const queryString = params.toString();
+    if (queryString) newHash += `?${queryString}`;
+
+    if (window.location.hash !== newHash) {
+      window.history.replaceState(null, '', newHash);
+    }
+  }, [activeTab, dataBankStatusFilter, sourcesFilterStatus]);
 
   const loadData = async () => {
     setIsLoadingData(true);
@@ -103,11 +156,6 @@ export default function App() {
   useEffect(() => {
     loadData();
   }, []);
-
-  // Handlers for state updates across views
-  // Filter state for navigation deep linking
-  const [dataBankStatusFilter, setDataBankStatusFilter] = useState<string>('ALL');
-  const [sourcesFilterStatus, setSourcesFilterStatus] = useState<string>('ALL');
 
   const handleNavigateWithFilter = (tab: TabType, filterStatus?: string) => {
     if (tab === 'databank' && filterStatus) {
@@ -266,23 +314,23 @@ export default function App() {
         setIsAdminMode={setIsAdminMode}
       />
       {isLoadingData && (
-        <div role="status" aria-live="polite" className="bg-blue-100 border-b-2 border-blue-600 px-4 py-2 text-xs font-mono font-bold text-blue-900 flex items-center justify-between shadow-xs">
-          <div className="max-w-[1600px] mx-auto w-full flex items-center gap-2">
-            <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
-            <span>CONNECTING TO SUPABASE — Fetching latest live navigational warnings...</span>
+        <div role="status" aria-live="polite" className="bg-blue-100 border-b-2 border-blue-600 px-3 py-1 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-mono font-bold text-blue-900 flex items-center justify-between shadow-xs">
+          <div className="max-w-[1600px] mx-auto w-full flex items-center gap-2 truncate">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600 shrink-0" />
+            <span className="truncate">CONNECTING TO SUPABASE — Fetching latest live navigational warnings...</span>
           </div>
         </div>
       )}
       {dataError && !isLoadingData && (
-        <div role="alert" className="bg-red-100 border-b-2 border-red-600 px-4 py-2 text-xs font-mono font-bold text-red-900 flex items-center justify-between shadow-xs">
+        <div role="alert" className="bg-red-100 border-b-2 border-red-600 px-3 py-1 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-mono font-bold text-red-900 flex items-center justify-between shadow-xs">
           <div className="max-w-[1600px] mx-auto w-full flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-red-600"></span>
-              <span>SUPABASE SYNC FAILED — {dataError}</span>
+            <div className="flex items-center gap-2 truncate">
+              <span className="w-2 h-2 rounded-full bg-red-600 shrink-0"></span>
+              <span className="truncate">SUPABASE SYNC FAILED — {dataError}</span>
             </div>
             <button
               onClick={() => loadData()}
-              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-500 transition-colors flex items-center gap-2"
+              className="px-2 py-0.5 sm:px-3 sm:py-1 bg-red-600 text-white rounded hover:bg-red-500 transition-colors flex items-center gap-1.5 shrink-0"
             >
               <RefreshCw className="w-3 h-3" /> Retry Sync
             </button>
@@ -290,10 +338,10 @@ export default function App() {
         </div>
       )}
       {isOfflineMode && !dataError && (
-        <div role="status" aria-live="polite" className="bg-amber-100 border-b-2 border-amber-600 px-4 py-2 text-xs font-mono font-bold text-amber-900 flex items-center justify-between shadow-xs">
-          <div className="max-w-[1600px] mx-auto w-full flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span>
-            <span>OFFLINE MODE ACTIVE — Server API unavailable. Operating on synchronized local client store.</span>
+        <div role="status" aria-live="polite" className="bg-amber-100 border-b-2 border-amber-600 px-3 py-1 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-mono font-bold text-amber-900 flex items-center justify-between shadow-xs">
+          <div className="max-w-[1600px] mx-auto w-full flex items-center gap-2 truncate">
+            <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse shrink-0"></span>
+            <span className="truncate">OFFLINE MODE ACTIVE — Server API unavailable. Operating on synchronized local store.</span>
           </div>
         </div>
       )}
@@ -315,43 +363,22 @@ export default function App() {
         </div>
 
         {/* Data Bank */}
-        <div
-          className={activeTab === 'databank' ? 'block' : 'hidden'}
-          data-ui-render-path={legacyUI ? 'legacy' : 'v2'}
-        >
-          {legacyUI ? (
-            <DataBank
-              warnings={warnings}
-              initialStatusFilter={dataBankStatusFilter}
-              onVerifyWarning={handleVerifyWarning}
-              onLocate={(w) => {
-                setSelectedWarning(w);
-                setActiveTab('map');
-              }}
-              onTriggerRefresh={handleTriggerRefresh}
-              isRefreshing={isPipelineRefreshing}
-              onCommitWarnings={handleCommitWarnings}
-              sources={sources}
-              isOfflineMode={isOfflineMode}
-              onNavigate={(tab) => setActiveTab(tab)}
-            />
-          ) : (
-            <DataBankV2
-              warnings={warnings}
-              initialStatusFilter={dataBankStatusFilter}
-              onVerifyWarning={handleVerifyWarning}
-              onLocate={(w) => {
-                setSelectedWarning(w);
-                setActiveTab('map');
-              }}
-              onTriggerRefresh={handleTriggerRefresh}
-              isRefreshing={isPipelineRefreshing}
-              onCommitWarnings={handleCommitWarnings}
-              sources={sources}
-              isOfflineMode={isOfflineMode}
-              onNavigate={(tab) => setActiveTab(tab)}
-            />
-          )}
+        <div className={activeTab === 'databank' ? 'block' : 'hidden'}>
+          <DataBankV2
+            warnings={warnings}
+            initialStatusFilter={dataBankStatusFilter}
+            onVerifyWarning={handleVerifyWarning}
+            onLocate={(w) => {
+              setSelectedWarning(w);
+              setActiveTab('map');
+            }}
+            onTriggerRefresh={handleTriggerRefresh}
+            isRefreshing={isPipelineRefreshing}
+            onCommitWarnings={handleCommitWarnings}
+            sources={sources}
+            isOfflineMode={isOfflineMode}
+            onNavigate={(tab) => setActiveTab(tab)}
+          />
         </div>
 
         {/* Candidate Sources Registry */}

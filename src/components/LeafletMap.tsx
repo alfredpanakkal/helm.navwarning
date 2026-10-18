@@ -134,7 +134,24 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     nautical: string;
     format: 'DMM' | 'DD';
   } | null>(null);
-  const [isQuickJumpExpanded, setIsQuickJumpExpanded] = useState<boolean>(true);
+  const [isQuickJumpExpanded, setIsQuickJumpExpanded] = useState<boolean>(false);
+  // Screen Reader Live Announcement & Escape Key Dismissal
+  const [srAnnouncement, setSrAnnouncement] = useState<string>('');
+
+  const handleSelectWarningWithAnnouncement = useCallback((w: NavWarning) => {
+    setSrAnnouncement(`Selected warning ${w.source_warning_id || w.warning_id}, NAVAREA ${w.navarea}, status ${w.status}. ${w.area_text || ''}`);
+    onSelectWarning(w);
+  }, [onSelectWarning]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isQuickJumpExpanded) setIsQuickJumpExpanded(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isQuickJumpExpanded]);
 
   // Real-time navigation and coordinate tracking hook
   const {
@@ -1437,6 +1454,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           </div>
         </aside>
       )}
+      {/* Screen Reader Live Region for Marker Selections */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {srAnnouncement}
+      </div>
     </div>
   );
 };

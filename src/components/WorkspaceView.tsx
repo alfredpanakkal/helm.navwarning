@@ -351,7 +351,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 Ingestion Terminal Logs
               </div>
             </div>
-            <div className="px-3 sm:px-6 py-3 sm:py-4 text-[11px] sm:text-xs bg-gw-primary text-gw-secondary max-h-[280px] overflow-y-auto overflow-x-auto no-scrollbar font-mono">
+            <div className="px-3 sm:px-6 py-3 sm:py-4 text-[11px] sm:text-xs bg-gw-primary text-gw-secondary max-h-[280px] overflow-y-auto table-scroll-container font-mono">
               {MOCK_LOGS.map((log, i) => (
                 <div key={i} className="flex gap-2 sm:gap-4 py-1 border-b border-dashed border-gw-tertiary last:border-b-0 min-w-[500px] sm:min-w-0">
                   <span className="text-gw-accent shrink-0">{log.t}</span>

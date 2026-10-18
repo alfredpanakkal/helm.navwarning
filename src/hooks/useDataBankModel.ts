@@ -212,7 +212,7 @@ export function useDataBankModel({
   const activeCount = useMemo(() => warnings.filter(w => w.status === 'active').length, [warnings]);
   const coordsCount = useMemo(() => warnings.filter(w => (w.spatial?.geometries?.length > 0 || w.spatial?.circles?.length > 0)).length, [warnings]);
   const criticalCount = useMemo(() => warnings.filter(w => w.extraction_confidence >= 0.8).length, [warnings]);
-  const unverifiedCount = useMemo(() => warnings.filter(w => w.status === 'unverified' || w.extraction_confidence < 1).length, [warnings]);
+  const unverifiedCount = useMemo(() => warnings.filter(w => w.status === 'unverified' || (w.extraction_confidence !== undefined && w.extraction_confidence < 0.8)).length, [warnings]);
 
   const recent24hCount = useMemo(() => {
     const now = Date.now();
@@ -268,7 +268,15 @@ export function useDataBankModel({
     return analyzed.filter(item => {
       const w = item.warning;
       if (selectedNavArea !== 'ALL' && w.navarea?.toUpperCase() !== selectedNavArea.toUpperCase()) return false;
-      if (selectedStatus !== 'ALL' && w.status !== selectedStatus.toLowerCase()) return false;
+      if (selectedStatus !== 'ALL') {
+        const sLower = selectedStatus.toLowerCase();
+        if (sLower === 'unverified') {
+          const isUnverified = w.status === 'unverified' || (w.extraction_confidence !== undefined && w.extraction_confidence < 0.8);
+          if (!isUnverified) return false;
+        } else if (w.status !== sLower) {
+          return false;
+        }
+      }
       if (selectedCategory !== 'ALL' && item.category !== selectedCategory) return false;
       if (selectedSeverity === 'critical' && w.extraction_confidence < 1) return false;
       if (selectedSeverity === 'high' && (w.extraction_confidence >= 1 || w.extraction_confidence < 0.8)) return false;

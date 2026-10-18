@@ -24,6 +24,25 @@ export const Header: React.FC<HeaderProps> = ({
   const [adminPassword, setAdminPassword] = useState('');
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
 
+  // Handle Escape key dismissal for Admin Modal and Mobile Drawer
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showAdminModal) {
+          setShowAdminModal(false);
+          setAuthErrorMessage(null);
+        }
+        if (showMobileMenu) {
+          setShowMobileMenu(false);
+        }
+      }
+    };
+    if (showAdminModal || showMobileMenu) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAdminModal, showMobileMenu]);
+
   // Synchronize initial session state on component mount
   useEffect(() => {
     async function checkInitialAdminSession() {
@@ -40,8 +59,11 @@ export const Header: React.FC<HeaderProps> = ({
         }
       } catch {}
 
-      const hasStoredToken = typeof window !== 'undefined' && Boolean(sessionStorage.getItem('helm_admin_token'));
-      setIsAdminMode(hasStoredToken);
+      const hasStoredToken = typeof window !== 'undefined' && Boolean(sessionStorage.getItem('helm_admin_token') || localStorage.getItem('helm_admin_token'));
+      const hasStoredMode = typeof window !== 'undefined' && localStorage.getItem('helm_admin_mode') === 'true';
+      if (hasStoredToken || hasStoredMode) {
+        setIsAdminMode(true);
+      }
     }
     checkInitialAdminSession();
   }, [setIsAdminMode]);
@@ -140,7 +162,7 @@ export const Header: React.FC<HeaderProps> = ({
     <>
       {/* Top Main Navigation Bar */}
       <header className="gw-dark-surface sticky top-0 z-50 bg-gw-primary text-gw-secondary border-b-2 border-gw-tertiary shadow-md">
-        <div className="max-w-[1600px] mx-auto px-3 sm:px-6 md:px-8 flex justify-between items-center py-2.5 md:py-0 gap-2 md:gap-4">
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-6 md:px-8 flex justify-between items-center py-1.5 md:py-0 gap-2 md:gap-4">
           
           {/* Logo & Title */}
           <div className="flex items-center gap-2.5 sm:gap-3">
