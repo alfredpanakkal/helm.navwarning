@@ -190,3 +190,208 @@ export function extractGeometry(rawText: string): ExtractedGeometryResult {
     repairsApplied: [],
   };
 }
+
+import type { MaritimePlot, PlotType, HazardType } from '../types/maritime';
+import type { NavWarning } from '../types';
+import { computePolygonAreaSqNm, computeDistanceNm, computeLineCorridor } from '../core/coordinates';
+import { parseRiglist } from '../riglistParser';
+import type { LabeledPoint } from '../riglistParser';
+
+export function extractMaritimePlots(
+  warning: NavWarning | { warning_id?: string; warningId?: string; navarea?: string; raw_text?: string; rawText?: string; latitude?: number | null; longitude?: number | null; spatial?: any; title?: string | null; riglist?: any; points?: any; archetype?: string }
+): MaritimePlot[] {
+  const warningId = warning.warning_id || (warning as any).warningId || 'WARN-001';
+  const navarea = warning.navarea || 'IV';
+  const rawText = warning.raw_text || (warning as any).rawText || (warning as any).text || '';
+  const upper = rawText.toUpperCase();
+  const plots: MaritimePlot[] = [];
+
+  // 1. Prefer already-parsed riglist data or alternative keys
+  let rigPoints: LabeledPoint[] =
+    (warning as any).riglist?.points ??
+    (warning as any).points ??
+    ((warning as any).archetype === 'multipoint' ? (warning as any).points : []) ??
+    [];
+
+  // 2. Fallback: if text contains RIGLIST / MODU keywords and we don't have points yet, parse raw text
+  const isRiglistText = /\bRIGLIST\b|\bRIG LIST\b|\bMOBILE OIL RIGS\b|\bMODU\b/i.test(upper);
+  if (rigPoints.length === 0 && isRiglistText && rawText.length > 20) {
+    try {
+      const parsedRig = parseRiglist(rawText);
+      if (parsedRig && parsedRig.points && parsedRig.points.length > 0) {
+        rigPoints = parsedRig.points;
+      }
+    } catch (e) {
+      console.warn('Failed to parse riglist from text:', e);
+    }
+  }
+
+  if (rigPoints.length > 0) {
+    rigPoints.forEach((pt: LabeledPoint, idx: number) => {
+      // Platform point marker
+      plots.push({
+        id: `${warningId}-rig-${idx}`,
+        warningId,
+        navarea,
+        hazardType: 'platform',
+        plotType: 'point',
+        coordinates: [pt.position], // [lat, lng]
+        label: `${pt.label}${pt.meta ? ' ' + pt.meta : ''}`.trim(),
+        rawTextSnippet: rawText.slice(0, 120),
+      });
+
+      // 500m safety clearance zone circle
+      const clearanceNm = (warning as any).riglist?.clearanceNm ?? 0.27;
+      if (clearanceNm > 0) {
+        plots.push({
+          id: `${warningId}-rig-${idx}-sz`,
+          warningId,
+          navarea,
+          hazardType: 'platform',
+          plotType: 'circle',
+          coordinates: [pt.position],
+          radiusNm: clearanceNm,
+          label: `500m safety zone – ${pt.label}`,
+          rawTextSnippet: '',
+        });
+      }
+    });
+    return plots;
+  }
+
+  let hazardType: HazardType = 'other';
+  if (/\b(?:FIRING|GUNNERY|MISSILE|ROCKET)\b/i.test(upper)) hazardType = 'firing';
+  else if (/\bBOMBING\b/i.test(upper)) hazardType = 'bombing';
+  else if (/\b(?:DANGER\s+AREA|RESTRICTED\s+AREA|EXCLUSION\s+ZONE)\b/i.test(upper)) hazardType = 'danger_area';
+  else if (/\b(?:SUBMARINE\s+CABLE|CABLE\s+LAYING|CABLE\s+REPAIR)\b/i.test(upper)) hazardType = 'submarine_cable';
+  else if (/\b(?:PIPELINE|PIPE\s+SURVEY)\b/i.test(upper)) hazardType = 'pipeline';
+  else if (/\bSEISMIC\s+SURVEY\b/i.test(upper)) hazardType = 'seismic_survey';
+  else if (/\b(?:WRECK|SUNKEN\s+WRECK|OBSTRUCTION)\b/i.test(upper)) hazardType = 'wreck';
+  else if (/\b(?:BUOY|LIGHT|BEACON)\b/i.test(upper)) hazardType = 'buoy';
+  else if (/\b(?:RIG|DRILLSHIP|PLATFORM)\b/i.test(upper)) hazardType = 'platform';
+  else if (/\b(?:DRIFTING|DERELICT|ADRIFT)\b/i.test(upper)) hazardType = 'drifting_hazard';
+
+  const geomResult = extractGeometry(rawText);
+  const geom = geomResult.geometry;
+
+  if (warning.spatial?.circles && warning.spatial.circles.length > 0) {
+    warning.spatial.circles.forEach((circ: any, idx: number) => {
+      const centerLat = circ.center[1];
+      const centerLng = circ.center[0];
+      plots.push({
+        id: `${warningId}-circle-${idx}`,
+        warningId,
+        navarea,
+        hazardType,
+        plotType: 'circle',
+        coordinates: [[centerLat, centerLng]],
+        radiusNm: circ.radius_nm,
+        label: circ.label || `Safety Clearance (${circ.radius_nm} NM)`,
+        rawTextSnippet: rawText.slice(0, 80),
+      });
+    });
+  }
+
+  if (geom.polygons && geom.polygons.length > 0) {
+    geom.polygons.forEach((poly, idx) => {
+      const latLngs: [number, number][] = poly.map(p => [p.lat, p.lng]);
+      if (latLngs.length >= 3) {
+        const areaSqNm = computePolygonAreaSqNm(latLngs);
+        plots.push({
+          id: `${warningId}-poly-${idx}`,
+          warningId,
+          navarea,
+          hazardType: hazardType === 'other' ? 'danger_area' : hazardType,
+          plotType: 'polygon',
+          coordinates: latLngs,
+          areaSqNm,
+          label: `Danger Area (${areaSqNm} sq NM)`,
+          rawTextSnippet: rawText.slice(0, 80),
+        });
+      }
+    });
+  } else if (geom.archetype === 'polygon' && geom.coordinates.length >= 3) {
+    const latLngs: [number, number][] = geom.coordinates.map(p => [p.lat, p.lng]);
+    const areaSqNm = computePolygonAreaSqNm(latLngs);
+    plots.push({
+      id: `${warningId}-poly-0`,
+      warningId,
+      navarea,
+      hazardType: hazardType === 'other' ? 'danger_area' : hazardType,
+      plotType: 'polygon',
+      coordinates: latLngs,
+      areaSqNm,
+      label: `Danger Area (${areaSqNm} sq NM)`,
+      rawTextSnippet: rawText.slice(0, 80),
+    });
+  }
+
+  if (geom.archetype === 'corridor' && geom.coordinates.length >= 2) {
+    const latLngs: [number, number][] = geom.coordinates.map(p => [p.lat, p.lng]);
+    const corridor = computeLineCorridor(latLngs, geom.clearanceNm || 3.0);
+    plots.push({
+      id: `${warningId}-corridor-0`,
+      warningId,
+      navarea,
+      hazardType: hazardType === 'other' ? 'submarine_cable' : hazardType,
+      plotType: 'corridor',
+      coordinates: latLngs,
+      bufferNm: geom.clearanceNm || 1.5,
+      lengthNm: corridor.lengthNm,
+      label: `Corridor Swath (${corridor.lengthNm} NM)`,
+      rawTextSnippet: rawText.slice(0, 80),
+    });
+  } else if ((geom.archetype === 'polyline' || geom.archetype === 'corridor') && geom.coordinates.length >= 2) {
+    const latLngs: [number, number][] = geom.coordinates.map(p => [p.lat, p.lng]);
+    const lengthNm = computeDistanceNm(latLngs[0], latLngs[latLngs.length - 1]);
+    const isCorridor = /(?:BERTH|BUFFER|WIDTH|CORRIDOR)\b/i.test(upper);
+    plots.push({
+      id: `${warningId}-line-0`,
+      warningId,
+      navarea,
+      hazardType: hazardType === 'other' ? 'submarine_cable' : hazardType,
+      plotType: isCorridor ? 'corridor' : 'line',
+      coordinates: latLngs,
+      lengthNm,
+      bufferNm: isCorridor ? 1.5 : undefined,
+      label: `${isCorridor ? 'Corridor' : 'Subsea Line'} (${lengthNm} NM)`,
+      rawTextSnippet: rawText.slice(0, 80),
+    });
+  }
+
+  if (geom.archetype === 'point_radius' && geom.coordinates.length === 1) {
+    const latLngs: [number, number][] = geom.coordinates.map(p => [p.lat, p.lng]);
+    plots.push({
+      id: `${warningId}-circle-pr`,
+      warningId,
+      navarea,
+      hazardType,
+      plotType: 'circle',
+      coordinates: latLngs,
+      radiusNm: geom.radiusNm || 1.0,
+      label: `Clearance Radius (${geom.radiusNm || 1.0} NM)`,
+      rawTextSnippet: rawText.slice(0, 80),
+    });
+  }
+
+  if (plots.length === 0) {
+    const lat = warning.latitude != null ? Number(warning.latitude) : (geom.coordinates[0]?.lat ?? null);
+    const lng = warning.longitude != null ? Number(warning.longitude) : (geom.coordinates[0]?.lng ?? null);
+    if (lat != null && lng != null && !isNaN(lat) && !isNaN(lng)) {
+      const isDrift = /(?:DRIFTING|ADRIFT|DERELICT)\b/i.test(upper);
+      plots.push({
+        id: `${warningId}-point-0`,
+        warningId,
+        navarea,
+        hazardType,
+        plotType: isDrift ? 'drift_vector' : 'point',
+        coordinates: [[lat, lng]],
+        bearingDeg: isDrift ? 90 : undefined,
+        label: warning.title || `Hazard Point (${lat.toFixed(2)}, ${lng.toFixed(2)})`,
+        rawTextSnippet: rawText.slice(0, 80),
+      });
+    }
+  }
+
+  return plots;
+}

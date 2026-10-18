@@ -40,6 +40,7 @@ import {
 import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
 import { NAVAREA_ZONE_LIST, NAVAREA_ZONES_BY_ID } from '../utils/navareaZones';
 import { classifyWarning } from '../parsers/warningClassifier';
+import { extractMaritimePlots } from '../parsers/geometryExtractor';
 import { renderHazardBadgeHtml } from '../utils/hazardIcons';
 import { getWarningDate, getWarningBulletinText } from '../utils/warningHelpers';
 
@@ -126,25 +127,23 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
       corridor: 0,
       drift: 0,
       point: 0,
+      rig: 0,
     };
 
     filteredWarnings.forEach((w) => {
-      const hasPoly = w.spatial?.geometries?.some((g) => g.type === 'Polygon');
-      const hasCircle = Boolean(w.spatial?.circles && w.spatial.circles.length > 0);
-      const hasLine = w.spatial?.geometries?.some(
-        (g) => g.type === 'LineString' || (g as any).type === 'Polyline'
-      );
-      const directive = parseClearanceDirective(w.raw_text || '');
-      const hasCorridor = directive?.type === 'wide_berth' || (hasLine && directive);
-      const rawLower = (w.raw_text || '').toLowerCase();
-      const hasDrift = rawLower.includes('drift') || rawLower.includes('admiralty');
-
-      if (hasPoly) counts.polygon++;
-      if (hasCircle) counts.circle++;
-      if (hasLine) counts.line++;
-      if (hasCorridor) counts.corridor++;
-      if (hasDrift) counts.drift++;
-      if (!hasPoly && !hasCircle && !hasLine) counts.point++;
+      const plots = extractMaritimePlots(w);
+      plots.forEach((p) => {
+        if (p.plotType === 'polygon') counts.polygon++;
+        else if (p.plotType === 'circle') counts.circle++;
+        else if (p.plotType === 'line') counts.line++;
+        else if (p.plotType === 'corridor') counts.corridor++;
+        else if (p.plotType === 'drift_vector') counts.drift++;
+        else if (p.plotType === 'point') counts.point++;
+        if (p.hazardType === 'platform' || p.hazardType === 'rig') counts.rig++;
+      });
+      if (plots.length === 0) {
+        counts.point++;
+      }
     });
 
     return counts;
@@ -333,58 +332,26 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
     filteredWarnings.forEach((w) => {
       const isIsolated = isolatedWarning?.warning_id === w.warning_id;
       const classification = classifyWarning(w.raw_text || w.title || '');
-      const rawText = w.raw_text || w.title || '';
-      const clearanceDirective = parseClearanceDirective(rawText);
+      const plots = extractMaritimePlots(w);
 
-      // Check spatial features present
-      const polygons =
-        w.spatial?.geometries?.filter((g) => g.type === 'Polygon') || [];
-      const lines =
-        w.spatial?.geometries?.filter(
-          (g) => g.type === 'LineString' || (g as any).type === 'Polyline'
-        ) || [];
-      const circles = w.spatial?.circles || [];
+      plots.forEach((plot) => {
+        if (activePlotType !== 'all') {
+          if (activePlotType === 'polygon' && plot.plotType !== 'polygon') return;
+          if (activePlotType === 'circle' && plot.plotType !== 'circle') return;
+          if (activePlotType === 'line' && plot.plotType !== 'line') return;
+          if (activePlotType === 'corridor' && plot.plotType !== 'corridor') return;
+          if (activePlotType === 'drift' && plot.plotType !== 'drift_vector') return;
+          if (activePlotType === 'rig' && plot.hazardType !== 'platform' && plot.hazardType !== 'rig') return;
+          if (activePlotType === 'point' && plot.plotType !== 'point') return;
+        }
 
-      // Determine plot suitability based on activePlotType filter
-      if (activePlotType === 'polygon' && polygons.length === 0) return;
-      if (activePlotType === 'circle' && circles.length === 0) return;
-      if (activePlotType === 'line' && lines.length === 0) return;
-      if (
-        activePlotType === 'corridor' &&
-        clearanceDirective?.type !== 'wide_berth' &&
-        !(lines.length > 0 && clearanceDirective)
-      ) {
-        return;
-      }
-      if (
-        activePlotType === 'point' &&
-        (polygons.length > 0 || circles.length > 0 || lines.length > 0)
-      ) {
-        return;
-      }
-
-      // ─────────────────────────────────────────────────────────
-      // 1. POLYGONS (Danger Areas, Exercise Zones, Ranges)
-      // ─────────────────────────────────────────────────────────
-      if (layerFilters.showPolygons && polygons.length > 0) {
-        polygons.forEach((polyGeom) => {
+        if (plot.plotType === 'polygon' && layerFilters.showPolygons) {
           try {
-            const rawRing = (polyGeom.coordinates[0] || polyGeom.coordinates) as number[][];
-            if (!Array.isArray(rawRing) || rawRing.length < 3) return;
+            const latLngs = plot.coordinates;
+            if (latLngs.length < 3) return;
 
-            // GeoJSON [lng, lat] -> Leaflet [lat, lng]
-            const latLngs: [number, number][] = rawRing.map(([lng, lat]) => [lat, lng]);
-
-            const areaSqNm = computePolygonAreaSqNm(latLngs);
-            const centroid = computeCentroid(latLngs);
-
-            // Nautical boundary styling
-            const polyColor =
-              classification.displayStyle === 'critical'
-                ? '#dc2626'
-                : classification.displayStyle === 'high'
-                ? '#ea580c'
-                : '#2563eb';
+            const isFiringOrBombing = plot.hazardType === 'firing' || plot.hazardType === 'bombing' || plot.hazardType === 'danger_area';
+            const polyColor = isFiringOrBombing ? '#dc2626' : '#2563eb';
 
             const polyLayer = L.polygon(latLngs, {
               color: polyColor,
@@ -401,7 +368,6 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
               setIsSheetExpanded(true);
             });
 
-            // Numbered Corner Vertex Pins
             if (layerFilters.showVertexPins) {
               latLngs.forEach((coord, idx) => {
                 const vertexIcon = L.divIcon({
@@ -410,17 +376,8 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
                   iconSize: [20, 20],
                   iconAnchor: [10, 10],
                 });
-
-                const vertexMarker = L.marker(coord, {
-                  icon: vertexIcon,
-                  pane: 'navWarnVectorPane',
-                }).addTo(vectorGroup);
-
-                vertexMarker.bindTooltip(
-                  `Vertex ${idx + 1}: ${formatWgs84Dms(coord[0], coord[1])}`,
-                  { direction: 'top', offset: [0, -6] }
-                );
-
+                const vertexMarker = L.marker(coord, { icon: vertexIcon, pane: 'navWarnVectorPane' }).addTo(vectorGroup);
+                vertexMarker.bindTooltip(`Vertex ${idx + 1}: ${formatWgs84Dms(coord[0], coord[1])}`);
                 vertexMarker.on('click', (e) => {
                   L.DomEvent.stopPropagation(e);
                   onSelectWarning(w);
@@ -429,24 +386,16 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
               });
             }
 
-            // Centroid Area Metric Badge
-            if (layerFilters.showCentroidBadges && areaSqNm > 0) {
-              const warningCode = w.warning_number
-                ? `${w.warning_number}/${w.warning_year || '26'}`
-                : w.source_warning_id || w.warning_id;
-
+            if (layerFilters.showCentroidBadges && plot.areaSqNm && plot.areaSqNm > 0) {
+              const centroid = computeCentroid(latLngs);
+              const warningCode = w.warning_number ? `${w.warning_number}/${w.warning_year || '26'}` : w.source_warning_id || w.warning_id;
               const centroidIcon = L.divIcon({
                 className: 'nw-centroid-wrap',
-                html: `<div class="centroid-metric-badge touch-tap-active"><span class="dot"></span><span>${warningCode} · ${areaSqNm} sq NM</span></div>`,
+                html: `<div class="centroid-metric-badge touch-tap-active"><span class="dot"></span><span>${warningCode} · ${plot.areaSqNm} sq NM</span></div>`,
                 iconSize: [120, 24],
                 iconAnchor: [60, 12],
               });
-
-              const centroidMarker = L.marker(centroid, {
-                icon: centroidIcon,
-                pane: 'navWarnVectorPane',
-              }).addTo(vectorGroup);
-
+              const centroidMarker = L.marker(centroid, { icon: centroidIcon, pane: 'navWarnVectorPane' }).addTo(vectorGroup);
               centroidMarker.on('click', (e) => {
                 L.DomEvent.stopPropagation(e);
                 onSelectWarning(w);
@@ -454,20 +403,15 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
               });
             }
           } catch (err) {
-            console.warn('Malformed polygon geometry:', err);
+            console.warn('Polygon render error:', err);
           }
-        });
-      }
+        }
 
-      // ─────────────────────────────────────────────────────────
-      // 2. CIRCULAR CLEARANCE & SAFETY ZONES
-      // ─────────────────────────────────────────────────────────
-      if (layerFilters.showCircles && circles.length > 0) {
-        circles.forEach((circ) => {
-          if (!circ.center || !circ.radius_nm) return;
+        if (plot.plotType === 'circle' && layerFilters.showCircles) {
           try {
-            const center: [number, number] = [circ.center[1], circ.center[0]];
-            const radiusM = circ.radius_nm * 1852;
+            const center = plot.coordinates[0];
+            const radiusNm = plot.radiusNm || 1.0;
+            const radiusM = radiusNm * 1852;
 
             const circleLayer = L.circle(center, {
               color: '#d97706',
@@ -484,67 +428,29 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
               setIsSheetExpanded(true);
             });
 
-            // Center origin crosshair
             const crosshairIcon = L.divIcon({
               className: 'nw-crosshair-wrap',
               html: `<div class="w-2.5 h-2.5 rounded-full bg-amber-500 border border-white shadow-xs"></div>`,
               iconSize: [10, 10],
               iconAnchor: [5, 5],
             });
-
-            const centerMarker = L.marker(center, {
-              icon: crosshairIcon,
-              pane: 'navWarnVectorPane',
-            }).addTo(vectorGroup);
-
+            const centerMarker = L.marker(center, { icon: crosshairIcon, pane: 'navWarnVectorPane' }).addTo(vectorGroup);
             centerMarker.on('click', (e) => {
               L.DomEvent.stopPropagation(e);
               onSelectWarning(w);
               setIsSheetExpanded(true);
             });
-
-            // Radial measurement line and distance badge
-            if (layerFilters.showRadialLines) {
-              const rimPoint = [center[0], center[1] + (circ.radius_nm / 60) / Math.cos(center[0] * (Math.PI / 180))] as [number, number];
-              L.polyline([center, rimPoint], {
-                color: '#b45309',
-                weight: 1.5,
-                dashArray: '2, 3',
-                pane: 'navWarnVectorPane',
-              }).addTo(vectorGroup);
-
-              const badgePoint: [number, number] = [center[0], (center[1] + rimPoint[1]) / 2];
-              const radialBadgeIcon = L.divIcon({
-                className: 'nw-radial-wrap',
-                html: `<div class="radial-measure-badge">R: ${circ.radius_nm} NM</div>`,
-                iconSize: [70, 18],
-                iconAnchor: [35, 9],
-              });
-
-              L.marker(badgePoint, {
-                icon: radialBadgeIcon,
-                pane: 'navWarnVectorPane',
-              }).addTo(vectorGroup);
-            }
           } catch (err) {
-            console.warn('Malformed circular zone:', err);
+            console.warn('Circle render error:', err);
           }
-        });
-      }
+        }
 
-      // ─────────────────────────────────────────────────────────
-      // 3. SUBSEA TRACKS & LINESTRINGS
-      // ─────────────────────────────────────────────────────────
-      if (layerFilters.showLines && lines.length > 0) {
-        lines.forEach((lineGeom) => {
+        if (plot.plotType === 'line' && layerFilters.showLines) {
           try {
-            const rawCoords = lineGeom.coordinates as number[][];
-            if (!Array.isArray(rawCoords) || rawCoords.length < 2) return;
-
-            const latLngs: [number, number][] = rawCoords.map(([lng, lat]) => [lat, lng]);
+            const latLngs = plot.coordinates;
+            if (latLngs.length < 2) return;
             const totalDistNm = computeDistanceNm(latLngs[0], latLngs[latLngs.length - 1]);
 
-            // Cyan casing glow line
             L.polyline(latLngs, {
               color: '#06b6d4',
               weight: 6,
@@ -552,7 +458,6 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
               pane: 'navWarnVectorPane',
             }).addTo(vectorGroup);
 
-            // High-contrast dashed center track
             const mainLine = L.polyline(latLngs, {
               color: '#0891b2',
               weight: 2.5,
@@ -565,87 +470,47 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
               setIsSheetExpanded(true);
             });
 
-            // Terminus markers designating Point A and Point B
-            const pAIcon = L.divIcon({
-              className: 'nw-terminus-wrap',
-              html: `<div class="route-terminus-pin">A</div>`,
-              iconSize: [20, 20],
-              iconAnchor: [10, 10],
-            });
-            const pBIcon = L.divIcon({
-              className: 'nw-terminus-wrap',
-              html: `<div class="route-terminus-pin">B</div>`,
-              iconSize: [20, 20],
-              iconAnchor: [10, 10],
-            });
+            const pAIcon = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="route-terminus-pin">A</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
+            const pBIcon = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="route-terminus-pin">B</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
 
-            const markerA = L.marker(latLngs[0], {
-              icon: pAIcon,
-              pane: 'navWarnVectorPane',
-            }).addTo(vectorGroup);
-
-            markerA.bindTooltip(`Origin A: ${formatWgs84Dms(latLngs[0][0], latLngs[0][1])}`);
-
-            const markerB = L.marker(latLngs[latLngs.length - 1], {
-              icon: pBIcon,
-              pane: 'navWarnVectorPane',
-            }).addTo(vectorGroup);
-
-            markerB.bindTooltip(`Terminus B: ${formatWgs84Dms(latLngs[latLngs.length - 1][0], latLngs[latLngs.length - 1][1])} (${totalDistNm} NM)`);
+            L.marker(latLngs[0], { icon: pAIcon, pane: 'navWarnVectorPane' }).addTo(vectorGroup).bindTooltip(`Origin A`);
+            L.marker(latLngs[latLngs.length - 1], { icon: pBIcon, pane: 'navWarnVectorPane' }).addTo(vectorGroup).bindTooltip(`Terminus B (${totalDistNm} NM)`);
           } catch (err) {
-            console.warn('Malformed subsea line geometry:', err);
+            console.warn('Line render error:', err);
           }
-        });
-      }
-
-      // ─────────────────────────────────────────────────────────
-      // 4. BUFFERED CORRIDORS & WIDE BERTH SWATHS
-      // ─────────────────────────────────────────────────────────
-      if (layerFilters.showCorridors && (clearanceDirective?.type === 'wide_berth' || lines.length > 0)) {
-        if (lines.length > 0) {
-          lines.forEach((lineGeom) => {
-            try {
-              const rawCoords = lineGeom.coordinates as number[][];
-              if (!Array.isArray(rawCoords) || rawCoords.length < 2) return;
-              const latLngs: [number, number][] = rawCoords.map(([lng, lat]) => [lat, lng]);
-
-              const corridorWidth = clearanceDirective?.radiusNm ? clearanceDirective.radiusNm * 2 : 3.0;
-              const corridor = computeLineCorridor(latLngs, corridorWidth);
-
-              const swathLayer = L.polygon(corridor.boundaryPolygon, {
-                color: '#f59e0b',
-                weight: 1.5,
-                fillColor: '#fbbf24',
-                fillOpacity: 0.15,
-                dashArray: '3, 4',
-                pane: 'navWarnVectorPane',
-              }).addTo(vectorGroup);
-
-              swathLayer.bindTooltip(
-                `Wide Berth Corridor: ${corridorWidth} NM Swath (${corridor.lengthNm} NM Track)`
-              );
-
-              swathLayer.on('click', () => {
-                onSelectWarning(w);
-                setIsSheetExpanded(true);
-              });
-            } catch (err) {
-              console.warn('Malformed corridor swath:', err);
-            }
-          });
         }
-      }
 
-      // ─────────────────────────────────────────────────────────
-      // 5. DRIFT VECTORS (Floating Containers, Derelicts, Mines)
-      // ─────────────────────────────────────────────────────────
-      if (layerFilters.showDriftVectors) {
-        const directLat = w.latitude != null ? Number(w.latitude) : null;
-        const directLng = w.longitude != null ? Number(w.longitude) : null;
-        if (directLat != null && directLng != null) {
-          const drift = parseDriftVector([directLat, directLng], rawText);
-          if (drift) {
-            try {
+        if (plot.plotType === 'corridor' && layerFilters.showCorridors) {
+          try {
+            const latLngs = plot.coordinates;
+            if (latLngs.length < 2) return;
+            const width = plot.bufferNm ? plot.bufferNm * 2 : 3.0;
+            const corridor = computeLineCorridor(latLngs, width);
+
+            const swathLayer = L.polygon(corridor.boundaryPolygon, {
+              color: '#f59e0b',
+              weight: 1.5,
+              fillColor: '#fbbf24',
+              fillOpacity: 0.15,
+              dashArray: '3, 4',
+              pane: 'navWarnVectorPane',
+            }).addTo(vectorGroup);
+
+            swathLayer.bindTooltip(`Corridor Swath: ${width} NM`);
+            swathLayer.on('click', () => {
+              onSelectWarning(w);
+              setIsSheetExpanded(true);
+            });
+          } catch (err) {
+            console.warn('Corridor render error:', err);
+          }
+        }
+
+        if (plot.plotType === 'drift_vector' && layerFilters.showDriftVectors) {
+          try {
+            const origin = plot.coordinates[0];
+            const drift = parseDriftVector(origin, w.raw_text || '');
+            if (drift) {
               L.polyline([drift.origin, drift.destination], {
                 color: '#ea580c',
                 weight: 2,
@@ -653,73 +518,48 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
                 pane: 'navWarnVectorPane',
               }).addTo(vectorGroup);
 
-              // Directional arrow glyph
               const arrowIcon = L.divIcon({
                 className: 'drift-arrow-wrap',
                 html: `<div class="drift-arrow-icon" style="transform: rotate(${drift.bearingDeg}deg);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 13 12 8 17 13"></polyline><line x1="12" y1="8" x2="12" y2="20"></line></svg></div>`,
                 iconSize: [20, 20],
                 iconAnchor: [10, 10],
               });
-
-              const arrowMarker = L.marker(drift.destination, {
-                icon: arrowIcon,
-                pane: 'navWarnVectorPane',
-              }).addTo(vectorGroup);
-
-              arrowMarker.bindTooltip(
-                `Estimated Drift: ${drift.directionLabel} (${drift.distanceNm} NM)`
-              );
-            } catch (err) {
-              console.warn('Drift vector render error:', err);
+              L.marker(drift.destination, { icon: arrowIcon, pane: 'navWarnVectorPane' }).addTo(vectorGroup).bindTooltip(`Drift: ${drift.directionLabel}`);
             }
+          } catch (err) {
+            console.warn('Drift render error:', err);
           }
         }
-      }
 
-      // ─────────────────────────────────────────────────────────
-      // 6. CUSTOM NAUTICAL GLYPH MARKERS (Point Hazards)
-      // ─────────────────────────────────────────────────────────
-      const hasAreaCoverage = polygons.length > 0 || circles.length > 0;
-      if (layerFilters.showPointMarkers && (!hasAreaCoverage || activePlotType === 'point')) {
-        const directLat = w.latitude != null ? Number(w.latitude) : null;
-        const directLng = w.longitude != null ? Number(w.longitude) : null;
+        if (plot.plotType === 'point' && layerFilters.showPointMarkers) {
+          try {
+            const coord = plot.coordinates[0];
+            const isLiveFiring = classification.category === 'mil_fire';
+            const badgeHtml = renderHazardBadgeHtml(classification.category, classification.displayStyle, isLiveFiring, w.sub_area || undefined);
 
-        if (directLat != null && directLng != null && !isNaN(directLat) && !isNaN(directLng)) {
-          const isLiveFiring =
-            classification.category === 'mil_fire' ||
-            /GUNNERY|FIRING|MISSILE|ROCKET/i.test(rawText);
+            const pointIcon = L.divIcon({
+              className: 'nw-marker-wrap',
+              html: `<div class="touch-tap-active">${badgeHtml}</div>`,
+              iconSize: [26, 26],
+              iconAnchor: [13, 13],
+            });
 
-          const badgeHtml = renderHazardBadgeHtml(
-            classification.category,
-            classification.displayStyle,
-            isLiveFiring,
-            w.sub_area || undefined
-          );
+            const marker = L.marker(coord, { icon: pointIcon, pane: 'navWarnMarkerPane' });
+            marker.on('click', () => {
+              onSelectWarning(w);
+              setIsSheetExpanded(true);
+            });
 
-          const pointIcon = L.divIcon({
-            className: 'nw-marker-wrap',
-            html: `<div class="touch-tap-active">${badgeHtml}</div>`,
-            iconSize: [26, 26],
-            iconAnchor: [13, 13],
-          });
-
-          const marker = L.marker([directLat, directLng], {
-            icon: pointIcon,
-            pane: 'navWarnMarkerPane',
-          });
-
-          marker.on('click', () => {
-            onSelectWarning(w);
-            setIsSheetExpanded(true);
-          });
-
-          if (layerFilters.enableClustering) {
-            clusterGroup.addLayer(marker);
-          } else {
-            vectorGroup.addLayer(marker);
+            if (layerFilters.enableClustering) {
+              clusterGroup.addLayer(marker);
+            } else {
+              vectorGroup.addLayer(marker);
+            }
+          } catch (err) {
+            console.warn('Point render error:', err);
           }
         }
-      }
+      });
     });
   }, [
     filteredWarnings,
@@ -812,6 +652,7 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
             { id: 'line', label: 'Lines', icon: '〰', count: plotTypeCounts.line },
             { id: 'corridor', label: 'Corridors', icon: '▱', count: plotTypeCounts.corridor },
             { id: 'drift', label: 'Drift', icon: '➔', count: plotTypeCounts.drift },
+            { id: 'rig', label: 'Rigs / MODUs', icon: '⛽', count: plotTypeCounts.rig },
             { id: 'point', label: 'Points', icon: '⚲', count: plotTypeCounts.point },
           ].map((pill) => {
             const isActive = activePlotType === pill.id;
@@ -1010,6 +851,10 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
                 <div className="flex items-center gap-2">
                   <span className="text-orange-600 font-bold">➔</span>
                   <span className="text-[11px] text-gw-primary">Drifting Hazard Vector</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-600 font-bold">⛽</span>
+                  <span className="text-[11px] text-gw-primary">Offshore Rig / MODU Platform</span>
                 </div>
               </div>
             )}

@@ -8,7 +8,45 @@ export type SpatialPlotType =
   | 'line'
   | 'corridor'
   | 'drift'
-  | 'point';
+  | 'point'
+  | 'rig';
+
+export type PlotType =
+  | 'polygon'
+  | 'circle'
+  | 'line'
+  | 'corridor'
+  | 'point'
+  | 'drift_vector';
+
+export type HazardType =
+  | 'firing'
+  | 'bombing'
+  | 'danger_area'
+  | 'submarine_cable'
+  | 'pipeline'
+  | 'seismic_survey'
+  | 'wreck'
+  | 'buoy'
+  | 'platform'
+  | 'drifting_hazard'
+  | 'other';
+
+export interface MaritimePlot {
+  id: string;
+  warningId: string;
+  navarea: string;
+  hazardType: HazardType;
+  plotType: PlotType;
+  coordinates: [number, number][]; // [lat, lng]
+  radiusNm?: number;
+  bufferNm?: number;
+  bearingDeg?: number;
+  areaSqNm?: number;
+  lengthNm?: number;
+  label: string;
+  rawTextSnippet: string;
+}
 
 export interface GeodesicPoint {
   lat: number;
