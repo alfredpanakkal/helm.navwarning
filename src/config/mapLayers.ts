@@ -30,6 +30,15 @@ export const MAP_PANES: Record<string, PaneDefinition> = {
 // Base Cartography Layers
 export const BASE_LAYERS: MapLayerConfig[] = [
   {
+    id: 'openseamap-base',
+    name: 'OpenSeaMap Standard',
+    url: '/api/tiles/osm/{z}/{x}/{y}',
+    type: 'base',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, OpenSeaMap',
+    maxZoom: 19,
+    pane: 'basePane',
+  },
+  {
     id: 'carto-voyager',
     name: 'CARTO Voyager',
     url: '/api/tiles/carto/voyager/{z}/{x}/{y}',
@@ -59,7 +68,7 @@ export const BASE_LAYERS: MapLayerConfig[] = [
   {
     id: 'osm-standard',
     name: 'OpenStreetMap',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    url: '/api/tiles/osm/{z}/{x}/{y}',
     type: 'base',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 19,
@@ -92,7 +101,7 @@ export const OVERLAY_LAYERS: MapLayerConfig[] = [
   {
     id: 'openseamap',
     name: 'OpenSeaMap Seamarks',
-    url: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
+    url: '/api/tiles/openseamap/{z}/{x}/{y}',
     type: 'overlay',
     attribution: 'Map style: &copy; <a href="http://www.openseamap.org">OpenSeaMap</a>',
     maxZoom: 18,

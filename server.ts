@@ -2944,6 +2944,76 @@ Instructions:
     }
   });
 
+  // Proxy OpenStreetMap tiles securely server-side
+  app.get('/api/tiles/osm/:z/:x/:y', tilesRateLimiter, async (req, res) => {
+    try {
+      const { z, x, y } = req.params;
+      if (!/^\d+$/.test(z) || !/^\d+$/.test(x) || !/^\d+$/.test(y)) {
+        return res.status(400).json({ error: 'Invalid tile coordinates' });
+      }
+      const zoom = parseInt(z, 10);
+      const tileX = parseInt(x, 10);
+      const tileY = parseInt(y, 10);
+      if (zoom < 0 || zoom > 19) {
+        return res.status(400).json({ error: 'Zoom out of range' });
+      }
+
+      const subdomains = ['a', 'b', 'c'];
+      const sub = subdomains[Math.floor(Math.random() * subdomains.length)];
+      const osmUrl = `https://${sub}.tile.openstreetmap.org/${zoom}/${tileX}/${tileY}.png`;
+
+      const response = await fetch(osmUrl, {
+        headers: {
+          'User-Agent': 'NavWarn-Maritime-Proxy/1.0 (maritime safety information viewer)',
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        },
+      });
+      if (!response.ok) {
+        return res.status(response.status).send(response.statusText);
+      }
+      const contentType = response.headers.get('content-type') || 'image/png';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
+      const arrayBuffer = await response.arrayBuffer();
+      res.send(Buffer.from(arrayBuffer));
+    } catch (err: any) {
+      console.error('[OSM Tile Proxy Error]:', err);
+      res.status(500).send('Tile proxy error');
+    }
+  });
+
+  // Proxy OpenSeaMap Seamark tiles securely server-side
+  app.get('/api/tiles/openseamap/:z/:x/:y', tilesRateLimiter, async (req, res) => {
+    try {
+      const { z, x, y } = req.params;
+      if (!/^\d+$/.test(z) || !/^\d+$/.test(x) || !/^\d+$/.test(y)) {
+        return res.status(400).json({ error: 'Invalid tile coordinates' });
+      }
+      const zoom = parseInt(z, 10);
+      const tileX = parseInt(x, 10);
+      const tileY = parseInt(y, 10);
+
+      const seamarkUrl = `https://tiles.openseamap.org/seamark/${zoom}/${tileX}/${tileY}.png`;
+      const response = await fetch(seamarkUrl, {
+        headers: {
+          'User-Agent': 'NavWarn-Maritime-Proxy/1.0 (maritime safety information viewer)',
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        },
+      });
+      if (!response.ok) {
+        return res.status(204).end();
+      }
+      const contentType = response.headers.get('content-type') || 'image/png';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
+      const arrayBuffer = await response.arrayBuffer();
+      res.send(Buffer.from(arrayBuffer));
+    } catch (err: any) {
+      console.error('[OpenSeaMap Tile Proxy Error]:', err);
+      res.status(204).end();
+    }
+  });
+
   // Vercel Cron Scraper Route Integration
   app.all('/api/scrape-navwarn', scrapeNavwarnHandler);
   app.all('/api/scrape-scrapling', scrapeScraplingHandler);

@@ -75,7 +75,7 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
 
   // Filter & Layer States
   const [selectedNavArea, setSelectedNavArea] = useState<string>(initialNavArea);
-  const [activeBaseMapId, setActiveBaseMapId] = useState<string>('carto-voyager');
+  const [activeBaseMapId, setActiveBaseMapId] = useState<string>('openseamap-base');
   const [activePlotType, setActivePlotType] = useState<SpatialPlotType>('all');
   const [isLegendOpen, setIsLegendOpen] = useState<boolean>(false);
   const [isLayersPanelOpen, setIsLayersPanelOpen] = useState<boolean>(false);
