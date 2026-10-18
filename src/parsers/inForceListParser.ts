@@ -49,33 +49,30 @@ export interface InForceListParseOptions {
   truncated?: boolean;
 }
 
+import { normalizeYear, formatWarningId as commonFormatWarningId, parseWarningRef, MONTH_MAP } from './common';
+
 /**
- * Normalizes year numbers down to a 2-digit integer (e.g. 2026 -> 26, 26 -> 26).
+ * Normalizes year numbers down to a 2-digit integer.
  */
 export function normalizeSeriesYear(
   rawYear: number | string | undefined | null,
-  defaultYear: number = 24
+  defaultYear?: number
 ): number {
-  if (rawYear === undefined || rawYear === null || rawYear === '') {
-    return defaultYear > 1900 ? defaultYear % 100 : defaultYear;
+  const norm = normalizeYear(rawYear);
+  if (norm !== null) return norm;
+  if (defaultYear !== undefined) {
+    const defNorm = normalizeYear(defaultYear);
+    if (defNorm !== null) return defNorm;
   }
-  const parsed = typeof rawYear === 'number' ? rawYear : parseInt(String(rawYear).trim(), 10);
-  if (isNaN(parsed)) {
-    return defaultYear > 1900 ? defaultYear % 100 : defaultYear;
-  }
-  if (parsed >= 1900 && parsed <= 2099) {
-    return parsed % 100;
-  }
-  if (parsed >= 0 && parsed <= 99) {
-    return parsed;
-  }
-  return parsed % 100;
+  return 26; // Default active year
 }
 
 /**
  * Formats canonical NAVAREA identifier: "NAVAREA <navarea> <number>/<2-digit year>"
  */
 export function formatWarningId(navarea: string, number: number, year: number): string {
+  const formatted = commonFormatWarningId(navarea, number, year);
+  if (formatted) return formatted;
   const normYear = normalizeSeriesYear(year);
   const yrFmt = normYear < 10 ? `0${normYear}` : `${normYear}`;
   return `NAVAREA ${navarea.toUpperCase()} ${number}/${yrFmt}`;

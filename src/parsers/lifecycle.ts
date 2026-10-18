@@ -75,7 +75,7 @@ export function extractNamedEntities(rawText: string): string[] {
 
 export function processCorpusLifecycle(
   rawBlocks: RawMessageBlock[],
-  referenceNow = new Date('2024-10-25T12:00:00Z')
+  now: Date
 ): LifecycleResolutionContext {
   const inForceLists: ParsedInForceList[] = [];
   const contradictionsLogged: LifecycleResolutionContext['contradictionsLogged'] = [];
@@ -312,7 +312,7 @@ export function processCorpusLifecycle(
       w.lifecycle.resolutionRefs = [crossInfo!.cancellerId];
       w.lifecycle.cancelledBy = [crossInfo!.cancellerId];
       w.displayStyle = 'neutral';
-    } else if (w.lifecycle.expiresAt && referenceNow.toISOString() > w.lifecycle.expiresAt) {
+    } else if (w.lifecycle.expiresAt && now.toISOString() > w.lifecycle.expiresAt) {
       // Step 3: self_cancel
       w.lifecycle.inForce = false;
       w.lifecycle.resolutionRule = 'self_cancel';
@@ -324,7 +324,7 @@ export function processCorpusLifecycle(
       w.lifecycle.resolutionRefs = [superInfo!.supersederId];
       w.lifecycle.supersededBy = [superInfo!.supersederId];
       w.displayStyle = 'neutral';
-    } else if (w.temporalWindows && w.temporalWindows.length > 0 && w.temporalWindows.every(win => win.end && referenceNow.toISOString() > win.end)) {
+    } else if (w.temporalWindows && w.temporalWindows.length > 0 && w.temporalWindows.every(win => win.end && now.toISOString() > win.end)) {
       // Step 5: expired_window
       w.lifecycle.inForce = false;
       w.lifecycle.resolutionRule = 'expired_window';

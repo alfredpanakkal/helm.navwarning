@@ -1,0 +1,42 @@
+[
+  {
+    "id": "warn-ukho-0142-2026",
+    "navarea": "I",
+    "category": "uxo",
+    "archetype": "point_radius",
+    "vertexCount": 1,
+    "rawTextSnippet": "NAVAREA I 0142/26 NORTH SEA, DOGGER BANK. UNEXPLODED ORDNANCE (UXO) DISCOVERED IN POSITION 55-14.2N "
+  },
+  {
+    "id": "warn-ukho-0140-2026",
+    "navarea": "I",
+    "category": "drift",
+    "archetype": "point",
+    "vertexCount": 1,
+    "rawTextSnippet": "NAVAREA I 0140/26 ENGLISH CHANNEL, DOVER STRAIT. DRIFTING CONTAINER MARKED WITH RED FLASHING BEACON "
+  },
+  {
+    "id": "warn-nga-0812-2026",
+    "navarea": "IV",
+    "category": "ops",
+    "archetype": "polygon",
+    "vertexCount": 4,
+    "rawTextSnippet": "NAVAREA IV 0812/26 WESTERN NORTH ATLANTIC. HAZARDOUS OPERATIONS, ROCKET LAUNCHING. AREA BOUNDED BY 2"
+  },
+  {
+    "id": "warn-ihm-0095-2026",
+    "navarea": "III",
+    "category": "ops",
+    "archetype": "polyline",
+    "vertexCount": 3,
+    "rawTextSnippet": "NAVAREA III 0095/26 ESTRECHO DE GIBRALTAR. EJERCICIOS TIRO CON ARTILLERIA EN ZONA COMPRENDIDA ENTRE "
+  },
+  {
+    "id": "warn-amsa-0311-2026",
+    "navarea": "X",
+    "category": "aton",
+    "archetype": "point",
+    "vertexCount": 1,
+    "rawTextSnippet": "NAVAREA X 0311/26 CORAL SEA, GREAT BARRIER REEF. UNLIT DRIFTING METEOROLOGICAL BUOY REPORTED IN POSI"
+  }
+]

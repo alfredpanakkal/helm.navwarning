@@ -29,6 +29,7 @@ export type HazardType =
   | 'wreck'
   | 'buoy'
   | 'platform'
+  | 'rig'
   | 'drifting_hazard'
   | 'other';
 

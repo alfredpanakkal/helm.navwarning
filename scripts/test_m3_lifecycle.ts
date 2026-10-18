@@ -18,7 +18,7 @@ const allBlocks = [...ixBlocks, ...ivBlocks];
 console.log(`Ingested ${allBlocks.length} total raw messages across NAVAREA IV and IX.`);
 
 // 2. Run Lifecycle Engine
-const { warnings, inForceLists, textUnavailableIds, contradictionsLogged } = processCorpusLifecycle(allBlocks);
+const { warnings, inForceLists, textUnavailableIds, contradictionsLogged } = processCorpusLifecycle(allBlocks, new Date('2026-10-18T06:00:00Z'));
 
 // 3. Test In-Force Oracle & Text-Unavailable Assertions
 console.log('\n1. Verifying In-Force Oracle and Text-Unavailable assertions...');

@@ -412,16 +412,19 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
             const center = plot.coordinates[0];
             const radiusNm = plot.radiusNm || 1.0;
             const radiusM = radiusNm * 1852;
+            const isRigZone = plot.hazardType === 'platform' || plot.hazardType === 'rig';
 
             const circleLayer = L.circle(center, {
-              color: '#d97706',
-              weight: 2,
-              fillColor: '#f59e0b',
+              color: isRigZone ? '#059669' : '#d97706',
+              weight: isRigZone ? 1.8 : 2,
+              fillColor: isRigZone ? '#10b981' : '#f59e0b',
               fillOpacity: isIsolated ? 0.28 : 0.14,
               dashArray: '4, 4',
               radius: radiusM,
               pane: 'navWarnVectorPane',
             }).addTo(vectorGroup);
+
+            circleLayer.bindTooltip(plot.label || `Safety Clearance (${radiusNm} NM)`);
 
             circleLayer.on('click', () => {
               onSelectWarning(w);
@@ -430,11 +433,12 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
 
             const crosshairIcon = L.divIcon({
               className: 'nw-crosshair-wrap',
-              html: `<div class="w-2.5 h-2.5 rounded-full bg-amber-500 border border-white shadow-xs"></div>`,
+              html: `<div class="w-2.5 h-2.5 rounded-full ${isRigZone ? 'bg-emerald-600' : 'bg-amber-500'} border border-white shadow-xs"></div>`,
               iconSize: [10, 10],
               iconAnchor: [5, 5],
             });
             const centerMarker = L.marker(center, { icon: crosshairIcon, pane: 'navWarnVectorPane' }).addTo(vectorGroup);
+            centerMarker.bindTooltip(plot.label || w.title || 'Rig Position');
             centerMarker.on('click', (e) => {
               L.DomEvent.stopPropagation(e);
               onSelectWarning(w);
@@ -535,7 +539,14 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
           try {
             const coord = plot.coordinates[0];
             const isLiveFiring = classification.category === 'mil_fire';
-            const badgeHtml = renderHazardBadgeHtml(classification.category, classification.displayStyle, isLiveFiring, w.sub_area || undefined);
+            const isRig = plot.hazardType === 'platform' || plot.hazardType === 'rig' || classification.category === 'rig';
+            const categoryToUse = isRig ? 'rig' : classification.category;
+            const badgeHtml = renderHazardBadgeHtml(
+              categoryToUse,
+              isRig ? 'active' : classification.displayStyle,
+              isLiveFiring,
+              isRig ? (plot.label ? plot.label.split(' ')[0] : 'RIG') : (w.sub_area || undefined)
+            );
 
             const pointIcon = L.divIcon({
               className: 'nw-marker-wrap',
@@ -545,6 +556,7 @@ export const MaritimeMap: React.FC<MaritimeMapProps> = ({
             });
 
             const marker = L.marker(coord, { icon: pointIcon, pane: 'navWarnMarkerPane' });
+            marker.bindTooltip(plot.label || w.title || 'Navigational Hazard');
             marker.on('click', () => {
               onSelectWarning(w);
               setIsSheetExpanded(true);

@@ -25,7 +25,7 @@ const ixBlocks = splitBroadcastFeed(ixRaw, { defaultNavarea: 'IX', sourceFeed: '
 const ivBlocks = splitBroadcastFeed(ivRaw, { defaultNavarea: 'IV', sourceFeed: 'NAVAREA_IV.txt' });
 const allBlocks = [...ixBlocks, ...ivBlocks];
 
-const { warnings, inForceLists, textUnavailableIds, contradictionsLogged } = processCorpusLifecycle(allBlocks);
+const { warnings, inForceLists, textUnavailableIds, contradictionsLogged } = processCorpusLifecycle(allBlocks, new Date('2026-10-18T06:00:00Z'));
 const t1 = performance.now();
 const ingestDurationMs = t1 - t0;
 
