@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan and Jira/Linear style ticket backlog for Helm.Warning UI/UX improvements, detailing immediate execution of Phase 1 Quick Wins (F-01 filter predicate fix, F-02 admin gate setter stabilization, universal Escape key dismissal, mobile sticky height reduction) while preserving the GATEWORKS Courier New monospace aesthetic.",
-  "updatedAt": "2026-10-18T02:14:31.510852120Z",
+  "summary": "Updated implementation plan incorporating the complete, production-ready syncWarningsToSupabase ingestion worker function for Milestone M1, featuring service-role bypass, sentinel depth neutralization (-9999.0 -> null), atomic master upserts with captured UUIDs, and batch relational persistence across geometries, entities, charts, schedules, and cancellations.",
+  "updatedAt": "2026-10-19T14:36:55.727565823Z",
   "requestFeedback": true,
   "userFacing": true
 }

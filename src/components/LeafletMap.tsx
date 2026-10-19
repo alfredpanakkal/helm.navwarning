@@ -246,12 +246,52 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         }
       });
 
-      // Cluster Group bound strictly to navWarnMarkerPane (z-index 600)
+      // Cluster Group with Dual-Ring Severity Badges (Plan Spec 2.1)
       clusterGroupRef.current = L.markerClusterGroup({
         showCoverageOnHover: false,
         maxClusterRadius: 50,
         spiderfyOnMaxZoom: true,
         clusterPane: 'navWarnMarkerPane',
+        iconCreateFunction: (cluster) => {
+          const count = cluster.getChildCount();
+          const markers = cluster.getAllChildMarkers();
+          
+          let ringColor = '#64748b'; // Default neutral slate
+          let highestRank = 0;
+
+          markers.forEach((m) => {
+            const w = (m as any).warningData as NavWarning | undefined;
+            if (w) {
+              const cls = classifyWarning(w.raw_text || w.area_text || '');
+              if (cls.displayStyle === 'critical' && highestRank < 3) {
+                ringColor = '#dc2626'; // Red
+                highestRank = 3;
+              } else if (cls.displayStyle === 'high' && highestRank < 2) {
+                ringColor = '#ea580c'; // Orange
+                highestRank = 2;
+              } else if (cls.displayStyle === 'active' && highestRank < 1) {
+                ringColor = '#059669'; // Green
+                highestRank = 1;
+              }
+            }
+          });
+
+          return L.divIcon({
+            html: `<div style="
+              width: 36px; height: 36px; border-radius: 50%;
+              background: #14161c;
+              border: 3px solid ${ringColor};
+              color: #ffffff;
+              font-family: monospace;
+              font-size: 13px; font-weight: 700;
+              display: flex; align-items: center; justify-content: center;
+              box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            ">${count}</div>`,
+            className: 'nw-dual-ring-cluster',
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+          });
+        },
       }).addTo(map);
 
       unclusteredGroupRef.current = L.layerGroup().addTo(map);
@@ -350,7 +390,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     }
   }, [isolatedWarning, mapReady, centerOnWarningArea]);
 
-  // Close context menu on outside click or Escape
+  // Close context menu on outside click or Escape, & handle orientation/resize protection
   useEffect(() => {
     if (!mapReady) return;
 
@@ -358,13 +398,22 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeContextMenu();
     };
+    const handleResize = () => {
+      if (leafletInstance.current) {
+        leafletInstance.current.invalidateSize();
+      }
+    };
 
     mapReady.on('click', handleMapClick);
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
 
     return () => {
       mapReady.off('click', handleMapClick);
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
     };
   }, [mapReady, closeContextMenu]);
 
@@ -500,6 +549,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           icon,
           pane: 'navWarnMarkerPane',
         }).addTo(activeMarkerLayer);
+        (m as any).warningData = w;
 
         m.on('click', () => onSelectWarning(w));
         m.on('contextmenu', (e: L.LeafletMouseEvent) => handleLayerContextMenu(e, w, coords));
@@ -546,19 +596,31 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 const areaSqNm = computePolygonAreaSqNm(latLngs);
                 const centroid = computeCentroid(latLngs);
 
+                const polyColor = isIsolated ? '#dc2626' : classification.displayStyle === 'critical' ? '#dc2626' : '#2563eb';
+                const polyFill = isIsolated ? '#ef4444' : classification.displayStyle === 'critical' ? '#f87171' : '#3b82f6';
+
                 const poly = L.polygon(latLngs, {
-                  color: '#2563eb',       // Clean marine blue border
-                  weight: 2,
+                  color: polyColor,
+                  weight: isIsolated ? 3.5 : 2,
                   dashArray: '6, 6',     // Nautical dashed perimeter
                   opacity: 0.9,
-                  fillColor: '#3b82f6',   // Semi-transparent blue fill
-                  fillOpacity: 0.25,
+                  fillColor: polyFill,
+                  fillOpacity: isIsolated ? 0.35 : 0.22,
                   pane: 'navWarnVectorPane'
                 });
-                poly.bindTooltip(`${w.source_warning_id || 'Warning'}${areaSqNm > 0 ? ` · ${areaSqNm} sq NM` : ''}`, {
-                  direction: 'center',
-                  permanent: false
-                });
+
+                // Anchored Map Popup with Quick Details
+                poly.bindPopup(`
+                  <div style="font-family: monospace; padding: 4px; max-width: 240px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-weight: 700; font-size: 13px; color: #1e293b;">${w.source_warning_id || w.warning_id}</span>
+                      <span style="background: #059669; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">ACTIVE</span>
+                    </div>
+                    <div style="font-size: 11px; color: #475569; margin-bottom: 8px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${w.title || w.area_text || w.raw_text}</div>
+                    <div style="font-size: 10px; color: #0284c7; font-weight: 600;">Area: ${areaSqNm} sq NM</div>
+                  </div>
+                `);
+
                 poly.on('click', () => onSelectWarning(w));
                 poly.on('contextmenu', (e: L.LeafletMouseEvent) => {
                   handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
@@ -570,7 +632,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   const metricBadge = L.marker(centroid, {
                     icon: L.divIcon({
                       className: 'polygon-metric-pill',
-                      html: `<div style="background: rgba(15, 23, 42, 0.85); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 2px 7px; border-radius: 9999px; font-family: monospace; font-size: 10px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3); pointer-events: auto; cursor: pointer;">${w.source_warning_id || w.warning_id} · ${areaSqNm} sq NM</div>`,
+                      html: `<div style="background: rgba(15, 23, 42, 0.88); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 2px 8px; border-radius: 9999px; font-family: monospace; font-size: 10px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.4); pointer-events: auto; cursor: pointer;">${w.source_warning_id || w.warning_id} · ${areaSqNm} sq NM</div>`,
                       iconSize: [0, 0],
                       iconAnchor: [45, 10]
                     }),
@@ -580,28 +642,54 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   vectorGroup.addLayer(metricBadge);
                 }
 
+                // Plan Spec 4.1: Hybrid Vertex Handles (Minimal dots by default, V1..Vn pills when selected)
                 latLngs.forEach((latLng, idx) => {
-                  const vertexMarker = L.circleMarker(latLng, {
-                    radius: 5,
-                    fillColor: '#fbbf24', // Amber/yellow accent
-                    color: '#d97706',
-                    weight: 1.5,
-                    fillOpacity: 0.95,
-                    pane: 'navWarnVectorPane'
-                  });
                   const dmsLabel = formatWgs84Dms(latLng[0], latLng[1]);
-                  vertexMarker.bindTooltip(`Vertex ${idx + 1}: ${dmsLabel} (${latLng[0].toFixed(3)}°, ${latLng[1].toFixed(3)}°)`, {
-                    direction: 'top',
-                    offset: [0, -5]
-                  });
-                  vertexMarker.on('click', (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    onSelectWarning(w);
-                  });
-                  vertexMarker.on('contextmenu', (e: L.LeafletMouseEvent) => {
-                    handleLayerContextMenu(e, w, latLng);
-                  });
-                  vectorGroup.addLayer(vertexMarker);
+
+                  if (isIsolated) {
+                    // Numbered Vertex Pill (V1, V2, V3...) when selected
+                    const pillIcon = L.divIcon({
+                      className: 'vertex-pill-marker',
+                      html: `<div style="background: #14161c; color: #fbbf24; border: 1.5px solid #f59e0b; border-radius: 9999px; padding: 1px 6px; font-family: monospace; font-size: 10px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">V${idx + 1}</div>`,
+                      iconSize: [26, 18],
+                      iconAnchor: [13, 9]
+                    });
+                    const vertexMarker = L.marker(latLng, { icon: pillIcon, pane: 'navWarnVectorPane' });
+                    vertexMarker.bindTooltip(`Vertex V${idx + 1}: ${dmsLabel} (${latLng[0].toFixed(3)}°, ${latLng[1].toFixed(3)}°)`, {
+                      direction: 'top',
+                      offset: [0, -8]
+                    });
+                    vertexMarker.on('click', (e) => {
+                      L.DomEvent.stopPropagation(e);
+                      onSelectWarning(w);
+                    });
+                    vertexMarker.on('contextmenu', (e: L.LeafletMouseEvent) => {
+                      handleLayerContextMenu(e, w, latLng);
+                    });
+                    vectorGroup.addLayer(vertexMarker);
+                  } else {
+                    // Minimal subtle dot marker when unselected
+                    const vertexMarker = L.circleMarker(latLng, {
+                      radius: 3.5,
+                      fillColor: '#fbbf24',
+                      color: '#d97706',
+                      weight: 1,
+                      fillOpacity: 0.9,
+                      pane: 'navWarnVectorPane'
+                    });
+                    vertexMarker.bindTooltip(`Vertex V${idx + 1}: ${dmsLabel}`, {
+                      direction: 'top',
+                      offset: [0, -4]
+                    });
+                    vertexMarker.on('click', (e) => {
+                      L.DomEvent.stopPropagation(e);
+                      onSelectWarning(w);
+                    });
+                    vertexMarker.on('contextmenu', (e: L.LeafletMouseEvent) => {
+                      handleLayerContextMenu(e, w, latLng);
+                    });
+                    vectorGroup.addLayer(vertexMarker);
+                  }
                 });
               } catch {
                 // Malformed polygon fallback
@@ -611,40 +699,89 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               Array.isArray(geom.coordinates) &&
               geom.coordinates.length > 0
             ) {
-              // User Decision: Render linear polyline corridors for cable and tow routes
+              // Plan Spec 4.3: Double-Pass LineString & Wide-Berth Corridor Rendering
               try {
                 const latLngs: [number, number][] = (geom.coordinates as any[]).map((pt) => [pt[1], pt[0]]);
-                const polyline = L.polyline(latLngs, {
-                  color: classification.displayStyle === 'critical' ? '#dc2626' : '#059669',
-                  weight: 3,
-                  dashArray: '6, 6',
+                
+                // Pass 1: Casing Glow Line Underneath
+                const casingLine = L.polyline(latLngs, {
+                  color: '#06b6d4',
+                  weight: 6,
+                  opacity: 0.35,
                   pane: 'navWarnVectorPane',
                 }).addTo(vectorGroup);
 
-                polyline.on('click', () => onSelectWarning(w));
-                polyline.on('contextmenu', (e: L.LeafletMouseEvent) => {
-                  handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
-                });
+                // Pass 2: Primary Core Track Line On Top
+                const coreLine = L.polyline(latLngs, {
+                  color: classification.displayStyle === 'critical' ? '#dc2626' : '#0284c7',
+                  weight: 3,
+                  dashArray: '8, 6',
+                  pane: 'navWarnVectorPane',
+                }).addTo(vectorGroup);
 
-                // Corridor calculation
-                const directive = parseClearanceDirective(w.raw_text || w.issued_text || '');
-                const corridorWidth = directive ? (directive.radiusNm * 2) : 2.0;
-                const corridor = computeLineCorridor(latLngs, corridorWidth);
-                if (corridor.boundaryPolygon && corridor.boundaryPolygon.length > 2) {
-                  const corridorPoly = L.polygon(corridor.boundaryPolygon, {
-                    color: '#0ea5e9',
-                    weight: 1.5,
-                    dashArray: '4, 4',
-                    opacity: 0.7,
+                coreLine.on('click', () => onSelectWarning(w));
+                casingLine.on('click', () => onSelectWarning(w));
+
+                // Termini Endpoint Markers (Point A / Point B)
+                if (latLngs.length >= 2) {
+                  const startMarker = L.circleMarker(latLngs[0], {
+                    radius: 4,
                     fillColor: '#38bdf8',
-                    fillOpacity: 0.12,
+                    color: '#0284c7',
+                    weight: 1.5,
+                    fillOpacity: 1,
                     pane: 'navWarnVectorPane'
                   });
-                  corridorPoly.bindTooltip(`Corridor: ${corridor.lengthNm} NM · Berth: ±${(corridor.widthNm / 2).toFixed(1)} NM`, {
+                  startMarker.bindTooltip('Point A (Route Start)', { direction: 'top' });
+                  vectorGroup.addLayer(startMarker);
+
+                  const endMarker = L.circleMarker(latLngs[latLngs.length - 1], {
+                    radius: 4,
+                    fillColor: '#38bdf8',
+                    color: '#0284c7',
+                    weight: 1.5,
+                    fillOpacity: 1,
+                    pane: 'navWarnVectorPane'
+                  });
+                  endMarker.bindTooltip('Point B (Route Terminus)', { direction: 'top' });
+                  vectorGroup.addLayer(endMarker);
+                }
+
+                // Corridor calculation & Gold Swath Rendering
+                const directive = parseClearanceDirective(w.raw_text || w.issued_text || '');
+                const corridorWidth = directive ? (directive.radiusNm * 2) : 6.0; // 6 NM Swath Default
+                const corridor = computeLineCorridor(latLngs, corridorWidth);
+
+                if (corridor.boundaryPolygon && corridor.boundaryPolygon.length > 2) {
+                  const corridorPoly = L.polygon(corridor.boundaryPolygon, {
+                    color: '#eab308',
+                    weight: 1.5,
+                    dashArray: '5, 5',
+                    opacity: 0.8,
+                    fillColor: '#eab308',
+                    fillOpacity: 0.16,
+                    pane: 'navWarnVectorPane'
+                  });
+                  corridorPoly.bindTooltip(`Swath: ${corridor.widthNm} NM Corridor · Length: ${corridor.lengthNm} NM`, {
                     direction: 'center'
                   });
                   corridorPoly.on('click', () => onSelectWarning(w));
                   vectorGroup.addLayer(corridorPoly);
+
+                  // Midpoint Metric Pill ("6 NM Swath")
+                  const midIdx = Math.floor(latLngs.length / 2);
+                  const midPoint = latLngs[midIdx] || latLngs[0];
+                  const swathPill = L.marker(midPoint, {
+                    icon: L.divIcon({
+                      className: 'swath-metric-pill',
+                      html: `<div style="background: #eab308; color: #14161c; border: 1px solid #ca8a04; padding: 2px 8px; border-radius: 9999px; font-family: monospace; font-size: 10px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.3); pointer-events: auto; cursor: pointer;">${corridor.widthNm} NM Swath</div>`,
+                      iconSize: [0, 0],
+                      iconAnchor: [35, 10]
+                    }),
+                    pane: 'navWarnVectorPane'
+                  });
+                  swathPill.on('click', () => onSelectWarning(w));
+                  vectorGroup.addLayer(swathPill);
                 }
               } catch {
                 // Malformed polyline fallback

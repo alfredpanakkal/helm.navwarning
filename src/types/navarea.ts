@@ -30,13 +30,24 @@ export type Archetype =
   | 'geometry_group'
   | 'region'
   | 'drift_vector'
+  | 'sector_wedge'
+  | 'polygon_bounding_box'
   | 'none';
 
 export type Severity = 'critical' | 'high' | 'caution' | 'info';
 
-export type DisplayStyle = 'critical' | 'high' | 'active' | 'verified' | 'neutral';
+export type DisplayStyle = 'critical' | 'high' | 'active' | 'verified' | 'neutral' | 'explicit' | 'inferred' | 'ambiguous' | 'invalid' | 'review';
 
 export type AtoNStatus = 'alert' | 'info' | 'chart_correction' | 'relocation' | 'standard';
+
+export interface SpanEdit {
+  ruleId: number;
+  cleanStart: number;
+  cleanEnd: number;
+  rawStart: number;
+  rawEnd: number;
+  valuePreserving: boolean;
+}
 
 export interface SubjectSignature {
   navarea: string;
@@ -55,6 +66,7 @@ export interface TimeWindow {
   start?: string; // ISO 8601 UTC
   end?: string;   // ISO 8601 UTC
   rawText?: string;
+  timeReference?: 'UTC' | 'LOCAL';
 }
 
 export interface TemporalRecurrence {
@@ -79,6 +91,8 @@ export interface NavWarnGeometry {
   polygons?: NavWarnCoordinate[][];
   radiusNm?: number;
   clearanceNm?: number;
+  corridorHalfWidthM?: number;
+  berthRadiusM?: number;
   statedRadiusNm?: number;
   displacementVector?: {
     from: NavWarnCoordinate;
@@ -86,6 +100,8 @@ export interface NavWarnGeometry {
   };
   regionName?: string;
   bbox?: [number, number, number, number]; // [minLat, minLng, maxLat, maxLng]
+  startBearing?: number;
+  endBearing?: number;
 }
 
 export interface Lifecycle {
@@ -96,9 +112,23 @@ export interface Lifecycle {
   supersededBy?: string[];
   truncated?: boolean;
   isPartialList?: boolean;
-  unplottedReason?: 'no_coordinates' | 'parse_failure' | 'meta_list' | 'text_unavailable';
+  unplottedReason?:
+    | 'no_coordinates'
+    | 'parse_failure'
+    | 'meta_list'
+    | 'text_unavailable'
+    | 'empty_stub'
+    | 'cancellation_only'
+    | 'truncated_clause'
+    | 'orphan_fragment'
+    | 'missing_hemisphere'
+    | 'duplicate_of';
   resolutionRule?: 'in_force_list' | 'cross_cancel' | 'self_cancel' | 'supersession' | 'expired_window' | 'none';
   resolutionRefs?: string[];
+  proposedCancel?: {
+    status: 'cancelled' | 'expired' | 'superseded';
+    because: string[];
+  };
 }
 
 export interface RawMessageBlock {
@@ -144,4 +174,66 @@ export interface ParsedNavWarning {
   truncated?: boolean;
   filePosition: number;
   sourceFeed: string;
+}
+
+// ═══════════ SUPABASE POSTGIS RELATIONAL SCHEMA CONTRACTS ═══════════
+
+export type FeatureType =
+  | 'POINT'
+  | 'LINE'
+  | 'POLYGON'
+  | 'CORRIDOR'
+  | 'SWEEP_ARC'
+  | 'BOUNDING_BOX';
+
+export type TriageTier = 'A' | 'B' | 'C';
+export type DataQuality = 'EXPLICIT' | 'INFERRED' | 'AMBIGUOUS' | 'INVALID';
+export type Status = 'active' | 'cancelled' | 'expired' | 'superseded' | 'unverified';
+export type ParsingMethod = 'RULE' | 'AI';
+
+export interface NavWarningSpatial {
+  warning_id: string; // Master table UUID
+  canonical_id: string; // e.g. 'NAVAREA IV 1042/26'
+  navarea: string;
+  title: string | null;
+  area_text: string | null;
+  categories: string[] | null;
+  status: Status;
+  triage_tier: TriageTier;
+  data_quality: DataQuality;
+  valid_from: string | null;
+  valid_to: string | null;
+  radio_frequencies: string[] | null;
+  space_launch_mission: string | null;
+  geom_id: string;
+  zone_label: string | null;
+  feature_type: FeatureType;
+  buffer_nm: number | null;
+  corridor_half_width_nm: number | null;
+  altitude_floor_m: number | null;
+  altitude_ceiling_fl: number | null;
+  geojson_blob: any; // Direct pre-calculated GeoJSON feature from PostGIS
+}
+
+export interface NavWarningReviewItem {
+  warning_id: string; // Matches public.nav_warnings_review_queue view alias
+  canonical_id: string;
+  navarea: string;
+  raw_text: string;
+  triage_tier: TriageTier;
+  data_quality: DataQuality;
+  unplotted_reason: string | null;
+  qa_flags: string[];
+  issued_at: string;
+}
+
+export interface NavWarningAuditRecord {
+  warning_id: string;
+  operator_id: string;
+  previous_tier: TriageTier;
+  new_tier: TriageTier;
+  action: 'PROMOTE' | 'DEMOTE' | 'EDIT_GEOMETRY' | 'DISMISS';
+  reason?: string;
+  signature_hash: string;
+  diff_patch?: Record<string, any>;
 }

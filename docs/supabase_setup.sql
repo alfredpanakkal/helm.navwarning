@@ -319,3 +319,159 @@ WITH CHECK (true);
 -- 3. Notify PostgREST schema cache to reload
 NOTIFY pgrst, 'reload schema';
 
+-- ══════════════════════════════════════════════════════════════
+-- POSTGIS RELATIONAL SCHEMA: MASTER, CHILD TABLES & VIEWS
+-- ══════════════════════════════════════════════════════════════
+
+-- Enable PostGIS
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+-- Add categories column to master table
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS categories TEXT[] DEFAULT '{}';
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS canonical_id TEXT;
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS triage_tier TEXT DEFAULT 'B';
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS data_quality TEXT DEFAULT 'EXPLICIT';
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS parsing_method TEXT DEFAULT 'RULE';
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS unplotted_reason TEXT;
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS shoal_depth_m DOUBLE PRECISION;
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS is_depth_unknown BOOLEAN DEFAULT false;
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS space_launch_mission TEXT;
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS altitude_ceiling_fl INT;
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS radio_frequencies TEXT[] DEFAULT '{}';
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS radio_communications JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS cancels_ids TEXT[] DEFAULT '{}';
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS qa_flags TEXT[] DEFAULT '{}';
+ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS duplicate_of_id UUID REFERENCES public.nav_warnings(id);
+
+-- Child Table 1: Geometries
+CREATE TABLE IF NOT EXISTS public.nav_warning_geometries (
+  geom_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  warning_id UUID NOT NULL REFERENCES public.nav_warnings(id) ON DELETE CASCADE,
+  zone_label TEXT,
+  feature_type TEXT NOT NULL,
+  geom_postgis geography(Geometry, 4326) NOT NULL,
+  buffer_nm DOUBLE PRECISION DEFAULT 0.0,
+  corridor_half_width_nm DOUBLE PRECISION,
+  altitude_floor_m DOUBLE PRECISION DEFAULT 0.0,
+  altitude_ceiling_fl INTEGER,
+  sweep_start_azimuth DOUBLE PRECISION,
+  sweep_end_azimuth DOUBLE PRECISION,
+  sweep_radius_nm DOUBLE PRECISION,
+  snapping_rule TEXT DEFAULT 'NONE'
+);
+CREATE INDEX IF NOT EXISTS idx_nav_warning_geometries_postgis ON public.nav_warning_geometries USING GIST (geom_postgis);
+
+-- Child Table 2: Entities
+CREATE TABLE IF NOT EXISTS public.nav_warning_entities (
+  entity_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  warning_id UUID NOT NULL REFERENCES public.nav_warnings(id) ON DELETE CASCADE,
+  entity_type TEXT NOT NULL,
+  entity_name TEXT NOT NULL,
+  role TEXT DEFAULT 'PRIMARY',
+  callsign TEXT,
+  mmsi TEXT,
+  tow_length_m DOUBLE PRECISION,
+  tow_speed_kts DOUBLE PRECISION,
+  streamer_count INTEGER,
+  streamer_length_m DOUBLE PRECISION,
+  streamer_breadth_m DOUBLE PRECISION,
+  streamer_depth_m DOUBLE PRECISION,
+  clearance_requested_nm DOUBLE PRECISION,
+  depth_m DOUBLE PRECISION,
+  depth_status TEXT,
+  datum_ref TEXT DEFAULT 'LAT',
+  radio_channels JSONB DEFAULT '[]'::jsonb
+);
+
+-- Child Table 3: Charts
+CREATE TABLE IF NOT EXISTS public.nav_warning_charts (
+  chart_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  warning_id UUID NOT NULL REFERENCES public.nav_warnings(id) ON DELETE CASCADE,
+  authority TEXT DEFAULT 'BA',
+  chart_number TEXT NOT NULL,
+  int_equivalent TEXT,
+  is_international BOOLEAN DEFAULT false,
+  raw_citation TEXT
+);
+
+-- Child Table 4: Schedules
+CREATE TABLE IF NOT EXISTS public.nav_warning_schedules (
+  schedule_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  warning_id UUID NOT NULL REFERENCES public.nav_warnings(id) ON DELETE CASCADE,
+  window_start TIMESTAMPTZ NOT NULL,
+  window_end TIMESTAMPTZ NOT NULL,
+  is_alternate BOOLEAN DEFAULT false,
+  recurrence_rule TEXT,
+  days_of_week INTEGER[]
+);
+
+-- Child Table 5: Cancellations
+CREATE TABLE IF NOT EXISTS public.nav_warning_cancellations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cancelling_warning_id UUID NOT NULL REFERENCES public.nav_warnings(id) ON DELETE CASCADE,
+  target_canonical_id TEXT NOT NULL,
+  target_warning_id UUID REFERENCES public.nav_warnings(id) ON DELETE SET NULL,
+  cancellation_type TEXT DEFAULT 'EXPLICIT_NOTICE',
+  paragraph_ref TEXT
+);
+
+-- Child Table 6: Audits
+CREATE TABLE IF NOT EXISTS public.nav_warning_audits (
+  audit_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  warning_id UUID NOT NULL REFERENCES public.nav_warnings(id) ON DELETE CASCADE,
+  operator_id TEXT NOT NULL,
+  previous_tier TEXT,
+  new_tier TEXT,
+  action TEXT NOT NULL,
+  reason TEXT,
+  signature_hash TEXT NOT NULL,
+  diff_patch JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Views
+CREATE OR REPLACE VIEW public.nav_warnings_active_spatial AS
+  SELECT 
+    w.id AS warning_id,
+    w.canonical_id,
+    w.navarea,
+    w.title,
+    w.area_text,
+    w.categories,
+    w.status,
+    w.triage_tier,
+    w.data_quality,
+    w.valid_from,
+    w.valid_to,
+    w.radio_frequencies,
+    w.space_launch_mission,
+    g.geom_id,
+    g.zone_label,
+    g.feature_type,
+    g.buffer_nm,
+    g.corridor_half_width_nm,
+    g.altitude_floor_m,
+    g.altitude_ceiling_fl,
+    g.geom_postgis,
+    ST_AsGeoJSON(g.geom_postgis)::jsonb AS geojson_blob
+  FROM public.nav_warnings w
+  JOIN public.nav_warning_geometries g ON w.id = g.warning_id
+  WHERE w.status = 'active'
+    AND w.triage_tier = 'A';
+
+CREATE OR REPLACE VIEW public.nav_warnings_review_queue AS
+  SELECT
+    w.id AS warning_id,
+    w.canonical_id,
+    w.navarea,
+    w.raw_text,
+    w.triage_tier,
+    w.data_quality,
+    w.unplotted_reason,
+    w.qa_flags,
+    w.issued_at
+  FROM public.nav_warnings w
+  WHERE w.status = 'active'
+    AND w.triage_tier IN ('B', 'C')
+  ORDER BY w.issued_at DESC NULLS LAST;
+

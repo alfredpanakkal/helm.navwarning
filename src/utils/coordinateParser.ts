@@ -651,7 +651,9 @@ export function parseCoordinatesDeterministic(
           evidence: [{ rule: 'STRONG_POLYGON_INDICATOR', matched_text: 'BOUNDED BY' }],
         });
       } else if (hasLineIndicator || rawCoordsOnly.length === 2) {
-        const geomType = corridorWidth ? 'LINE_WITH_WIDTH' : 'LINE';
+        const effectiveCorridorNm = corridorWidth !== undefined ? corridorWidth : 1.0; // Rule 74: 1.0 NM default
+        const corridorHalfWidthM = effectiveCorridorNm * 1852.0; // Rule 58 & 75
+        const geomType = 'LINE_WITH_WIDTH';
         const groupId = `group-line-${Math.random().toString(36).substr(2, 6)}`;
         spatialGroups.push({
           group_id: groupId,
@@ -659,18 +661,18 @@ export function parseCoordinatesDeterministic(
           relationship: 'JOINING',
           roles: uniquePoints.map(p => p.role),
           sequence: rawCoordsOnly.map((_, i) => i + 1),
-          evidence: [{ rule: 'EXPLICIT_LINE_INDICATOR', matched_text: 'JOINING' }],
+          evidence: [{ rule: corridorWidth !== undefined ? 'LINE_WIDTH_CORRIDOR_RULE' : 'CORRIDOR_DEFAULT_1NM_RULE', matched_text: corridorWidth !== undefined ? 'X NM EITHER SIDE' : 'IN VICINITY OF LINE JOINING' }],
         });
         geometries.push({
           type: 'LineString',
           semantic_type: geomType as SemanticGeometryType,
           coordinates: rawCoordsOnly,
-          label: corridorWidth ? `Corridor (${corridorWidth} NM Wide)` : 'Line / Track / Route',
-          inference_mode: 'EXPLICIT',
-          confidence_level: 'HIGH_CONFIDENCE',
-          offset_each_side_nm: corridorWidth,
+          label: corridorWidth !== undefined ? `Corridor (${corridorWidth} NM Stated)` : 'Corridor (1.0 NM Default)',
+          inference_mode: corridorWidth !== undefined ? 'EXPLICIT' : 'INFERRED',
+          confidence_level: corridorWidth !== undefined ? 'HIGH_CONFIDENCE' : 'PARTIAL',
+          offset_each_side_nm: effectiveCorridorNm,
           spatial_group_id: groupId,
-          evidence: [{ rule: 'EXPLICIT_LINE_INDICATOR' }],
+          evidence: [{ rule: corridorWidth !== undefined ? 'EXPLICIT_LINE_INDICATOR' : 'CORRIDOR_DEFAULT_1NM_RULE' }],
         });
       } else if (rawCoordsOnly.length === 1 && activeRadius === undefined) {
         geometries.push({

@@ -1,5 +1,5 @@
 // ═══════════ SUPABASE INIT ═══════════
-const LIGHT_COLUMNS = 'id, warning_id, navarea, title, severity, category, issued_date, issued_text, coordinates, latitude, longitude, status, is_verified, raw_text';
+const LIGHT_COLUMNS = 'id, warning_id, canonical_id, navarea, title, area_text, severity, risk_level, category, categories, hazard_category, issued_date, issued_text, coordinates, latitude, longitude, status, triage_tier, is_verified, raw_text';
 
 // Use environment variables if bundled, otherwise fallback to project keys
 const SUPABASE_URL = (typeof process !== 'undefined' && process.env.VITE_SUPABASE_URL) || 'https://ocqpfbkuiomzhbxxvemi.supabase.co';
@@ -15,6 +15,61 @@ if (!window.hwSupabase) {
 // ═══════════ DATA FETCH HELPERS ═══════════
 async function fetchActiveWarnings() {
   if (window.hwSupabase) {
+    // 1. Prioritize pre-calculated PostGIS dynamic spatial view
+    try {
+      const { data: spatialData, error: spatialErr } = await window.hwSupabase
+        .from('nav_warnings_active_spatial')
+        .select('*');
+
+      if (!spatialErr && Array.isArray(spatialData) && spatialData.length > 0) {
+        return spatialData.map(w => {
+          let lat = null;
+          let lng = null;
+          if (w.geojson_blob && w.geojson_blob.type === 'Point' && Array.isArray(w.geojson_blob.coordinates)) {
+            lng = w.geojson_blob.coordinates[0];
+            lat = w.geojson_blob.coordinates[1];
+          }
+
+          const primaryCategory = Array.isArray(w.categories) && w.categories.length > 0 ? w.categories[0] : (w.category || 'general');
+
+          return {
+            id: w.warning_id,
+            warning_id: w.canonical_id || w.warning_id,
+            canonical_id: w.canonical_id || w.warning_id,
+            navarea: w.navarea,
+            title: w.title || w.canonical_id,
+            area_text: w.area_text,
+            severity: w.triage_tier === 'A' ? 'high' : 'caution',
+            category: primaryCategory,
+            categories: w.categories || [primaryCategory],
+            status: w.status,
+            triage_tier: w.triage_tier,
+            data_quality: w.data_quality,
+            valid_from: w.valid_from,
+            valid_to: w.valid_to,
+            latitude: lat,
+            longitude: lng,
+            buffer_nm: w.buffer_nm,
+            corridor_half_width_nm: w.corridor_half_width_nm,
+            feature_type: w.feature_type,
+            geojson_blob: w.geojson_blob,
+            spatial: w.geojson_blob ? {
+              geometries: [
+                {
+                  type: w.geojson_blob.type,
+                  coordinates: w.geojson_blob.coordinates,
+                  label: w.zone_label || w.title || w.canonical_id,
+                }
+              ]
+            } : null,
+          };
+        });
+      }
+    } catch (spatialEx) {
+      console.warn('nav_warnings_active_spatial query notice, falling back to master:', spatialEx);
+    }
+
+    // 2. Fallback to master nav_warnings table
     try {
       const { data, error } = await window.hwSupabase
         .from('nav_warnings')
@@ -25,6 +80,9 @@ async function fetchActiveWarnings() {
       if (!error && Array.isArray(data) && data.length > 0) {
         return data.map(w => ({
           ...w,
+          id: w.id || w.warning_id,
+          warning_id: w.canonical_id || w.warning_id,
+          canonical_id: w.canonical_id || w.warning_id,
           raw_text: w.raw_text || w.bulletin || w.text || w.rawText,
           bulletin: w.bulletin || w.raw_text || w.text,
           text: w.text || w.raw_text,

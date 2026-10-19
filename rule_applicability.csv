@@ -1,0 +1,126 @@
+rule,register_title,targets_coordinators,corpus_evidence,decision,coverage_today,tier_default,downgrade_allowed_after,priority
+1,Raw Text Immutability,All,src/types/navarea.ts:111,implement_now,implemented,A,none,P1
+2,Telegraphic Envelope Stripping,All,src/parsers/messageSplitter.ts:27,implement_now,partial,A,fixtures_pass,P1
+3,Glued Token Separation,All,src/parsers/coordinateLexer.ts:127,implement_now,partial,B,none,P1
+4,Mojibake and Punctuation Normalization,All,src/parsers/coordinateParser.ts:199,implement_now,partial,A,fixtures_pass,P1
+5,Empty Stub Classification,All,src/parsers/messageSplitter.ts:32,implement_now,implemented,A,none,P1
+6,Truncated Clause Detection,All,src/parsers/messageSplitter.ts:42,implement_now,implemented,C,none,P1
+7,Preamble Serial Number Extraction,All,src/parsers/headerParser.ts:1,implement_now,implemented,A,none,P1
+8,NAVAREA Region Token Normalization,All,src/parsers/messageSplitter.ts:113,implement_now,implemented,A,none,P1
+9,Date/Time Group (DTG) Extraction,All,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,P1
+10,Issuance Year Inheritance,All,src/parsers/headerParser.ts:1,implement_now,implemented,A,none,P1
+11,Sub-Area Name Extraction,All,src/parsers/labelExtractor.ts:1,implement_now,implemented,A,none,P1
+12,Chart Number List Normalization,All,src/parsers/messageSplitter.ts:99,implement_now,implemented,A,none,P1
+13,Authority Signature Extraction,All,src/parsers/headerParser.ts:1,implement_now,partial,A,none,P2
+14,Subject Code Mapping,All,src/parsers/warningClassifier.ts:1,implement_now,implemented,A,none,P1
+15,Cancellation Clause Parsing,All,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,P1
+16,Strict Coordinates Bound Inspection,All,src/parsers/coordinateParser.ts:154,implement_now,implemented,C,none,P1
+17,Zero-Fabrication Hemisphere Policy,IX IV,src/parsers/coordinateParser.ts:25,implement_now,implemented,C,none,P1
+18,Decimal-Hyphen Coordinate Repair,IV,src/parsers/coordinateParser.ts:60,implement_now,implemented,B,none,P1
+19,Degree-Minute Period Normalization,IX IV,src/parsers/coordinateParser.ts:32,implement_now,implemented,B,none,P1
+20,Leading Zero Latitude Padding Repair,IV,src/parsers/coordinateParser.ts:68,implement_now,implemented,A,fixtures_pass,P2
+21,NAVAREA Spatial Sanity Bounding Box,All,src/utils/coordinateParser.ts:18,implement_now,implemented,A,none,P1
+22,Landmark Reference Offset Geocoding,IX,src/utils/coordinateParser.ts:1,defer_dormant,missing,B,none,P3
+23,Single Position Point Geometry,All,src/parsers/geometryExtractor.ts:1,implement_now,implemented,A,none,P1
+24,Multi-Position Point List Geometry,All,src/parsers/geometryExtractor.ts:1,implement_now,implemented,A,none,P1
+25,Self-Intersecting Bowtie Polygon Quarantine,All,src/utils/coordinateParser.ts:880,implement_now,partial,C,none,P1
+26,Vessel Relocation Old/New Position,All,src/parsers/geometryExtractor.ts:23,implement_now,implemented,B,none,P2
+27,Point Radius Hazard Zone Geometry,All,src/utils/coordinateParser.ts:516,implement_now,implemented,A,none,P1
+28,Polyline Route/Trackline Geometry,All,src/utils/coordinateParser.ts:660,implement_now,implemented,A,none,P1
+29,WGS-84 Datum Default Assumption,All,src/utils/coordinateParser.ts:302,implement_now,implemented,A,none,P1
+30,Local Non-WGS84 Datum Transformation,III,src/utils/coordinateParser.ts:1,defer_dormant,missing,B,none,P3
+31,Sentinel Depth -9999.0 Masking,All,src/parsers/geometryExtractor.ts:1,implement_now,implemented,A,none,P1
+32,ISO 8601 UTC Timestamp Formatting,All,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,P1
+33,Open-Ended Validity Window Handling,All,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,P1
+34,Recurrent Daily Time Window Parsing,All,src/types/navarea.ts:60,implement_now,implemented,A,none,P1
+35,Days-of-Week Recurrence Parsing,All,src/types/navarea.ts:60,implement_now,implemented,A,none,P1
+36,Estimated Expiration Tagging,All,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,P1
+37,Explicit Cancellation Target Matching,All,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,P1
+38,Causality-First Hazard Classification,All,src/parsers/warningClassifier.ts:13,implement_now,implemented,A,none,P1
+39,Hazard Severity Level Assignment,All,src/parsers/warningClassifier.ts:13,implement_now,implemented,A,none,P1
+40,Keyword Classification Evidence Tracking,All,src/parsers/warningClassifier.ts:10,implement_now,implemented,A,none,P1
+41,Contact Information Extraction,All,src/types/navarea.ts:139,implement_now,implemented,A,none,P2
+42,Light List / AtoN Reference Extraction,All,src/parsers/warningClassifier.ts:170,implement_now,implemented,A,none,P2
+43,Drifting Object Trajectory Vector,All,src/parsers/warningClassifier.ts:99,implement_now,implemented,B,none,P2
+44,Corridor Buffer Strip Width,All,src/utils/coordinateParser.ts:558,implement_now,implemented,A,none,P1
+45,Berth Clearance Passing Distance,All,src/parsers/geometryExtractor.ts:19,implement_now,implemented,A,none,P1
+46,In-Force Bulletin Serial Parsing,All,src/parsers/inForceListParser.ts:1,implement_now,implemented,A,none,P1
+47,In-Force List Missing Target Revocation,All,src/parsers/inForceListParser.ts:1,implement_now,implemented,A,none,P1
+48,Duplicate Record Linking,All,src/parsers/messageSplitter.ts:1,implement_now,implemented,A,none,P1
+49,Orphan Fragment Quarantining,All,src/parsers/messageSplitter.ts:64,implement_now,implemented,C,none,P1
+50,Cross-Series Cancellation Linking,All,src/parsers/temporalParser.ts:1,implement_now,implemented,B,none,P2
+51,Multi-Language Broadcast Translation,None,src/types.ts:180,defer_dormant,missing,A,none,P3
+52,Telegraphic Abbreviations Expansion,All,src/parsers/messageSplitter.ts:1,implement_now,partial,A,fixtures_pass,P2
+53,PDF Kerning Space Normalization,All,src/parsers/messageSplitter.ts:23,implement_now,implemented,A,fixtures_pass,P1
+54,Glued Number-Letter Token Separation,All,src/parsers/coordinateLexer.ts:127,implement_now,implemented,B,none,P1
+55,European Decimal Comma Normalization,All,src/utils/coordinateParser.ts:199,implement_now,implemented,A,fixtures_pass,P1
+56,Bounded Within Rectangle Geometry,IX IV,src/parsers/coordinateLexer.ts:151,implement_now,implemented,B,none,P1
+57,Geodesic Arc Interpolation,All,src/utils/coordinateParser.ts:516,implement_now,implemented,B,none,P2
+58,Corridor Width vs Berth Radius Split,All,src/types/maritime.ts:1,implement_now,implemented,A,none,P1
+59,Coordinate Quality Rating Rollup,All,src/utils/coordinateParser.ts:751,implement_now,implemented,A,none,P1
+60,Local Non-UTC Time Window Tagging,All,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,P1
+61,Multi-Zone Polygon Grouping,IX,src/utils/coordinateParser.ts:461,implement_now,implemented,B,none,P1
+62,Coastal Line Approximation,All,src/utils/coordinateParser.ts:1,implement_now,implemented,B,none,P2
+63,Span Edit Offset Map Recording,All,src/types/navarea.ts:1,implement_now,implemented,A,none,P1
+64,SSRF Security URL Validation,All,server/ssrfGuard.ts:9,implement_now,implemented,A,none,P1
+65,Admin Authentication JWT Middleware,All,server/auth.ts:8,implement_now,implemented,A,none,P1
+66,GENADMIN Multi-Envelope Reassembly,All,src/parsers/messageSplitter.ts:27,implement_now,implemented,A,none,P1
+67,Zero-Width Unicode Space Removal,All,src/parsers/messageSplitter.ts:23,implement_now,implemented,A,fixtures_pass,P1
+68,Header Serial Number Normalization,All,src/parsers/headerParser.ts:1,implement_now,implemented,A,none,P1
+69,Issuance Date Parsing,All,src/parsers/headerParser.ts:1,implement_now,implemented,A,none,P1
+70,Preamble Noise Filtering,All,src/parsers/headerParser.ts:1,implement_now,implemented,A,none,P1
+71,DMS Coordinate Format Lexing,All,src/parsers/coordinateLexer.ts:56,implement_now,implemented,A,none,P1
+72,DM Dashed Format Lexing,All,src/parsers/coordinateLexer.ts:80,implement_now,implemented,A,none,P1
+73,DM Space-Separated Lexing,All,src/parsers/coordinateLexer.ts:104,implement_now,implemented,A,none,P1
+74,Vicinity Line Corridor 1.0 NM Default,All,src/utils/coordinateParser.ts:558,implement_now,implemented,A,none,P1
+75,X NM Either Side Line Corridor,All,src/utils/coordinateParser.ts:558,implement_now,implemented,A,none,P1
+76,Multi-Point Boundary Enclosure,All,src/utils/coordinateParser.ts:627,implement_now,implemented,A,none,P1
+77,Depth Sounding Unit Conversion,All,src/parsers/warningClassifier.ts:201,implement_now,implemented,A,none,P2
+78,Shoal Depth Hazard Classification,All,src/parsers/warningClassifier.ts:201,implement_now,implemented,A,none,P2
+79,Relative Time Expression Normalization,All,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,P2
+80,Local Time Non-Conversion Rule,All,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,P1
+81,Date-Only Cancellation Midnight Rule,All,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,P1
+82,AtoN Status Classification,All,src/parsers/warningClassifier.ts:170,implement_now,implemented,A,none,P2
+83,Submarine Cable/Pipeline Classification,All,src/parsers/warningClassifier.ts:120,implement_now,implemented,A,none,P2
+84,Military Firing Exercise Classification,All,src/parsers/warningClassifier.ts:79,implement_now,implemented,A,none,P1
+85,Search and Rescue Classification,All,src/parsers/warningClassifier.ts:69,implement_now,implemented,A,none,P1
+86,Piracy Security Advisory Classification,All,src/parsers/warningClassifier.ts:89,implement_now,implemented,A,none,P1
+87,Drifting Hazard Classification,All,src/parsers/warningClassifier.ts:99,implement_now,implemented,A,none,P1
+88,Offshore Rig Drilling Classification,All,src/parsers/warningClassifier.ts:109,implement_now,implemented,A,none,P2
+89,Hydrographic Survey Classification,All,src/parsers/warningClassifier.ts:139,implement_now,implemented,A,none,P2
+90,In-Force Bulletin Cancellation Clause,All,src/parsers/inForceListParser.ts:1,implement_now,implemented,A,none,P1
+91,Supersession Evidence Matching,All,src/types/navarea.ts:48,implement_now,implemented,B,none,P1
+92,Markdown Code Fence Stripping,All,src/parsers/messageSplitter.ts:23,implement_now,implemented,A,fixtures_pass,P1
+93,European Comma Coordinate Normalization,All,src/utils/coordinateParser.ts:199,implement_now,implemented,A,fixtures_pass,P1
+94,Header Region Token Extraction,All,src/parsers/messageSplitter.ts:113,implement_now,implemented,A,none,P1
+95,Header-less Orphan Block Handling,All,src/parsers/messageSplitter.ts:64,implement_now,implemented,C,none,P1
+96,Coordinate Label Vertex Parsing,All,src/parsers/labelExtractor.ts:1,implement_now,implemented,A,none,P1
+97,Multi-Zone Label Matching,IX,src/utils/coordinateParser.ts:461,implement_now,implemented,B,none,P1
+98,Coastal Line Segment Tagging,All,src/utils/coordinateParser.ts:1,implement_now,implemented,B,none,P2
+99,Geodesic Distance Thresholding,All,src/utils/coordinateParser.ts:1,implement_now,implemented,A,none,P2
+100,Estimated Expiry Display Formatting,All,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,P1
+101,UTC Offset Normalization,All,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,P1
+102,LLM Fallback Structured Extraction,All,src/utils/coordinateParser.ts:940,implement_now,implemented,B,none,P1
+103,LLM Output Range Validation,All,src/schemas/navWarningSchema.ts:1,implement_now,implemented,C,none,P1
+104,Deterministic Priority Guard,All,src/utils/coordinateParser.ts:940,implement_now,implemented,A,none,P1
+105,Cancelled Since Bulletin Clause,IX IV,src/parsers/inForceListParser.ts:1,implement_now,implemented,B,none,P1
+106,Coordinator Splitter Completion,I II III V VII IX IV X XVI,src/parsers/messageSplitter.ts:27,implement_now,partial,A,none,P1
+107,Detached Hemisphere Dialect Normalization,VII III X XIX,src/parsers/coordinateLexer.ts:56,implement_now,partial,B,none,P2
+108,Bare Serial Coordinator Inheritance,V,src/parsers/headerParser.ts:1,defer_dormant,missing,A,none,P3
+109,Bounding Box Trigger Extension,X VIII,src/parsers/coordinateLexer.ts:151,implement_now,implemented,B,none,P1
+110,Single Origin Azimuth Sweep Sector,IX VIII,src/parsers/geometryExtractor.ts:1,implement_now,implemented,B,none,P3
+111,Spelled Number Quantity Lexer,XIII XI,src/parsers/coordinateLexer.ts:1,implement_now,implemented,B,none,P1
+112,Multi Dialect Cancellation Verb Rollover,XV XI XIII III,src/parsers/temporalParser.ts:1,implement_now,implemented,B,none,P1
+113,In-Force Serial Kerning Repair,VIII XVI XI,src/parsers/inForceListParser.ts:1,implement_now,implemented,B,none,P3
+114,Argentine Dash Serial Header,VI,src/parsers/headerParser.ts:1,defer_dormant,missing,A,none,P3
+115,Chart Authority Context Inheritance,VII IX,src/parsers/labelExtractor.ts:1,implement_now,implemented,A,none,P2
+116,National Chart Prefix Registry,IX XIV VI XV XVII,src/parsers/labelExtractor.ts:1,implement_now,implemented,A,none,P2
+117,Zone Label vs Vertex Label Disambiguation,XII XIV VII,src/parsers/geometryExtractor.ts:1,implement_now,implemented,B,none,P3
+118,NBSP Non-Breaking Space Stripping,XIX,src/parsers/messageSplitter.ts:23,implement_now,implemented,A,fixtures_pass,Mini
+119,Vessel Name Coordinate Gluing Separation,XIX,src/parsers/coordinateLexer.ts:127,implement_now,implemented,B,none,Mini
+120,Implausible Date QA Flagging,XIX,src/parsers/temporalParser.ts:1,implement_now,implemented,A,none,Mini
+121,Tow Length and Speed Extraction,XIII V,src/types/navarea.ts:1,implement_now,implemented,A,none,Mini
+122,Draft Based Applicable Vessel Filter,III,src/types/navarea.ts:1,implement_now,implemented,A,none,Mini
+123,Website Disclaimer Stripping,VII,src/parsers/messageSplitter.ts:23,implement_now,implemented,A,fixtures_pass,Mini
+124,Vertex Labelled Polygon Without Trigger,XV,src/parsers/geometryExtractor.ts:1,implement_now,implemented,B,none,Mini
+125,Span Based Offset Map Representation,All,src/types/navarea.ts:1,implement_now,implemented,A,none,Mini

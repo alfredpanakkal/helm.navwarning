@@ -9,6 +9,11 @@ export const SEVERITY_COLORS: Record<DisplayStyle, { stroke: string; fill: strin
   active: { stroke: '#059669', fill: 'rgba(5, 150, 105, 0.18)', bg: '#059669' },
   verified: { stroke: '#0d9488', fill: 'rgba(13, 148, 136, 0.18)', bg: '#0d9488' },
   neutral: { stroke: '#64748b', fill: 'rgba(100, 116, 139, 0.18)', bg: '#64748b' },
+  explicit: { stroke: '#475569', fill: 'rgba(71, 85, 105, 0.18)', bg: '#475569' },
+  inferred: { stroke: '#d97706', fill: 'rgba(217, 119, 6, 0.18)', bg: '#d97706' },
+  ambiguous: { stroke: '#7c3aed', fill: 'rgba(124, 58, 237, 0.18)', bg: '#7c3aed' },
+  invalid: { stroke: '#b91c1c', fill: 'rgba(185, 28, 28, 0.18)', bg: '#b91c1c' },
+  review: { stroke: '#3b82f6', fill: 'rgba(59, 130, 246, 0.18)', bg: '#3b82f6' },
 };
 
 export const HAZARD_SVG_PATHS: Record<HazardCategory, string> = {

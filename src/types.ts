@@ -237,8 +237,49 @@ export interface NavWarning {
   confidence?: number;
   in_force_numbers?: string[];
 
-  // P0 Safety & Correctness Hardening
+  // Multi-Axis State Model & Audit Fields (Plan v8)
   data_quality?: DataQualityRating;
+  dataQuality?: DataQualityRating;
+  verification?: 'unverified' | 'human_verified';
+  verified_by?: string | null;
+  verifiedBy?: string | null;
+  verified_at?: string | null;
+  verifiedAt?: string | null;
+  triage_tier?: 'A' | 'B' | 'C';
+  triageTier?: 'A' | 'B' | 'C';
+  qa_flags?: string[];
+  qaFlags?: string[];
+  unplotted_reason?:
+    | 'no_coordinates'
+    | 'parse_failure'
+    | 'meta_list'
+    | 'text_unavailable'
+    | 'empty_stub'
+    | 'cancellation_only'
+    | 'truncated_clause'
+    | 'orphan_fragment'
+    | 'missing_hemisphere'
+    | 'duplicate_of';
+  unplottedReason?:
+    | 'no_coordinates'
+    | 'parse_failure'
+    | 'meta_list'
+    | 'text_unavailable'
+    | 'empty_stub'
+    | 'cancellation_only'
+    | 'truncated_clause'
+    | 'orphan_fragment'
+    | 'missing_hemisphere'
+    | 'duplicate_of';
+  parsing_method?: 'rule' | 'ai_gemini' | 'ai_mistral' | 'human';
+  parsingMethod?: 'rule' | 'ai_gemini' | 'ai_mistral' | 'human';
+  rules_version?: string;
+  rulesVersion?: string;
+  span_edit_list?: any[];
+  spanEditList?: any[];
+  duplicate_of_id?: string;
+  duplicateOfId?: string;
+
   ambiguous_positions?: AmbiguousPosition[];
   grounding_diagnostic?: GroundingDiagnostic;
   radius_specifications?: RadiusSpecification[];

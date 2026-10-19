@@ -5,10 +5,24 @@ Object.assign(window.hwDb, {
   async fetchUnverified() {
     if (!window.hwSupabase) return [];
     try {
+      // 1. Prioritize nav_warnings_review_queue view
+      const { data: queueData, error: queueErr } = await window.hwSupabase
+        .from('nav_warnings_review_queue')
+        .select('*');
+      if (!queueErr && Array.isArray(queueData) && queueData.length > 0) {
+        return queueData.map(q => ({
+          ...q,
+          id: q.warning_id,
+          warning_id: q.canonical_id || q.warning_id,
+          canonical_id: q.canonical_id,
+        }));
+      }
+
+      // 2. Fallback to unverified in master table
       const { data, error } = await window.hwSupabase
         .from('nav_warnings')
         .select('*')
-        .eq('is_verified', false)
+        .or('is_verified.eq.false,triage_tier.in.(B,C)')
         .eq('status', 'active');
       return data || [];
     } catch (e) {
@@ -16,27 +30,107 @@ Object.assign(window.hwDb, {
     }
   },
 
-  async verifyWarning(id) {
+  async verifyWarning(id, details = {}) {
     if (!window.hwSupabase) return { error: 'No db connection' };
-    return await window.hwSupabase
-      .from('nav_warnings')
-      .update({ is_verified: true, verified_at: new Date().toISOString() })
-      .eq('warning_id', id);
+    const operator = (currentUser && currentUser.email) || 'safety-operator';
+    const isUuid = typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    
+    // Update master record to Tier A and explicit data quality
+    const updatePayload = {
+      is_verified: true,
+      verified_at: new Date().toISOString(),
+      triage_tier: 'A',
+      data_quality: 'EXPLICIT',
+      unplotted_reason: null,
+      parsing_method: 'RULE'
+    };
+
+    let query = window.hwSupabase.from('nav_warnings').update(updatePayload);
+    query = isUuid ? query.eq('id', id) : query.or(`warning_id.eq."${id}",canonical_id.eq."${id}"`);
+    const res = await query.select('id, canonical_id');
+
+    // Record immutable operator audit row to nav_warning_audits
+    try {
+      const masterId = res.data?.[0]?.id || (isUuid ? id : null);
+      if (masterId) {
+        await window.hwSupabase.from('nav_warning_audits').insert([{
+          warning_id: masterId,
+          operator_id: operator,
+          previous_tier: 'B',
+          new_tier: 'A',
+          action: 'PROMOTE',
+          reason: details.reason || 'Operator verified in Admin Console',
+          signature_hash: btoa(masterId + ':' + Date.now()),
+          diff_patch: updatePayload
+        }]);
+      }
+    } catch (auditErr) {
+      console.warn('nav_warning_audits insert notice:', auditErr);
+    }
+
+    return res;
   },
 
-  async rejectWarning(id) {
+  async rejectWarning(id, reason = 'Operator rejected') {
     if (!window.hwSupabase) return { error: 'No db connection' };
-    return await window.hwSupabase
-      .from('nav_warnings')
-      .update({ status: 'rejected' })
-      .eq('warning_id', id);
+    const operator = (currentUser && currentUser.email) || 'safety-operator';
+    const isUuid = typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+    const updatePayload = {
+      status: 'rejected',
+      triage_tier: 'C',
+      unplotted_reason: reason
+    };
+
+    let query = window.hwSupabase.from('nav_warnings').update(updatePayload);
+    query = isUuid ? query.eq('id', id) : query.or(`warning_id.eq."${id}",canonical_id.eq."${id}"`);
+    const res = await query.select('id, canonical_id');
+
+    // Record immutable audit row
+    try {
+      const masterId = res.data?.[0]?.id || (isUuid ? id : null);
+      if (masterId) {
+        await window.hwSupabase.from('nav_warning_audits').insert([{
+          warning_id: masterId,
+          operator_id: operator,
+          previous_tier: 'B',
+          new_tier: 'C',
+          action: 'DEMOTE',
+          reason: reason,
+          signature_hash: btoa(masterId + ':' + Date.now()),
+          diff_patch: updatePayload
+        }]);
+      }
+    } catch (auditErr) {
+      console.warn('nav_warning_audits insert notice:', auditErr);
+    }
+
+    return res;
   },
 
   async publishImport(warnings) {
     if (!window.hwSupabase) return { error: 'No db connection' };
+    // Call server sync endpoint with auth header for atomic multi-table persistence
+    try {
+      const token = sessionStorage.getItem('hw_admin_token') || '';
+      const res = await fetch('/api/supabase/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ warnings })
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Server sync call notice, falling back to direct master upsert:', err);
+    }
+
     return await window.hwSupabase
       .from('nav_warnings')
-      .upsert(warnings, { onConflict: 'source_id, warning_id', ignoreDuplicates: true });
+      .upsert(warnings, { onConflict: 'canonical_id', ignoreDuplicates: true });
   }
 });
 

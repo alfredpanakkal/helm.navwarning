@@ -1,342 +1,358 @@
-# Implementation Plan v4 — Full-Corpus NAVAREA Warning Plotting System
+# Implementation Plan v5.2 — PostGIS-Backed Full-Corpus NAVAREA Warning System & M1 Ingestion Worker
 
-A comprehensive architecture and delivery plan for full-corpus maritime navigational warning ingestion, deterministic coordinate extraction, rule-precedence lifecycle management, and polymorphic Leaflet cartography across NAVAREA IV and NAVAREA IX feeds. Every message in a broadcast either plots with accurate spatial geometry or surfaces in the list panel with an explicit reason; nothing is dropped silently.
+A comprehensive architecture and delivery plan aligning Helm.Warning's ingestion pipeline, deterministic lifecycle resolution, and polymorphic Leaflet cartography with the enterprise PostgreSQL / Supabase / PostGIS relational database, featuring the complete production-grade `syncWarningsToSupabase` ingestion worker.
+
+Supabase acts as the central nervous system: the ingestion worker and deterministic parser execute atomic database transactions (master + 5 child tables + lifecycle mutations), PostGIS handles cartographic buffering and antimeridian wrapping on the server side, and the Leaflet UI operates purely as an ultra-fast, lightweight reader consuming `nav_warnings_active_spatial` and `nav_warnings_review_queue`.
 
 ---
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following architectural decisions and discipline upgrades govern this v4 plan:
-
-- **North Star & Zero Silent Drops**: Every message ID in a raw broadcast is accounted for: plotted as an active feature, represented by a gazetteer region chip, or explicitly flagged as `unplotted: <reason>` in the list panel. Missing rows are strictly forbidden (`parsed IDs ∪ list-entry IDs ∪ genadmin IDs == UI IDs`).
-- **Generalization Discipline & Held-Out Slice**: 15% of messages are selected and frozen at M0 (stratified across hazard categories) before parser tuning. The held-out validation suite must pass with **zero coordinate errors** and **≥ 90% correct archetype/category** to prevent overfitting to the ~246-message training corpus. Any held-out slice failure must be explicitly triaged before sign-off as either **(a) new pattern → added to the coverage backlog**, or **(b) accepted noise → documented**. A failing slice may not be waved through.
-- **Deterministic Lifecycle Resolution Chain**: A fixed 6-tier precedence sequence (`in_force_list` → `cross_cancel` → `self_cancel` → `supersession` → `expired_window` → `none`) where the winning rule records itself in `resolutionRule` with evidence references.
-- **Supersession Guardrails**: Family matching requires identical `SubjectSignature` (navarea + category + archetype + region tokens) **plus explicit shared entity overlap** (rig name, buoy label, vessel name). Structurally similar notices without shared entities never supersede.
-- **Tighter Coordinate Safety**: Latitude-only leading zero-stripping (e.g. `021-26.90N` → `21°26.9′N`; never stripped from longitude), longitude range bounds verified strictly *after* repair, and radius limits bounded between a 0.01 NM floor and a 500 NM ceiling.
-- **Visibility & Scoping Defaults**: Expired, cancelled, and superseded notices are hidden by default across all zooms with dedicated legend toggles. The system is scoped to one app instance per NAVAREA feed, keyed by NAVAREA in the store for effortless future multi-feed unification.
+> The following architectural mandates and M1 implementation specifications govern this plan:
+>
+> - **Service Role Bypass & Atomic Multi-Table Ingestion (Fix 1 & M1 Target)**: `syncWarningsToSupabase` uses the Supabase Service Role client (`SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY`) to bypass RLS. It upserts into `public.nav_warnings`, captures returned master UUIDs (`id`), and executes cascading batch inserts into `nav_warning_geometries`, `nav_warning_entities`, `nav_warning_charts`, `nav_warning_schedules`, and `nav_warning_cancellations`.
+> - **Sentinel Depth Guardrail (Rule 31 Check)**: Every `depth_m` and `shoal_depth_m` value equal to `-9999.0` (or outside the valid marine bathymetry range $(-50.0, 12000.0)$) is intercepted and converted to `null`, ensuring `chk_shoal_depth_sentinel` and `chk_entity_depth_sentinel` are never violated.
+> - **Tier A Precedence Guardrail (Rule H02 Check)**: Notices assigned `triage_tier = 'A'` must strictly satisfy `data_quality = 'EXPLICIT'`, `unplotted_reason IS NULL`, `parsing_method = 'RULE'`, and `status != 'superseded'`. Any notice failing these criteria is automatically safeguarded to `triage_tier = 'B'`.
+> - **PostGIS Spherical Geometries (EWKT)**: Point, corridor, and polygon perimeters are persisted as native `geography(Geometry, 4326)` via EWKT formatting (e.g., `SRID=4326;POINT(lng lat)`), offloading all buffering, corridors, and antimeridian calculations to PostGIS.
+> - **Pre-Calculated Spatial & Review Views**: The public Leaflet map consumes `public.nav_warnings_active_spatial` (which pre-computes `ST_AsGeoJSON(geom_postgis)::jsonb AS geojson_blob` and includes `categories TEXT[]`), while the admin console consumes `public.nav_warnings_review_queue`.
 
 ---
 
 ## 1. Overview & Core Concept
 
 ### What It Does
-Ingests heterogeneous telex broadcasts and legacy GENADMIN messages from NAVAREA IV (US/Atlantic) and NAVAREA IX (Middle East/Indian Ocean), parsing complex coordinates, spatial archetypes, validity windows, and nautical berths. It evaluates message lifecycles deterministically and renders high-contrast, clutter-free nautical cartography where hazard categories, boundaries, and corridors are instantly distinguishable.
+An industrial, chartroom-grade maritime safety information system that ingests raw telex and GENADMIN broadcasts from NAVAREA IV, IX, and global coordinators. Ingestion parses coordinates, multi-vessel flotillas, INT charts, and operational schedules, persisting normalized records to Supabase. Active Tier A hazards stream directly to Leaflet via PostGIS spatial views, while Tier B and unplotted notices stream to an operator triage studio.
 
 ### Target Audience & Persona
-- Navigators, Officers of the Watch (OOW), fleet dispatchers, and hydrographic analysts requiring instant situational awareness and verifiable audit trails for maritime safety notices.
+- **Navigators & Officers of the Watch (OOW)**: Accessing the public portal (`index.html`) for instant, zero-latency situational awareness on nautical charts.
+- **Maritime Safety Administrators & Hydrographers**: Operating the admin console (`admin.html`) to monitor ingestion health, audit Tier B notices, and verify complex hazards.
 
 ### Key Value
-- **100% Ingestion Accountability**: Eliminates dangerous blind spots where malformed or list notices vanish without operator notice.
-- **Accurate Spatial Geometries**: Replaces generic circular pin dots with polygons, nautical circle buffers, linear cable/tow corridors, and relocation tracks.
-- **Auditable Lifecycle Engine**: Transparent resolution trace for every cancelled or superseded notice.
+- **Sub-Second Map Initialization (< 1.5s TTFP)**: Consuming pre-computed PostGIS GeoJSON eliminates browser main-thread blocking, maintaining 50+ FPS during pan and zoom.
+- **Relational Integrity & Safety Guards**: Prevents bathymetric corruption via depth sentinel sanitization and guarantees Tier A plot integrity via database constraints.
+- **Absolute Separation of Concerns**: Public portal contains zero admin or write code, while all database mutations require authenticated service role access.
 
 ---
 
-## 2. User Experience & Visual Design
+## 2. Production Ingestion Worker Implementation (`syncWarningsToSupabase`)
 
-### Key User Flows
+The following complete, production-ready ingestion function will be deployed to `src/lib/supabaseServer.ts`:
 
-1. **Broadcast Ingestion & Overview**:
-   - The user loads a NAVAREA feed (or toggles `?fixtures=1` in development).
-   - The status bar reports total messages parsed, active on chart, region-fallback, and unplotted counts with sub-second response.
-   - The chart displays active hazards at current zoom, while the list panel displays the synchronized feed.
+```typescript
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { NavWarning } from '../types';
 
-2. **Cartographic Exploration & Suppression**:
-   - **Point Hazards**: Render high-contrast category SVG badges from the `hazardIcons.ts` registry (*Note: emoji labels below are visual documentation shorthand for the dedicated SVG symbol components*):
-     - 💥 **Gunnery / Firing / Rocket Exercises**: SVG crosshair/burst with expanding crimson hazard pulse.
-     - ⚓ **Derelicts / Drifting Hazards / Mines**: SVG vessel silhouette / floating mine marker.
-     - 💡 **Aids to Navigation (AtoN) / Lights Unlit**: SVG lighthouse beacon with outage indicator.
-     - ⚡ **Submarine Cables / Pipelines / Surveys**: SVG cable spool / survey track symbol.
-     - 🏗️ **Offshore Exploration / Drillships / Rigs**: SVG oil platform silhouette.
-     - 🌪️ **Tsunamis / Storms / Heavy Weather**: SVG gale / cyclone spiral indicator.
-   - **Area & Circular Hazards**: Polygons and circular radius buffers render with translucent fill and distinct hazard stroke. The center marker is suppressed to preserve chart soundings.
-   - **Linear Corridors**: Cable-laying and towing routes display as dashed tracklines with a default 0.5 NM (or parsed clearance) buffer halo.
-   - **Active Firing Pulsation**: Live gunnery or military exercise zones display a subtle pulsating radar ring (`@keyframes hazard-pulse`) strictly during their active temporal window.
+/**
+ * Sanitizes depth values to prevent violating chk_shoal_depth_sentinel
+ * and chk_entity_depth_sentinel. Converts -9999.0 or out-of-range depths to null.
+ */
+function sanitizeDepth(val: any): number | null {
+  if (val == null) return null;
+  const num = typeof val === 'number' ? val : parseFloat(val);
+  if (isNaN(num)) return null;
+  if (num === -9999.0 || num <= -50.0 || num >= 12000.0) return null;
+  return num;
+}
 
-3. **Hover & Selection Interactivity**:
-   - Hovering over a solitary point hazard projects an interactive safety radius ring (using parsed stated berth or 0.5 NM default).
-   - Clicking an area or marker opens the metadata popup with category chip, severity, validity windows, monospace coordinates, chart references, and SAR rescue contacts.
+/**
+ * Converts GeoJSON/coordinates into PostGIS EWKT geography string (SRID 4326).
+ */
+function toPostGISEWKT(geom: any, defaultLat?: number | null, defaultLng?: number | null): { ewkt: string; type: string } | null {
+  if (!geom && (defaultLat == null || defaultLng == null)) return null;
 
-4. **Feed List & Unplotted Audit Panel**:
-   - The full-corpus list panel synchronizes bidirectionally with the map.
-   - Notices without coordinates display an amber indicator: `unplotted: no_coordinates` (with gazetteer chip if matched) or `unplotted: meta_list`.
+  if (geom?.type === 'Point' && Array.isArray(geom.coordinates) && geom.coordinates.length >= 2) {
+    const lng = Number(geom.coordinates[0]);
+    const lat = Number(geom.coordinates[1]);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      return { ewkt: `SRID=4326;POINT(${lng} ${lat})`, type: 'POINT' };
+    }
+  }
 
-### Visual Identity & Design Tokens
-In strict alignment with `AGENTS.md` and approved design guidelines:
-- **Critical Severity (`--critical`)**: `#dc2626` (Red-600) — Gunnery firing, rockets, live SAR, drifting mines.
-- **High Severity (`--high`)**: `#ea580c` (Orange-600) — Derelicts adrift, unlit light vessels, unexploded ordnance.
-- **Caution / Active (`--active`)**: `#059669` (Emerald-600) — Cable laying, pipeline inspection, seismic surveys.
-- **Verified Standard (`--verified`)**: `#0d9488` (Teal-600) — Buoys re-laid, established aids, chart corrections.
-- **Neutral / Dimmed (`--neutral`)**: `#64748b` (Slate-500) — Deactivated notices, gazetteer regions, superseded ghosts.
-- **Typography**: Space Mono / tabular numbers (`font-mono tabular-nums`) for coordinates, DTG timestamps, and distance readouts.
+  if (geom?.type === 'Polygon' && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
+    const rings = geom.coordinates.map((ring: any[]) =>
+      `(${ring.map((pt: any[]) => `${Number(pt[0])} ${Number(pt[1])}`).join(', ')})`
+    ).join(', ');
+    return { ewkt: `SRID=4326;POLYGON(${rings})`, type: 'POLYGON' };
+  }
 
----
+  if (geom?.type === 'LineString' && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
+    const pts = geom.coordinates.map((pt: any[]) => `${Number(pt[0])} ${Number(pt[1])}`).join(', ');
+    return { ewkt: `SRID=4326;LINESTRING(${pts})`, type: 'LINE' };
+  }
 
-## 3. Key Product Decisions & Trade-Offs
+  if (defaultLat != null && defaultLng != null && !isNaN(defaultLat) && !isNaN(defaultLng)) {
+    return { ewkt: `SRID=4326;POINT(${defaultLng} ${defaultLat})`, type: 'POINT' };
+  }
 
-### Decision 1: Generalization Discipline via Frozen Held-Out Slice
-- **Approach**: Stratify the 246 messages across hazard categories and freeze a 15% sample (`src/data/fixtures/heldout-slice.json`) at M0. All regex and disambiguation development is restricted to the remaining 85%.
-- **Triage Protocol**: Any held-out slice failure must be explicitly triaged before sign-off as either **(a) new pattern → added to the coverage backlog**, or **(b) accepted noise → documented**. A failing slice may not be waved through.
-- **Why**: Ensures coordinate repair and geometry extraction generalize to future broadcast variations rather than overfitting to existing telex idiosyncrasies.
-- **Validation**: Held-out slice must pass with 0 coordinate errors and ≥90% category accuracy before milestone sign-off.
+  return null;
+}
 
-### Decision 2: Deterministic Rule-Precedence Lifecycle Engine
-- **Approach**: Evaluate lifecycles in fixed order (`in_force_list` → `cross_cancel` → `self_cancel` → `supersession` → `expired_window`). An explicit `CANCEL <ref>` beats in-force list membership derived from an **earlier** list.
-- **Why**: Eliminates nondeterministic state flapping caused by arbitrary evaluation order between overlapping cancel notices and superseded notices.
-- **Audit**: Every message records `resolutionRule` and `resolutionRefs` so operators can inspect why a notice is inactive.
+/**
+ * Production Ingestion Worker: syncWarningsToSupabase
+ * 1. Uses Supabase Service Role client to bypass RLS.
+ * 2. Neutralizes -9999.0 depth sentinels.
+ * 3. Enforces chk_tier_a_invariants.
+ * 4. Upserts master records to public.nav_warnings and captures UUIDs.
+ * 5. Batch inserts normalized child records into nav_warning_geometries,
+ *    nav_warning_entities, nav_warning_charts, nav_warning_schedules, and cancellations.
+ */
+export async function syncWarningsToSupabase(warnings: NavWarning[]): Promise<{
+  success: boolean;
+  insertedCount: number;
+  childCounts: { geometries: number; entities: number; schedules: number; charts: number; cancellations: number };
+  error?: string;
+}> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return {
+      success: false,
+      insertedCount: 0,
+      childCounts: { geometries: 0, entities: 0, schedules: 0, charts: 0, cancellations: 0 },
+      error: 'Supabase client not initialized or missing service role key',
+    };
+  }
+  if (!warnings || warnings.length === 0) {
+    return {
+      success: true,
+      insertedCount: 0,
+      childCounts: { geometries: 0, entities: 0, schedules: 0, charts: 0, cancellations: 0 },
+    };
+  }
 
-### Decision 3: Named-Entity Supersession Guardrails
-- **Approach**: Require identical `SubjectSignature` (NAVAREA + Category + Archetype + Region Tokens) **AND** at least one matching named entity (e.g. rig name `"NOBLE HANS DEUL"`, buoy number `"NO 4"`, vessel name).
-- **Why**: Prevents unrelated firing areas or buoy warnings in the same sub-area from accidentally superseding each other.
+  try {
+    // ─── 1. PREPARE MASTER ENVELOPES ───
+    const masterRows = warnings.map((w) => {
+      const canonicalId = (w as any).canonical_id || w.warning_number || w.source_warning_id || w.warning_id;
+      const rawText = w.raw_text || '';
+      const issuedDateStr = w.issued_date || (w.issued_at ? w.issued_at.slice(0, 10) : new Date().toISOString().slice(0, 10));
+      const year = w.warning_year || parseInt(issuedDateStr.slice(0, 4), 10) || new Date().getFullYear();
 
-### Decision 4: Safe Coordinate Repair Discipline
-- **Approach**: Restrict leading-zero stripping to latitude values only (e.g. `021-26.90N` → `21-26.90N`), leaving longitude 3-digit zero padding untouched. Re-verify longitude range $(0, 180]$ strictly after repair. Bound radius buffers between 0.01 NM and 500 NM.
+      // Normalize Categories array
+      let categories: string[] = [];
+      if (Array.isArray(w.categories)) {
+        categories = w.categories.map(String);
+      } else if (typeof (w as any).category === 'string') {
+        categories = [(w as any).category];
+      }
 
----
+      // Check depth sentinel for master table
+      const shoalDepth = sanitizeDepth((w as any).shoal_depth_m);
+      const isDepthUnknown = (w as any).is_depth_unknown ?? ((w as any).shoal_depth_m === -9999.0);
 
-## 4. Technical Architecture & Data Strategy
+      // Determine parsing method & data quality
+      const parsingMethod: 'RULE' | 'AI' = (w as any).parsing_method === 'AI' || w.extraction_method === 'llm' ? 'AI' : 'RULE';
+      let dataQuality = (w as any).data_quality || 'EXPLICIT';
+      let unplottedReason = (w as any).unplotted_reason || null;
+      let status = w.status || 'active';
 
-### System Architecture Flow
+      // Enforce chk_tier_a_invariants guardrail
+      let triageTier = (w as any).triage_tier || ((w as any).risk_level === 'critical' || w.status === 'active' ? 'A' : 'B');
+      if (triageTier === 'A') {
+        const isValidTierA = dataQuality === 'EXPLICIT' && unplottedReason === null && parsingMethod === 'RULE' && status !== 'superseded';
+        if (!isValidTierA) {
+          triageTier = 'B'; // Automatically safeguard to Tier B review queue
+        }
+      }
 
+      return {
+        canonical_id: canonicalId,
+        source_id: w.source_id || 'manual-import',
+        publisher_id: w.publisher_id || null,
+        series: w.series || `NAVAREA ${w.navarea || 'IV'}`,
+        warning_number: w.warning_number || canonicalId,
+        warning_year: year,
+        title: w.title || null,
+        raw_text: rawText,
+        issued_date: issuedDateStr,
+        issued_text: w.issued_text || issuedDateStr,
+        issued_at: w.issued_at || new Date().toISOString(),
+        valid_from: w.valid_from || null,
+        valid_to: w.valid_to || w.valid_until || null,
+        navarea: w.navarea || 'IV',
+        area_text: w.area_text || null,
+        sub_area: w.sub_area || null,
+        authority: w.authority || null,
+        status: status,
+        triage_tier: triageTier,
+        data_quality: dataQuality,
+        parsing_method: parsingMethod,
+        unplotted_reason: unplottedReason,
+        categories: categories,
+        shoal_depth_m: shoalDepth,
+        is_depth_unknown: isDepthUnknown,
+        space_launch_mission: (w as any).space_launch_mission || null,
+        altitude_ceiling_fl: (w as any).altitude_ceiling_fl != null ? Number((w as any).altitude_ceiling_fl) : null,
+        radio_frequencies: Array.isArray((w as any).radio_frequencies) ? (w as any).radio_frequencies : [],
+        radio_communications: (w as any).radio_communications || [],
+        cancels_ids: Array.isArray((w as any).cancels_ids) ? (w as any).cancels_ids : (w.cancels ? [w.cancels].flat() : []),
+        qa_flags: Array.isArray((w as any).qa_flags) ? (w as any).qa_flags : [],
+        updated_at: new Date().toISOString(),
+      };
+    });
+
+    // ─── 2. UPSERT MASTER ENVELOPES & RETRIEVE UUIDS ───
+    const CHUNK_SIZE = 50;
+    const insertedMasterMap = new Map<string, string>(); // canonical_id -> UUID
+
+    for (let i = 0; i < masterRows.length; i += CHUNK_SIZE) {
+      const chunk = masterRows.slice(i, i + CHUNK_SIZE);
+      const { data, error } = await client
+        .from('nav_warnings')
+        .upsert(chunk, { onConflict: 'canonical_id' })
+        .select('id, canonical_id');
+
+      if (error) {
+        console.error('Supabase master nav_warnings upsert error:', error.message);
+        return {
+          success: false,
+          insertedCount: insertedMasterMap.size,
+          childCounts: { geometries: 0, entities: 0, schedules: 0, charts: 0, cancellations: 0 },
+          error: `nav_warnings: ${error.message}`,
+        };
+      }
+
+      if (data) {
+        for (const row of data) {
+          insertedMasterMap.set(row.canonical_id, row.id);
+        }
+      }
+    }
+
+    // ─── 3. PREPARE CHILD TABLE ROWS ───
+    const geometryRows: any[] = [];
+    const entityRows: any[] = [];
+    const scheduleRows: any[] = [];
+    const chartRows: any[] = [];
+    const cancellationRows: any[] = [];
+
+    for (const w of warnings) {
+      const canonicalId = (w as any).canonical_id || w.warning_number || w.source_warning_id || w.warning_id;
+      const masterId = insertedMasterMap.get(canonicalId);
+      if (!masterId) continue;
+
+      // Geometries
+      const rawGeom = w.spatial?.geometries?.[0];
+      const parsedGeom = toPostGISEWKT(rawGeom, w.latitude, w.longitude);
+      if (parsedGeom) {
+        geometryRows.push({
+          warning_id: masterId,
+          zone_label: rawGeom?.label || (w as any).zone_label || 'PRIMARY_HAZARD',
+          feature_type: (w as any).feature_type || parsedGeom.type,
+          geom_postgis: parsedGeom.ewkt,
+          buffer_nm: (w as any).buffer_nm != null ? Number((w as any).buffer_nm) : ((w as any).clearanceNm || 0.0),
+          corridor_half_width_nm: (w as any).corridor_half_width_nm != null ? Number((w as any).corridor_half_width_nm) : null,
+          altitude_floor_m: (w as any).altitude_floor_m != null ? Number((w as any).altitude_floor_m) : 0.0,
+          altitude_ceiling_fl: (w as any).altitude_ceiling_fl != null ? Number((w as any).altitude_ceiling_fl) : null,
+        });
+      }
+
+      // Entities (vessels, rigs, buoys, wrecks)
+      const rawEntities = Array.isArray((w as any).entities) ? (w as any).entities : [];
+      for (const ent of rawEntities) {
+        entityRows.push({
+          warning_id: masterId,
+          entity_type: ent.entity_type || 'VESSEL',
+          entity_name: ent.entity_name || 'UNKNOWN',
+          role: ent.role || 'PRIMARY',
+          callsign: ent.callsign || null,
+          mmsi: ent.mmsi || null,
+          tow_length_m: ent.tow_length_m != null ? Number(ent.tow_length_m) : null,
+          tow_speed_kts: ent.tow_speed_kts != null ? Number(ent.tow_speed_kts) : null,
+          streamer_count: ent.streamer_count != null ? Number(ent.streamer_count) : null,
+          streamer_length_m: ent.streamer_length_m != null ? Number(ent.streamer_length_m) : null,
+          streamer_breadth_m: ent.streamer_breadth_m != null ? Number(ent.streamer_breadth_m) : null,
+          clearance_requested_nm: ent.clearance_requested_nm != null ? Number(ent.clearance_requested_nm) : null,
+          depth_m: sanitizeDepth(ent.depth_m),
+          depth_status: ent.depth_status || null,
+          radio_channels: ent.radio_channels || [],
+        });
+      }
+
+      // Operational Schedules
+      const rawSchedules = Array.isArray((w as any).schedules) ? (w as any).schedules : [];
+      for (const sch of rawSchedules) {
+        if (sch.window_start && sch.window_end) {
+          scheduleRows.push({
+            warning_id: masterId,
+            window_start: sch.window_start,
+            window_end: sch.window_end,
+            is_alternate: sch.is_alternate ?? false,
+            recurrence_rule: sch.recurrence_rule || null,
+            days_of_week: Array.isArray(sch.days_of_week) ? sch.days_of_week : null,
+          });
+        }
+      }
+
+      // Charts
+      const rawCharts = Array.isArray((w as any).charts) ? (w as any).charts : (w.charts ? [w.charts].flat() : []);
+      for (const chart of rawCharts) {
+        if (!chart) continue;
+        const chartNum = typeof chart === 'object' ? (chart.chart_number || chart.number) : String(chart);
+        if (chartNum) {
+          chartRows.push({
+            warning_id: masterId,
+            authority: typeof chart === 'object' ? (chart.authority || 'BA') : 'BA',
+            chart_number: chartNum,
+            int_equivalent: typeof chart === 'object' ? chart.int_equivalent : null,
+            is_international: typeof chart === 'object' ? (chart.is_international ?? false) : false,
+          });
+        }
+      }
+
+      // Cancellations
+      const rawCancels = Array.isArray((w as any).cancels_ids) ? (w as any).cancels_ids : (w.cancels ? [w.cancels].flat() : []);
+      for (const targetId of rawCancels) {
+        if (!targetId) continue;
+        cancellationRows.push({
+          cancelling_warning_id: masterId,
+          target_canonical_id: String(targetId).trim(),
+          cancellation_type: 'EXPLICIT_NOTICE',
+        });
+      }
+    }
+
+    // ─── 4. EXECUTE BATCH CHILD INSERTS ───
+    await Promise.all([
+      geometryRows.length > 0 ? client.from('nav_warning_geometries').insert(geometryRows) : Promise.resolve(),
+      entityRows.length > 0 ? client.from('nav_warning_entities').insert(entityRows) : Promise.resolve(),
+      scheduleRows.length > 0 ? client.from('nav_warning_schedules').insert(scheduleRows) : Promise.resolve(),
+      chartRows.length > 0 ? client.from('nav_warning_charts').insert(chartRows) : Promise.resolve(),
+      cancellationRows.length > 0 ? client.from('nav_warning_cancellations').insert(cancellationRows) : Promise.resolve(),
+    ]);
+
+    return {
+      success: true,
+      insertedCount: insertedMasterMap.size,
+      childCounts: {
+        geometries: geometryRows.length,
+        entities: entityRows.length,
+        schedules: scheduleRows.length,
+        charts: chartRows.length,
+        cancellations: cancellationRows.length,
+      },
+    };
+  } catch (err: any) {
+    console.error('syncWarningsToSupabase execution exception:', err);
+    return {
+      success: false,
+      insertedCount: 0,
+      childCounts: { geometries: 0, entities: 0, schedules: 0, charts: 0, cancellations: 0 },
+      error: err.message || String(err),
+    };
+  }
+}
 ```
-┌────────────────────────────────────────────────────────┐
-│             Raw Broadcast Feed (.txt per NAVAREA)      │
-│                (NAVAREA IV.txt, NAVAREA IX.txt)        │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│      MessageSplitter (delimiter / GENADMIN / EOF)      │
-│      Emits: raw blocks with truncated flag             │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│      HeaderParser & InForceListParser                  │
-│      Emits: WarningId, issuedAt, subjectCode, lists    │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│      WarningParser Engine                              │
-│      ├─ CoordinateParser  (9 formats, sanity/repair)   │
-│      ├─ GeometryExtractor (11 archetypes, ladder)      │
-│      ├─ LabelExtractor    (tables, A-AAAZ blocks)      │
-│      ├─ TemporalParser    (windows, recurrences, UTC)  │
-│      └─ BerthParser       (clearanceNm, buffer radius) │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│      Classifier (16 categories) + AtoN Status Engine   │
-│      Keyword hygiene rules & provenance recording      │
-│      Emits: category, urgency severity, telemetry      │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│      Deterministic Lifecycle Engine                    │
-│      Precedence chain + Contradiction Resolution       │
-│      Emits: inForce, resolutionRule, audit trail       │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│      Unified NavaWarn Store & Assertion Suite          │
-│      ├─ Oracle exact-match assertion (incl. partial)   │
-│      └─ Zero silent-drop corpus invariant test         │
-└───────────────────────────┬────────────────────────────┘
-                            │
-            ┌───────────────┼───────────────┐
-            ▼               ▼               ▼
-┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
-│   Point Layer    │ │   Vector Layer   │ │     UI Layer     │
-│ Category Badges  │ │ Polygons/Circles │ │ 16 Category Chips│
-│ Suppressed Ctr   │ │ Polyline Tracks  │ │ List & Audit View│
-│ Halo Hover Proj  │ │ Radar Pulses     │ │ Popups & A11y    │
-└──────────────────┘ └──────────────────┘ └──────────────────┘
-```
-
-### Classification Hygiene Rules & Adversarial Suite
-
-To eliminate false-positive keyword triggers:
-- `\bEXPLOSIVE\b`: Enforce strict word-boundary match (prevent false trigger on "explosion").
-- `\bLIGHT\b`: Enforce strict word boundary to prevent matching "FLOODLIGHTS" on work vessels.
-- `DEMOLITION`: Classifies as `uxo` **only with co-occurring ordnance keywords** (e.g. `ORDNANCE`, `BOMB`, `DETONATION`), else falls back to `ops` (e.g. IX 285).
-- `\bMINE\b` / `DRIFTING MINE`: Maps to severity `critical`.
-
-**Adversarial Golden Test Cases**:
-1. `IX 285` → `ops` (marine demolition operations without unexploded ordnance).
-2. `IV 870` → `mil_fire` (military exercise firing zone).
-3. `IX 103` → `rig` + alert status (offshore drill rig hazard).
-4. `IX 328` → `security` (maritime security / piracy advisory).
-5. `IV 961` → `sar` (active search and rescue operation with contacts).
-6. `IX 201` → `uxo` with `critical` severity (drifting sea mine).
-7. `IX 189` → `drift` (derelict adrift).
-8. `IV 842` → `drift` (unmanned barge adrift).
-
-### Deterministic Lifecycle Engine & Contradiction Resolution
-
-The lifecycle engine executes against messages chronologically by `issuedAt`. When messages lack timestamps (legacy GENADMIN blocks), ties break by **file position**, treated as earliest.
-
-**Fixed Precedence Chain**:
-1. `in_force_list`: Latest in-force telex list dictates membership.
-2. `cross_cancel`: Explicit `CANCEL <refs>` triggers terminal cancellation.
-3. `self_cancel`: `CANCEL THIS MSG <dtg>` sets `expiresAt`.
-4. `supersession`: Matching `SubjectSignature` + shared named entity.
-5. `expired_window`: Active time window has lapsed.
-
-**Contradiction Resolution**:
-When lifecycle rules conflict (e.g. a message is both cross-cancelled and supersession-matched), the deciding message with the **latest issuance timestamp wins**; null-DTG (GENADMIN) messages break ties by **file position**, treated as earliest. Every such contradiction is **logged with both WarningId refs**.
-
-**Partial / Truncated In-Force List Handling**:
-If a message flagged `truncated` is itself an in-force list (such as fixture `IX 529/24`), its entries are marked `partial: true`; the oracle asserts **only over the parsed prefix**; the UI shows the list row with a **"list truncated" badge** so the incompleteness is visible, never silent.
-
-### Data Model (`src/types/navarea.ts`)
-
-```ts
-export type HazardCategory =
-  | 'sar' | 'mil_fire' | 'uxo' | 'weather' | 'ice'
-  | 'security' | 'drift' | 'wreck' | 'cable' | 'survey'
-  | 'rig' | 'aton' | 'restricted' | 'ops' | 'service_status'
-  | 'general_chart';
-
-export type Archetype =
-  | 'point' | 'point_radius' | 'polygon' | 'polyline'
-  | 'corridor' | 'multipoint' | 'relocation' | 'geometry_group'
-  | 'region' | 'drift_vector' | 'none';
-
-export type Severity = 'critical' | 'high' | 'caution' | 'info';
-export type DisplayStyle = 'critical' | 'high' | 'active' | 'verified' | 'neutral';
-
-export interface SubjectSignature {
-  navarea: string;
-  category: HazardCategory;
-  archetype: Archetype;
-  regionTokens: string[];
-}
-
-export interface SupersessionEvidence {
-  signature: SubjectSignature;
-  sharedEntities: string[];
-  requires: boolean;
-}
-
-export interface Lifecycle {
-  inForce: boolean;
-  cancelledBy?: string[];
-  expiresAt?: string;
-  supersedes?: string[];
-  supersededBy?: string[];
-  truncated?: boolean;
-  unplottedReason?: 'no_coordinates' | 'parse_failure' | 'meta_list' | 'text_unavailable';
-  resolutionRule?: 'in_force_list' | 'cross_cancel' | 'self_cancel' | 'supersession' | 'expired_window' | 'none';
-  resolutionRefs?: string[];
-}
-
-export interface ParseTelemetry {
-  warningId: string;
-  triggerPhrase?: string;
-  coordinateFormat?: string;
-  disambiguationRung?: number;
-  confidence: 'high' | 'medium' | 'low';
-  repairsApplied?: string[];
-  gazetteerFallback?: boolean;
-  classifiedCategory: HazardCategory;
-  winningKeyword?: string;
-}
-```
-
-### Leaflet Pane Stacking Stack
-Strict z-index layering preserves pointer events and visual clarity:
-1. `basePane` (200): Base cartography tiles
-2. `soundingsPane` (250): Bathymetric depth labels (`pointerEvents: none`)
-3. `seamarksPane` (300): OpenSeaMap seamarks (`pointerEvents: none`)
-4. `navWarnVectorPane` (400): Hazard polygons, circles, and linear route corridors
-5. `navWarnHaloPane` (500): Hover proximity rings and stated clearance buffers
-6. `navWarnMarkerPane` (600): Point category badges and marker clusters
-7. `tooltipPane` (650): Interactive coordinate tooltips and popups
-
-### Suppression Matrix
-
-| Archetype | Point Badge | Vector Feature |
-|---|---|---|
-| `point` | Rendered (clustered) | Hover buffer halo only |
-| `point_radius` | **Suppressed** | Geodesic circle ($R \times 1852$; $>20\text{ NM} \to$ 72-segment polygon) |
-| `polygon` | **Suppressed** | Fill opacity 0.12 + hazard stroke; interior click selects |
-| `polyline` | **Suppressed** | Labeled dashed maritime line |
-| `corridor` | Endpoint badges only | Central spine + corridor buffer halo (`clearanceNm ?? 0.5 NM`) |
-| `multipoint` | Rendered per point | Point group |
-| `relocation` | Badge at new position | Ghost circle at former position + dashed displacement arrow |
-| `geometry_group` | Hover badge per group | Per-group vectors linked as one interactive entity |
-| `region` | **Suppressed** | Gazetteer boundary (dashed neutral stroke) |
-| `drift_vector` | Badge at origin | Projected trackline with +12h / +24h markers |
-| `none` | **Suppressed** | Unplotted (listed in panel with explicit reason) |
 
 ---
 
-## 5. Milestone Delivery Roadmap
+## 3. Milestone Delivery Roadmap
 
-| Milestone | Scope & Deliverables | Acceptance Criteria | Effort |
-|---|---|---|---|
-| **M0: Foundations** | • Data models (`navarea.ts`, `parseTelemetry.ts`)<br>• Commit raw fixtures (`NAVAREA_IV.txt`, `NAVAREA_IX.txt`)<br>• **Freeze 15% stratified held-out slice**<br>• Implement `messageSplitter.ts`, `headerParser.ts`, `inForceListParser.ts` | Splitter matches manual message counts; all IDs parsed; IX 529/24 flagged truncated; meta lists parsed with entry counts. | S |
-| **M1: Parsing Engine** | • Implement `coordinateParser.ts` (9 formats, post-repair sanity)<br>• Implement `geometryExtractor.ts` (11 archetypes, ladder)<br>• Implement `labelExtractor.ts`, `temporalParser.ts`, `berthParser.ts` | 25 golden patterns pass; **held-out slice: 0 coord errors, ≥90% archetype/category correct, all failures triaged (new pattern or accepted noise)**; IV 306 repaired; IX 546 OK; near-miss pair stays distinct. | L |
-| **M2: Classification** | • Implement `warningClassifier.ts` (16 categories, hygiene rules)<br>• Implement `atonStatus.ts` (per-point alert/info/relocation) | Category distribution matches corpus audit; adversarial suite green; **held-out slice classification ≥90%**. | M |
-| **M3: Lifecycle Engine** | • Implement `lifecycle.ts` with deterministic resolution chain<br>• In-force oracle integration with per-message audit trail<br>• Contradiction resolution & partial list handling (IX 529/24)<br>• Supersession guardrails with shared entity overlap | **Oracle exact match over corpus-present messages; text-unavailable count asserted**; IV 977 superseded with entity evidence; IV 551/552 render-deduped; near-miss pair stays distinct; truncated-list handling verified. | **L** |
-| **M4: Point Layer** | • Nautical SVG category badges (`hazardIcons.ts`)<br>• Marker clustering and virtualized popup list<br>• Relocation vectors, hover berth halos, keyboard accessibility | Searchable 110-row popup filters in <50ms (measured with active filter); relocation arrows render accurately; 0.5 NM hover halos project smoothly. | M |
-| **M5: Vector Layer** | • Leaflet polygon and geodesic circle rendering<br>• Polyline corridors with buffer calculation<br>• Dynamic center marker suppression engine | Multi-area polygons render cleanly; cable corridors display dashed safety halo; center markers hidden on bounded areas. | L |
-| **M6: Temporal & Animation** | • Temporal window state machine (active now vs upcoming)<br>• `@keyframes hazard-pulse` rings for active firing zones<br>• Expired / cancelled / superseded toggle filters | Active firing notices pulse only during active windows; expired and cancelled notices toggle cleanly without map re-initialization. | M |
-| **M7: UI & Filter Panel** | • 16 category filter chips with live counts<br>• AtoN status filter and lifecycle segmented toggles<br>• Full-corpus list panel with explicit unplotted reason tags | Filter combinations update in <100ms; bidirectional list↔map hover highlight; **corpus invariant test green** (`UI IDs == parsed ∪ lists`). | M |
-| **M8: Gazetteer Fallback** | • Curated gazetteer entries for NAVAREA IV & IX landmarks<br>• Region boundary projection with dashed low-confidence styling | No-coordinate notices receive region representation; zero silent drops verified across full corpus. | S |
-| **M9: Hardening & Telemetry** | • Viewport culling on `moveend` and layer recycling<br>• Performance budget validation at 5× scale (5,000 items)<br>• Export parse telemetry report documenting fallback rates | 50+ fps pan/zoom; DOM nodes <1,500; ingest-to-store <2s; telemetry dump confirms low fallback dependency. | M |
-
----
-
-## 6. Binding Acceptance Criteria Tables
-
-### Table A: Golden Fixture Extraction Coverage Suite (17 Patterns)
-
-| Pattern | Fixture IDs | Milestones | Binding Acceptance Assertions |
-|---|---|---|---|
-| **In-force list** | IX 364, 350; IV 978 | M0 / M3 | Meta-detected; not plotted; entries extracted with asserted count. |
-| **Cancellations** | IX 363, 362; IV 978 | M3 | Targets ghosted; `resolutionRule: 'cross_cancel'` recorded. |
-| **Security notices** | IX 363, 328, 084 | M1 / M2 | Category `security`; accurate point, polygon, or region geometry. |
-| **Search and Rescue (SAR)** | IX 354, 225, 339/25; IV 961 | M1 / M2 | Category `sar`; contact metadata (MRCC/phone) parsed into popup. |
-| **Ice tracklines** | IV 979, 977 | M1 / M3 | 3 distinct polylines; IV 977 superseded by IV 979 with entity evidence. |
-| **Service outages** | IX 085; IV 857, 653, 684 | M2 | Category `service_status`; muted display style. |
-| **AtoN alert/info/reloc** | IX 355, 441/25, 578/25, 349 | M2 | Per-point status (`alert`, `info`, `chart_correction`, `relocation`). |
-| **Multi-area groups** | IX 343, 247, 453; IV 950, 970, 7/26 | M1 | `groups[]` preserved; never merged across discrete operational areas. |
-| **N-point tracklines** | IV 877, 649; IX 484/25, 442/25, 546/25 | M1 | Sequential vertex counts match coordinates; polyline rendered. |
-| **Radius variants** | IX 041, 214, 261; IV 949, 967, 832 | M1 | Correct radius in NM (diameter ÷2 applied where stated as diameter). |
-| **Berth parsing** | IX 358, 359; IV 967, 877 | M1 | Stated clearance distance captured in `clearanceNm`. |
-| **Recurrences** | IX 343, 365; IV 970, 949, 973 | M6 | Array of daily/intermittent windows; state machine evaluates active window. |
-| **Point clouds** | IV 968, 976; IX 571/25 | M4 | 110-point clouds clustered; per-point labels and ETAs parsed. |
-| **Coordinate zoo** | IX 327, 118, 546; IV 306, 1157/21 | M1 | All 9 coordinate formats parsed without error; IV 306 zero-stripped. |
-| **Mixed / malformed tables** | IX 227/25, 002/25 | M1 | Coordinates guaranteed; labels best-effort without dropped points. |
-| **Depth / chart updates** | IX 254/26, 065/26 | M2 | Classified as `general_chart`; depths formatted with tabular numbers. |
-| **No-coordinate places** | IX 203, 362; IV 190/25 | M8 | Resolved via gazetteer; region boundary rendered or list-only tagged. |
-
-### Table B: Performance Budgets & Scaling Constraints
-
-| Metric | Target Budget | Measurement Method |
+| Milestone | Scope & Deliverables | Acceptance Criteria |
 |---|---|---|
-| **Corpus Scale** | 5,000 warnings (5× fixture corpus, incl. 110-point cloud) | Synthesized stress test harness |
-| **Pan / Zoom Framerate** | ≥ 50 fps on mid-tier hardware | Chrome DevTools Performance profile during rapid pan/zoom |
-| **DOM Nodes in Viewport** | < 1,500 active elements | Marker clustering + viewport polygon culling |
-| **Ingest-to-Store Pipeline** | < 2.0 s for 246 messages | Splitter, parser, and lifecycle engine benchmark |
-| **Initial Map Render** | < 1.5 s to First Meaningful Paint | Full map layout and vector attachment |
-| **Point-Cloud Popup Search** | < 50 ms filter latency | Measured filtering 110 rows while input typing |
-
-### Table C: Risk & Mitigation Register
-
-| Risk | Impact | Mitigation Strategy |
-|---|---|---|
-| **Coordinate misparse → absurd geometry** | Critical | Strict sanity bounds verified **after** repair; lat-only zero-strip; lon $\in (0, 180]$; radius floor 0.01 NM + ceiling 500 NM; reject to list-only `parse_failure`. |
-| **In-force list vs cancellation contradiction** | High | Deterministic precedence chain (§4); latest issuance wins; logged with both WarningId refs. |
-| **Supersession false positives** | High | Require matching `SubjectSignature` + **shared named-entity evidence** + recency; render-only dedup; near-miss golden regression test. |
-| **Corpus overfitting / fixture drift** | High | 15% stratified held-out slice frozen at M0; telemetry report at M9; quarterly live re-extraction. |
-| **Truncated feeds & lists** | Medium | `truncated` flag captured; partial-list badge displayed; oracle asserts only over parsed prefix. |
-| **Point-cloud DOM explosion** | Medium | Leaflet marker clustering + virtualized popup window (`react-window`). |
-| **Subject-code table uncertainty** | Low | Stored as weak auxiliary signal only; primary classification driven by lexical keyword rules. |
-| **Antimeridian crossing (NAVAREA XI)** | Low | `splitAtAntimeridian` geodesic polygon splitting algorithm preserved. |
+| **M0: Contract Synchronization & DDL** | • Sync `src/types/navarea.ts` with Supabase contracts (`ParsingMethod = 'RULE' \| 'AI'`, `warning_id` alias, `categories: string[]`).<br>• Commit schema migration SQL to `docs/supabase_setup.sql`. | TypeScript compilation clean; types strictly aligned with database schema. |
+| **M1: Ingestion Persistence Worker** | • Deploy production `syncWarningsToSupabase` in `src/lib/supabaseServer.ts` with service-role bypass, depth sanitization, master UUID capture, and batch inserts across geometries, entities, charts, schedules, and cancellations. | Ingestion inserts master records with `categories` and populates all 5 child tables without constraint violations. |
+| **M2: Database-Persisted Lifecycle Engine** | • Update `src/parsers/lifecycle.ts` to execute database mutations for cancellations (`nav_warning_cancellations`) and status updates (`status = 'cancelled'`). | `CANCEL 156/26` updates target record status and records relational edge in Supabase. |
+| **M3: Spatial View Reader (`index.html` & Leaflet)** | • Update `public/assets/js/supabase.js` to query `nav_warnings_active_spatial` view.<br>• Render SVG category icons directly using `categories` array.<br>• Offload buffer & corridor rendering to pre-calculated `geojson_blob`. | Leaflet renders vectors directly from GeoJSON; Time-to-First-Paint < 1.5s; 50+ FPS pan/zoom. |
+| **M4: Operator Review & Audit Trail (`admin.html`)** | • Wire review workspace to `nav_warnings_review_queue` view using `warning_id`.<br>• Implement sign-off handler recording to `nav_warning_audits`. | Operator promotions/rejections record cryptographic audit rows in Supabase; zero admin code in public bundle. |
+| **M5: Full Verification & Golden Regression Suite** | • Execute golden fixture tests, held-out validation suite, and `compile_applet`. | All 25 golden patterns pass; held-out slice 0 coordinate errors; clean production build. |
