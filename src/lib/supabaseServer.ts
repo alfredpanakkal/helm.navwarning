@@ -5,20 +5,6 @@ let supabaseClient: SupabaseClient | null = null;
 let lastUsedUrl = '';
 let lastUsedKey = '';
 
-export function getNavareaSchemaName(navarea: string): string {
-  const clean = (navarea || '').trim().toUpperCase();
-  if (clean === 'BALTIC') return 'navarea_baltic';
-  const romanMap: Record<string, string> = {
-    'I': 'navarea_1', 'II': 'navarea_2', 'III': 'navarea_3', 'IV': 'navarea_4',
-    'V': 'navarea_5', 'VI': 'navarea_6', 'VII': 'navarea_7', 'VIII': 'navarea_8',
-    'IX': 'navarea_9', 'X': 'navarea_10', 'XI': 'navarea_11', 'XII': 'navarea_12',
-    'XIII': 'navarea_13', 'XIV': 'navarea_14', 'XV': 'navarea_15', 'XVI': 'navarea_16',
-    'XVII': 'navarea_17', 'XVIII': 'navarea_18', 'XIX': 'navarea_19', 'XX': 'navarea_20',
-    'XXI': 'navarea_21'
-  };
-  return romanMap[clean] || `navarea_${clean.toLowerCase()}`;
-}
-
 export function getSupabaseClient(): SupabaseClient | null {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key =
@@ -59,10 +45,10 @@ export async function checkSupabaseHealth(): Promise<{
   url: string | null;
   counts: {
     warnings: number;
-    sources: number;
-    generations: number;
-    artifacts: number;
+    geometries: number;
+    rawMessages: number;
   };
+  optional?: { sources?: number; generations?: number; artifacts?: number };
   error?: string;
 }> {
   const client = getSupabaseClient();
@@ -70,44 +56,53 @@ export async function checkSupabaseHealth(): Promise<{
     return {
       connected: false,
       url: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || null,
-      counts: { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
+      counts: { warnings: 0, geometries: 0, rawMessages: 0 },
       error: 'Supabase URL or Key not configured in environment variables',
     };
   }
 
   try {
-    const [warnRes, srcRes, genRes, artRes] = await Promise.all([
-      client.from('nav_warnings').select('warning_id', { count: 'exact', head: true }),
+    // Core tables written by the 20261019/20 backend (see docs/supabase-backend-contract.md)
+    const [warnRes, geomRes, msgRes] = await Promise.all([
+      client.from('nav_warnings').select('canonical_id', { count: 'exact', head: true }),
+      client.from('nav_warning_geometries').select('geom_id', { count: 'exact', head: true }),
+      client.from('raw_messages').select('id', { count: 'exact', head: true }),
+    ]);
+
+    const errors: string[] = [];
+    if (warnRes.error) errors.push('nav_warnings: ' + warnRes.error.message);
+    if (geomRes.error) errors.push('nav_warning_geometries: ' + geomRes.error.message);
+    if (msgRes.error) errors.push('raw_messages: ' + msgRes.error.message);
+
+    const isConnected = !warnRes.error;
+
+    // Optional tables NOT populated by the new backend — never mark health down
+    const optional: { sources?: number; generations?: number; artifacts?: number } = {};
+    const soft = await Promise.allSettled([
       client.from('sources_registry').select('source_id', { count: 'exact', head: true }),
       client.from('ingestion_generations').select('generation_id', { count: 'exact', head: true }),
       client.from('raw_artifacts').select('artifact_id', { count: 'exact', head: true }),
     ]);
-
-    const errors: string[] = [];
-    if (warnRes.error) errors.push(`nav_warnings: ${warnRes.error.message}`);
-    if (srcRes.error) errors.push(`sources_registry: ${srcRes.error.message}`);
-    if (genRes.error) errors.push(`ingestion_generations: ${genRes.error.message}`);
-    if (artRes.error) errors.push(`raw_artifacts: ${artRes.error.message}`);
-
-    // If the primary nav_warnings table is accessible, the database connection is fundamentally operational
-    const isConnected = !warnRes.error;
+    if (soft[0].status === 'fulfilled' && soft[0].value.count != null) optional.sources = soft[0].value.count;
+    if (soft[1].status === 'fulfilled' && soft[1].value.count != null) optional.generations = soft[1].value.count;
+    if (soft[2].status === 'fulfilled' && soft[2].value.count != null) optional.artifacts = soft[2].value.count;
 
     return {
       connected: isConnected,
       url: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || null,
       counts: {
         warnings: warnRes.count || 0,
-        sources: srcRes.count || 0,
-        generations: genRes.count || 0,
-        artifacts: artRes.count || 0,
+        geometries: geomRes.count || 0,
+        rawMessages: msgRes.count || 0,
       },
+      optional,
       error: errors.length > 0 ? errors.join(' | ') : undefined,
     };
   } catch (err: any) {
     return {
       connected: false,
       url: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || null,
-      counts: { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
+      counts: { warnings: 0, geometries: 0, rawMessages: 0 },
       error: err.message || String(err),
     };
   }
