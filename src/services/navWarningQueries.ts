@@ -79,7 +79,7 @@ export async function fetchActiveSpatialRows(opts?: { serverClient?: boolean }):
       break;
     }
     if (data && data.length > 0) {
-      rows.push(...(data as ActiveSpatialRow[]));
+      rows.push(...(data as unknown as ActiveSpatialRow[]));
       hasMore = data.length === PAGE_SIZE;
       from += PAGE_SIZE;
     } else {
@@ -101,17 +101,17 @@ export function geojsonBlobToGeometry(blob: unknown, label?: string | null): Rec
   return null;
 }
 
-export interface GroupedSpatialWarning {
-  row: Record<string, unknown> & { _geometries?: Record<string, unknown>[]; _geojson?: Record<string, unknown> | null };
+export interface GroupedSpatialWarning extends ActiveSpatialRow {
+  _geometries: Record<string, unknown>[];
+  _geojson: Record<string, unknown> | null;
 }
-
 /**
  * Groups view rows (one per geometry) into one record per warning, with
  * all geometries collected under _geometries and the first geometry under
  * _geojson. Never cache geom_id — it is deleted/reinserted every sync.
  */
 export function groupSpatialRowsByCanonicalId(rows: ActiveSpatialRow[]): GroupedSpatialWarning[] {
-  const byCanonical = new Map<string, GroupedSpatialWarning['row']>();
+  const byCanonical = new Map<string, GroupedSpatialWarning>();
   for (const r of rows) {
     const geom = geojsonBlobToGeometry(r.geojson_blob, r.zone_label);
     let grouped = byCanonical.get(r.canonical_id);
@@ -151,7 +151,7 @@ export async function fetchNavWarningsList(params?: NavWarningListFilters & { se
       break;
     }
     if (data && data.length > 0) {
-      rows.push(...(data as Record<string, unknown>[]));
+      rows.push(...(data as unknown as Record<string, unknown>[]));
       hasMore = data.length === PAGE_SIZE;
       from += PAGE_SIZE;
     } else {
@@ -172,7 +172,7 @@ export async function fetchReviewQueueRows(opts?: { serverClient?: boolean }): P
     console.warn('[navWarningQueries] review_queue query notice:', error.message);
     return [];
   }
-  return (data ?? []) as Record<string, unknown>[];
+  return (data ?? []) as unknown as Record<string, unknown>[];
 }
 
 /**
@@ -192,3 +192,4 @@ export function subscribeToNavWarnings(onChange: () => void): { unsubscribe: () 
     },
   };
 }
+

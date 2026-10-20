@@ -17,7 +17,7 @@ export const SupabaseStatusView: React.FC<SupabaseStatusViewProps> = ({
   const [status, setStatus] = useState<{
     connected: boolean;
     url: string | null;
-    counts?: { warnings: number; sources: number; generations: number; artifacts: number };
+    counts?: { warnings: number; geometries: number; rawMessages: number; sources?: number; generations?: number; artifacts?: number };
     localCounts?: { warnings: number; sources: number; generations: number; artifacts: number };
     error?: string;
     ok?: boolean;
@@ -851,3 +851,4 @@ END $$;
     </div>
   );
 };
+
