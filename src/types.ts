@@ -60,7 +60,7 @@ export interface SourceRegistryItem {
   published_generation_id: string | null;
 }
 
-export type WarningStatus = 'active' | 'cancelled' | 'expired' | 'unknown' | 'unverified';
+export type WarningStatus = 'active' | 'cancelled' | 'expired' | 'superseded' | 'unknown' | 'unverified';
 
 export type StatusBasis =
   | 'listed_in_complete_in_force_publication'
@@ -155,6 +155,8 @@ export interface SpatialData {
 export interface NavWarning {
   schema_version: number;
   warning_id: string;
+  /** Supabase nav_warnings.id (uuid) — use for child-table joins; stable key is warning_id (= canonical_id). */
+  db_uuid?: string | null;
   publisher_id: string;
   source_id: string;
   navarea: NavAreaId;
@@ -205,7 +207,7 @@ export interface NavWarning {
   timestamp?: string | number;
   validity?: string | null;
   charts?: string | null;
-  categories?: string | null;
+  categories?: string | string[] | null;
   web_link?: string | null;
   hazard_category?: string | null;
   urgency_score?: number | null;
@@ -259,7 +261,9 @@ export interface NavWarning {
     | 'truncated_clause'
     | 'orphan_fragment'
     | 'missing_hemisphere'
-    | 'duplicate_of';
+    | 'duplicate_of'
+    | 'validation_failed'
+    | 'no_valid_geometry';
   unplottedReason?:
     | 'no_coordinates'
     | 'parse_failure'
@@ -270,9 +274,11 @@ export interface NavWarning {
     | 'truncated_clause'
     | 'orphan_fragment'
     | 'missing_hemisphere'
-    | 'duplicate_of';
-  parsing_method?: 'rule' | 'ai_gemini' | 'ai_mistral' | 'human';
-  parsingMethod?: 'rule' | 'ai_gemini' | 'ai_mistral' | 'human';
+    | 'duplicate_of'
+    | 'validation_failed'
+    | 'no_valid_geometry';
+  parsing_method?: 'RULE' | 'AI' | 'rule' | 'ai_gemini' | 'ai_mistral' | 'human';
+  parsingMethod?: 'RULE' | 'AI' | 'rule' | 'ai_gemini' | 'ai_mistral' | 'human';
   rules_version?: string;
   rulesVersion?: string;
   span_edit_list?: any[];

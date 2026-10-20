@@ -561,7 +561,7 @@ export async function parseManualWarning(
 export async function fetchSupabaseStatus(): Promise<{
   connected: boolean;
   url: string | null;
-  counts: { warnings: number; sources: number; generations: number; artifacts: number };
+  counts: { warnings: number; geometries: number; rawMessages: number; sources?: number; generations?: number; artifacts?: number };
   localCounts: { warnings: number; sources: number; generations: number; artifacts: number };
   error?: string;
   ok?: boolean;
@@ -574,7 +574,7 @@ export async function fetchSupabaseStatus(): Promise<{
     return {
       connected: Boolean(data.connected ?? data.ok),
       url: data.url || null,
-      counts: data.counts || { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
+      counts: data.counts || { warnings: 0, geometries: 0, rawMessages: 0 },
       localCounts: data.localCounts || { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
       error: data.error,
       ok: Boolean(data.ok ?? data.connected),
@@ -583,7 +583,7 @@ export async function fetchSupabaseStatus(): Promise<{
     return {
       connected: false,
       url: null,
-      counts: { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
+      counts: { warnings: 0, geometries: 0, rawMessages: 0 },
       localCounts: { warnings: 0, sources: 0, generations: 0, artifacts: 0 },
       error: err.message || String(err),
       ok: false,
