@@ -43,6 +43,8 @@ import {
   syncGenerationsToSupabase,
   syncSourcesToSupabase,
 } from './src/lib/supabaseServer.js';
+import { fetchActiveSpatialRows, groupSpatialRowsByCanonicalId } from './src/services/navWarningQueries.js';
+import { mapSupabaseRowToNavWarning } from './src/services/api.js';
 
 // In-memory persistent state for server runtime
 let sourcesDb: SourceRegistryItem[] = [...INITIAL_SOURCES_REGISTRY];
@@ -59,7 +61,9 @@ const sourceLeases: Record<string, { lockedAt: string; requestId: string }> = {}
 
 /**
  * Hydrates state from Supabase database upon server initialization.
- * Eliminates reliance on hardcoded static seeds when live database records exist.
+ * Reads the 20261019/20 schema via the active spatial view (geojson_blob);
+ * see docs/supabase-backend-contract.md. Flat latitude/longitude/spatial
+ * columns no longer exist on nav_warnings.
  */
 async function hydrateDatabaseFromSupabase(): Promise<void> {
   try {
@@ -70,125 +74,25 @@ async function hydrateDatabaseFromSupabase(): Promise<void> {
     }
 
     console.log('[Data Pipeline] Checking Supabase for live persistent maritime records...');
-    const PAGE_SIZE = 1000;
-    const warningsData: any[] = [];
-    let from = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-      const to = from + PAGE_SIZE - 1;
-      const { data, error: wErr } = await client
-        .from('nav_warnings')
-        .select('*')
-        .range(from, to);
-
-      if (wErr) {
-        console.warn(`[Data Pipeline] Supabase query notice at range ${from}..${to}:`, wErr.message);
-        break;
-      }
-
-      if (data && data.length > 0) {
-        warningsData.push(...data);
-        if (data.length < PAGE_SIZE) {
-          hasMore = false;
-        } else {
-          from += PAGE_SIZE;
-        }
-      } else {
-        hasMore = false;
-      }
+    const rows = await fetchActiveSpatialRows({ serverClient: true });
+    if (rows.length === 0) {
+      console.log('[Data Pipeline] nav_warnings_active_spatial returned no rows (no active Tier A warnings yet).');
+    } else {
+      const grouped = groupSpatialRowsByCanonicalId(rows);
+      warningsDb = grouped.map((row) => mapSupabaseRowToNavWarning(row, 'active'));
+      console.log(
+        `[Data Pipeline] Successfully hydrated ${warningsDb.length} live navigational warnings (${rows.length} geometries) from Supabase!`
+      );
     }
 
-    if (warningsData && warningsData.length > 0) {
-      console.log(`[Data Pipeline] Successfully hydrated ${warningsData.length} live navigational warnings from Supabase!`);
-      warningsDb = warningsData.map((w: any) => {
-        // Ensure spatial data is populated if direct lat/lng coordinates exist
-        let spatial = w.spatial;
-        if (
-          (!spatial || !spatial.geometries || spatial.geometries.length === 0) &&
-          w.latitude != null &&
-          w.longitude != null &&
-          !isNaN(Number(w.latitude)) &&
-          !isNaN(Number(w.longitude))
-        ) {
-          spatial = {
-            geometries: [
-              {
-                type: 'Point',
-                coordinates: [Number(w.longitude), Number(w.latitude)],
-                label: w.title || w.warning_id,
-              },
-            ],
-            circles: [],
-            raw_coordinate_text: [`${w.latitude}, ${w.longitude}`],
-            validation_status: 'passed',
-          };
-        }
-
-        return {
-          schema_version: 1,
-          warning_id: w.warning_id,
-          publisher_id: w.publisher_id || 'ccg-canada',
-          source_id: w.source_id || 'ccg-navareas-map',
-          navarea: w.navarea || 'XVII',
-          series: w.series || 'A',
-          source_warning_id: w.source_warning_id || w.warning_id,
-          warning_number: w.warning_number || w.warning_id,
-          warning_year: w.warning_year || new Date().getFullYear(),
-          issued_at: w.issued_at || w.issued_date || new Date().toISOString(),
-          issued_date: w.issued_date || (w.issued_at ? w.issued_at.slice(0, 10) : new Date().toISOString().slice(0, 10)),
-          issued_time_precision: 'day',
-          issued_text: w.issued_text || w.issued_date || '',
-          valid_from: w.valid_from || null,
-          valid_to: w.valid_until || w.valid_to || null,
-          cancelled_at: null,
-          status: w.status || 'active',
-          status_basis: w.status_basis || 'listed_in_complete_in_force_publication',
-          area_text: w.area_text || '',
-          original_language: 'en',
-          raw_text: w.raw_text || '',
-          translated_text: null,
-          spatial: spatial || {
-            geometries: [],
-            circles: [],
-            raw_coordinate_text: [],
-            validation_status: 'not_present',
-          },
-          supersedes: [],
-          cancels: [],
-          title: w.title || null,
-          authority: w.authority || null,
-          sub_area: w.sub_area || null,
-          risk_level: w.risk_level || null,
-          latitude: w.latitude != null ? Number(w.latitude) : null,
-          longitude: w.longitude != null ? Number(w.longitude) : null,
-          valid_until: w.valid_until || null,
-          validity: w.validity || null,
-          charts: w.charts || null,
-          categories: w.categories || null,
-          web_link: w.web_link || null,
-          source_url: w.source_url || '',
-          raw_artifact_ref: '',
-          content_hash: '',
-          parser_version: 'v2.0',
-          extraction_method: (w.extraction_method as any) || 'deterministic',
-          extraction_confidence: w.extraction_confidence != null ? Number(w.extraction_confidence) : 0.95,
-          first_seen_at: w.created_at || new Date().toISOString(),
-          last_seen_at: w.updated_at || new Date().toISOString(),
-          not_in_force_observed_at: null,
-          generation_id: w.generation_id || 'gen-auto',
-          validation: {
-            identity: 'valid',
-            dates: 'valid',
-            geometry: spatial?.geometries?.length ? 'valid' : 'pending',
-          },
-        } as NavWarning;
-      });
-    }
-
-    const { data: sourcesData } = await client.from('sources_registry').select('*');
-    if (sourcesData && sourcesData.length > 0) {
-      sourcesDb = sourcesData as unknown as SourceRegistryItem[];
+    // sources_registry is NOT populated by the new backend — treat as optional.
+    try {
+      const { data: sourcesData, error } = await client.from('sources_registry').select('*');
+      if (!error && sourcesData && sourcesData.length > 0) {
+        sourcesDb = sourcesData as unknown as SourceRegistryItem[];
+      }
+    } catch {
+      // table may not exist in this backend — keep INITIAL_SOURCES_REGISTRY
     }
   } catch (err: any) {
     console.warn('[Data Pipeline] Hydration check completed with note:', err.message);
@@ -3050,3 +2954,4 @@ Instructions:
 }
 
 startServer();
+
