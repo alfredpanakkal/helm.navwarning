@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Accept-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
   if (req.method === 'OPTIONS') {
@@ -44,31 +44,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
-    const warnings = Array.isArray(body.warnings) ? body.warnings : INITIAL_WARNINGS;
-    const artifacts = Array.isArray(body.artifacts) ? body.artifacts : INITIAL_ARTIFACTS;
-    const generations = Array.isArray(body.generations) ? body.generations : INITIAL_GENERATIONS;
-    const sources = Array.isArray(body.sources) ? body.sources : INITIAL_SOURCES_REGISTRY;
+    const warnings = Array.isArray(body.warnings) ? body.warnings : [];
+    const artifacts = Array.isArray(body.artifacts) ? body.artifacts : [];
+    const generations = Array.isArray(body.generations) ? body.generations : [];
+    const sources = Array.isArray(body.sources) ? body.sources : [];
 
-    const [wRes, aRes, gRes, sRes] = await Promise.all([
-      syncWarningsToSupabase(warnings),
-      syncArtifactsToSupabase(artifacts),
-      syncGenerationsToSupabase(generations),
-      syncSourcesToSupabase(sources),
+    // Warnings are the only hard requirement (20261019/20 backend contract).
+    const wRes = await syncWarningsToSupabase(warnings);
+
+    // Optional legacy tables — NOT populated by the new backend; never fail the sync.
+    const [aRes, gRes, sRes] = await Promise.allSettled([
+      artifacts.length ? syncArtifactsToSupabase(artifacts) : Promise.resolve({ success: true }),
+      generations.length ? syncGenerationsToSupabase(generations) : Promise.resolve({ success: true }),
+      sources.length ? syncSourcesToSupabase(sources) : Promise.resolve({ success: true }),
     ]);
 
-    const errors = [wRes.error, aRes.error, gRes.error, sRes.error].filter(Boolean);
-
-    if (errors.length > 0) {
+    if (!wRes.success) {
       return res.status(400).json({
-        error: `Database Sync Failed: ${errors.join(' | ')}. Please ensure the required database tables exist in Supabase by running the DDL setup script in the UI.`,
+        error: 'Warning Sync Failed: ' + (wRes.error || 'unknown error'),
       });
     }
 
+    const soft = (p: PromiseSettledResult<any>) => (p.status === 'fulfilled' ? p.value.success : false);
+
     return res.status(200).json({
       success: true,
-      synced: { warnings: wRes.success, artifacts: aRes.success, generations: gRes.success, sources: sRes.success },
+      synced: { warnings: true, artifacts: soft(aRes), generations: soft(gRes), sources: soft(sRes) },
       counts: {
-        warnings: warnings.length,
+        warnings: wRes.insertedCount,
+        geometries: wRes.childCounts.geometries,
         artifacts: artifacts.length,
         generations: generations.length,
         sources: sources.length,
