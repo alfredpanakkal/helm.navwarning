@@ -692,84 +692,88 @@ export async function saveImportedWarningsToSupabase(warnings: NavWarning[]): Pr
     // If server route is unavailable, proceed to direct client SDK attempt
   }
 
-  // 2. Direct browser-side client SDK attempt
+  // 2. Direct browser-side client SDK attempt (20261019/20 schema; canonical_id keyed)
   try {
     const { supabase } = await import('../lib/supabaseClient');
     if (!supabase) {
       return { success: false, insertedCount: 0, error: 'Supabase client not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in settings.' };
     }
 
-    const rows = warnings.map((w) => {
-      let lat = w.latitude != null && !isNaN(Number(w.latitude)) ? Number(w.latitude) : null;
-      let lng = w.longitude != null && !isNaN(Number(w.longitude)) ? Number(w.longitude) : null;
+    const sha256Hex = async (text: string): Promise<string> => {
+      const data = new TextEncoder().encode(text);
+      const digest = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    };
 
-      if (lat == null && w.spatial?.geometries?.length > 0) {
-        const pt = w.spatial.geometries[0];
-        if (pt.type === 'Point' && Array.isArray(pt.coordinates) && pt.coordinates.length >= 2) {
-          lng = Number(pt.coordinates[0]);
-          lat = Number(pt.coordinates[1]);
-        }
+    const toFullNavarea = (nav: any): string => {
+      const s = String(nav || 'IV').trim().toUpperCase();
+      if (s === 'BALTIC' || s === 'NAVAREA BALTIC') return 'NAVAREA BALTIC';
+      return s.startsWith('NAVAREA') ? s : 'NAVAREA ' + s;
+    };
+
+    const rows = warnings.map((w) => {
+      const canonicalId = String((w as any).canonical_id || w.warning_id || w.source_warning_id || '').trim();
+
+      let categories: string[] = [];
+      if (Array.isArray(w.categories)) {
+        categories = (w.categories as unknown[]).map(String).map((s) => s.toLowerCase()).filter(Boolean);
+      } else if (typeof w.categories === 'string' && w.categories) {
+        categories = [w.categories.toLowerCase()];
+      } else if (w.hazard_category) {
+        categories = [String(w.hazard_category).toLowerCase()];
       }
+      if (categories.length === 0) categories = ['general'];
+
+      const hasGeoms = (w.spatial?.geometries?.length ?? 0) > 0;
+      const status = ['active', 'cancelled', 'expired', 'superseded', 'unverified'].includes(String(w.status || 'active').toLowerCase())
+        ? String(w.status).toLowerCase()
+        : 'unverified';
 
       return {
+        canonical_id: canonicalId,
+        navarea: toFullNavarea(w.navarea),
         source_id: w.source_id || 'manual-import',
-        warning_id: w.source_warning_id || w.warning_number || w.warning_id,
-        title: w.title || null,
-        raw_text: w.raw_text || '',
-        issued_date: w.issued_date || new Date().toISOString().split('T')[0],
-        navarea: w.navarea || 'IV',
+        title: String(w.title || canonicalId).slice(0, 255),
         area_text: w.area_text || null,
-        sub_area: w.sub_area || w.area_text || null,
-        authority: w.authority || null,
-        source_url: w.source_url || w.web_link || null,
-        risk_level: w.risk_level || null,
-        extraction_method: w.extraction_method || 'deterministic',
-        generation_id: w.generation_id || `gen-md-${Date.now()}`,
-        issued_text: w.issued_text || w.issued_date || null,
-        latitude: lat,
-        longitude: lng,
-        valid_until: w.valid_until || w.valid_to || null,
-        validity: w.validity || null,
-        charts: w.charts || null,
-        categories: w.categories || null,
-        web_link: w.web_link || w.source_url || null,
-        spatial: w.spatial?.geometries?.length ? { geometries: w.spatial.geometries } : null,
-        spatial_groups: (w as any).spatial_groups || (w.spatial as any)?.spatial_groups || null,
-        evidence_trail: (w as any).evidence_trail || (w.spatial as any)?.evidence_trail || null,
-        valid_until_utc: (w as any).valid_until_utc || w.valid_to || null,
-        is_cancelled: (w as any).is_cancelled ?? (w.status === 'cancelled'),
-        cancellation_text: (w as any).cancellation_text || null,
+        raw_text: w.raw_text || '',
+        status,
+        categories,
+        triage_tier: (w as any).triage_tier || (hasGeoms ? 'A' : 'C'),
+        data_quality: 'EXPLICIT',
+        parsing_method: 'RULE',
+        qa_flags: Array.isArray((w as any).qa_flags) ? (w as any).qa_flags : [],
+        unplotted_reason: (w as any).unplotted_reason || null,
+        valid_from: w.valid_from || w.issued_at || null,
+        valid_to: w.valid_to || null,
       };
     });
 
-    // Also persist into raw_messages
-    const rawRows = warnings
-      .filter(w => Boolean(w.raw_text))
-      .map(w => ({
-        warning_id: w.source_warning_id || w.warning_number || w.warning_id,
-        source_id: w.source_id || 'manual-import',
-        full_raw_text: w.raw_text,
-        subject_header: w.title || `${w.series || 'WARNING'} ${w.warning_number || ''}`,
-      }));
+    // Audit rows — checksum_sha256 is NOT NULL on raw_messages
+    const rawRows = await Promise.all(
+      warnings
+        .filter((w) => Boolean(w.raw_text))
+        .map(async (w) => ({
+          warning_id: String((w as any).canonical_id || w.warning_id || w.source_warning_id),
+          source_id: w.source_id || 'manual-import',
+          full_raw_text: w.raw_text,
+          subject_header: w.title || (w.series || 'WARNING') + ' ' + (w.warning_number || ''),
+          checksum_sha256: await sha256Hex(w.raw_text),
+        }))
+    );
 
     if (rawRows.length > 0) {
       try {
-        await supabase.from('raw_messages').insert(rawRows);
+        await supabase.from('raw_messages').upsert(rawRows, { onConflict: 'warning_id,source_id,checksum_sha256' });
       } catch (err) {
         console.warn('raw_messages insert notice:', err);
       }
     }
 
-    // Chunk in batches of 100
     const CHUNK_SIZE = 100;
     let inserted = 0;
     for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
       const chunk = rows.slice(i, i + CHUNK_SIZE);
-      let { error } = await supabase.from('nav_warnings').upsert(chunk, { onConflict: 'source_id,warning_id' });
-      if (error && error.message.includes('conflict')) {
-        const fallback = await supabase.from('nav_warnings').upsert(chunk, { onConflict: 'warning_id' });
-        error = fallback.error;
-      }
+      const { error } = await supabase.from('nav_warnings').upsert(chunk, { onConflict: 'canonical_id' });
       if (error) {
         console.warn('Failed to upsert warnings to Supabase:', error.message);
         return { success: false, insertedCount: inserted, error: error.message };
