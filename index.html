@@ -7,54 +7,79 @@
 <title>Live NAVAREA Warnings Map | Free Maritime Safety Information</title>
 <meta name="description" content="Free interactive map of live NAVAREA navigational warnings. Fast, mobile-friendly maritime safety information for passage planning. No login required.">
 <link rel="canonical" href="https://helmwarning.vercel.app/">
+<meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="google-site-verification" content="GSC_VERIFICATION_TOKEN_PLACEHOLDER">
 
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
 <!-- OpenGraph Social Metadata -->
+<meta property="og:locale" content="en">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Helm.Warning">
 <meta property="og:title" content="Live NAVAREA Warnings Map | Free Maritime Safety Information">
-<meta property="og:description" content="Free interactive map of live NAVAREA navigational warnings. Fast, mobile-friendly maritime safety information for passage planning. No login required.">
+<meta property="og:description" content="Free interactive map of live NAVAREA navigational warnings for passage planning. No login required.">
 <meta property="og:url" content="https://helmwarning.vercel.app/">
 <meta property="og:image" content="https://helmwarning.vercel.app/og-preview.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Helm.Warning Live NAVAREA Warnings Map Preview">
 
 <!-- Twitter Card Metadata -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Live NAVAREA Warnings Map | Free Maritime Safety Information">
-<meta name="twitter:description" content="Free interactive map of live NAVAREA navigational warnings. Fast, mobile-friendly maritime safety information for passage planning. No login required.">
+<meta name="twitter:title" content="Live NAVAREA Warnings Map | Helm.Warning">
+<meta name="twitter:description" content="Free interactive map of live NAVAREA navigational warnings for passage planning.">
 <meta name="twitter:image" content="https://helmwarning.vercel.app/og-preview.png">
 
-<!-- Schema.org Structured Data (WebApplication + Dataset) -->
+<!-- Schema.org Structured Data (Organization + WebApplication + Dataset) -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@graph": [
     {
-      "@type": "WebApplication",
-      "@id": "https://helmwarning.vercel.app/#app",
+      "@type": "Organization",
+      "@id": "https://helmwarning.vercel.app/#org",
       "name": "Helm.Warning",
       "url": "https://helmwarning.vercel.app/",
+      "logo": "https://helmwarning.vercel.app/favicon.svg"
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://helmwarning.vercel.app/#app",
+      "name": "Helm.Warning — Live NAVAREA Warnings Map",
+      "url": "https://helmwarning.vercel.app/",
       "applicationCategory": "NavigationApplication",
-      "operatingSystem": "All",
+      "operatingSystem": "Web",
+      "description": "Free interactive map of live NAVAREA navigational warnings for maritime passage planning.",
+      "publisher": {
+        "@id": "https://helmwarning.vercel.app/#org"
+      },
       "offers": {
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "USD"
-      },
-      "description": "Free interactive global map and operational directory for active NAVAREA navigational warnings and Maritime Safety Information (MSI)."
+      }
     },
     {
       "@type": "Dataset",
       "@id": "https://helmwarning.vercel.app/#dataset",
-      "name": "Global NAVAREA Maritime Safety Warnings Dataset",
-      "description": "In-force navigational hazard notices, coordinates, and advisory notices across all 21 NAVAREAs.",
-      "license": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "isAccessibleForFree": true,
+      "name": "Live NAVAREA Navigational Warnings Dataset",
+      "description": "Aggregated in-force navigational warnings across all 21 NAVAREA regions from official hydrographic sources.",
       "creator": {
-        "@type": "Organization",
-        "name": "Helm.Warning"
-      }
+        "@id": "https://helmwarning.vercel.app/#org"
+      },
+      "license": "https://creativecommons.org/licenses/by/4.0/",
+      "temporalCoverage": "2026-01-01/..",
+      "isAccessibleForFree": true,
+      "keywords": [
+        "NAVAREA",
+        "navigational warnings",
+        "maritime safety information",
+        "MSI",
+        "passage planning",
+        "WWNWS",
+        "ECDIS",
+        "Notice to Mariners"
+      ]
     }
   ]
 }
@@ -740,16 +765,19 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 
     <!-- Crawlable Pre-baked Semantic Content for Search Engines & Mariners -->
     <details class="seo-accordion">
-      <summary>About NAVAREA Maritime Safety Information (MSI) &amp; Geographic Areas</summary>
+      <summary>Live NAVAREA Warnings for Passage Planning &amp; Maritime Safety Information</summary>
       <div class="seo-content-body">
-        <h2>What Are NAVAREA Navigational Warnings?</h2>
+        <h2>Live NAVAREA Warnings for Passage Planning</h2>
         <p>
-          The World-Wide Navigational Warning Service (WWNWS) is a coordinated international service established jointly by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO) for promulgating urgent navigational warnings and meteorological information. Navigational warnings communicate immediate hazards to ocean navigation, including firing exercises, seismic surveys, subsea cable operations, drifting hazards, and aids-to-navigation discrepancies.
+          <strong>Helm.Warning</strong> is a free, modern maritime safety information (MSI) cartography service providing a live NAVAREA warnings map for watchkeeping officers, navigators, and passage planners. In-force navigational hazard notices and coastal warnings are aggregated directly from official hydrographic authorities across all 21 NAVAREA regions worldwide (I through XXI, including Arctic areas XVII, XVIII, XIX, XX, and XXI). No login or account creation is required to inspect in-force bulletins, danger areas, firing exercises, drifting hazards, and aids-to-navigation discrepancies.
         </p>
         <p>
-          <strong>Helm.Warning</strong> is a free, modern decision-support cartography tool that ingests active, in-force navigational warnings from official hydrographic coordinators across all 21 global NAVAREAs, providing an uncluttered, responsive chart view with zero required login.
+          Navigational warnings communicate time-critical ocean hazards promulgated under the World-Wide Navigational Warning Service (WWNWS), jointly coordinated by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO). Helm.Warning parses structured coordinates, radius circles, danger polygons, and AtoN notices from 14 verified hydrographic feeds—including the United Kingdom Hydrographic Office (UKHO), National Geospatial-Intelligence Agency (NGA), Service Hydrographique et Océanographique de la Marine (SHOM), Australian Maritime Safety Authority (AMSA), and Japan Coast Guard (JCG)—rendering georeferenced bulletins directly on interactive OpenStreetMap, CARTO, and OpenSeaMap nautical charts.
         </p>
-        <h3>Official NAVAREA Operational Coordinators</h3>
+        <h3>Official Regional Coordinators &amp; Arctic Coverage</h3>
+        <p>
+          Active coverage spans the North and South Atlantic, Mediterranean, Baltic Sea, Indian Ocean, Red Sea, Persian Gulf, East Asia, Pacific Ocean, and the five Arctic navigational zones (NAVAREA XVII–XVIII Canadian Coast Guard, XIX Norwegian Coastal Administration, and XX–XXI Russian Northern Sea Route).
+        </p>
         <ul class="seo-area-list">
           <li><strong>NAVAREA I</strong>: North Atlantic &amp; North Sea · UKHO (United Kingdom)</li>
           <li><strong>NAVAREA II</strong>: East Atlantic &amp; Biscay · SHOM (France)</li>
@@ -772,7 +800,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
           <li><strong>NAVAREA XX &amp; XXI</strong>: Arctic Russia · Rosmorrechflot (Russia)</li>
         </ul>
         <p class="seo-disclaimer-note">
-          Notice to Mariners: Helm.Warning is an automated decision-support cartography tool. It is not an official substitute for SOLAS carriage requirements, GMDSS equipment, NAVTEX receivers, or Inmarsat-C / Iridium SafetyNET broadcasts.
+          Notice to Mariners: Helm.Warning is an automated situational decision-support cartography tool. It is not an official substitute for SOLAS carriage requirements, GMDSS equipment, NAVTEX receivers, or Inmarsat-C / Iridium SafetyNET broadcasts. Master mariners remain responsible for maintaining statutory bridge watches and consulting official government MSI broadcasts.
         </p>
       </div>
     </details>
