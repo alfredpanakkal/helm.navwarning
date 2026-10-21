@@ -33,6 +33,11 @@ import {
   parseManualWarning,
 } from './services/api';
 import { parseCoordinatesDeterministic } from './utils/coordinateParser';
+import {
+  fetchActiveSpatialRows,
+  groupSpatialRowsByCanonicalId,
+  subscribeToNavWarnings,
+} from './services/navWarningQueries';
 
 export type TabType =
   | 'map'
@@ -138,7 +143,34 @@ export default function App() {
       ]);
 
       if (apiSources && apiSources.length > 0) setSources(apiSources);
-      setWarnings(apiWarnings || []);
+      let hydrated: NavWarning[] = apiWarnings || [];
+
+      // Hydrate real geometry from the nav_warnings_active_spatial view (Tier A + active).
+      // Falls back silently to the raw-text regex geometry if the view is unreachable/empty.
+      try {
+        const spatialRows = await fetchActiveSpatialRows();
+        if (spatialRows.length > 0) {
+          const grouped = groupSpatialRowsByCanonicalId(spatialRows);
+          const groupedByCanonical = new Map(grouped.map((g) => [g.canonical_id, g]));
+          hydrated = hydrated.map((w) => {
+            const g = groupedByCanonical.get(w.warning_id);
+            if (!g || !g._geometries || g._geometries.length === 0) return w;
+            return {
+              ...w,
+              spatial: {
+                geometries: g._geometries,
+                circles: [],
+                raw_coordinate_text: [],
+                validation_status: 'passed',
+              },
+            };
+          });
+        }
+      } catch (e) {
+        console.warn('Spatial view hydration unavailable:', e);
+      }
+
+      setWarnings(hydrated);
       setGenerations(apiGens || []);
       setArtifacts(apiArts || []);
 
@@ -155,6 +187,16 @@ export default function App() {
   // Initial Data Fetch with Fallback
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Realtime: refresh whenever the backend writes nav_warnings or geometries
+  useEffect(() => {
+    const sub = subscribeToNavWarnings(() => {
+      loadData();
+    });
+    return () => {
+      sub?.unsubscribe();
+    };
   }, []);
 
   const handleNavigateWithFilter = (tab: TabType, filterStatus?: string) => {
