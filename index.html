@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="tab-map-active">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -172,10 +172,34 @@ body.is-mobile .stat-sub{font-size:10.5px}
 .map-top-section{overflow:hidden;max-height:260px;opacity:1;transition:max-height .3s cubic-bezier(.16,1,.3,1),opacity .22s ease,margin-bottom .3s ease;margin-bottom:12px}
 .map-top-section.collapsed{max-height:0!important;opacity:0!important;margin-bottom:0!important;pointer-events:none}
 
-.map-container{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface-dark);height:calc(100vh - 145px);min-height:620px;transition:height .25s ease}
-body.is-mobile .map-container{height:calc(100dvh - 130px);min-height:460px;border-radius:10px}
-body:not(.is-mobile) .map-top-section.collapsed + .map-container{height:calc(100vh - 84px);min-height:680px}
-body.is-mobile .map-top-section.collapsed + .map-container{height:calc(100dvh - 74px)}
+.map-container{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface-dark);height:calc(100vh - 145px);min-height:560px;transition:height .25s ease}
+
+/* Zero-scroll Map View & Handset Screen Adaptation */
+html.tab-map-active,body.tab-map-active{height:100%!important;height:100dvh!important;overflow:hidden!important;overscroll-behavior:none!important}
+body.tab-map-active .site-footer{display:none!important}
+
+body:not(.is-mobile).tab-map-active{height:100vh;overflow:hidden!important}
+body:not(.is-mobile).tab-map-active .main{height:calc(100vh - var(--header-h));padding:16px 24px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+body:not(.is-mobile).tab-map-active #tab-map{height:100%;display:flex;flex-direction:column;flex:1 1 0%;min-height:0;overflow:hidden}
+body:not(.is-mobile).tab-map-active .map-container{flex:1 1 0%;height:100%;min-height:0}
+body:not(.is-mobile) .map-top-section.collapsed + .map-container{height:calc(100vh - 84px)}
+
+/* Mobile Handsets: Full-bleed adaptive map fitted between header and bottom nav */
+body.is-mobile.tab-map-active{position:fixed!important;inset:0!important;width:100vw!important;height:100%!important;height:100dvh!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;overscroll-behavior:none!important}
+body.is-mobile.tab-map-active .site-header{flex-shrink:0!important;z-index:1000!important}
+body.is-mobile.tab-map-active .bottom-nav{flex-shrink:0!important;position:relative!important;z-index:1000!important;width:100%!important;box-shadow:0 -1px 8px rgba(0,0,0,.08)}
+body.is-mobile.tab-map-active .main{flex:1 1 0%!important;height:auto!important;min-height:0!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+body.is-mobile.tab-map-active #tab-map{flex:1 1 0%!important;height:100%!important;min-height:0!important;width:100%!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;margin:0!important;padding:0!important}
+body.is-mobile.tab-map-active .map-top-section{flex-shrink:0!important;margin-bottom:0!important;padding:8px 12px!important;background:var(--surface)!important;border-bottom:1px solid var(--border)!important;max-height:180px;transition:max-height .25s cubic-bezier(.16,1,.3,1),opacity .2s ease,padding .2s ease!important}
+body.is-mobile.tab-map-active .map-top-section.collapsed{max-height:0!important;padding:0!important;opacity:0!important;border-bottom:none!important;margin-bottom:0!important;pointer-events:none!important}
+body.is-mobile.tab-map-active .map-top-section .page-header{margin-bottom:0;gap:8px}
+body.is-mobile.tab-map-active .map-top-section .page-header h1{font-size:16px;margin-bottom:2px}
+body.is-mobile.tab-map-active .map-top-section .page-header .subtitle{font-size:11.5px}
+body.is-mobile.tab-map-active .map-top-section .actions{display:flex;gap:6px;width:100%}
+body.is-mobile.tab-map-active .map-top-section .actions .btn{min-height:38px;padding:0 10px;font-size:12.5px}
+body.is-mobile.tab-map-active .map-top-section .navarea-select{min-height:38px;padding:6px 30px 6px 10px;font-size:13px}
+body.is-mobile.tab-map-active .map-container{flex:1 1 0%!important;height:100%!important;min-height:0!important;border-radius:0!important;border:none!important;margin:0!important;position:relative!important;touch-action:pan-x pan-y pinch-zoom!important;overflow:hidden!important}
+body.is-mobile.tab-map-active #map{height:100%!important;width:100%!important;touch-action:pan-x pan-y pinch-zoom!important}
 
 /* Pure Chart Focus Mode */
 body.map-focus-active{overflow:hidden}
@@ -353,10 +377,14 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 .seo-area-list li{font-size:12px;color:var(--text-muted)}
 .seo-area-list li strong{color:var(--text)}
 .seo-disclaimer-note{margin-top:10px;font-size:11.5px;color:var(--text-light);font-style:italic}
-@media (max-height:500px) and (orientation:landscape){body.is-mobile .map-container{height:75vh}body.is-mobile .stat-grid{grid-template-columns:repeat(4,1fr)}}
+@media (max-height:500px) and (orientation:landscape){
+  body.is-mobile.tab-map-active .map-container{height:100%!important}
+  body.is-mobile .map-warning-list{max-height:160px}
+  body.is-mobile .stat-grid{grid-template-columns:repeat(4,1fr)}
+}
 </style>
 </head>
-<body>
+<body class="tab-map-active">
 <a href="#main" class="skip-link">Skip to main content</a>
 
 <header class="site-header">

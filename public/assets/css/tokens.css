@@ -39,6 +39,8 @@
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 
-  /* Touch Targets */
+  /* Touch Targets & Component Heights */
   --touch-min: 44px;
+  --header-h: 56px;
+  --bottomnav-h: 56px;
 }

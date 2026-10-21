@@ -340,7 +340,22 @@ window.addEventListener('resize',debounce(()=>{
   detectDevice();
   const m = getLeafletMap();
   if(m) m.invalidateSize();
-},250));
+},150));
+
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    detectDevice();
+    const m = getLeafletMap();
+    if(m) m.invalidateSize();
+  }, 180);
+});
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', debounce(() => {
+    const m = getLeafletMap();
+    if (m) m.invalidateSize();
+  }, 150));
+}
 
 window.switchTab = function(tab){
   document.querySelectorAll('.tab-panel').forEach(p=>{
@@ -372,12 +387,22 @@ window.switchTab = function(tab){
     bottomTab.classList.add('active');
     bottomTab.setAttribute('aria-selected', 'true');
   }
+
+  const isMap = (tab === 'map');
+  document.body.classList.toggle('tab-map-active', isMap);
+  document.documentElement.classList.toggle('tab-map-active', isMap);
+
   if(tab==='map'){
     const m = getLeafletMap();
     if(!m) initMap();
-    else setTimeout(()=>m.invalidateSize(),100);
+    else {
+      setTimeout(()=>m.invalidateSize(), 50);
+      setTimeout(()=>m.invalidateSize(), 200);
+    }
+    window.scrollTo({top:0,behavior:'instant'});
+  } else {
+    window.scrollTo({top:0,behavior:'smooth'});
   }
-  window.scrollTo({top:0,behavior:'smooth'});
 };
 
 window.toggleDrawer = function(){
@@ -2440,6 +2465,10 @@ async function loadWarnings() {
 
 document.addEventListener('DOMContentLoaded', async ()=>{
   detectDevice();
+  const isMap = document.getElementById('tab-map')?.classList.contains('active') ?? true;
+  document.body.classList.toggle('tab-map-active', isMap);
+  document.documentElement.classList.toggle('tab-map-active', isMap);
+
   initMap();
   populateSources();
   attachGearLongPress();
