@@ -395,15 +395,31 @@ window.toggleDrawer = function(){
   document.body.style.overflow = isOpen ? 'hidden' : '';
 };
 
-window.toggleAdvancedFilters = function(){
+window.toggleAdvancedFilters = function(explicitState){
   const af = document.getElementById('advancedFilters');
   const btn = document.getElementById('btnToggleFilters');
+  const scrim = document.getElementById('filtersScrim');
   if(!af) return;
-  const isOpen = af.classList.toggle('open');
+  const isCurrentlyOpen = af.classList.contains('open');
+  const nextState = typeof explicitState === 'boolean' ? explicitState : !isCurrentlyOpen;
+
+  af.classList.toggle('open', nextState);
+  if(scrim) scrim.classList.toggle('open', nextState);
   if(btn){
-    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    btn.setAttribute('aria-expanded', nextState ? 'true' : 'false');
   }
 };
+
+window.resetFilters = function(){
+  const na = document.getElementById('filter-navarea');
+  const sv = document.getElementById('filter-severity');
+  const ca = document.getElementById('filter-category');
+  if (na) na.value = '';
+  if (sv) sv.value = '';
+  if (ca) ca.value = '';
+  applyFilters();
+};
+
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (document.body.classList.contains('map-focus-active')) {
@@ -411,6 +427,7 @@ document.addEventListener('keydown', e => {
       return;
     }
     toggleDrawerIfOpen();
+    toggleAdvancedFilters(false);
     closeWarningModal();
     closeMapSettings();
     closeWarningDrawer();
@@ -1993,37 +2010,41 @@ function toggleTableDetailRow(w, tr) {
 let expandedCardWarningId = null;
 
 function toggleCardDetail(w, cardEl) {
-  const wid = w.warning_id || w.id;
+  const wid = w.canonical_id || w.warning_id || w.id;
   const isCurrentlyOpen = cardEl.classList.contains('expanded');
   const cl = document.getElementById('cardList');
   if (!cl) return;
 
   cl.querySelectorAll('.warning-card.expanded').forEach(c => {
     c.classList.remove('expanded');
-    const toggleBtn = c.querySelector('.warning-card-toggle');
-    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+    c.setAttribute('aria-expanded', 'false');
     const body = c.querySelector('.warning-card-expanded-body');
     if (body) body.remove();
   });
 
   if (isCurrentlyOpen) {
     expandedCardWarningId = null;
-    const toggleBtn = cardEl.querySelector('.warning-card-toggle');
-    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+    cardEl.setAttribute('aria-expanded', 'false');
     return;
   }
 
   expandedCardWarningId = wid;
   cardEl.classList.add('expanded');
-  const cardToggleBtn = cardEl.querySelector('.warning-card-toggle');
-  if (cardToggleBtn) cardToggleBtn.setAttribute('aria-expanded', 'true');
+  cardEl.setAttribute('aria-expanded', 'true');
 
   const lat = Number(w.latitude ?? w.lat);
   const lng = Number(w.longitude ?? w.lng);
-  const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}, ${lng.toFixed(2)}` : 'N/A');
+  const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}°, ${lng.toFixed(2)}°` : 'Spatial Vector');
   const issuedText = formatWarningIssuedText(w);
   const verClass = w.is_verified ? 'verified' : 'neutral';
   const verLabel = w.is_verified ? 'VERIFIED' : 'UNVERIFIED';
+
+  let categoryBadges = '';
+  if (Array.isArray(w.categories) && w.categories.length > 0) {
+    categoryBadges = w.categories.map(cat => `<span class="badge-simple badge-neutral">${String(cat).toUpperCase()}</span>`).join('');
+  } else if (w.category) {
+    categoryBadges = `<span class="badge-simple badge-neutral">${String(w.category).toUpperCase()}</span>`;
+  }
 
   const bodyEl = document.createElement('div');
   bodyEl.className = 'warning-card-expanded-body';
@@ -2032,7 +2053,7 @@ function toggleCardDetail(w, cardEl) {
   bodyEl.innerHTML = `
     <div class="warning-expanded-badges">
       ${badge(verClass, verLabel)}
-      ${w.category ? `<span class="badge-simple badge-neutral">${w.category.toUpperCase()}</span>` : ''}
+      ${categoryBadges}
     </div>
     <div class="warning-expanded-meta">
       <div><strong>Issued:</strong> ${issuedText}</div>
@@ -2040,10 +2061,10 @@ function toggleCardDetail(w, cardEl) {
     </div>
     <div class="warning-expanded-text">Loading bulletin text...</div>
     <div class="warning-expanded-actions">
-      <button type="button" class="btn btn-sm btn-primary" onclick="event.stopPropagation(); locateOnMapById('${encodeURIComponent(wid)}')">
+      <button type="button" class="btn btn-primary" onclick="event.stopPropagation(); locateOnMapById('${encodeURIComponent(wid)}')">
         <span>📍 View on Map</span>
       </button>
-      <button type="button" class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); toggleCardDetailById('${encodeURIComponent(wid)}')">
+      <button type="button" class="btn btn-ghost" onclick="event.stopPropagation(); toggleCardDetailById('${encodeURIComponent(wid)}')">
         <span>Collapse</span>
       </button>
     </div>
@@ -2081,7 +2102,7 @@ function toggleCardDetail(w, cardEl) {
 
 window.locateOnMapById = function(rawId){
   const id = decodeURIComponent(rawId);
-  const w = warnings.find(item => (item.warning_id || item.id) === id);
+  const w = warnings.find(item => (item.canonical_id || item.warning_id || item.id) === id);
   if (!w) return;
   switchTab('map');
   if(w.navarea && !matchesNavArea(w.navarea, currentSelectedNavArea)){
@@ -2134,7 +2155,7 @@ window.locateOnMapById = function(rawId){
 window.toggleTableDetailRowById = function(rawId){
   const id = decodeURIComponent(rawId);
   const tr = Array.from(document.querySelectorAll('tr[data-warning-id]')).find(el => el.dataset.warningId === id);
-  const w = warnings.find(item => (item.warning_id || item.id) === id);
+  const w = warnings.find(item => (item.canonical_id || item.warning_id || item.id) === id);
   if (tr && w) {
     toggleTableDetailRow(w, tr);
   }
@@ -2143,7 +2164,7 @@ window.toggleTableDetailRowById = function(rawId){
 window.toggleCardDetailById = function(rawId){
   const id = decodeURIComponent(rawId);
   const c = Array.from(document.querySelectorAll('.warning-card')).find(el => el.dataset.warningId === id);
-  const w = warnings.find(item => (item.warning_id || item.id) === id);
+  const w = warnings.find(item => (item.canonical_id || item.warning_id || item.id) === id);
   if (c && w) {
     toggleCardDetail(w, c);
   }
@@ -2156,7 +2177,7 @@ function populateTable(filtered=warnings){
   const live=filtered.filter(w=>w.status!=='rejected');
   live.forEach(w=>{
     const tr=document.createElement('tr');
-    const wid = w.warning_id || w.id;
+    const wid = w.canonical_id || w.warning_id || w.id;
     tr.dataset.warningId = wid;
     tr.setAttribute('tabindex', '0');
     tr.setAttribute('aria-expanded', expandedTableWarningId === wid ? 'true' : 'false');
@@ -2180,29 +2201,68 @@ function populateTable(filtered=warnings){
   const tc = document.getElementById('tableCount');
   if(tc) tc.textContent=`Showing 1–${live.length} of ${live.length}`;
 }
+
 function populateCards(filtered=warnings){
   const cl=document.getElementById('cardList');
   if(!cl) return;
-  cl.querySelectorAll('.warning-card').forEach(e=>e.remove());
-  filtered.filter(w=>w.status!=='rejected').forEach(w=>{
+  cl.querySelectorAll('.warning-card, .warning-card-empty').forEach(e=>e.remove());
+  const live=filtered.filter(w=>w.status!=='rejected');
+
+  if (live.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'warning-card-empty';
+    empty.style.padding = '32px 16px';
+    empty.style.textAlign = 'center';
+    empty.style.color = 'var(--text-muted)';
+    empty.style.fontSize = '14px';
+    empty.textContent = 'No published warnings match the selected filters.';
+    cl.appendChild(empty);
+    return;
+  }
+
+  live.forEach(w=>{
     const c=document.createElement('div');
-    const wid = w.warning_id || w.id;
+    const wid = w.canonical_id || w.warning_id || w.id;
     c.className='warning-card';
     c.dataset.warningId = wid;
+    c.setAttribute('tabindex', '0');
+    c.setAttribute('role', 'button');
     const isExpanded = expandedCardWarningId === wid;
-    c.innerHTML=`<button type="button" class="warning-card-toggle" aria-expanded="${isExpanded ? 'true' : 'false'}" aria-label="Warning ${wid}, ${w.navarea}, ${w.title}. Click or press Enter to toggle details." style="background:none;border:none;padding:0;margin:0;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:8px">
-      <div class="warning-card-header"><span class="warning-card-id">${wid} · ${w.navarea}</span>${badge(w.severity==='high'?'high':'moderate',w.severity.toUpperCase())}</div>
-      <div class="warning-card-title">${w.title}</div>
-      <div class="warning-card-meta"><span>📍 ${w.navarea}</span><span>📅 ${formatWarningDate(w)}</span><span>🎯 ${w.coordinates || w.coords || 'N/A'}</span></div>
-    </button>`;
+    c.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    c.setAttribute('aria-label', `Warning ${wid}, ${w.navarea}, ${w.title}. Tap to toggle details.`);
+
+    const sevClass = w.severity === 'critical' ? 'critical' : w.severity === 'high' ? 'high' : 'moderate';
+    const sevLabel = (w.severity || 'HIGH').toUpperCase();
+    const lat = Number(w.latitude ?? w.lat);
+    const lng = Number(w.longitude ?? w.lng);
+    const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}°, ${lng.toFixed(2)}°` : 'Spatial Vector');
+
+    c.innerHTML=`
+      <div class="warning-card-main">
+        <div class="warning-card-header">
+          <span class="warning-card-id">${wid} · ${w.navarea}</span>
+          ${badge(sevClass, sevLabel)}
+        </div>
+        <div class="warning-card-title">${w.title}</div>
+        <div class="warning-card-meta">
+          <span>📅 ${formatWarningDate(w)}</span>
+          <span>📍 ${coordsText}</span>
+        </div>
+      </div>
+    `;
     
-    const toggleBtn = c.querySelector('.warning-card-toggle');
-    if (toggleBtn) {
-      toggleBtn.onclick = (e) => {
-        e.stopPropagation();
+    c.onclick = (e) => {
+      if (e.target.closest('.warning-card-expanded-body button')) return;
+      toggleCardDetail(w, c);
+    };
+
+    c.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        if (e.target.closest('.warning-card-expanded-body button')) return;
+        e.preventDefault();
         toggleCardDetail(w, c);
-      };
-    }
+      }
+    };
     
     cl.appendChild(c);
 
