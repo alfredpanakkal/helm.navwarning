@@ -1,24 +1,18 @@
-import { createClient } from '@supabase/supabase-js';
+/**
+ * @deprecated Legacy Supabase client kept only for backwards compatibility.
+ *
+ * The old comment below described the pre-20261019 flat-table schema
+ * (warning_id / issued_date / latitude / longitude), which no longer exists.
+ * The current schema contract is documented in
+ * docs/supabase-backend-contract.md and src/services/navWarningQueries.ts:
+ *   - master table nav_warnings keyed by uuid id + canonical_id, with
+ *     categories TEXT[], triage_tier, data_quality, status, valid_from/to
+ *   - geometry in nav_warning_geometries / nav_warnings_active_spatial view
+ *
+ * New code should import from './supabaseServer' (server) or
+ * './supabaseClient' (browser) instead. This module will be removed once
+ * all remaining consumers are migrated.
+ */
+import { getSupabaseClient } from './supabaseServer';
 
-/*
-  Run this SQL in your Supabase project to create the table:
-
-  CREATE TABLE nav_warnings (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    source_id TEXT NOT NULL,
-    warning_id TEXT NOT NULL,
-    title TEXT,
-    raw_text TEXT NOT NULL,
-    issued_date DATE,
-    navarea TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(source_id, warning_id)
-  );
-*/
-
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-export const supabase = supabaseUrl && supabaseKey 
-  ? createClient(supabaseUrl, supabaseKey) 
-  : null;
+export const supabase = getSupabaseClient();
