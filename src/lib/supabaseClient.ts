@@ -11,15 +11,25 @@ const getEnvVar = (key: string): string => {
 };
 
 const supabaseUrl = getEnvVar('VITE_SUPABASE_URL') || getEnvVar('SUPABASE_URL');
-const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY') || getEnvVar('SUPABASE_ANON_KEY') || getEnvVar('SUPABASE_KEY');
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️ Supabase environment variables missing. The application will fall back to local mock data.', {
+// New-style Supabase publishable key first (sb_publishable_...), legacy anon
+// names kept as fallbacks. .env.example defines SUPABASE_PUBLISHABLE_KEY, so it
+// MUST be accepted here or the client silently stays null and the app falls
+// back to local mock data.
+const supabasePublicKey =
+  getEnvVar('VITE_SUPABASE_PUBLISHABLE_KEY') ||
+  getEnvVar('SUPABASE_PUBLISHABLE_KEY') ||
+  getEnvVar('VITE_SUPABASE_ANON_KEY') ||
+  getEnvVar('SUPABASE_ANON_KEY') ||
+  getEnvVar('SUPABASE_KEY');
+
+if (!supabaseUrl || !supabasePublicKey) {
+  console.warn('⚠️ Supabase environment variables missing (expected SUPABASE_URL + SUPABASE_PUBLISHABLE_KEY). The application will fall back to local mock data.', {
     urlLength: supabaseUrl.length,
-    keyLength: supabaseAnonKey.length
+    keyLength: supabasePublicKey.length
   });
 }
 
 // Only create the client if both keys are present.
 // If missing, export null so API services know to cleanly fallback.
-export const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+export const supabase = supabaseUrl && supabasePublicKey ? createClient(supabaseUrl, supabasePublicKey) : null;
