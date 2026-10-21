@@ -177,59 +177,22 @@ export async function fetchWarnings(params?: {
 }): Promise<NavWarning[]> {
   try {
     const { supabase } = await import('../lib/supabaseClient');
-    const { INITIAL_WARNINGS } = await import('../data/sourcesRegistry');
 
     if (supabase) {
-      const PAGE_SIZE = 1000;
-      const allRows: any[] = [];
-      let from = 0;
-      let hasMore = true;
-
-      while (hasMore) {
-        const to = from + PAGE_SIZE - 1;
-        let query = supabase
-          .from('nav_warnings')
-          .select('id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, status, triage_tier, data_quality, parsing_method, qa_flags, unplotted_reason, valid_from, valid_to, issued_at, created_at, updated_at')
-          .order('created_at', { ascending: false })
-          .range(from, to);
-
-        if (params?.sourceId) {
-          query = query.eq('source_id', params.sourceId);
-        }
-        if (params?.navarea) {
-          query = query.eq('navarea', params.navarea);
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-          console.warn(`Supabase fetch error at range ${from}..${to}:`, error.message);
-          break;
-        }
-
-        if (data && data.length > 0) {
-          allRows.push(...data);
-          if (data.length < PAGE_SIZE) {
-            hasMore = false;
-          } else {
-            from += PAGE_SIZE;
-          }
-        } else {
-          hasMore = false;
-        }
-      }
+      // Single source of truth for nav_warnings reads: src/services/navWarningQueries.ts
+      // (new 20261019/20 schema columns, pagination, PostgREST filters).
+      const { fetchNavWarningsList } = await import('./navWarningQueries');
+      const allRows = await fetchNavWarningsList({
+        sourceId: params?.sourceId,
+        navarea: params?.navarea,
+        status: params?.status,
+      });
 
       if (allRows.length > 0) {
         // Map database row to NavWarning interface with full field fidelity
-        const liveWarnings: NavWarning[] = allRows.map((row: any) =>
+        return allRows.map((row: any) =>
           mapSupabaseRowToNavWarning(row, params?.status || 'active')
         );
-
-        if (params?.status) {
-          return liveWarnings.filter((w) => w.status === params.status);
-        }
-
-        return liveWarnings;
       } else {
         console.warn('Supabase fetch returned no data or error, falling back to local api/memory.');
       }
@@ -696,7 +659,7 @@ export async function saveImportedWarningsToSupabase(warnings: NavWarning[]): Pr
   try {
     const { supabase } = await import('../lib/supabaseClient');
     if (!supabase) {
-      return { success: false, insertedCount: 0, error: 'Supabase client not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in settings.' };
+      return { success: false, insertedCount: 0, error: 'Supabase client not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in settings.' };
     }
 
     const sha256Hex = async (text: string): Promise<string> => {
