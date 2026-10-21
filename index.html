@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
-<meta name="robots" content="index, follow">
-<title>Helm.Warning — NAVAREA Data Bank</title>
+<title>Helm.Warning — NAVAREA Maritime Safety Information System</title>
+<meta name="description" content="NAVAREA maritime navigational warning ingestion pipeline, cartographic visualization, and operational administration console.">
+<meta property="og:title" content="Helm.Warning — NAVAREA Maritime Safety Information System">
+<meta property="og:description" content="NAVAREA maritime navigational warning ingestion pipeline, cartographic visualization, and operational administration console.">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="/assets/css/tokens.css">
@@ -186,23 +188,26 @@ body.is-tablet .sources-grid{grid-template-columns:repeat(2,1fr)}
 .source-count{font-size:13px;color:var(--text-muted)}
 .source-url{font-size:12px;color:var(--verified);text-decoration:none;word-break:break-all}
 
-.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:2000;display:none;align-items:center;justify-content:center;padding:24px}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:2000;display:none;align-items:center;justify-content:center;padding:24px;transition:opacity .25s ease}
 .modal-overlay.open{display:flex}
-.modal{background:var(--surface);border-radius:12px;max-width:580px;width:100%;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
-body.is-mobile .modal-overlay{padding:0;align-items:stretch}
-body.is-mobile .modal{max-width:100%;height:100%;max-height:100vh;border-radius:0;padding-top:var(--safe-top)}
-.modal-header{padding:14px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1}
+.modal{background:var(--surface);border-radius:12px;max-width:580px;width:100%;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+body.is-mobile .modal-overlay{padding:0;align-items:flex-end;background:rgba(15,23,42,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+body.is-mobile .modal{max-width:100%;width:100%;max-height:84vh;height:auto;border-radius:16px 16px 0 0;padding-top:4px;border:none;border-top:1px solid var(--border);box-shadow:0 -8px 32px rgba(0,0,0,.25);animation:sheetSlideUp .28s cubic-bezier(.16,1,.3,1)}
+body.is-mobile .modal::before{content:"";display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:8px auto 2px auto;flex-shrink:0}
+@keyframes sheetSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1}
 .modal-header h2{font:600 17px system-ui}
-.modal-close{width:44px;height:44px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:20px}
-.modal-body{padding:24px;display:flex;flex-direction:column;gap:16px}
-body.is-mobile .modal-body{padding:16px}
+.modal-close{width:44px;height:44px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:20px;border-radius:var(--radius-sm)}
+.modal-close:hover{color:var(--text);background:var(--bg)}
+.modal-body{padding:20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;flex:1}
+body.is-mobile .modal-body{padding:14px 16px}
 .detail-row{display:flex;gap:16px}
 .detail-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);min-width:100px;padding-top:3px}
 .detail-value{font-size:14px;flex:1}
-.warning-text{background:var(--bg);padding:14px;border-radius:4px;font-family:ui-monospace,monospace;font-size:13px;line-height:1.6}
+.warning-text{background:var(--bg);padding:12px;border-radius:6px;border:1px solid var(--border);font-family:ui-monospace,monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
 .loading-spinner{color:var(--text-muted);font-style:italic;display:inline-flex;align-items:center;gap:6px}
-.modal-footer{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface)}
-body.is-mobile .modal-footer{padding-bottom:calc(8px + var(--safe-bottom))}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface)}
+body.is-mobile .modal-footer{padding-bottom:calc(12px + var(--safe-bottom))}
 
 .navarea-select-wrapper{position:relative;display:inline-flex;align-items:center}
 .navarea-select{appearance:none;-webkit-appearance:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font:500 14px system-ui;padding:8px 34px 8px 12px;min-height:var(--touch-min);cursor:pointer;transition:border-color .15s,box-shadow .15s;line-height:1.4}
@@ -299,34 +304,107 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
   </div>
   <div class="map-container">
     <div id="map"></div>
-    <div class="map-overlay">
-      <details class="map-layer-panel">
-        <summary>
-          <svg class="layer-summary-icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-          <span>Layers</span>
-          <svg class="layer-summary-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-        </summary>
-        <div class="map-layer-section-title">Base Map</div>
-        <label class="map-layer-item"><input type="radio" name="basemap" value="carto-voyager" checked onchange="selectBaseMap(this.value)">CARTO Voyager</label>
-        <label class="map-layer-item"><input type="radio" name="basemap" value="carto-dark" onchange="selectBaseMap(this.value)">CARTO Dark Matter</label>
-        <label class="map-layer-item"><input type="radio" name="basemap" value="carto-positron" onchange="selectBaseMap(this.value)">CARTO Positron</label>
-        <label class="map-layer-item"><input type="radio" name="basemap" value="osm" onchange="selectBaseMap(this.value)">OpenStreetMap</label>
-        <label class="map-layer-item"><input type="radio" name="basemap" value="esri-ocean" onchange="selectBaseMap(this.value)">ESRI Ocean Base</label>
-        <div class="map-layer-divider"></div>
-        <div class="map-layer-section-title">Maritime Overlays</div>
-        <label class="map-layer-item"><input type="checkbox" id="layerTogglePoints" checked onchange="toggleLayer('points',this.checked)">Hazard Points</label>
-        <label class="map-layer-item"><input type="checkbox" id="layerTogglePolygons" checked onchange="toggleLayer('polygons',this.checked)">Danger Areas & Polygons</label>
-        <label class="map-layer-item"><input type="checkbox" id="layerToggleCircles" checked onchange="toggleLayer('circles',this.checked)">Safety Zones & Circles</label>
-        <label class="map-layer-item"><input type="checkbox" id="layerToggleLines" checked onchange="toggleLayer('lines',this.checked)">Corridors & Cables</label>
-        <label class="map-layer-item"><input type="checkbox" id="layerToggleSeamarks" checked onchange="toggleLayer('seamarks',this.checked)">OpenSeaMap Seamarks</label>
-        <label class="map-layer-item"><input type="checkbox" id="layerToggleSoundings" onchange="toggleLayer('soundings',this.checked)">Ocean Soundings</label>
-      </details>
-    </div>
     <div class="map-ctrl-topright" role="toolbar" aria-label="Map Navigation Controls">
       <button type="button" class="map-recenter-pill-btn" onclick="resetMapView()" title="Re-center / Locate" aria-label="Re-center navigation area on map">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8"/></svg>
         <span>Re-center</span>
       </button>
+      <button type="button" class="map-gear-btn" id="btnMapSettings" onclick="toggleMapSettings(event)" title="Layers & Chart Type (Long-press to reset)" aria-label="Map layers and chart settings" aria-expanded="false" aria-controls="mapSettingsPopover">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Desktop Settings Popover -->
+    <div class="map-settings-popover" id="mapSettingsPopover" role="dialog" aria-labelledby="settingsPopoverTitle" aria-hidden="true" onclick="event.stopPropagation()">
+      <div class="settings-header">
+        <span class="settings-title" id="settingsPopoverTitle">Layers & Chart Type</span>
+        <button type="button" class="settings-close-btn" onclick="closeMapSettings()" aria-label="Close settings">✕</button>
+      </div>
+      <div class="settings-body">
+        <div class="settings-section-title">Base Map</div>
+        <label class="settings-item">
+          <input type="radio" name="basemap-desktop" value="osm" checked onchange="selectBaseMap(this.value)">
+          <span>OpenStreetMap</span>
+        </label>
+        <label class="settings-item">
+          <input type="radio" name="basemap-desktop" value="carto-voyager" onchange="selectBaseMap(this.value)">
+          <span>CARTO Voyager</span>
+        </label>
+        <label class="settings-item">
+          <input type="radio" name="basemap-desktop" value="carto-dark" onchange="selectBaseMap(this.value)">
+          <span>CARTO Dark Matter</span>
+        </label>
+        <label class="settings-item">
+          <input type="radio" name="basemap-desktop" value="carto-positron" onchange="selectBaseMap(this.value)">
+          <span>CARTO Positron</span>
+        </label>
+        <label class="settings-item">
+          <input type="radio" name="basemap-desktop" value="esri-ocean" onchange="selectBaseMap(this.value)">
+          <span>ESRI Ocean Base</span>
+        </label>
+
+        <div class="settings-divider"></div>
+
+        <div class="settings-section-title">
+          <span>Maritime Overlays</span>
+          <button type="button" class="master-toggle-btn" id="masterToggleBtnDesktop" onclick="toggleMasterOverlays()" aria-label="Toggle all maritime overlays">[ON]</button>
+        </div>
+        <label class="settings-item">
+          <input type="checkbox" id="layerTogglePointsDesktop" checked onchange="toggleLayer('points', this.checked)">
+          <span>Hazard Points</span>
+        </label>
+        <label class="settings-item">
+          <input type="checkbox" id="layerTogglePolygonsDesktop" checked onchange="toggleLayer('polygons', this.checked)">
+          <span>Danger Areas & Polygons</span>
+        </label>
+        <label class="settings-item">
+          <input type="checkbox" id="layerToggleCirclesDesktop" checked onchange="toggleLayer('circles', this.checked)">
+          <span>Safety Zones & Circles</span>
+        </label>
+        <label class="settings-item">
+          <input type="checkbox" id="layerToggleLinesDesktop" checked onchange="toggleLayer('lines', this.checked)">
+          <span>Corridors & Cables</span>
+        </label>
+        <label class="settings-item">
+          <input type="checkbox" id="layerToggleSeamarksDesktop" checked onchange="toggleLayer('seamarks', this.checked)">
+          <span>OpenSeaMap Seamarks</span>
+        </label>
+        <label class="settings-item">
+          <input type="checkbox" id="layerToggleSoundingsDesktop" onchange="toggleLayer('soundings', this.checked)">
+          <span>Ocean Soundings</span>
+        </label>
+      </div>
+      <div class="settings-footer">
+        <button type="button" class="settings-reset-btn" onclick="resetMapSettingsToDefaults()">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span>Reset to defaults</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Floating / Docked Compact Title Card for Progressive Disclosure -->
+    <div class="nw-title-card" id="mapTitleCard" role="tooltip" aria-hidden="true" onclick="handleTitleCardClick()">
+      <span class="nw-title-card-pill" id="titleCardPill"></span>
+      <span id="titleCardText">NAVAREA Warning</span>
+      <span class="nw-title-card-hint" id="titleCardHint">Tap for details →</span>
+    </div>
+
+    <!-- Desktop Warning Details Side Drawer -->
+    <div class="warning-details-drawer" id="warningDetailsDrawer" role="region" aria-label="Warning Details" aria-hidden="true">
+      <div class="drawer-details-header">
+        <div style="font-weight:700;font-size:14px;color:var(--text)" id="drawerDetailsTitle">Warning Details</div>
+        <button type="button" class="settings-close-btn" onclick="closeWarningDrawer()" aria-label="Close drawer">✕</button>
+      </div>
+      <div class="drawer-details-body" id="drawerDetailsBody">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="drawer-details-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeWarningDrawer()">Close</button>
+        <button type="button" class="btn btn-secondary" id="btnDrawerCopy" onclick="copyCurrentWarningText()">Copy Bulletin</button>
+      </div>
     </div>
     <div class="map-warning-list" id="mapWarningList">
       <div class="panel-header">
@@ -519,12 +597,83 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeWarningModal()">Close</button>
-      <button class="btn btn-secondary" onclick="locateOnMap()">Locate on Map</button>
+      <button class="btn btn-secondary" onclick="copyCurrentWarningText()">Copy Bulletin</button>
+      <button class="btn btn-primary" onclick="locateOnMap()">Locate on Map</button>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Mobile Settings Bottom Sheet & Scrim -->
+<div class="map-settings-scrim" id="mapSettingsScrim" onclick="closeMapSettings()" aria-hidden="true"></div>
+<div class="map-settings-sheet" id="mapSettingsSheet" role="dialog" aria-labelledby="settingsSheetTitle" aria-hidden="true">
+  <div class="settings-sheet-handle"></div>
+  <div class="settings-header">
+    <span class="settings-title" id="settingsSheetTitle">Layers & Chart Type</span>
+    <button type="button" class="settings-close-btn" onclick="closeMapSettings()" aria-label="Close settings">✕</button>
+  </div>
+  <div class="settings-body">
+    <div class="settings-section-title">Base Map</div>
+    <label class="settings-item">
+      <input type="radio" name="basemap-mobile" value="osm" checked onchange="selectBaseMap(this.value)">
+      <span>OpenStreetMap</span>
+    </label>
+    <label class="settings-item">
+      <input type="radio" name="basemap-mobile" value="carto-voyager" onchange="selectBaseMap(this.value)">
+      <span>CARTO Voyager</span>
+    </label>
+    <label class="settings-item">
+      <input type="radio" name="basemap-mobile" value="carto-dark" onchange="selectBaseMap(this.value)">
+      <span>CARTO Dark Matter</span>
+    </label>
+    <label class="settings-item">
+      <input type="radio" name="basemap-mobile" value="carto-positron" onchange="selectBaseMap(this.value)">
+      <span>CARTO Positron</span>
+    </label>
+    <label class="settings-item">
+      <input type="radio" name="basemap-mobile" value="esri-ocean" onchange="selectBaseMap(this.value)">
+      <span>ESRI Ocean Base</span>
+    </label>
+
+    <div class="settings-divider"></div>
+
+    <div class="settings-section-title">
+      <span>Maritime Overlays</span>
+      <button type="button" class="master-toggle-btn" id="masterToggleBtnMobile" onclick="toggleMasterOverlays()" aria-label="Toggle all maritime overlays">[ON]</button>
+    </div>
+    <label class="settings-item">
+      <input type="checkbox" id="layerTogglePointsMobile" checked onchange="toggleLayer('points', this.checked)">
+      <span>Hazard Points</span>
+    </label>
+    <label class="settings-item">
+      <input type="checkbox" id="layerTogglePolygonsMobile" checked onchange="toggleLayer('polygons', this.checked)">
+      <span>Danger Areas & Polygons</span>
+    </label>
+    <label class="settings-item">
+      <input type="checkbox" id="layerToggleCirclesMobile" checked onchange="toggleLayer('circles', this.checked)">
+      <span>Safety Zones & Circles</span>
+    </label>
+    <label class="settings-item">
+      <input type="checkbox" id="layerToggleLinesMobile" checked onchange="toggleLayer('lines', this.checked)">
+      <span>Corridors & Cables</span>
+    </label>
+    <label class="settings-item">
+      <input type="checkbox" id="layerToggleSeamarksMobile" checked onchange="toggleLayer('seamarks', this.checked)">
+      <span>OpenSeaMap Seamarks</span>
+    </label>
+    <label class="settings-item">
+      <input type="checkbox" id="layerToggleSoundingsMobile" onchange="toggleLayer('soundings', this.checked)">
+      <span>Ocean Soundings</span>
+    </label>
+  </div>
+  <div class="settings-footer">
+    <button type="button" class="settings-reset-btn" onclick="resetMapSettingsToDefaults()">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      <span>Reset to defaults</span>
+    </button>
+  </div>
+</div>
 
 <!-- Data & Logic Scripts -->
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>

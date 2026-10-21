@@ -35,6 +35,35 @@ Helm.Warning is an automated pipeline, spatial geometry visualizer, and navigati
 
 ---
 
+## 📋 Recent Updates & Development Changelog
+
+### Update: Multi-Area, Multi-Sector & Offshore Rig Spatial Plotting Engine
+* **Issue Addressed**: Navigational warnings containing non-point geometries (polygons, lines, circle buffers) were previously dropped or skipped on the map because the UI solely queried scalar `latitude`/`longitude` properties. Bulletins with multiple sub-areas, sectors, or offshore drilling rigs were either flattened into a single distorted polygon or omitted entirely.
+* **Polymorphic Spatial Layers**:
+  - Implemented 4 isolated Leaflet `LayerGroup` instances (`pointsLayer`, `polygonsLayer`, `circlesLayer`, `linesLayer`) with granular toggle checkboxes in the maritime overlays panel.
+  - Added full support for `Polygon`, `MultiPolygon`, `LineString`, `MultiLineString`, and `Circle` geometries with auto-calculated geographic bounding boxes (`L.latLngBounds`).
+* **Multi-Area & Sector Segmentation**:
+  - Upgraded both the client-side fallback extractor and backend parser (`src/utils/coordinateParser.ts`, `src/parsers/geometryExtractor.ts`, `public/assets/js/supabase.js`) to parse discrete sub-blocks: `AREA [A-Z0-9]+` (*Area Alfa*, *Area Bravo*), `SECTOR [A-Z0-9]+` (*Sector 1*, *Sector Charlie*), `SUB-AREA`, `ZONE`, `FIRING AREA`, and parenthetical markers `(A), (B)`.
+  - Each sub-area/sector is plotted as an independent vector geometry with its own label, square nautical miles area badge, and popup.
+* **Offshore Rig (MODU / Drilling Platforms) Visualization**:
+  - Automatically parses multiple rig listings from RIGLIST bulletins (e.g., *VALARIS 120*, *NOBLE PROSPECT*, *STENA DON*).
+  - Plots each rig with a dedicated offshore platform pin (`.nw-rig-pin`) alongside a 500m (0.27 NM) dashed safety exclusion perimeter circle and center crosshair.
+* **Global Navigation View**:
+  - Default view set to *All NAVAREAs (Global View)* with automatic `fitBounds` calculation across all live hazard envelopes.
+
+### Update: Database Ingestion & PostGIS Synchronization (Milestone M1)
+* **Service Role Direct Sync**: Built the `syncWarningsToSupabase` pipeline worker utilizing the Supabase Service Role key to bypass Row-Level Security (RLS) for automated background ingestion.
+* **Sentinel Interception**: Automatically catches `depth_m == -9999.0` sentinel values and converts them to `NULL` to satisfy the `chk_shoal_depth_sentinel` database constraint.
+* **Relational Batch Processing**: Atomically inserts warning envelopes into `public.nav_warnings` and captures returned UUID primary keys to execute batch child inserts into `nav_warning_geometries`, `nav_warning_entities`, and `nav_warning_schedules`.
+
+### Update: UX Navigation & Interactive Drawer Modernization
+* **Collapsible Floating Warnings Panel**: Dual-mode minimize (44px) and maximize (520px / 75vh mobile) controls for seamless chart exploration.
+* **In-Place Inline Accordions**: Direct warning detail expansion without modal popups.
+* **Bidirectional Sync**: Smooth two-way synchronization between map clicks and warning list items.
+* **Real-Time Data Bank Metrics Strip**: Real-time summary strip tracking active warnings, global coverage, critical alerts, and georeferencing percentage.
+
+---
+
 ## 🏗️ Architecture
 
 The application operates as a full-stack maritime system supporting both Express server runtime (with Vite middleware) and Vercel Serverless / Cron environments:

@@ -627,20 +627,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 });
                 vectorGroup.addLayer(poly);
 
-                // Centroid Metric Badge
-                if (areaSqNm > 0 && centroid[0] !== 0) {
-                  const metricBadge = L.marker(centroid, {
-                    icon: L.divIcon({
-                      className: 'polygon-metric-pill',
-                      html: `<div style="background: rgba(15, 23, 42, 0.88); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 2px 8px; border-radius: 9999px; font-family: monospace; font-size: 10px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.4); pointer-events: auto; cursor: pointer;">${w.source_warning_id || w.warning_id} · ${areaSqNm} sq NM</div>`,
-                      iconSize: [0, 0],
-                      iconAnchor: [45, 10]
-                    }),
-                    pane: 'navWarnVectorPane'
-                  });
-                  metricBadge.on('click', () => onSelectWarning(w));
-                  vectorGroup.addLayer(metricBadge);
-                }
+                // Progressive disclosure: tooltips and selection state handle identification (no permanent clutter badge)
 
                 // Plan Spec 4.1: Hybrid Vertex Handles (Minimal dots by default, V1..Vn pills when selected)
                 latLngs.forEach((latLng, idx) => {

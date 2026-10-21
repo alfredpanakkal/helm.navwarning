@@ -404,7 +404,7 @@ window.toggleAdvancedFilters = function(){
     btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   }
 };
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){toggleDrawerIfOpen();closeWarningModal();} });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){toggleDrawerIfOpen();closeWarningModal();closeMapSettings();closeWarningDrawer();} });
 function toggleDrawerIfOpen(){ if(document.getElementById('drawer')?.classList.contains('open')) toggleDrawer(); }
 
 // ═══════════ MAP & SPATIAL ENGINE ═══════════
@@ -412,10 +412,59 @@ let leafletMap = null;
 let markerLayer = null;
 let pointsLayer = null, polygonsLayer = null, circlesLayer = null, linesLayer = null;
 let currentBaseLayer = null, osmBaseLayer = null, openSeaMapLayer = null, soundingsLayer = null;
-let currentBaseMapId = 'carto-voyager';
+
+const MAP_PREFERENCES_KEY = 'helm_map_preferences_v1';
+const DEFAULT_MAP_PREFERENCES = {
+  baseMap: 'osm',
+  masterOverlays: true,
+  overlays: {
+    points: true,
+    polygons: true,
+    circles: true,
+    lines: true,
+    seamarks: true,
+    soundings: false
+  }
+};
+
+function loadMapPreferences() {
+  try {
+    const raw = localStorage.getItem(MAP_PREFERENCES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          baseMap: parsed.baseMap || 'osm',
+          masterOverlays: parsed.masterOverlays !== false,
+          overlays: { ...DEFAULT_MAP_PREFERENCES.overlays, ...(parsed.overlays || {}) }
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('Map preferences load notice:', e);
+  }
+  return JSON.parse(JSON.stringify(DEFAULT_MAP_PREFERENCES));
+}
+
+function saveMapPreferences(prefs) {
+  try {
+    localStorage.setItem(MAP_PREFERENCES_KEY, JSON.stringify(prefs));
+  } catch (e) {
+    console.warn('Map preferences save notice:', e);
+  }
+}
+
+let mapPreferences = loadMapPreferences();
+let currentBaseMapId = mapPreferences.baseMap || 'osm';
 let currentSelectedNavArea = ''; // Default to Global View (All NAVAREAs)
 
 const BASE_MAP_DEFS = {
+  'osm': {
+    name: 'OpenStreetMap',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors · OpenSeaMap'
+  },
   'carto-voyager': {
     name: 'CARTO Voyager',
     url: '/api/tiles/carto/voyager/{z}/{x}/{y}',
@@ -433,12 +482,6 @@ const BASE_MAP_DEFS = {
     url: '/api/tiles/carto/light_all/{z}/{x}/{y}',
     maxZoom: 19,
     attribution: '© OpenStreetMap contributors · CARTO · OpenSeaMap'
-  },
-  'osm': {
-    name: 'OpenStreetMap',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    maxZoom: 19,
-    attribution: '© OpenStreetMap contributors · OpenSeaMap'
   },
   'esri-ocean': {
     name: 'ESRI Ocean Base',
@@ -547,8 +590,8 @@ function initMap(){
   window.hwMap = leafletMap;
   window.map = leafletMap;
 
-  // Base cartography layer
-  const baseDef = BASE_MAP_DEFS[currentBaseMapId] || BASE_MAP_DEFS['carto-voyager'];
+  // Base cartography layer (defaults to OpenStreetMap)
+  const baseDef = BASE_MAP_DEFS[currentBaseMapId] || BASE_MAP_DEFS['osm'];
   currentBaseLayer = L.tileLayer(baseDef.url, {
     maxZoom: baseDef.maxZoom,
     attribution: baseDef.attribution
@@ -562,23 +605,426 @@ function initMap(){
     attribution: 'Map style: &copy; <a href="http://www.openseamap.org">OpenSeaMap</a>'
   });
   openSeaMapLayer.on('tileerror', function() {});
-  openSeaMapLayer.addTo(leafletMap);
+  if (mapPreferences.overlays.seamarks) {
+    openSeaMapLayer.addTo(leafletMap);
+  }
+
+  // Ocean soundings overlay
+  soundingsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',{
+    attribution: 'Tiles &copy; Esri &mdash; NOAA, GEBCO',
+    maxZoom: 13
+  });
+  if (mapPreferences.overlays.soundings) {
+    soundingsLayer.addTo(leafletMap);
+  }
 
   // Initialize polymorphic vector layer groups
-  polygonsLayer = L.layerGroup().addTo(leafletMap);
-  circlesLayer = L.layerGroup().addTo(leafletMap);
-  linesLayer = L.layerGroup().addTo(leafletMap);
-  pointsLayer = L.layerGroup().addTo(leafletMap);
+  polygonsLayer = L.layerGroup();
+  if (mapPreferences.overlays.polygons) polygonsLayer.addTo(leafletMap);
+
+  circlesLayer = L.layerGroup();
+  if (mapPreferences.overlays.circles) circlesLayer.addTo(leafletMap);
+
+  linesLayer = L.layerGroup();
+  if (mapPreferences.overlays.lines) linesLayer.addTo(leafletMap);
+
+  pointsLayer = L.layerGroup();
+  if (mapPreferences.overlays.points) pointsLayer.addTo(leafletMap);
 
   // Main warning group for backward compatibility
-  markerLayer = L.layerGroup([polygonsLayer, circlesLayer, linesLayer, pointsLayer]).addTo(leafletMap);
+  markerLayer = L.layerGroup([polygonsLayer, circlesLayer, linesLayer, pointsLayer]);
 
+  // Map canvas click clears touch selection, hides title card, and closes settings
+  leafletMap.on('click', () => {
+    clearActiveFeatureHighlight();
+    hideTitleCard(true);
+    closeMapSettings();
+  });
+
+  syncSettingsUI(mapPreferences);
   filterMapByNavArea(currentSelectedNavArea);
 
   const attrEl = document.querySelector('.map-attribution');
   if (attrEl) {
     attrEl.textContent = baseDef.attribution;
   }
+}
+
+// ═══════════ SETTINGS CONTROLLERS & PERSISTENCE ═══════════
+window.syncSettingsUI = function(prefs) {
+  if (!prefs) prefs = mapPreferences;
+  document.querySelectorAll('input[name="basemap-desktop"]').forEach(r => {
+    r.checked = (r.value === prefs.baseMap);
+  });
+  document.querySelectorAll('input[name="basemap-mobile"]').forEach(r => {
+    r.checked = (r.value === prefs.baseMap);
+  });
+
+  const keys = ['points', 'polygons', 'circles', 'lines', 'seamarks', 'soundings'];
+  keys.forEach(k => {
+    const cap = k.charAt(0).toUpperCase() + k.slice(1);
+    const dBox = document.getElementById(`layerToggle${cap}Desktop`);
+    if (dBox) dBox.checked = !!prefs.overlays[k];
+    const mBox = document.getElementById(`layerToggle${cap}Mobile`);
+    if (mBox) mBox.checked = !!prefs.overlays[k];
+  });
+
+  const masterBtnDesk = document.getElementById('masterToggleBtnDesktop');
+  if (masterBtnDesk) {
+    masterBtnDesk.textContent = prefs.masterOverlays ? '[ON]' : '[OFF]';
+    masterBtnDesk.classList.toggle('off', !prefs.masterOverlays);
+  }
+  const masterBtnMob = document.getElementById('masterToggleBtnMobile');
+  if (masterBtnMob) {
+    masterBtnMob.textContent = prefs.masterOverlays ? '[ON]' : '[OFF]';
+    masterBtnMob.classList.toggle('off', !prefs.masterOverlays);
+  }
+};
+
+window.toggleMapSettings = function(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  if (window.__gearLongPressed) {
+    window.__gearLongPressed = false;
+    return;
+  }
+  const isMob = document.body.classList.contains('is-mobile');
+  const btn = document.getElementById('btnMapSettings');
+
+  if (isMob) {
+    const sheet = document.getElementById('mapSettingsSheet');
+    const scrim = document.getElementById('mapSettingsScrim');
+    if (!sheet) return;
+    const isOpen = sheet.classList.toggle('open');
+    if (scrim) scrim.classList.toggle('open', isOpen);
+    if (btn) {
+      btn.classList.toggle('active', isOpen);
+      btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  } else {
+    const pop = document.getElementById('mapSettingsPopover');
+    if (!pop) return;
+    const isOpen = pop.classList.toggle('open');
+    if (btn) {
+      btn.classList.toggle('active', isOpen);
+      btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  }
+};
+
+window.closeMapSettings = function() {
+  const pop = document.getElementById('mapSettingsPopover');
+  if (pop) pop.classList.remove('open');
+  const sheet = document.getElementById('mapSettingsSheet');
+  if (sheet) sheet.classList.remove('open');
+  const scrim = document.getElementById('mapSettingsScrim');
+  if (scrim) scrim.classList.remove('open');
+  const btn = document.getElementById('btnMapSettings');
+  if (btn) {
+    btn.classList.remove('active');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+};
+
+window.toggleMasterOverlays = function() {
+  const nextState = !mapPreferences.masterOverlays;
+  mapPreferences.masterOverlays = nextState;
+
+  const keys = ['points', 'polygons', 'circles', 'lines', 'seamarks', 'soundings'];
+  if (!nextState) {
+    keys.forEach(k => {
+      mapPreferences.overlays[k] = false;
+      window.toggleLayer(k, false, false);
+    });
+  } else {
+    keys.forEach(k => {
+      const enable = k !== 'soundings';
+      mapPreferences.overlays[k] = enable;
+      window.toggleLayer(k, enable, false);
+    });
+  }
+
+  saveMapPreferences(mapPreferences);
+  syncSettingsUI(mapPreferences);
+};
+
+window.resetMapSettingsToDefaults = function() {
+  mapPreferences = JSON.parse(JSON.stringify(DEFAULT_MAP_PREFERENCES));
+  saveMapPreferences(mapPreferences);
+
+  window.selectBaseMap('osm');
+
+  const m = getLeafletMap();
+  if (m) {
+    if (pointsLayer && !m.hasLayer(pointsLayer)) pointsLayer.addTo(m);
+    if (polygonsLayer && !m.hasLayer(polygonsLayer)) polygonsLayer.addTo(m);
+    if (circlesLayer && !m.hasLayer(circlesLayer)) circlesLayer.addTo(m);
+    if (linesLayer && !m.hasLayer(linesLayer)) linesLayer.addTo(m);
+    if (openSeaMapLayer && !m.hasLayer(openSeaMapLayer)) openSeaMapLayer.addTo(m);
+    if (soundingsLayer && m.hasLayer(soundingsLayer)) m.removeLayer(soundingsLayer);
+  }
+
+  syncSettingsUI(mapPreferences);
+  showToast('Map settings reset to defaults');
+};
+
+function attachGearLongPress() {
+  const btn = document.getElementById('btnMapSettings');
+  if (!btn) return;
+  let timer = null;
+  let longPressed = false;
+
+  const startPress = () => {
+    longPressed = false;
+    timer = setTimeout(() => {
+      longPressed = true;
+      window.__gearLongPressed = true;
+      resetMapSettingsToDefaults();
+      btn.classList.add('active');
+      setTimeout(() => btn.classList.remove('active'), 500);
+      setTimeout(() => { window.__gearLongPressed = false; }, 350);
+    }, 500);
+  };
+
+  const cancelPress = (e) => {
+    if (timer) clearTimeout(timer);
+    if (longPressed && e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  btn.addEventListener('mousedown', startPress);
+  btn.addEventListener('touchstart', startPress, { passive: true });
+  btn.addEventListener('mouseup', cancelPress);
+  btn.addEventListener('touchend', cancelPress);
+  btn.addEventListener('mouseleave', cancelPress);
+  btn.addEventListener('touchcancel', cancelPress);
+}
+
+// ═══════════ PROGRESSIVE DISCLOSURE STATE & CONTROLLERS ═══════════
+let activeTouchFeature = null;
+let activeHighlightedLayer = null;
+let currentDrawerWarning = null;
+
+function clearActiveFeatureHighlight() {
+  if (activeHighlightedLayer) {
+    if (typeof activeHighlightedLayer.setStyle === 'function') {
+      const origWeight = activeHighlightedLayer._origWeight || 2;
+      const origColor = activeHighlightedLayer._origColor || '#2563eb';
+      activeHighlightedLayer.setStyle({ weight: origWeight, color: origColor });
+    }
+    if (activeHighlightedLayer._icon) {
+      activeHighlightedLayer._icon.classList.remove('nw-active-selected');
+    }
+  }
+  activeHighlightedLayer = null;
+  activeTouchFeature = null;
+}
+
+function showTitleCard(w, summaryText, mouseEvent, pillColor) {
+  const card = document.getElementById('mapTitleCard');
+  const textEl = document.getElementById('titleCardText');
+  const pillEl = document.getElementById('titleCardPill');
+  const hintEl = document.getElementById('titleCardHint');
+  if (!card || !textEl) return;
+
+  const isMob = document.body.classList.contains('is-mobile');
+  const wid = w.canonical_id || w.warning_id || w.id || 'Notice';
+  let cleanSummary = summaryText || '';
+  if (cleanSummary.startsWith(wid)) {
+    cleanSummary = cleanSummary.slice(wid.length).replace(/^[\s·—–:-]+/, '');
+  }
+  textEl.textContent = cleanSummary ? `${wid} · ${cleanSummary}` : wid;
+  if (pillEl) {
+    pillEl.style.background = pillColor || getWarningColor(w);
+  }
+  if (hintEl) {
+    hintEl.style.display = isMob ? 'inline' : 'none';
+  }
+
+  card.classList.add('show');
+  card.setAttribute('aria-hidden', 'false');
+
+  if (!isMob && mouseEvent) {
+    const mapContainer = document.querySelector('.map-container');
+    const rect = mapContainer ? mapContainer.getBoundingClientRect() : { left: 0, top: 0 };
+    const x = mouseEvent.clientX - rect.left + 16;
+    const y = mouseEvent.clientY - rect.top - 20;
+    const maxX = (mapContainer?.clientWidth || 800) - 280;
+    const maxY = (mapContainer?.clientHeight || 600) - 50;
+    card.style.left = `${Math.max(12, Math.min(x, maxX))}px`;
+    card.style.top = `${Math.max(12, Math.min(y, maxY))}px`;
+    card.style.bottom = 'auto';
+    card.style.right = 'auto';
+  }
+}
+
+function hideTitleCard(force = false) {
+  if (!force && document.body.classList.contains('is-mobile') && activeTouchFeature) {
+    return;
+  }
+  const card = document.getElementById('mapTitleCard');
+  if (card) {
+    card.classList.remove('show');
+    card.setAttribute('aria-hidden', 'true');
+  }
+}
+
+window.handleTitleCardClick = function() {
+  if (activeTouchFeature) {
+    openWarningDetails(activeTouchFeature);
+  } else if (currentDrawerWarning) {
+    openWarningDetails(currentDrawerWarning);
+  }
+};
+
+window.openWarningDetails = function(w) {
+  currentDrawerWarning = w;
+  currentWarning = w;
+  const isMob = document.body.classList.contains('is-mobile');
+  if (isMob) {
+    if (typeof openWarningModal === 'function') {
+      openWarningModal(w);
+    }
+    return;
+  }
+
+  // Desktop Side Drawer
+  const drawer = document.getElementById('warningDetailsDrawer');
+  const body = document.getElementById('drawerDetailsBody');
+  const titleEl = document.getElementById('drawerDetailsTitle');
+  if (!drawer || !body) return;
+
+  const wid = w.canonical_id || w.warning_id || w.id || 'Notice';
+  const navarea = w.navarea || 'NAVAREA';
+  const color = getWarningColor(w);
+  const issuedText = formatWarningIssuedText(w);
+  const text = getBulletinText(w) || w.raw_text || 'No raw bulletin text provided.';
+  const cats = Array.isArray(w.categories) ? w.categories.join(' · ') : (w.category || 'General');
+
+  if (titleEl) {
+    titleEl.textContent = `${wid} — ${navarea}`;
+  }
+
+  body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <span class="badge-simple" style="background:${color}18;color:${color};font-weight:700">
+        <span class="dot" style="background:${color}"></span> ${(w.severity || 'ACTIVE').toUpperCase()}
+      </span>
+      <span class="badge-simple badge-neutral">${cats.toUpperCase()}</span>
+      <span class="badge-simple ${w.is_verified ? 'badge-verified' : 'badge-neutral'}">${w.is_verified ? 'VERIFIED' : 'ACTIVE'}</span>
+    </div>
+
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.5px">Area / Subject</div>
+      <div style="font-weight:600;font-size:14px;color:var(--text);margin-top:2px">${w.title || w.area_text || wid}</div>
+      ${w.area_text && w.area_text !== w.title ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${w.area_text}</div>` : ''}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;background:var(--bg);padding:10px 12px;border-radius:6px;border:1px solid var(--border)">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Issued</div>
+        <div style="font-weight:600;color:var(--text);font-family:ui-monospace,monospace">${issuedText}</div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Coordinates</div>
+        <div style="font-weight:600;color:var(--text);font-family:ui-monospace,monospace">${w.coordinates || w.coords || (w.latitude && w.longitude ? `${Number(w.latitude).toFixed(2)}°, ${Number(w.longitude).toFixed(2)}°` : 'Spatial Vector')}</div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">Raw Bulletin Text</div>
+      <div class="warning-expanded-text" style="max-height:280px">${text}</div>
+    </div>
+  `;
+
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+};
+
+window.closeWarningDrawer = function() {
+  const drawer = document.getElementById('warningDetailsDrawer');
+  if (drawer) {
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden', 'true');
+  }
+};
+
+window.copyCurrentWarningText = function() {
+  if (!currentDrawerWarning) return;
+  const text = getBulletinText(currentDrawerWarning) || currentDrawerWarning.raw_text || '';
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('Warning bulletin copied to clipboard');
+    }).catch(() => {
+      showToast('Copied bulletin text');
+    });
+  } else {
+    showToast('Copied bulletin text');
+  }
+};
+
+function bindProgressiveFeatureInteractions(layer, w, summaryText, color) {
+  const wid = w.canonical_id || w.warning_id || w.id;
+  layer._origWeight = layer.options?.weight || 2;
+  layer._origColor = color;
+
+  // Desktop Hover
+  layer.on('mouseover', (e) => {
+    if (document.body.classList.contains('is-mobile')) return;
+    if (typeof layer.setStyle === 'function') {
+      layer.setStyle({ weight: (layer._origWeight || 2) + 1.5, opacity: 1.0 });
+    }
+    if (layer._icon) {
+      layer._icon.classList.add('nw-active-selected');
+    }
+    showTitleCard(w, summaryText, e.originalEvent, color);
+  });
+
+  layer.on('mousemove', (e) => {
+    if (document.body.classList.contains('is-mobile')) return;
+    showTitleCard(w, summaryText, e.originalEvent, color);
+  });
+
+  layer.on('mouseout', () => {
+    if (document.body.classList.contains('is-mobile')) return;
+    if (typeof layer.setStyle === 'function') {
+      layer.setStyle({ weight: layer._origWeight, opacity: 0.95 });
+    }
+    if (layer._icon) {
+      layer._icon.classList.remove('nw-active-selected');
+    }
+    hideTitleCard();
+  });
+
+  // Click / Touch
+  layer.on('click', (e) => {
+    L.DomEvent.stopPropagation(e);
+    const isMob = document.body.classList.contains('is-mobile');
+
+    if (!isMob) {
+      openWarningDetails(w);
+      return;
+    }
+
+    if (activeTouchFeature && (activeTouchFeature.canonical_id === wid || activeTouchFeature.warning_id === wid || activeTouchFeature.id === wid)) {
+      openWarningDetails(w);
+    } else {
+      clearActiveFeatureHighlight();
+      activeTouchFeature = w;
+      activeHighlightedLayer = layer;
+      if (typeof layer.setStyle === 'function') {
+        layer.setStyle({ weight: (layer._origWeight || 2) + 2, color: '#38bdf8' });
+      }
+      if (layer._icon) {
+        layer._icon.classList.add('nw-active-selected');
+      }
+      showTitleCard(w, summaryText, null, color);
+    }
+  });
 }
 
 // ═══════════ POLYMORPHIC PLOTTING ENGINE ═══════════
@@ -602,7 +1048,7 @@ function getWarningColor(w) {
 }
 
 function buildPopupHtml(w, label, geomType) {
-  const wid = w.warning_id || w.id;
+  const wid = w.canonical_id || w.warning_id || w.id;
   const color = getWarningColor(w);
   const safeTitle = (w.title || wid).replace(/"/g, '&quot;');
   const typeBadge = geomType ? `<span style="font-size:10px;text-transform:uppercase;background:#f1f5f9;color:#475569;padding:1px 5px;border-radius:4px;margin-left:auto">${geomType}</span>` : '';
@@ -619,26 +1065,12 @@ function buildPopupHtml(w, label, geomType) {
       ${label ? `<div style="margin-top:3px;color:var(--text-muted);font-size:11px">${label}</div>` : ''}
       <div style="margin-top:3px;color:var(--text-light);font-size:11px">Issued: ${dateStr}</div>
       <div style="margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:6px">
-        <button type="button" class="btn btn-sm btn-primary" style="font-size:11px;padding:2px 8px;min-height:26px" onclick="locateOnMapById('${encodeURIComponent(wid)}')">
+        <button type="button" class="btn btn-sm btn-primary" style="font-size:11px;padding:2px 8px;min-height:26px" onclick="openWarningDetails(warnings.find(x => (x.canonical_id === '${encodeURIComponent(wid)}' || x.warning_id === '${encodeURIComponent(wid)}' || x.id === '${encodeURIComponent(wid)}')) || currentDrawerWarning)">
           View Details
         </button>
       </div>
     </div>
   `;
-}
-
-function bindFeatureInteractions(layer, w, popupHtml) {
-  layer.bindPopup(popupHtml, { maxWidth: 280 });
-  layer.on('click', () => {
-    const wid = w.warning_id || w.id;
-    const itemEl = Array.from(document.querySelectorAll('.warning-item')).find(el => el.dataset.warningId === wid);
-    if (itemEl) {
-      itemEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      if (!itemEl.classList.contains('expanded')) {
-        toggleInlineWarning(w, itemEl);
-      }
-    }
-  });
 }
 
 function plotWarning(w) {
@@ -725,25 +1157,12 @@ function plotWarning(w) {
             dashArray: isMilitary ? '6, 6' : undefined,
           });
 
-          const popupHtml = buildPopupHtml(w, `${label} · Area: ${areaSqNm} sq NM`, 'Polygon Area');
-          bindFeatureInteractions(poly, w, popupHtml);
+          const summaryText = `${label} · Area: ${areaSqNm} sq NM`;
+          bindProgressiveFeatureInteractions(poly, w, summaryText, color);
 
           if (polygonsLayer) polygonsLayer.addLayer(poly);
           w._layers.push(poly);
           if (!w._primaryLayer) w._primaryLayer = poly;
-
-          // Centroid Badge Marker
-          if (centroid[0] !== 0 || centroid[1] !== 0) {
-            const centroidIcon = L.divIcon({
-              className: 'nw-centroid-wrap',
-              html: `<div class="nw-centroid-badge"><span class="dot" style="background:${color}"></span><span>${wid} · ${areaSqNm} sq NM</span></div>`,
-              iconAnchor: [60, 12],
-            });
-            const centroidMarker = L.marker(centroid, { icon: centroidIcon });
-            centroidMarker.on('click', () => poly.openPopup());
-            if (polygonsLayer) polygonsLayer.addLayer(centroidMarker);
-            w._layers.push(centroidMarker);
-          }
         });
       } catch (polyErr) {
         console.warn('Polygon plot notice:', polyErr);
@@ -774,8 +1193,8 @@ function plotWarning(w) {
         });
 
         const radiusStr = bufferNm >= 1 ? `${bufferNm} NM` : `${Math.round(bufferNm * 1852)}m`;
-        const popupHtml = buildPopupHtml(w, `${label} · Safety Clearance: ${radiusStr}`, 'Safety Zone');
-        bindFeatureInteractions(circle, w, popupHtml);
+        const summaryText = `${label} · Safety Clearance: ${radiusStr}`;
+        bindProgressiveFeatureInteractions(circle, w, summaryText, circleColor);
 
         if (circlesLayer) circlesLayer.addLayer(circle);
         w._layers.push(circle);
@@ -789,8 +1208,7 @@ function plotWarning(w) {
           weight: 1.5,
           fillOpacity: 1.0,
         });
-        centerCrosshair.bindTooltip(`Center: ${centerLat.toFixed(2)}°, ${centerLng.toFixed(2)}° (${radiusStr} radius)`);
-        centerCrosshair.on('click', () => circle.openPopup());
+        bindProgressiveFeatureInteractions(centerCrosshair, w, summaryText, circleColor);
         if (circlesLayer) circlesLayer.addLayer(centerCrosshair);
         w._layers.push(centerCrosshair);
       } catch (circErr) {
@@ -812,6 +1230,8 @@ function plotWarning(w) {
           if (!Array.isArray(latLngs) || latLngs.length < 2) return;
           latLngs.forEach(c => allCoordsForBounds.push(c));
 
+          const summaryText = bufferNm > 0 ? `${label} · Swath: ${bufferNm * 2} NM` : `${label} · Track Corridor`;
+
           // Wide translucent corridor swath underlay if corridor has half width
           if (bufferNm > 0) {
             const swath = L.polyline(latLngs, {
@@ -819,6 +1239,7 @@ function plotWarning(w) {
               weight: Math.min(24, Math.max(8, bufferNm * 6)),
               opacity: 0.25,
             });
+            bindProgressiveFeatureInteractions(swath, w, summaryText, '#06b6d4');
             if (linesLayer) linesLayer.addLayer(swath);
             w._layers.push(swath);
           }
@@ -830,21 +1251,20 @@ function plotWarning(w) {
             dashArray: '6, 4',
           });
 
-          const popupHtml = buildPopupHtml(w, label, bufferNm > 0 ? `Corridor (${bufferNm} NM)` : 'Subsea Line');
-          bindFeatureInteractions(mainLine, w, popupHtml);
+          bindProgressiveFeatureInteractions(mainLine, w, summaryText, '#0891b2');
 
           if (linesLayer) linesLayer.addLayer(mainLine);
           w._layers.push(mainLine);
           if (!w._primaryLayer) w._primaryLayer = mainLine;
 
-          // Terminus markers (A and B)
+          // Termini markers (A and B) without permanent cluttering tooltips
           const pA = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="nw-terminus-pin">A</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
           const pB = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="nw-terminus-pin">B</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
 
-          const markA = L.marker(latLngs[0], { icon: pA }).bindTooltip(`Origin A: ${label}`);
-          const markB = L.marker(latLngs[latLngs.length - 1], { icon: pB }).bindTooltip(`Terminus B: ${label}`);
-          markA.on('click', () => mainLine.openPopup());
-          markB.on('click', () => mainLine.openPopup());
+          const markA = L.marker(latLngs[0], { icon: pA });
+          const markB = L.marker(latLngs[latLngs.length - 1], { icon: pB });
+          bindProgressiveFeatureInteractions(markA, w, summaryText, '#0891b2');
+          bindProgressiveFeatureInteractions(markB, w, summaryText, '#0891b2');
 
           if (linesLayer) {
             linesLayer.addLayer(markA);
@@ -878,9 +1298,8 @@ function plotWarning(w) {
             iconAnchor: [11, 11]
           });
           const rigMarker = L.marker(pos, { icon: rigIcon });
-          const popupHtml = buildPopupHtml(w, label, 'Offshore Platform');
-          bindFeatureInteractions(rigMarker, w, popupHtml);
-          rigMarker.bindTooltip(label, { direction: 'top', offset: [0, -10] });
+          const summaryText = `${label} · Offshore Platform`;
+          bindProgressiveFeatureInteractions(rigMarker, w, summaryText, '#059669');
 
           if (pointsLayer) pointsLayer.addLayer(rigMarker);
           w._layers.push(rigMarker);
@@ -907,8 +1326,8 @@ function plotWarning(w) {
             fillOpacity: 0.95,
           });
 
-          const popupHtml = buildPopupHtml(w, label, 'Point Hazard');
-          bindFeatureInteractions(pointMarker, w, popupHtml);
+          const summaryText = `${label} · Point Hazard`;
+          bindProgressiveFeatureInteractions(pointMarker, w, summaryText, color);
 
           if (pointsLayer) pointsLayer.addLayer(pointMarker);
           w._layers.push(pointMarker);
@@ -1718,8 +2137,10 @@ let currentWarning, toastTimeout, previousFocusedElement = null;
 window.openWarningModal = async function(w){
   previousFocusedElement = document.activeElement;
   currentWarning=w;
+  currentDrawerWarning=w;
   const modalOverlay = document.getElementById('warningModal');
-  document.getElementById('modalTitle').textContent=`${w.warning_id || w.id} — ${w.navarea}`;
+  const wid = w.canonical_id || w.warning_id || w.id || 'Notice';
+  document.getElementById('modalTitle').textContent=`${wid} — ${w.navarea || 'NAVAREA'}`;
   document.getElementById('modalBody').innerHTML=`
     <div class="detail-row"><div class="detail-label">Severity</div><div class="detail-value">${badge(w.severity==='high'?'high':w.severity==='critical'?'critical':'moderate',w.severity.toUpperCase())}</div></div>
     <div class="detail-row"><div class="detail-label">Issued</div><div class="detail-value">${formatWarningIssuedText(w)}</div></div>
@@ -1796,5 +2217,18 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   detectDevice();
   initMap();
   populateSources();
+  attachGearLongPress();
   await loadWarnings();
 });
+
+// Click outside to dismiss desktop settings popover
+document.addEventListener('click', (e) => {
+  const popover = document.getElementById('mapSettingsPopover');
+  const btn = document.getElementById('btnMapSettings');
+  if (popover && popover.classList.contains('open')) {
+    if (!popover.contains(e.target) && !btn?.contains(e.target)) {
+      closeMapSettings();
+    }
+  }
+});
+
