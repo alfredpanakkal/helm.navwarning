@@ -57,15 +57,23 @@ export function mapSupabaseRowToNavWarning(
   // 1) Geometry from geojson_blob (nav_warnings_active_spatial view row)
   let spatial: any = null;
   if (row.geojson_blob && typeof row.geojson_blob === 'object' && row.geojson_blob.type) {
+    const isPointWithBuffer = (row.geojson_blob.type === 'Point' || row.feature_type === 'POINT') && Number(row.buffer_nm) > 0;
     spatial = {
       geometries: [
         {
           type: row.geojson_blob.type,
           coordinates: row.geojson_blob.coordinates,
           label: row.zone_label || row.title || canonicalId,
+          buffer_nm: Number(row.buffer_nm) || 0,
         },
       ],
-      circles: [],
+      circles: isPointWithBuffer ? [
+        {
+          center: row.geojson_blob.coordinates,
+          radius_nm: Number(row.buffer_nm),
+          label: row.zone_label || row.title || canonicalId,
+        }
+      ] : [],
       raw_coordinate_text: [],
       validation_status: 'passed',
     };
@@ -73,9 +81,20 @@ export function mapSupabaseRowToNavWarning(
 
   // 2) Geometry pre-grouped by fetchActiveSpatialRows (one warning, many geometries)
   if ((!spatial || spatial.geometries.length === 0) && Array.isArray(row._geometries) && row._geometries.length > 0) {
+    const circles: any[] = [];
+    row._geometries.forEach((g: any) => {
+      if ((g.type === 'Point' || g.feature_type === 'POINT') && Number(g.buffer_nm) > 0) {
+        circles.push({
+          center: g.coordinates,
+          radius_nm: Number(g.buffer_nm),
+          label: g.label || row.title || canonicalId,
+        });
+      }
+    });
+
     spatial = {
       geometries: row._geometries,
-      circles: [],
+      circles,
       raw_coordinate_text: [],
       validation_status: 'passed',
     };
@@ -106,6 +125,49 @@ export function mapSupabaseRowToNavWarning(
 
   if (!spatial) {
     spatial = { geometries: [], circles: [], raw_coordinate_text: [], validation_status: 'not_present' };
+  }
+
+  // Calculate representative anchor latitude & longitude coordinates
+  let repLat: number | null = null;
+  let repLng: number | null = null;
+  if (spatial.circles && spatial.circles.length > 0) {
+    repLng = spatial.circles[0].center[0];
+    repLat = spatial.circles[0].center[1];
+  } else if (spatial.geometries && spatial.geometries.length > 0) {
+    for (const g of spatial.geometries) {
+      if (g.type === 'Point' && Array.isArray(g.coordinates)) {
+        repLng = g.coordinates[0];
+        repLat = g.coordinates[1];
+        break;
+      } else if ((g.type === 'Polygon' || g.type === 'MultiPolygon') && Array.isArray(g.coordinates)) {
+        const ring = g.type === 'Polygon' ? g.coordinates[0] : g.coordinates[0]?.[0];
+        if (Array.isArray(ring) && ring.length > 0) {
+          let sLat = 0, sLng = 0, cnt = 0;
+          for (const pt of ring) {
+            if (Array.isArray(pt) && typeof pt[0] === 'number' && typeof pt[1] === 'number') {
+              sLng += pt[0];
+              sLat += pt[1];
+              cnt++;
+            }
+          }
+          if (cnt > 0) {
+            repLat = sLat / cnt;
+            repLng = sLng / cnt;
+            break;
+          }
+        }
+      } else if ((g.type === 'LineString' || g.type === 'MultiLineString') && Array.isArray(g.coordinates)) {
+        const coords = g.type === 'LineString' ? g.coordinates : g.coordinates[0];
+        if (Array.isArray(coords) && coords.length > 0) {
+          const mid = coords[Math.floor(coords.length / 2)];
+          if (Array.isArray(mid)) {
+            repLng = mid[0];
+            repLat = mid[1];
+            break;
+          }
+        }
+      }
+    }
   }
 
   return {
@@ -139,8 +201,8 @@ export function mapSupabaseRowToNavWarning(
     authority: row.authority || null,
     sub_area: row.sub_area || null,
     risk_level: null,
-    latitude: null,
-    longitude: null,
+    latitude: repLat,
+    longitude: repLng,
     valid_until: row.valid_to || null,
     validity: null,
     charts: null,

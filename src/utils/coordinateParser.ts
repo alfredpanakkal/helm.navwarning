@@ -447,19 +447,73 @@ export function parseCoordinatesDeterministic(
 
   let hemisphereAmbiguousFound = ambiguousPositions.length > 0;
 
-  // 1. Check for Multi-Area Lettered Sub-blocks (e.g. (A), (B), (C), (D) as in NAVWARN 977/26)
-  const subAreaRegex = /\(([A-Z])\)\s*([^()]+(?:,|\s)[^()]+(?:\([^)]+\))?)/gi;
-  let subMatch;
-  let subAreaCount = 0;
-  const subBlocks: { label: string; text: string }[] = [];
+  // 1. Check for Multi-Area / Sector / Sub-Area / Rig Sub-blocks
+  // Matches:
+  // - (A), (B), (C)...
+  // - AREA A, AREA 1, AREA ALFA, AREA BRAVO...
+  // - SECTOR 1, SECTOR A, SECTOR ALFA...
+  // - SUB-AREA 1, SUB-AREA A, ZONE 1, ZONE A...
+  // - FIRING AREA 1, DANGER AREA A...
+  // - Rig entries: "A. RIG_NAME ...", "1. RIG_NAME ..." or "RIG <name> ... IN <coords>"
+  const subBlocks: { label: string; text: string; isRig?: boolean; statedRadius?: number }[] = [];
 
-  while ((subMatch = subAreaRegex.exec(sanitizedText)) !== null) {
-    subAreaCount++;
-    subBlocks.push({ label: subMatch[1], text: subMatch[2] });
+  // Match structured area/sector/sub-area/zone boundaries
+  const subAreaHeaderRegex = /(?:^|\n|;\s+)(?:(?:(?:SUB-AREA|SUB\s+AREA|AREA|SECTOR|ZONE|FIRING\s+AREA|DANGER\s+AREA|DROP\s+ZONE)\s+([A-Z0-9]+|\([A-Z0-9]+\)|ALFA|BRAVO|CHARLIE|DELTA|ECHO|FOXTROT|GOLF|HOTEL|INDIA|JULIETT|KILO|LIMA|MIKE|NOVEMBER|OSCAR|PAPA|QUEBEC|ROMEO|SIERRA|TANGO|UNIFORM|VICTOR|WHISKEY|XRAY|YANKEE|ZULU)\b)|(?:\(([A-Z0-9]+)\))|(?:([A-Z0-9])\.\s+(?=[A-Z0-9'"])))/gi;
+
+  const blockMatches: { label: string; index: number; fullMatch: string }[] = [];
+  let headerMatch: RegExpExecArray | null;
+
+  while ((headerMatch = subAreaHeaderRegex.exec(sanitizedText)) !== null) {
+    const rawLabel = (headerMatch[1] || headerMatch[2] || headerMatch[3] || '').trim();
+    if (rawLabel) {
+      let cleanLabel = rawLabel;
+      if (headerMatch[0].toUpperCase().includes('SECTOR')) cleanLabel = `Sector ${rawLabel}`;
+      else if (headerMatch[0].toUpperCase().includes('SUB-AREA') || headerMatch[0].toUpperCase().includes('SUB AREA')) cleanLabel = `Sub-Area ${rawLabel}`;
+      else if (headerMatch[0].toUpperCase().includes('ZONE')) cleanLabel = `Zone ${rawLabel}`;
+      else if (headerMatch[0].toUpperCase().includes('FIRING')) cleanLabel = `Firing Area ${rawLabel}`;
+      else cleanLabel = `Area ${rawLabel}`;
+
+      blockMatches.push({
+        label: cleanLabel,
+        index: headerMatch.index,
+        fullMatch: headerMatch[0],
+      });
+    }
+  }
+
+  // Also check if text is a RIGLIST or offshore rig warning with multiple rigs
+  const isRigWarning = /\b(?:RIGLIST|RIG\s+LIST|DRILLING\s+RIGS?|MOBILE\s+OIL\s+RIGS?|MODU|DRILLSHIP)\b/i.test(upperText);
+  if (isRigWarning && blockMatches.length < 2) {
+    const rigLineRegex = /(?:^|\n)\s*(?:([A-Z0-9]+)\.\s+|NEW\s+)?([A-Z0-9 .&'-]+?)\s+(\d{1,3}[-°\s]+\d{1,2}(?:\.\d+)?[NS][\s,]+\d{1,3}[-°\s]+\d{1,2}(?:\.\d+)?[EW])/gi;
+    let rigMatch: RegExpExecArray | null;
+    while ((rigMatch = rigLineRegex.exec(sanitizedText)) !== null) {
+      const rigName = (rigMatch[2] || 'Rig').replace(/^(?:RIG|MODU|DRILLSHIP)\s+/i, '').trim();
+      if (rigName.length >= 3 && !/^(?:NAVAREA|NOTES?|CORRECT\s+AT)/i.test(rigName)) {
+        subBlocks.push({
+          label: `Rig: ${rigName}`,
+          text: rigMatch[0],
+          isRig: true,
+          statedRadius: 0.27, // 500m safety exclusion zone
+        });
+      }
+    }
+  }
+
+  if (blockMatches.length >= 2) {
+    for (let i = 0; i < blockMatches.length; i++) {
+      const curr = blockMatches[i];
+      const start = curr.index;
+      const end = i + 1 < blockMatches.length ? blockMatches[i + 1].index : sanitizedText.length;
+      const textChunk = sanitizedText.slice(start, end).trim();
+      subBlocks.push({
+        label: curr.label,
+        text: textChunk,
+      });
+    }
   }
 
   if (subBlocks.length > 0) {
-    evidenceTrail.push({ rule: 'MULTI_AREA_SUB_BLOCKS_DETECTED', matched_text: `Found ${subBlocks.length} lettered sub-areas` });
+    evidenceTrail.push({ rule: 'MULTI_AREA_SUB_BLOCKS_DETECTED', matched_text: `Found ${subBlocks.length} distinct sub-areas / sectors / rigs` });
     
     for (const block of subBlocks) {
       const coordPattern = /(\d{1,3}(?:[°\s\-]|Â°)+\d{1,2}(?:\.\d+)?[^\d,]*[NS][\s,]+\d{1,3}(?:[°\s\-]|Â°)+\d{1,2}(?:\.\d+)?[^\d,]*[EW]|\d{1,3}\.\d+\s*[NS]?[\s,]+\d{1,3}\.\d+\s*[EW]?)/gi;
@@ -477,6 +531,18 @@ export function parseCoordinatesDeterministic(
         }
       }
 
+      // Check for block-specific radius or safety clearance
+      const blockRadiusMatch = block.text.match(/(?:WITHIN|RADIUS(?:\s+OF)?|CLEARANCE(?:\s+OF)?|SAFETY\s+ZONE(?:\s+OF)?)\s+(\d+(?:\.\d+)?)\s*(NM|NAUTICAL\s+MILES?|METERS?|M\b)?/i);
+      let blockRadius = block.statedRadius || 0;
+      if (blockRadiusMatch) {
+        const val = parseFloat(blockRadiusMatch[1]);
+        const unit = (blockRadiusMatch[2] || '').toUpperCase();
+        blockRadius = /METERS?|M\b/.test(unit) ? val / 1852 : val;
+      } else if (block.isRig || /\b(?:RIG|MODU|DRILLSHIP|PLATFORM)\b/i.test(block.text)) {
+        blockRadius = 0.27; // 500m
+      }
+
+      // Case 1: Polygon Area (3+ coordinates)
       if (groupCoords.length >= 3) {
         const polyCoords = [...groupCoords];
         const first = polyCoords[0];
@@ -485,7 +551,7 @@ export function parseCoordinatesDeterministic(
           polyCoords.push(first); // Close explicitly
         }
 
-        const groupId = `group-${block.label}-${Math.random().toString(36).substr(2, 6)}`;
+        const groupId = `group-${block.label.replace(/\s+/g, '-')}-${Math.random().toString(36).substr(2, 6)}`;
         spatialGroups.push({
           group_id: groupId,
           group_label: block.label,
@@ -493,19 +559,72 @@ export function parseCoordinatesDeterministic(
           relationship: 'BOUNDED_BY',
           roles: groupRoles,
           sequence: polyCoords.map((_, i) => i + 1),
-          evidence: [{ rule: 'LETTERED_SUB_BLOCK_POLYGON', matched_text: `Area (${block.label})` }],
+          evidence: [{ rule: 'SUB_BLOCK_POLYGON', matched_text: block.label }],
         });
 
         geometries.push({
           type: 'Polygon',
           semantic_type: 'POLYGON',
           coordinates: [polyCoords],
-          label: `Area (${block.label})`,
+          label: block.label,
           inference_mode: 'EXPLICIT',
           confidence_level: 'VERIFIED',
           spatial_group_id: groupId,
           group_label: block.label,
-          evidence: [{ rule: 'STRONG_POLYGON_INDICATOR', matched_text: 'AREAS BOUNDED BY' }],
+          evidence: [{ rule: 'STRONG_POLYGON_INDICATOR', matched_text: block.label }],
+        });
+      }
+      // Case 2: Circle / Point with Radius
+      else if (groupCoords.length >= 1 && blockRadius > 0) {
+        const center = groupCoords[0];
+        circles.push({
+          center,
+          radius_nm: blockRadius,
+          label: `${block.label} (${blockRadius >= 1 ? blockRadius.toFixed(1) : (blockRadius * 1852).toFixed(0) + 'm'} Safety Zone)`,
+        });
+        geometries.push({
+          type: 'Circle',
+          semantic_type: 'POINT_WITH_RADIUS',
+          coordinates: center,
+          radius_nm: blockRadius,
+          label: `${block.label} (${blockRadius >= 1 ? blockRadius.toFixed(1) + ' NM' : (blockRadius * 1852).toFixed(0) + 'm'})`,
+          inference_mode: 'EXPLICIT',
+          confidence_level: 'VERIFIED',
+          evidence: [{ rule: 'EXPLICIT_RADIUS_STATEMENT', matched_text: block.text.slice(0, 50) }],
+        });
+        // Also add center point for clear marker/pin representation
+        geometries.push({
+          type: 'Point',
+          semantic_type: 'POINT',
+          coordinates: center,
+          label: block.label,
+          inference_mode: 'EXPLICIT',
+          confidence_level: 'VERIFIED',
+          evidence: [{ rule: 'SUB_BLOCK_CENTER_POINT', matched_text: block.label }],
+        });
+      }
+      // Case 3: Line / Corridor
+      else if (groupCoords.length >= 2 && /(?:LINE|TRACK|ROUTE|CABLE|PIPELINE|JOINING)/i.test(block.text)) {
+        geometries.push({
+          type: 'LineString',
+          semantic_type: 'LINE',
+          coordinates: groupCoords,
+          label: block.label,
+          inference_mode: 'EXPLICIT',
+          confidence_level: 'VERIFIED',
+          evidence: [{ rule: 'SUB_BLOCK_LINE', matched_text: block.label }],
+        });
+      }
+      // Case 4: Single Point Hazard
+      else if (groupCoords.length >= 1) {
+        geometries.push({
+          type: 'Point',
+          semantic_type: 'POINT',
+          coordinates: groupCoords[0],
+          label: block.label,
+          inference_mode: 'EXPLICIT',
+          confidence_level: 'VERIFIED',
+          evidence: [{ rule: 'SUB_BLOCK_POINT', matched_text: block.label }],
         });
       }
     }

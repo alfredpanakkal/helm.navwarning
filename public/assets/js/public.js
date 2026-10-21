@@ -1,13 +1,281 @@
 // ═══════════ STATE ═══════════
 let warnings = [];
 
-// Seed fallback data if Supabase is empty or offline
+// Seed fallback data if Supabase is empty or offline (demonstrating points, polygons, circles, corridors)
 const SEED_WARNINGS = [
- {id:"0142/26",navarea:"NA I",title:"North Sea, Dogger Bank — UXO",severity:"high",issued:"2026-09-12",issued_text:"121000 UTC SEP 2026",coords:"55.24, 3.75",lat:55.24,lng:3.75,status:"active",category:"military",text:"NAVAREA I 0142/26 NORTH SEA, DOGGER BANK. UNEXPLODED ORDNANCE (UXO) LOCATED. VESSELS ADVISED TO MAINTAIN SAFE DISTANCE.",is_verified:false},
- {id:"0140/26",navarea:"NA I",title:"English Channel — Drifting Container",severity:"high",issued:"2026-09-10",issued_text:"100830 UTC SEP 2026",coords:"50.92, 1.38",lat:50.92,lng:1.38,status:"active",category:"drifting",text:"NAVAREA I 0140/26 ENGLISH CHANNEL, DOVER STRAIT. DRIFTING CONTAINER IN 50-55.4N 001-22.8E. NAVIGATION HAZARD.",is_verified:false},
- {id:"0812/26",navarea:"NA IV",title:"W. North Atlantic — Rocket Launch",severity:"high",issued:"2026-09-11",issued_text:"111400 UTC SEP 2026",coords:"28.58, -80.50",lat:28.58,lng:-80.50,status:"active",category:"military",text:"NAVAREA IV 0812/26 WESTERN NORTH ATLANTIC. HAZARDOUS OPERATIONS, ROCKET LAUNCHING. AREA BOUNDED BY 28-35N 080-30W.",is_verified:true},
- {id:"0095/26",navarea:"NA III",title:"Mediterranean — Military Exercise",severity:"high",issued:"2026-09-13",issued_text:"130915 UTC SEP 2026",coords:"35.97, -5.33",lat:35.97,lng:-5.33,status:"active",category:"military",text:"NAVAREA III 0095/26 MEDITERRANEAN. MILITARY EXERCISE IN PROGRESS.",is_verified:true},
- {id:"0311/26",navarea:"NA X",title:"Australian Waters — Hazard",severity:"high",issued:"2026-09-14",issued_text:"140200 UTC SEP 2026",coords:"-16.75, 148.21",lat:-16.75,lng:148.21,status:"active",category:"general",text:"NAVAREA X 0311/26 AUSTRALIAN WATERS. HAZARD REPORTED.",is_verified:false}
+  {
+    id:"0180/26",
+    navarea:"NA I",
+    title:"North Sea — Mobile Offshore Drilling Units (MODU)",
+    severity:"high",
+    issued:"2026-09-15",
+    issued_text:"151000 UTC SEP 2026",
+    coords:"57.10, 1.50",
+    lat:57.10,
+    lng:1.50,
+    status:"active",
+    category:"offshore",
+    buffer_nm: 0.27,
+    geometries: [
+      {
+        feature_type: "POINT",
+        buffer_nm: 0,
+        zone_label: "Rig: VALARIS 120",
+        is_rig: true,
+        geojson_blob: { type: "Point", coordinates: [3.21, 56.19] }
+      },
+      {
+        feature_type: "POINT",
+        buffer_nm: 0.27,
+        zone_label: "500m Safety Zone - VALARIS 120",
+        is_rig: true,
+        geojson_blob: { type: "Point", coordinates: [3.21, 56.19] }
+      },
+      {
+        feature_type: "POINT",
+        buffer_nm: 0,
+        zone_label: "Rig: NOBLE PROSPECT",
+        is_rig: true,
+        geojson_blob: { type: "Point", coordinates: [1.31, 57.75] }
+      },
+      {
+        feature_type: "POINT",
+        buffer_nm: 0.27,
+        zone_label: "500m Safety Zone - NOBLE PROSPECT",
+        is_rig: true,
+        geojson_blob: { type: "Point", coordinates: [1.31, 57.75] }
+      },
+      {
+        feature_type: "POINT",
+        buffer_nm: 0,
+        zone_label: "Rig: STENA DON",
+        is_rig: true,
+        geojson_blob: { type: "Point", coordinates: [0.81, 58.20] }
+      },
+      {
+        feature_type: "POINT",
+        buffer_nm: 0.27,
+        zone_label: "500m Safety Zone - STENA DON",
+        is_rig: true,
+        geojson_blob: { type: "Point", coordinates: [0.81, 58.20] }
+      },
+      {
+        feature_type: "POINT",
+        buffer_nm: 0,
+        zone_label: "Rig: OCEAN ENDEAVOR",
+        is_rig: true,
+        geojson_blob: { type: "Point", coordinates: [0.85, 57.24] }
+      },
+      {
+        feature_type: "POINT",
+        buffer_nm: 0.27,
+        zone_label: "500m Safety Zone - OCEAN ENDEAVOR",
+        is_rig: true,
+        geojson_blob: { type: "Point", coordinates: [0.85, 57.24] }
+      }
+    ],
+    text:"NAVAREA I 0180/26 NORTH SEA. RIGS IN OFFSHORE SECTOR:\n1. DRILLING RIGS ESTABLISHED:\nA. VALARIS 120 56-11.4N 003-12.8E\nB. NOBLE PROSPECT 57-45.2N 001-18.4E\nC. STENA DON 58-12.0N 000-48.5E\nD. OCEAN ENDEAVOR 57-14.2N 000-51.1E\n2. 500 METRES SAFETY ZONE IN FORCE AROUND EACH RIG. WIDE BERTH REQUESTED.",
+    is_verified:true
+  },
+  {
+    id:"0215/26",
+    navarea:"NA I",
+    title:"Scotland East Coast — Multi-Sector Firing Exercises",
+    severity:"critical",
+    issued:"2026-09-14",
+    issued_text:"140800 UTC SEP 2026",
+    coords:"56.85, -1.50",
+    lat:56.85,
+    lng:-1.50,
+    status:"active",
+    category:"military",
+    geometries: [
+      {
+        feature_type: "POLYGON",
+        zone_label: "Area Alfa (Firing Danger Area)",
+        geojson_blob: {
+          type: "Polygon",
+          coordinates: [[
+            [-1.33, 57.17],
+            [-0.67, 57.17],
+            [-0.67, 57.50],
+            [-1.33, 57.50],
+            [-1.33, 57.17]
+          ]]
+        }
+      },
+      {
+        feature_type: "POLYGON",
+        zone_label: "Area Bravo (Missile Danger Area)",
+        geojson_blob: {
+          type: "Polygon",
+          coordinates: [[
+            [-1.83, 56.67],
+            [-1.17, 56.67],
+            [-1.17, 57.00],
+            [-1.83, 57.00],
+            [-1.83, 56.67]
+          ]]
+        }
+      },
+      {
+        feature_type: "POINT",
+        buffer_nm: 5.0,
+        zone_label: "Sector Charlie (5 NM Safety Zone)",
+        geojson_blob: { type: "Point", coordinates: [-2.08, 56.25] }
+      },
+      {
+        feature_type: "POINT",
+        buffer_nm: 0,
+        zone_label: "Sector Charlie Center Point",
+        geojson_blob: { type: "Point", coordinates: [-2.08, 56.25] }
+      }
+    ],
+    text:"NAVAREA I 0215/26 SCOTLAND, EAST COAST. FIRING EXERCISES.\n1. HAZARDOUS AREAS ESTABLISHED:\nAREA ALFA BOUNDED BY: 57-10.0N 001-20.0W, 57-10.0N 000-40.0W, 57-30.0N 000-40.0W, 57-30.0N 001-20.0W.\nAREA BRAVO BOUNDED BY: 56-40.0N 001-50.0W, 56-40.0N 001-10.0W, 57-00.0N 001-10.0W, 57-00.0N 001-50.0W.\nSECTOR CHARLIE (SAFETY ZONE): 56-15.0N 002-05.0W RADIUS 5 NM.\n2. ALL VESSELS IN VICINITY KEEP CLEAR.",
+    is_verified:true
+  },
+  {
+   id:"0142/26",
+   navarea:"NA I",
+   title:"North Sea, Dogger Bank — UXO Clearance",
+   severity:"critical",
+   issued:"2026-09-12",
+   issued_text:"121000 UTC SEP 2026",
+   coords:"55.24, 3.75",
+   lat:55.24,
+   lng:3.75,
+   status:"active",
+   category:"military",
+   buffer_nm: 1.5,
+   feature_type: "POINT",
+   geometries: [
+     {
+       feature_type: "POINT",
+       buffer_nm: 1.5,
+       zone_label: "UXO Safety Zone",
+       geojson_blob: { type: "Point", coordinates: [3.75, 55.24] }
+     }
+   ],
+   text:"NAVAREA I 0142/26 NORTH SEA, DOGGER BANK. UNEXPLODED ORDNANCE (UXO) LOCATED IN 55-14.4N 003-45.0E. 1.5 NM SAFETY CLEARANCE ZONE ESTABLISHED. VESSELS ADVISED TO MAINTAIN SAFE DISTANCE.",
+   is_verified:true
+ },
+ {
+   id:"0140/26",
+   navarea:"NA I",
+   title:"English Channel — Drifting Container",
+   severity:"high",
+   issued:"2026-09-10",
+   issued_text:"100830 UTC SEP 2026",
+   coords:"50.92, 1.38",
+   lat:50.92,
+   lng:1.38,
+   status:"active",
+   category:"drifting",
+   buffer_nm: 0,
+   feature_type: "POINT",
+   geometries: [
+     {
+       feature_type: "POINT",
+       buffer_nm: 0,
+       zone_label: "Drifting Container",
+       geojson_blob: { type: "Point", coordinates: [1.38, 50.92] }
+     }
+   ],
+   text:"NAVAREA I 0140/26 ENGLISH CHANNEL, DOVER STRAIT. DRIFTING CONTAINER IN 50-55.4N 001-22.8E. NAVIGATION HAZARD.",
+   is_verified:false
+ },
+ {
+   id:"0812/26",
+   navarea:"NA IV",
+   title:"W. North Atlantic — Rocket Launch Danger Area",
+   severity:"critical",
+   issued:"2026-09-11",
+   issued_text:"111400 UTC SEP 2026",
+   coords:"28.29, -80.12",
+   lat:28.29,
+   lng:-80.12,
+   status:"active",
+   category:"military",
+   feature_type: "POLYGON",
+   geometries: [
+     {
+       feature_type: "POLYGON",
+       buffer_nm: 0,
+       zone_label: "Rocket Drop Zone Alpha",
+       geojson_blob: {
+         type: "Polygon",
+         coordinates: [[
+           [-80.50, 28.58],
+           [-79.75, 28.58],
+           [-79.75, 28.00],
+           [-80.50, 28.00],
+           [-80.50, 28.58]
+         ]]
+       }
+     }
+   ],
+   text:"NAVAREA IV 0812/26 WESTERN NORTH ATLANTIC. HAZARDOUS OPERATIONS, ROCKET LAUNCHING. AREA BOUNDED BY 28-35N 080-30W, 28-35N 079-45W, 28-00N 079-45W, 28-00N 080-30W. EXCLUSION ZONE IN EFFECT.",
+   is_verified:true
+ },
+ {
+   id:"0095/26",
+   navarea:"NA III",
+   title:"Mediterranean — Military Exercise Safety Zone",
+   severity:"high",
+   issued:"2026-09-13",
+   issued_text:"130915 UTC SEP 2026",
+   coords:"35.97, -5.33",
+   lat:35.97,
+   lng:-5.33,
+   status:"active",
+   category:"military",
+   buffer_nm: 10.0,
+   feature_type: "POINT",
+   geometries: [
+     {
+       feature_type: "POINT",
+       buffer_nm: 10.0,
+       zone_label: "Naval Gunnery Safety Zone (10 NM)",
+       geojson_blob: { type: "Point", coordinates: [-5.33, 35.97] }
+     }
+   ],
+   text:"NAVAREA III 0095/26 MEDITERRANEAN. MILITARY EXERCISE IN PROGRESS. 10 NM RADIUS SAFETY CLEARANCE ZONE AROUND 35-58N 005-20W. ALL MARINERS KEEP CLEAR.",
+   is_verified:true
+ },
+ {
+   id:"0311/26",
+   navarea:"NA X",
+   title:"Australian Waters, Coral Sea — Subsea Cable Corridor",
+   severity:"high",
+   issued:"2026-09-14",
+   issued_text:"140200 UTC SEP 2026",
+   coords:"-17.12, 148.65",
+   lat:-17.12,
+   lng:148.65,
+   status:"active",
+   category:"verified",
+   feature_type: "CORRIDOR",
+   buffer_nm: 2.0,
+   corridor_half_width_nm: 2.0,
+   geometries: [
+     {
+       feature_type: "CORRIDOR",
+       buffer_nm: 2.0,
+       corridor_half_width_nm: 2.0,
+       zone_label: "Submarine Cable Laying Track",
+       geojson_blob: {
+         type: "LineString",
+         coordinates: [
+           [148.21, -16.75],
+           [148.80, -17.20],
+           [149.30, -17.80]
+         ]
+       }
+     }
+   ],
+   text:"NAVAREA X 0311/26 AUSTRALIAN WATERS, CORAL SEA. SUBMARINE CABLE INSTALLATION OPERATIONS ALONG TRACK JOINING 16-45.0S 148-12.6E, 17-12.0S 148-48.0E, 17-48.0S 149-18.0E. WIDE BERTH 2 NM REQUESTED.",
+   is_verified:false
+ }
 ];
 
 // ═══════════ BULLETIN & DATE HELPERS ═══════════
@@ -139,11 +407,13 @@ window.toggleAdvancedFilters = function(){
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){toggleDrawerIfOpen();closeWarningModal();} });
 function toggleDrawerIfOpen(){ if(document.getElementById('drawer')?.classList.contains('open')) toggleDrawer(); }
 
-// ═══════════ MAP ═══════════
-let leafletMap = null, markerLayer = null;
+// ═══════════ MAP & SPATIAL ENGINE ═══════════
+let leafletMap = null;
+let markerLayer = null;
+let pointsLayer = null, polygonsLayer = null, circlesLayer = null, linesLayer = null;
 let currentBaseLayer = null, osmBaseLayer = null, openSeaMapLayer = null, soundingsLayer = null;
 let currentBaseMapId = 'carto-voyager';
-let currentSelectedNavArea = 'NA I';
+let currentSelectedNavArea = ''; // Default to Global View (All NAVAREAs)
 
 const BASE_MAP_DEFS = {
   'carto-voyager': {
@@ -203,11 +473,464 @@ const NAVAREA_CENTERS = {
 };
 
 function matchesNavArea(warnArea, targetArea) {
-  if (!targetArea) return true;
+  if (!targetArea || targetArea === 'ALL' || targetArea === '') return true;
   if (!warnArea) return false;
   const normWarn = String(warnArea).trim().toUpperCase().replace(/^NAVAREA\s+/, '').replace(/^NA\s+/, '');
   const normTarget = String(targetArea).trim().toUpperCase().replace(/^NAVAREA\s+/, '').replace(/^NA\s+/, '');
   return normWarn === normTarget;
+}
+
+// ═══════════ CARTOGRAPHIC MATH HELPERS ═══════════
+function computePolygonAreaSqNm(latLngs) {
+  if (!Array.isArray(latLngs) || latLngs.length < 3) return 0;
+  let area = 0;
+  const numPoints = latLngs.length;
+  for (let i = 0; i < numPoints; i++) {
+    const j = (i + 1) % numPoints;
+    const xi = latLngs[i][1] * 60 * Math.cos((latLngs[i][0] * Math.PI) / 180);
+    const yi = latLngs[i][0] * 60;
+    const xj = latLngs[j][1] * 60 * Math.cos((latLngs[j][0] * Math.PI) / 180);
+    const yj = latLngs[j][0] * 60;
+    area += xi * yj - xj * yi;
+  }
+  return Math.abs(Math.round(area / 2));
+}
+
+function computeCentroid(latLngs) {
+  if (!Array.isArray(latLngs) || latLngs.length === 0) return [0, 0];
+  let sumLat = 0;
+  let sumLng = 0;
+  let count = 0;
+  for (const pt of latLngs) {
+    if (Array.isArray(pt) && !isNaN(pt[0]) && !isNaN(pt[1])) {
+      sumLat += pt[0];
+      sumLng += pt[1];
+      count++;
+    }
+  }
+  return count > 0 ? [sumLat / count, sumLng / count] : [0, 0];
+}
+
+function parseCoordinatesFromText(rawText) {
+  if (!rawText || typeof rawText !== 'string') return [];
+  const coords = [];
+  const coordRegex = /(\d{1,2})[-°](\d{1,2}(?:\.\d+)?)[ '"]*([NS])\s*(\d{1,3})[-°](\d{1,2}(?:\.\d+)?)[ '"]*([EW])/gi;
+  let m;
+  while ((m = coordRegex.exec(rawText)) !== null) {
+    let lat = parseFloat(m[1]) + parseFloat(m[2]) / 60;
+    if (m[3].toUpperCase() === 'S') lat = -lat;
+    let lng = parseFloat(m[4]) + parseFloat(m[5]) / 60;
+    if (m[6].toUpperCase() === 'W') lng = -lng;
+    coords.push([lat, lng]);
+  }
+  return coords;
+}
+
+function getLeafletMap() {
+  return leafletMap && typeof leafletMap.invalidateSize === 'function' ? leafletMap : null;
+}
+
+function initMap(){
+  if (leafletMap && typeof leafletMap.invalidateSize === 'function') return;
+  const mapEl = document.getElementById('map');
+  if (!mapEl || typeof L === 'undefined') return;
+  const isMob = document.body.classList.contains('is-mobile');
+  leafletMap = L.map('map', {
+    center: [20, 0],
+    zoom: isMob ? 2 : 3,
+    worldCopyJump: true,
+    zoomControl: false,
+    attributionControl: false,
+    tap: true,
+  });
+  window.leafletMap = leafletMap;
+  window.hwMap = leafletMap;
+  window.map = leafletMap;
+
+  // Base cartography layer
+  const baseDef = BASE_MAP_DEFS[currentBaseMapId] || BASE_MAP_DEFS['carto-voyager'];
+  currentBaseLayer = L.tileLayer(baseDef.url, {
+    maxZoom: baseDef.maxZoom,
+    attribution: baseDef.attribution
+  }).addTo(leafletMap);
+  osmBaseLayer = currentBaseLayer;
+
+  // OpenSeaMap nautical seamarks overlay
+  openSeaMapLayer = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    opacity: 1.0,
+    attribution: 'Map style: &copy; <a href="http://www.openseamap.org">OpenSeaMap</a>'
+  });
+  openSeaMapLayer.on('tileerror', function() {});
+  openSeaMapLayer.addTo(leafletMap);
+
+  // Initialize polymorphic vector layer groups
+  polygonsLayer = L.layerGroup().addTo(leafletMap);
+  circlesLayer = L.layerGroup().addTo(leafletMap);
+  linesLayer = L.layerGroup().addTo(leafletMap);
+  pointsLayer = L.layerGroup().addTo(leafletMap);
+
+  // Main warning group for backward compatibility
+  markerLayer = L.layerGroup([polygonsLayer, circlesLayer, linesLayer, pointsLayer]).addTo(leafletMap);
+
+  filterMapByNavArea(currentSelectedNavArea);
+
+  const attrEl = document.querySelector('.map-attribution');
+  if (attrEl) {
+    attrEl.textContent = baseDef.attribution;
+  }
+}
+
+// ═══════════ POLYMORPHIC PLOTTING ENGINE ═══════════
+function getWarningColor(w) {
+  const text = (w.title || '' + ' ' + (w.raw_text || '') + ' ' + (w.category || '')).toUpperCase();
+  const cats = Array.isArray(w.categories) ? w.categories.join(' ').toLowerCase() : (w.category || '').toLowerCase();
+
+  if (w.severity === 'critical' || /FIRING|GUNNERY|MISSILE|ROCKET|UXO|EXPLOSIVE|MINE|BOMBING/i.test(text) || cats.includes('military')) {
+    return '#dc2626'; // --critical
+  }
+  if (w.severity === 'high' || /DANGER\s+AREA|RESTRICTED|DRIFTING|CONTAINER|DERELICT|COLLISION/i.test(text) || cats.includes('drifting')) {
+    return '#ea580c'; // --high
+  }
+  if (/RIG|PLATFORM|DRILLSHIP|MODU/i.test(text) || cats.includes('offshore')) {
+    return '#059669'; // --active (platform safety)
+  }
+  if (/CABLE|PIPELINE|BUOY|LIGHT|ATON|BEACON/i.test(text) || cats.includes('aton') || cats.includes('subsea')) {
+    return '#0d9488'; // --verified
+  }
+  return '#64748b'; // --neutral
+}
+
+function buildPopupHtml(w, label, geomType) {
+  const wid = w.warning_id || w.id;
+  const color = getWarningColor(w);
+  const safeTitle = (w.title || wid).replace(/"/g, '&quot;');
+  const typeBadge = geomType ? `<span style="font-size:10px;text-transform:uppercase;background:#f1f5f9;color:#475569;padding:1px 5px;border-radius:4px;margin-left:auto">${geomType}</span>` : '';
+  const dateStr = formatWarningDate(w);
+
+  return `
+    <div style="font-family:system-ui;font-size:13px;min-width:210px;line-height:1.4">
+      <div style="font-weight:700;display:flex;align-items:center;gap:6px">
+        <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${color};flex-shrink:0"></span>
+        <span style="white-space:nowrap">${wid} · ${w.navarea}</span>
+        ${typeBadge}
+      </div>
+      <div style="margin-top:5px;font-weight:600;color:var(--text);font-size:12px">${safeTitle}</div>
+      ${label ? `<div style="margin-top:3px;color:var(--text-muted);font-size:11px">${label}</div>` : ''}
+      <div style="margin-top:3px;color:var(--text-light);font-size:11px">Issued: ${dateStr}</div>
+      <div style="margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:6px">
+        <button type="button" class="btn btn-sm btn-primary" style="font-size:11px;padding:2px 8px;min-height:26px" onclick="locateOnMapById('${encodeURIComponent(wid)}')">
+          View Details
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function bindFeatureInteractions(layer, w, popupHtml) {
+  layer.bindPopup(popupHtml, { maxWidth: 280 });
+  layer.on('click', () => {
+    const wid = w.warning_id || w.id;
+    const itemEl = Array.from(document.querySelectorAll('.warning-item')).find(el => el.dataset.warningId === wid);
+    if (itemEl) {
+      itemEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (!itemEl.classList.contains('expanded')) {
+        toggleInlineWarning(w, itemEl);
+      }
+    }
+  });
+}
+
+function plotWarning(w) {
+  const isMobile = document.body.classList.contains('is-mobile');
+  const color = getWarningColor(w);
+  const wid = w.warning_id || w.id;
+  const isMilitary = color === '#dc2626';
+
+  w._layers = [];
+  w._bounds = null;
+  const allCoordsForBounds = [];
+
+  // 1. Gather all geometry definitions
+  let geoms = [];
+  if (Array.isArray(w.geometries) && w.geometries.length > 0) {
+    geoms = w.geometries;
+  } else if (w.spatial?.geometries && Array.isArray(w.spatial.geometries) && w.spatial.geometries.length > 0) {
+    geoms = w.spatial.geometries.map(g => ({
+      feature_type: g.type,
+      geojson_blob: { type: g.type, coordinates: g.coordinates },
+      buffer_nm: g.buffer_nm || 0,
+      zone_label: g.label || w.title || wid,
+    }));
+  } else if (w.geojson_blob && typeof w.geojson_blob === 'object') {
+    geoms = [{
+      feature_type: w.feature_type || w.geojson_blob.type,
+      geojson_blob: w.geojson_blob,
+      buffer_nm: w.buffer_nm || 0,
+      zone_label: w.title || wid,
+    }];
+  }
+
+  // Fallback: If no structured geometry exists, extract from raw bulletin text
+  if (geoms.length === 0) {
+    const rawBulletin = w.raw_text || w.bulletin || w.text || '';
+    if (typeof extractGeometriesFromRawText === 'function' && rawBulletin) {
+      geoms = extractGeometriesFromRawText(rawBulletin, w.title || wid);
+    }
+    if (geoms.length === 0) {
+      const repLat = Number(w.latitude ?? w.lat);
+      const repLng = Number(w.longitude ?? w.lng);
+      if (!isNaN(repLat) && !isNaN(repLng) && (repLat !== 0 || repLng !== 0)) {
+        geoms.push({
+          feature_type: 'POINT',
+          buffer_nm: Number(w.buffer_nm) || 0,
+          geojson_blob: { type: 'Point', coordinates: [repLng, repLat] },
+          zone_label: w.title || wid,
+        });
+      }
+    }
+  }
+
+  // 2. Render each geometry with appropriate cartographic geometry
+  for (const geom of geoms) {
+    const blob = geom.geojson_blob;
+    if (!blob) continue;
+    const featType = (geom.feature_type || blob.type || '').toUpperCase();
+    const label = geom.zone_label || w.title || wid;
+    const bufferNm = Number(geom.buffer_nm) || Number(geom.corridor_half_width_nm) || 0;
+
+    // A. POLYGON / AREA
+    if (featType === 'POLYGON' || blob.type === 'Polygon' || featType === 'MULTIPOLYGON' || blob.type === 'MultiPolygon') {
+      try {
+        let rings = [];
+        if (blob.type === 'Polygon') {
+          rings = blob.coordinates.map(ring => ring.map(([lng, lat]) => [lat, lng]));
+        } else if (blob.type === 'MultiPolygon') {
+          rings = blob.coordinates.map(poly => poly[0].map(([lng, lat]) => [lat, lng]));
+        }
+
+        rings.forEach(latLngs => {
+          if (!Array.isArray(latLngs) || latLngs.length < 3) return;
+          latLngs.forEach(c => allCoordsForBounds.push(c));
+
+          const areaSqNm = computePolygonAreaSqNm(latLngs);
+          const centroid = computeCentroid(latLngs);
+
+          const poly = L.polygon(latLngs, {
+            color: color,
+            weight: 2,
+            opacity: 0.95,
+            fillColor: color,
+            fillOpacity: 0.22,
+            dashArray: isMilitary ? '6, 6' : undefined,
+          });
+
+          const popupHtml = buildPopupHtml(w, `${label} · Area: ${areaSqNm} sq NM`, 'Polygon Area');
+          bindFeatureInteractions(poly, w, popupHtml);
+
+          if (polygonsLayer) polygonsLayer.addLayer(poly);
+          w._layers.push(poly);
+          if (!w._primaryLayer) w._primaryLayer = poly;
+
+          // Centroid Badge Marker
+          if (centroid[0] !== 0 || centroid[1] !== 0) {
+            const centroidIcon = L.divIcon({
+              className: 'nw-centroid-wrap',
+              html: `<div class="nw-centroid-badge"><span class="dot" style="background:${color}"></span><span>${wid} · ${areaSqNm} sq NM</span></div>`,
+              iconAnchor: [60, 12],
+            });
+            const centroidMarker = L.marker(centroid, { icon: centroidIcon });
+            centroidMarker.on('click', () => poly.openPopup());
+            if (polygonsLayer) polygonsLayer.addLayer(centroidMarker);
+            w._layers.push(centroidMarker);
+          }
+        });
+      } catch (polyErr) {
+        console.warn('Polygon plot notice:', polyErr);
+      }
+    }
+
+    // B. SAFETY CIRCLE / CLEARANCE RADIUS
+    else if ((featType === 'POINT' || blob.type === 'Point' || featType === 'CIRCLE' || blob.type === 'Circle') && bufferNm > 0) {
+      try {
+        const centerLng = blob.coordinates[0];
+        const centerLat = blob.coordinates[1];
+        if (isNaN(centerLat) || isNaN(centerLng)) continue;
+
+        const center = [centerLat, centerLng];
+        allCoordsForBounds.push(center);
+        const radiusMeters = bufferNm * 1852;
+        const isRigCircle = geom.is_rig || /RIG|PLATFORM|MODU|DRILLSHIP/i.test(label) || /RIG|PLATFORM/i.test(w.category || '');
+        const circleColor = isRigCircle ? '#059669' : color;
+
+        const circle = L.circle(center, {
+          color: circleColor,
+          weight: 2,
+          opacity: 0.95,
+          fillColor: circleColor,
+          fillOpacity: 0.16,
+          dashArray: '4, 4',
+          radius: radiusMeters,
+        });
+
+        const radiusStr = bufferNm >= 1 ? `${bufferNm} NM` : `${Math.round(bufferNm * 1852)}m`;
+        const popupHtml = buildPopupHtml(w, `${label} · Safety Clearance: ${radiusStr}`, 'Safety Zone');
+        bindFeatureInteractions(circle, w, popupHtml);
+
+        if (circlesLayer) circlesLayer.addLayer(circle);
+        w._layers.push(circle);
+        if (!w._primaryLayer) w._primaryLayer = circle;
+
+        // Center crosshair
+        const centerCrosshair = L.circleMarker(center, {
+          radius: isMobile ? 5 : 4,
+          fillColor: circleColor,
+          color: '#ffffff',
+          weight: 1.5,
+          fillOpacity: 1.0,
+        });
+        centerCrosshair.bindTooltip(`Center: ${centerLat.toFixed(2)}°, ${centerLng.toFixed(2)}° (${radiusStr} radius)`);
+        centerCrosshair.on('click', () => circle.openPopup());
+        if (circlesLayer) circlesLayer.addLayer(centerCrosshair);
+        w._layers.push(centerCrosshair);
+      } catch (circErr) {
+        console.warn('Circle plot notice:', circErr);
+      }
+    }
+
+    // C. CORRIDOR / LINE / TRACK
+    else if (featType === 'LINE' || blob.type === 'LineString' || featType === 'CORRIDOR' || blob.type === 'MultiLineString') {
+      try {
+        let lines = [];
+        if (blob.type === 'LineString') {
+          lines = [blob.coordinates.map(([lng, lat]) => [lat, lng])];
+        } else if (blob.type === 'MultiLineString') {
+          lines = blob.coordinates.map(line => line.map(([lng, lat]) => [lat, lng]));
+        }
+
+        lines.forEach(latLngs => {
+          if (!Array.isArray(latLngs) || latLngs.length < 2) return;
+          latLngs.forEach(c => allCoordsForBounds.push(c));
+
+          // Wide translucent corridor swath underlay if corridor has half width
+          if (bufferNm > 0) {
+            const swath = L.polyline(latLngs, {
+              color: '#06b6d4',
+              weight: Math.min(24, Math.max(8, bufferNm * 6)),
+              opacity: 0.25,
+            });
+            if (linesLayer) linesLayer.addLayer(swath);
+            w._layers.push(swath);
+          }
+
+          const mainLine = L.polyline(latLngs, {
+            color: '#0891b2',
+            weight: 3,
+            opacity: 0.95,
+            dashArray: '6, 4',
+          });
+
+          const popupHtml = buildPopupHtml(w, label, bufferNm > 0 ? `Corridor (${bufferNm} NM)` : 'Subsea Line');
+          bindFeatureInteractions(mainLine, w, popupHtml);
+
+          if (linesLayer) linesLayer.addLayer(mainLine);
+          w._layers.push(mainLine);
+          if (!w._primaryLayer) w._primaryLayer = mainLine;
+
+          // Terminus markers (A and B)
+          const pA = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="nw-terminus-pin">A</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
+          const pB = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="nw-terminus-pin">B</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
+
+          const markA = L.marker(latLngs[0], { icon: pA }).bindTooltip(`Origin A: ${label}`);
+          const markB = L.marker(latLngs[latLngs.length - 1], { icon: pB }).bindTooltip(`Terminus B: ${label}`);
+          markA.on('click', () => mainLine.openPopup());
+          markB.on('click', () => mainLine.openPopup());
+
+          if (linesLayer) {
+            linesLayer.addLayer(markA);
+            linesLayer.addLayer(markB);
+          }
+          w._layers.push(markA, markB);
+        });
+      } catch (lineErr) {
+        console.warn('Line plot notice:', lineErr);
+      }
+    }
+
+    // D. POINT / DISCRETE HAZARD / RIG PLATFORM
+    else if (featType === 'POINT' || blob.type === 'Point') {
+      try {
+        const lng = blob.coordinates[0];
+        const lat = blob.coordinates[1];
+        if (isNaN(lat) || isNaN(lng)) continue;
+
+        const pos = [lat, lng];
+        allCoordsForBounds.push(pos);
+
+        const isRig = geom.is_rig || /RIG|PLATFORM|MODU|DRILLSHIP/i.test(label) || /RIG|PLATFORM/i.test(w.category || '');
+
+        if (isRig) {
+          // Special offshore platform icon
+          const rigIcon = L.divIcon({
+            className: 'nw-rig-wrap',
+            html: `<div class="nw-rig-pin" title="${label}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2.2"><path d="M12 2L4 22h16L12 2z"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="6" y1="17" x2="18" y2="17"/></svg></div>`,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+          });
+          const rigMarker = L.marker(pos, { icon: rigIcon });
+          const popupHtml = buildPopupHtml(w, label, 'Offshore Platform');
+          bindFeatureInteractions(rigMarker, w, popupHtml);
+          rigMarker.bindTooltip(label, { direction: 'top', offset: [0, -10] });
+
+          if (pointsLayer) pointsLayer.addLayer(rigMarker);
+          w._layers.push(rigMarker);
+          if (!w._primaryLayer) w._primaryLayer = rigMarker;
+        } else {
+          // Animated radar pulse marker for critical / active firing hazards
+          if (isMilitary) {
+            const radarIcon = L.divIcon({
+              className: 'nw-radar-wrap',
+              html: `<div class="nw-radar-pulse"></div>`,
+              iconSize: [22, 22],
+              iconAnchor: [11, 11],
+            });
+            const radarMarker = L.marker(pos, { icon: radarIcon });
+            if (pointsLayer) pointsLayer.addLayer(radarMarker);
+            w._layers.push(radarMarker);
+          }
+
+          const pointMarker = L.circleMarker(pos, {
+            radius: isMobile ? 8 : 6,
+            fillColor: color,
+            color: '#ffffff',
+            weight: 2,
+            fillOpacity: 0.95,
+          });
+
+          const popupHtml = buildPopupHtml(w, label, 'Point Hazard');
+          bindFeatureInteractions(pointMarker, w, popupHtml);
+
+          if (pointsLayer) pointsLayer.addLayer(pointMarker);
+          w._layers.push(pointMarker);
+          if (!w._primaryLayer) w._primaryLayer = pointMarker;
+        }
+      } catch (ptErr) {
+        console.warn('Point plot notice:', ptErr);
+      }
+    }
+  }
+
+  // Calculate bounding envelope for zooming & focusing
+  if (allCoordsForBounds.length > 1) {
+    w._bounds = L.latLngBounds(allCoordsForBounds);
+  } else if (allCoordsForBounds.length === 1) {
+    w._bounds = L.latLngBounds([allCoordsForBounds[0], allCoordsForBounds[0]]);
+  }
+}
+
+// Backward compatibility helper
+function addMarker(w) {
+  plotWarning(w);
 }
 
 window.filterMapByNavArea = function(navArea) {
@@ -227,10 +950,14 @@ window.filterMapByNavArea = function(navArea) {
 
   const filtered = warnings.filter(w => w.status !== 'rejected' && matchesNavArea(w.navarea, currentSelectedNavArea));
 
-  if (markerLayer) {
-    markerLayer.clearLayers();
-    filtered.forEach(addMarker);
-  }
+  // Clear all vector layers
+  if (pointsLayer) pointsLayer.clearLayers();
+  if (polygonsLayer) polygonsLayer.clearLayers();
+  if (circlesLayer) circlesLayer.clearLayers();
+  if (linesLayer) linesLayer.clearLayers();
+
+  // Plot each warning into the appropriate layer
+  filtered.forEach(plotWarning);
 
   rebuildMapList(filtered);
 
@@ -240,102 +967,30 @@ window.filterMapByNavArea = function(navArea) {
   const m = getLeafletMap();
   if (m) {
     if (currentSelectedNavArea) {
-      const coords = filtered
-        .map(w => [Number(w.latitude ?? w.lat), Number(w.longitude ?? w.lng)])
-        .filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
+      const allCoords = [];
+      filtered.forEach(w => {
+        if (w._bounds && w._bounds.isValid()) {
+          allCoords.push(w._bounds.getSouthWest(), w._bounds.getNorthEast());
+        } else if (!isNaN(Number(w.latitude)) && !isNaN(Number(w.longitude))) {
+          allCoords.push([Number(w.latitude), Number(w.longitude)]);
+        }
+      });
 
-      if (coords.length > 1) {
-        m.fitBounds(coords, { maxZoom: 6, padding: [40, 40], animate: true });
-      } else if (coords.length === 1) {
-        m.setView(coords[0], 6, { animate: true });
+      if (allCoords.length > 1) {
+        m.fitBounds(allCoords, { maxZoom: 6, padding: [40, 40], animate: true });
+      } else if (allCoords.length === 1) {
+        m.setView(allCoords[0], 6, { animate: true });
       } else if (NAVAREA_CENTERS[currentSelectedNavArea]) {
         const c = NAVAREA_CENTERS[currentSelectedNavArea];
         m.setView(c.center, c.zoom, { animate: true });
       }
     } else {
       const isMob = document.body.classList.contains('is-mobile');
-      m.setView([30, 0], isMob ? 2 : 3, { animate: true });
+      m.setView([20, 0], isMob ? 2 : 3, { animate: true });
     }
   }
 };
 
-function getLeafletMap() {
-  return leafletMap && typeof leafletMap.invalidateSize === 'function' ? leafletMap : null;
-}
-
-function initMap(){
-  if (leafletMap && typeof leafletMap.invalidateSize === 'function') return;
-  const mapEl = document.getElementById('map');
-  if (!mapEl || typeof L === 'undefined') return;
-  const isMob=document.body.classList.contains('is-mobile');
-  leafletMap = L.map('map',{center:[30,0],zoom:isMob?2:3,worldCopyJump:true,zoomControl:false,attributionControl:false,tap:true});
-  window.leafletMap = leafletMap;
-  window.hwMap = leafletMap;
-  window.map = leafletMap;
-
-  // Base cartography layer
-  const baseDef = BASE_MAP_DEFS[currentBaseMapId] || BASE_MAP_DEFS['carto-voyager'];
-  currentBaseLayer = L.tileLayer(baseDef.url, {
-    maxZoom: baseDef.maxZoom,
-    attribution: baseDef.attribution
-  }).addTo(leafletMap);
-  osmBaseLayer = currentBaseLayer;
-
-  // OpenSeaMap nautical seamarks overlay
-  openSeaMapLayer = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-    opacity: 1.0,
-    attribution: 'Map style: &copy; <a href="http://www.openseamap.org">OpenSeaMap</a>'
-  });
-  openSeaMapLayer.on('tileerror', function() {
-    // OpenSeaMap tiles may be absent over deep ocean; handle errors gracefully
-  });
-  openSeaMapLayer.addTo(leafletMap);
-
-  markerLayer = L.layerGroup().addTo(leafletMap);
-  filterMapByNavArea(currentSelectedNavArea);
-
-  const attrEl = document.querySelector('.map-attribution');
-  if (attrEl) {
-    attrEl.textContent = baseDef.attribution;
-  }
-}
-function addMarker(w){
-  const color=w.severity==='critical'?'#dc2626':w.severity==='high'?'#ea580c':'#64748b';
-  const lat = Number(w.latitude ?? w.lat);
-  const lng = Number(w.longitude ?? w.lng);
-  if (isNaN(lat) || isNaN(lng)) return;
-  const m=L.circleMarker([lat, lng],{radius:document.body.classList.contains('is-mobile')?8:6,fillColor:color,color:'#fff',weight:2,fillOpacity:.9});
-  const wid = w.warning_id || w.id;
-  const safeTitle = (w.title || '').replace(/"/g, '&quot;');
-  m.bindPopup(`
-    <div style="font-family:system-ui;font-size:13px;min-width:190px;line-height:1.4">
-      <div style="font-weight:700;display:flex;align-items:center;gap:6px">
-        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color}"></span>
-        <span>${wid} · ${w.navarea}</span>
-      </div>
-      <div style="margin-top:4px;color:var(--text);font-size:12px">${safeTitle}</div>
-      <div style="margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end">
-        <button type="button" class="btn btn-sm btn-primary" style="font-size:11px;padding:2px 8px;min-height:26px" onclick="locateOnMapById('${encodeURIComponent(wid)}')">
-          View Bulletin
-        </button>
-      </div>
-    </div>
-  `,{maxWidth:260});
-  m.on('click', () => {
-    const wid = w.warning_id || w.id;
-    const itemEl = Array.from(document.querySelectorAll('.warning-item')).find(el => el.dataset.warningId === wid);
-    if (itemEl) {
-      itemEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      if (!itemEl.classList.contains('expanded')) {
-        toggleInlineWarning(w, itemEl);
-      }
-    } else {
-      openWarningModal(w);
-    }
-  });
-  if(markerLayer) markerLayer.addLayer(m);
-}
 
 let expandedWarningId = null;
 
@@ -528,12 +1183,24 @@ window.resetMapView = function(){
 };
 window.locateMapView = window.resetMapView;
 
-window.toggleLayer = function(name,vis){
+window.toggleLayer = function(name, vis){
   const m = getLeafletMap();
   if(!m) return;
-  if(name==='warnings' && markerLayer){
-    vis ? markerLayer.addTo(m) : m.removeLayer(markerLayer);
-  } else if(name==='seamarks'){
+  if(name === 'points' && pointsLayer){
+    vis ? pointsLayer.addTo(m) : m.removeLayer(pointsLayer);
+  } else if(name === 'polygons' && polygonsLayer){
+    vis ? polygonsLayer.addTo(m) : m.removeLayer(polygonsLayer);
+  } else if(name === 'circles' && circlesLayer){
+    vis ? circlesLayer.addTo(m) : m.removeLayer(circlesLayer);
+  } else if(name === 'lines' && linesLayer){
+    vis ? linesLayer.addTo(m) : m.removeLayer(linesLayer);
+  } else if(name === 'warnings'){
+    [pointsLayer, polygonsLayer, circlesLayer, linesLayer].forEach(layer => {
+      if(layer){
+        vis ? layer.addTo(m) : m.removeLayer(layer);
+      }
+    });
+  } else if(name === 'seamarks'){
     if(!openSeaMapLayer){
       openSeaMapLayer = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
         maxZoom: 18,
@@ -543,7 +1210,7 @@ window.toggleLayer = function(name,vis){
       openSeaMapLayer.on('tileerror', function() {});
     }
     vis ? openSeaMapLayer.addTo(m) : m.removeLayer(openSeaMapLayer);
-  } else if(name==='soundings'){
+  } else if(name === 'soundings'){
     if(vis){
       if(!soundingsLayer){
         soundingsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',{
@@ -601,6 +1268,7 @@ window.toggleMaximizeWarningList = function(){
       : '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
   }
 };
+
 window.locateOnMap = function(){
   const m = getLeafletMap();
   if(currentWarning && m){
@@ -608,11 +1276,21 @@ window.locateOnMap = function(){
     if(currentWarning.navarea && !matchesNavArea(currentWarning.navarea, currentSelectedNavArea)){
       filterMapByNavArea(currentWarning.navarea);
     }
-    const lat = Number(currentWarning.latitude ?? currentWarning.lat);
-    const lng = Number(currentWarning.longitude ?? currentWarning.lng);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      m.setView([lat, lng], 7, { animate: true });
+
+    if(currentWarning._bounds && currentWarning._bounds.isValid()){
+      m.fitBounds(currentWarning._bounds, { maxZoom: 8, padding: [50, 50], animate: true });
+    } else {
+      const lat = Number(currentWarning.latitude ?? currentWarning.lat);
+      const lng = Number(currentWarning.longitude ?? currentWarning.lng);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        m.setView([lat, lng], 7, { animate: true });
+      }
     }
+
+    if(currentWarning._primaryLayer && typeof currentWarning._primaryLayer.openPopup === 'function'){
+      currentWarning._primaryLayer.openPopup();
+    }
+
     const wid = currentWarning.warning_id || currentWarning.id;
     const itemEl = Array.from(document.querySelectorAll('.warning-item')).find(el => el.dataset.warningId === wid);
     if(itemEl) {
@@ -826,12 +1504,20 @@ window.locateOnMapById = function(rawId){
   if(w.navarea && !matchesNavArea(w.navarea, currentSelectedNavArea)){
     filterMapByNavArea(w.navarea);
   }
-  const lat = Number(w.latitude ?? w.lat);
-  const lng = Number(w.longitude ?? w.lng);
   const m = getLeafletMap();
-  if (m && !isNaN(lat) && !isNaN(lng)) {
-    m.setView([lat, lng], Math.max(m.getZoom(), 7), { animate: true });
-    if (typeof m.closePopup === 'function') {
+  if (m) {
+    if (w._bounds && w._bounds.isValid()) {
+      m.fitBounds(w._bounds, { maxZoom: 8, padding: [50, 50], animate: true });
+    } else {
+      const lat = Number(w.latitude ?? w.lat);
+      const lng = Number(w.longitude ?? w.lng);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        m.setView([lat, lng], Math.max(m.getZoom(), 7), { animate: true });
+      }
+    }
+    if (w._primaryLayer && typeof w._primaryLayer.openPopup === 'function') {
+      w._primaryLayer.openPopup();
+    } else if (typeof m.closePopup === 'function') {
       m.closePopup();
     }
   }

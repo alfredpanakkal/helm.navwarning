@@ -266,7 +266,8 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
       <div class="navarea-select-wrapper">
         <label for="mapNavAreaSelect" class="sr-only">Select Navigation Area</label>
         <select id="mapNavAreaSelect" class="navarea-select" onchange="filterMapByNavArea(this.value)" aria-label="Select Navigation Area">
-          <option value="NA I" selected>NAVAREA I · North Atlantic / UK</option>
+          <option value="" selected>All NAVAREAs (Global View)</option>
+          <option value="NA I">NAVAREA I · North Atlantic / UK</option>
           <option value="NA II">NAVAREA II · East Atlantic</option>
           <option value="NA III">NAVAREA III · Mediterranean</option>
           <option value="NA IV">NAVAREA IV · West Atlantic</option>
@@ -313,9 +314,12 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
         <label class="map-layer-item"><input type="radio" name="basemap" value="esri-ocean" onchange="selectBaseMap(this.value)">ESRI Ocean Base</label>
         <div class="map-layer-divider"></div>
         <div class="map-layer-section-title">Maritime Overlays</div>
-        <label class="map-layer-item"><input type="checkbox" checked onchange="toggleLayer('warnings',this.checked)">Warning Markers</label>
-        <label class="map-layer-item"><input type="checkbox" checked onchange="toggleLayer('seamarks',this.checked)">OpenSeaMap Seamarks</label>
-        <label class="map-layer-item"><input type="checkbox" onchange="toggleLayer('soundings',this.checked)">Ocean Soundings</label>
+        <label class="map-layer-item"><input type="checkbox" id="layerTogglePoints" checked onchange="toggleLayer('points',this.checked)">Hazard Points</label>
+        <label class="map-layer-item"><input type="checkbox" id="layerTogglePolygons" checked onchange="toggleLayer('polygons',this.checked)">Danger Areas & Polygons</label>
+        <label class="map-layer-item"><input type="checkbox" id="layerToggleCircles" checked onchange="toggleLayer('circles',this.checked)">Safety Zones & Circles</label>
+        <label class="map-layer-item"><input type="checkbox" id="layerToggleLines" checked onchange="toggleLayer('lines',this.checked)">Corridors & Cables</label>
+        <label class="map-layer-item"><input type="checkbox" id="layerToggleSeamarks" checked onchange="toggleLayer('seamarks',this.checked)">OpenSeaMap Seamarks</label>
+        <label class="map-layer-item"><input type="checkbox" id="layerToggleSoundings" onchange="toggleLayer('soundings',this.checked)">Ocean Soundings</label>
       </details>
     </div>
     <div class="map-ctrl-topright" role="toolbar" aria-label="Map Navigation Controls">

@@ -274,6 +274,7 @@ export function extractMaritimePlots(
   const geomResult = extractGeometry(rawText);
   const geom = geomResult.geometry;
 
+  // 1. Direct extraction from pre-computed PostGIS spatial.geometries and circles
   if (warning.spatial?.circles && warning.spatial.circles.length > 0) {
     warning.spatial.circles.forEach((circ: any, idx: number) => {
       const centerLat = circ.center[1];
@@ -290,6 +291,96 @@ export function extractMaritimePlots(
         rawTextSnippet: rawText.slice(0, 80),
       });
     });
+  }
+
+  if (warning.spatial?.geometries && warning.spatial.geometries.length > 0) {
+    warning.spatial.geometries.forEach((g: any, idx: number) => {
+      if ((g.type === 'Polygon' || g.type === 'MultiPolygon') && Array.isArray(g.coordinates)) {
+        const ring = g.type === 'Polygon' ? g.coordinates[0] : g.coordinates[0]?.[0];
+        if (Array.isArray(ring) && ring.length >= 3) {
+          const latLngs: [number, number][] = ring.map(([lng, lat]: [number, number]) => [lat, lng]);
+          const areaSqNm = computePolygonAreaSqNm(latLngs);
+          plots.push({
+            id: `${warningId}-spatial-poly-${idx}`,
+            warningId,
+            navarea,
+            hazardType: hazardType === 'other' ? 'danger_area' : hazardType,
+            plotType: 'polygon',
+            coordinates: latLngs,
+            areaSqNm,
+            label: g.label || `Danger Area (${areaSqNm} sq NM)`,
+            rawTextSnippet: rawText.slice(0, 80),
+          });
+        }
+      } else if ((g.type === 'LineString' || g.type === 'MultiLineString') && Array.isArray(g.coordinates)) {
+        const lineCoords = g.type === 'LineString' ? g.coordinates : g.coordinates[0];
+        if (Array.isArray(lineCoords) && lineCoords.length >= 2) {
+          const latLngs: [number, number][] = lineCoords.map(([lng, lat]: [number, number]) => [lat, lng]);
+          const bufferNm = g.buffer_nm || 1.5;
+          plots.push({
+            id: `${warningId}-spatial-line-${idx}`,
+            warningId,
+            navarea,
+            hazardType: hazardType === 'other' ? 'submarine_cable' : hazardType,
+            plotType: bufferNm > 0 ? 'corridor' : 'line',
+            coordinates: latLngs,
+            bufferNm,
+            label: g.label || `Corridor (${bufferNm} NM)`,
+            rawTextSnippet: rawText.slice(0, 80),
+          });
+        }
+      } else if (g.type === 'Circle') {
+        const center = Array.isArray(g.coordinates) ? g.coordinates : [0, 0];
+        const centerLat = center[1];
+        const centerLng = center[0];
+        const radius = Number(g.radius_nm || g.buffer_nm) || 1.0;
+        plots.push({
+          id: `${warningId}-spatial-circle-${idx}`,
+          warningId,
+          navarea,
+          hazardType,
+          plotType: 'circle',
+          coordinates: [[centerLat, centerLng]],
+          radiusNm: radius,
+          label: g.label || `Safety Zone (${radius} NM)`,
+          rawTextSnippet: rawText.slice(0, 80),
+        });
+      } else if (g.type === 'Point') {
+        const coords = Array.isArray(g.coordinates) ? g.coordinates : [0, 0];
+        const lat = coords[1];
+        const lng = coords[0];
+        if (lat !== 0 || lng !== 0) {
+          plots.push({
+            id: `${warningId}-spatial-point-${idx}`,
+            warningId,
+            navarea,
+            hazardType,
+            plotType: 'point',
+            coordinates: [[lat, lng]],
+            label: g.label || `Hazard Location`,
+            rawTextSnippet: rawText.slice(0, 80),
+          });
+          const buf = Number(g.buffer_nm) || 0;
+          if (buf > 0) {
+            plots.push({
+              id: `${warningId}-spatial-point-buf-${idx}`,
+              warningId,
+              navarea,
+              hazardType,
+              plotType: 'circle',
+              coordinates: [[lat, lng]],
+              radiusNm: buf,
+              label: `${g.label || 'Point'} (${buf} NM Safety Zone)`,
+              rawTextSnippet: rawText.slice(0, 80),
+            });
+          }
+        }
+      }
+    });
+  }
+
+  if (plots.length > 0) {
+    return plots;
   }
 
   if (geom.polygons && geom.polygons.length > 0) {

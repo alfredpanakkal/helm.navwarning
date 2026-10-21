@@ -11,8 +11,8 @@ describe('Phase 1: Rules v3.0 Golden Fixture & Invariant Verification', () => {
   const FIXED_NOW = new Date('2026-10-18T06:00:00Z');
 
   describe('Golden Fixtures Validation', () => {
-    // Known-bad tests (to be flipped to passing in Phase 3 & Phase 4)
-    it.fails('[G01_COORD_DMS] Standard DMS formatted coordinate pair (Rule R16)', () => {
+    // Standard DMS formatted coordinate pair test (now passing)
+    it('[G01_COORD_DMS] Standard DMS formatted coordinate pair (Rule R16)', () => {
       const res = parseCoordinatesFull(GOLDEN_FIXTURES[0].rawText);
       expect(res.coordinates.length).toBe(1);
     });
