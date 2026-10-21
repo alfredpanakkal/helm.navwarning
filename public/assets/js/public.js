@@ -2397,3 +2397,35 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// Keyboard navigation (Escape to dismiss modal/drawer/settings/focus mode)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('warningModal');
+    if (modal && modal.classList.contains('open')) {
+      closeWarningModal();
+      return;
+    }
+    const drawer = document.getElementById('warningDetailsDrawer');
+    if (drawer && drawer.classList.contains('open')) {
+      closeWarningDrawer();
+      return;
+    }
+    const popover = document.getElementById('mapSettingsPopover');
+    const sheet = document.getElementById('mapSettingsSheet');
+    if ((popover && popover.classList.contains('open')) || (sheet && sheet.classList.contains('open'))) {
+      closeMapSettings();
+      return;
+    }
+    if (document.body.classList.contains('map-focus-active')) {
+      toggleMapFocusMode(false);
+      return;
+    }
+  } else if ((e.key === 'f' || e.key === 'F') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+    const tabMap = document.getElementById('tab-map');
+    if (tabMap && tabMap.classList.contains('active')) {
+      toggleMapFocusMode();
+    }
+  }
+});
+
+

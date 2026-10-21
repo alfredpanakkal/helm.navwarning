@@ -51,7 +51,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .toast {
   position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%;
   transform: translateX(-50%) translateY(10px); background: var(--surface-dark); color: #fff;
-  padding: 10px 24px; border-radius: var(--radius-lg); z-index: 3000; font-size: 14px;
+  padding: 10px 24px; border-radius: var(--radius-lg); z-index: 4000; font-size: 14px;
   box-shadow: 0 4px 16px rgba(0,0,0,.2); max-width: calc(100vw - 32px);
   text-align: center; opacity: 0; transition: .3s; pointer-events: none;
 }
@@ -286,7 +286,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
-  z-index: 1650;
+  z-index: 3100;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.25s ease, visibility 0.25s ease;
@@ -306,7 +306,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border-top: 1px solid var(--border);
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -8px 30px rgba(0,0,0,0.2);
-  z-index: 1700;
+  z-index: 3200;
   transform: translateY(100%);
   visibility: hidden;
   transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s;
@@ -548,7 +548,7 @@ body.is-mobile .nw-title-card {
   background: var(--surface);
   border-left: 1px solid var(--border);
   box-shadow: -4px 0 20px rgba(0,0,0,0.12);
-  z-index: 650;
+  z-index: 1500;
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
