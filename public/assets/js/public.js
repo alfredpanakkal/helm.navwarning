@@ -404,7 +404,23 @@ window.toggleAdvancedFilters = function(){
     btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   }
 };
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){toggleDrawerIfOpen();closeWarningModal();closeMapSettings();closeWarningDrawer();} });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.body.classList.contains('map-focus-active')) {
+      toggleMapFocusMode(false);
+      return;
+    }
+    toggleDrawerIfOpen();
+    closeWarningModal();
+    closeMapSettings();
+    closeWarningDrawer();
+  } else if ((e.key === 'f' || e.key === 'F') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName)) {
+    const mapTab = document.getElementById('tab-map');
+    if (mapTab && mapTab.classList.contains('active')) {
+      toggleMapFocusMode();
+    }
+  }
+});
 function toggleDrawerIfOpen(){ if(document.getElementById('drawer')?.classList.contains('open')) toggleDrawer(); }
 
 // ═══════════ MAP & SPATIAL ENGINE ═══════════
@@ -641,6 +657,15 @@ function initMap(){
     closeMapSettings();
   });
 
+  // Maximum Map View: Auto-collapse top controls on map interaction
+  setupMapInteractionAutoCollapse(leafletMap);
+
+  // Setup idle state detector for map controls
+  setupControlsIdleDetector();
+
+  // Setup swipe-down dismiss on title card
+  setupTitleCardSwipeDismiss();
+
   syncSettingsUI(mapPreferences);
   filterMapByNavArea(currentSelectedNavArea);
 
@@ -648,6 +673,131 @@ function initMap(){
   if (attrEl) {
     attrEl.textContent = baseDef.attribution;
   }
+}
+
+// ═══════════ MAXIMUM MAP VIEW & FOCUS MODE ═══════════
+let mapControlsAutoCollapseTimer = null;
+let controlsIdleTimer = null;
+
+window.toggleMapTopControls = function(forceState) {
+  const topSec = document.getElementById('mapTopSection');
+  const chip = document.getElementById('mapControlsChip');
+  if (!topSec) return;
+
+  const willBeCollapsed = typeof forceState === 'boolean'
+    ? !forceState
+    : !topSec.classList.contains('collapsed');
+
+  topSec.classList.toggle('collapsed', willBeCollapsed);
+  if (chip) {
+    chip.classList.toggle('is-expanded', !willBeCollapsed);
+    chip.setAttribute('aria-expanded', willBeCollapsed ? 'false' : 'true');
+  }
+
+  // Trigger leaflet map resize after smooth layout expansion
+  const m = getLeafletMap();
+  if (m) {
+    setTimeout(() => m.invalidateSize(), 160);
+    setTimeout(() => m.invalidateSize(), 320);
+  }
+};
+
+window.toggleMapFocusMode = function(explicitState) {
+  const isCurrentlyActive = document.body.classList.contains('map-focus-active');
+  const nextState = typeof explicitState === 'boolean' ? explicitState : !isCurrentlyActive;
+  
+  document.body.classList.toggle('map-focus-active', nextState);
+  
+  const iconMax = document.getElementById('iconMapFocusMax');
+  const iconMin = document.getElementById('iconMapFocusMin');
+  const btn = document.getElementById('btnMapFocus');
+  if (iconMax && iconMin) {
+    iconMax.style.display = nextState ? 'none' : 'block';
+    iconMin.style.display = nextState ? 'block' : 'none';
+  }
+  if (btn) {
+    btn.classList.toggle('active', nextState);
+    btn.setAttribute('aria-label', nextState ? 'Exit focus mode' : 'Maximize map view full screen');
+    btn.title = nextState ? 'Exit Focus Mode (Esc)' : 'Maximize Map View (Focus Mode)';
+  }
+
+  // Auto-collapse top controls in focus mode
+  if (nextState) {
+    toggleMapTopControls(false);
+  }
+
+  const m = getLeafletMap();
+  if (m) {
+    m.invalidateSize();
+    setTimeout(() => m.invalidateSize(), 150);
+  }
+
+  showToast(nextState ? 'Focus Mode active (Press Esc to exit)' : 'Exited Focus Mode');
+};
+
+function setupMapInteractionAutoCollapse(mapInstance) {
+  if (!mapInstance) return;
+  const triggerAutoCollapse = () => {
+    const topSec = document.getElementById('mapTopSection');
+    if (!topSec || topSec.classList.contains('collapsed')) return;
+
+    if (mapControlsAutoCollapseTimer) clearTimeout(mapControlsAutoCollapseTimer);
+    mapControlsAutoCollapseTimer = setTimeout(() => {
+      toggleMapTopControls(false);
+    }, 2500);
+  };
+
+  mapInstance.on('movestart zoomstart dragstart', triggerAutoCollapse);
+}
+
+function setupControlsIdleDetector() {
+  const mapContainer = document.querySelector('.map-container');
+  const ctrlGroup = document.querySelector('.map-ctrl-topright');
+  if (!mapContainer || !ctrlGroup) return;
+
+  const wakeControls = () => {
+    ctrlGroup.classList.remove('is-idle');
+    if (controlsIdleTimer) clearTimeout(controlsIdleTimer);
+    controlsIdleTimer = setTimeout(() => {
+      const popover = document.getElementById('mapSettingsPopover');
+      if (!popover || !popover.classList.contains('open')) {
+        ctrlGroup.classList.add('is-idle');
+      }
+    }, 4000);
+  };
+
+  mapContainer.addEventListener('mousemove', wakeControls, { passive: true });
+  mapContainer.addEventListener('touchstart', wakeControls, { passive: true });
+  mapContainer.addEventListener('pointermove', wakeControls, { passive: true });
+  wakeControls();
+}
+
+function setupTitleCardSwipeDismiss() {
+  const card = document.getElementById('mapTitleCard');
+  if (!card) return;
+  let startY = 0;
+  let isSwiping = false;
+
+  card.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      startY = e.touches[0].clientY;
+      isSwiping = true;
+    }
+  }, { passive: true });
+
+  card.addEventListener('touchmove', (e) => {
+    if (!isSwiping || e.touches.length !== 1) return;
+    const deltaY = e.touches[0].clientY - startY;
+    if (deltaY > 25) {
+      isSwiping = false;
+      hideTitleCard(true);
+      clearActiveFeatureHighlight();
+    }
+  }, { passive: true });
+
+  card.addEventListener('touchend', () => {
+    isSwiping = false;
+  }, { passive: true });
 }
 
 // ═══════════ SETTINGS CONTROLLERS & PERSISTENCE ═══════════
@@ -1383,6 +1533,20 @@ window.filterMapByNavArea = function(navArea) {
   const mlb = document.getElementById('mapLiveBadge');
   if (mlb) mlb.innerHTML = `<span class="dot"></span> ${filtered.length} live`;
 
+  const chipNavText = document.getElementById('chipNavAreaText');
+  if (chipNavText) {
+    if (!currentSelectedNavArea) {
+      chipNavText.textContent = 'Global View';
+    } else {
+      const opt = mapSelect?.options[mapSelect.selectedIndex]?.text;
+      chipNavText.textContent = opt ? opt.split('·')[0].trim() : currentSelectedNavArea;
+    }
+  }
+  const chipCount = document.getElementById('chipLiveCount');
+  if (chipCount) {
+    chipCount.textContent = `${filtered.length} live`;
+  }
+
   const m = getLeafletMap();
   if (m) {
     if (currentSelectedNavArea) {
@@ -2083,6 +2247,7 @@ function updateStats(){
     const el = document.getElementById(id); if(el) el.textContent = n;
   });
   const mlb = document.getElementById('mapLiveBadge'); if(mlb) mlb.innerHTML=`<span class="dot"></span> ${n} live`;
+  const chipCount = document.getElementById('chipLiveCount'); if(chipCount) chipCount.textContent = `${n} live`;
   const mSub = document.getElementById('mapSubtitle'); if(mSub) mSub.textContent=`${n} in-force across ${areas} NAVAREAs`;
   const dSub = document.getElementById('dataSubtitle'); if(dSub) dSub.textContent=`${n} published warnings`;
   const sAct = document.getElementById('statActive'); if(sAct) sAct.textContent=n;

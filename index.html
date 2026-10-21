@@ -83,28 +83,35 @@ body.is-mobile .stat-grid{grid-template-columns:repeat(2,1fr);gap:6px}
 body.is-mobile .stat-card{padding:6px 10px}
 body.is-mobile .stat-value{font-size:15px}
 
-.map-container{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface-dark);height:540px}
-body.is-mobile .map-container{height:62vh;min-height:360px;border-radius:8px}
+.map-top-section{overflow:hidden;max-height:260px;opacity:1;transition:max-height .3s cubic-bezier(.16,1,.3,1),opacity .22s ease,margin-bottom .3s ease;margin-bottom:12px}
+.map-top-section.collapsed{max-height:0!important;opacity:0!important;margin-bottom:0!important;pointer-events:none}
+
+.map-container{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface-dark);height:calc(100vh - 145px);min-height:620px;transition:height .25s ease}
+body.is-mobile .map-container{height:calc(100dvh - 130px);min-height:460px;border-radius:10px}
+body:not(.is-mobile) .map-top-section.collapsed + .map-container{height:calc(100vh - 84px);min-height:680px}
+body.is-mobile .map-top-section.collapsed + .map-container{height:calc(100dvh - 74px)}
+
+/* Pure Chart Focus Mode */
+body.map-focus-active{overflow:hidden}
+body.map-focus-active .site-header,
+body.map-focus-active .bottom-nav,
+body.map-focus-active .site-footer,
+body.map-focus-active .map-top-section,
+body.map-focus-active .menu-toggle{display:none!important}
+body.map-focus-active .main{padding:0!important;max-width:100vw!important;margin:0!important}
+body.map-focus-active .map-container{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;border-radius:0!important;border:none!important;z-index:2200!important}
+
+/* Map Controls Floating Chip */
+.map-controls-chip{position:absolute;top:14px;left:14px;z-index:520;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(255,255,255,.94);border:1px solid var(--border);border-radius:9999px;font:600 12px system-ui,-apple-system,sans-serif;color:var(--text);box-shadow:0 2px 10px rgba(0,0,0,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;transition:all .18s cubic-bezier(.16,1,.3,1);user-select:none;min-height:36px}
+.map-controls-chip:hover{background:var(--surface);border-color:var(--neutral);transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.map-controls-chip:active{transform:scale(.97)}
+.chip-dot{width:7px;height:7px;border-radius:50%;background:var(--active);animation:pulse 2s infinite}
+.chip-count{font-size:11px;font-weight:700;color:var(--text-muted);background:var(--border);padding:1px 6px;border-radius:8px}
+.chip-chevron{transition:transform .22s ease}
+.map-controls-chip.is-expanded .chip-chevron{transform:rotate(180deg)}
 #map{height:100%;width:100%}
 .leaflet-control-zoom, .leaflet-control-attribution{display:none!important}
-.map-overlay{position:absolute;top:16px;left:16px;z-index:500}
-.map-layer-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;min-width:220px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
-.map-layer-panel summary{font-weight:600;font-size:13px;cursor:pointer;padding:8px 12px;list-style:none;min-height:42px;display:flex;align-items:center;gap:8px;user-select:none}
-.map-layer-panel summary::-webkit-details-marker{display:none}
-.layer-summary-icon{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;flex-shrink:0}
-.layer-summary-chevron{width:14px;height:14px;stroke:var(--text-muted);stroke-width:2;fill:none;margin-left:auto;transition:transform .2s}
-.map-layer-panel[open] .layer-summary-chevron{transform:rotate(180deg)}
-.map-layer-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);padding:6px 10px 2px}
-.map-layer-divider{height:1px;background:var(--border);margin:4px 6px}
-.map-layer-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 10px;cursor:pointer;border-radius:6px;min-height:36px;transition:background .15s}
-.map-layer-item:hover{background:var(--bg)}
-.map-layer-item input{accent-color:var(--surface-dark);width:16px;height:16px}
 .leaflet-control-zoom{display:none!important}
-.map-ctrl-topright{position:absolute;top:16px;right:16px;z-index:520;display:flex;align-items:center}
-.map-recenter-pill-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:9999px;font:500 13px system-ui,-apple-system,sans-serif;color:var(--text);box-shadow:0 4px 14px rgba(0,0,0,.08);cursor:pointer;transition:all .15s ease-in-out;min-height:36px}
-.map-recenter-pill-btn:hover{background:var(--bg);color:var(--surface-dark);border-color:var(--neutral)}
-.map-recenter-pill-btn:active{transform:scale(.96)}
-.map-recenter-pill-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none}
 .map-warning-list{position:absolute;top:64px;right:16px;width:310px;max-height:calc(100% - 80px);overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;z-index:500;box-shadow:0 4px 14px rgba(0,0,0,.08);transition:width .22s ease,max-height .22s ease,height .22s ease}
 .map-warning-list.is-minimized{max-height:44px;overflow:hidden}
 .map-warning-list.is-minimized .warning-item, .map-warning-list.is-minimized .warning-item-empty{display:none}
@@ -265,49 +272,69 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 
 <!-- MAP -->
 <div class="tab-panel active" id="tab-map" role="tabpanel" aria-labelledby="tab-btn-map">
-  <div class="page-header">
-    <div><h1>Active Warnings</h1><p class="subtitle" id="mapSubtitle">0 in-force across 0 NAVAREAs</p></div>
-    <div class="actions">
-      <div class="navarea-select-wrapper">
-        <label for="mapNavAreaSelect" class="sr-only">Select Navigation Area</label>
-        <select id="mapNavAreaSelect" class="navarea-select" onchange="filterMapByNavArea(this.value)" aria-label="Select Navigation Area">
-          <option value="" selected>All NAVAREAs (Global View)</option>
-          <option value="NA I">NAVAREA I · North Atlantic / UK</option>
-          <option value="NA II">NAVAREA II · East Atlantic</option>
-          <option value="NA III">NAVAREA III · Mediterranean</option>
-          <option value="NA IV">NAVAREA IV · West Atlantic</option>
-          <option value="NA V">NAVAREA V · Brazil / SW Atlantic</option>
-          <option value="NA VI">NAVAREA VI · Argentina / SE Atlantic</option>
-          <option value="NA VII">NAVAREA VII · South Africa</option>
-          <option value="NA VIII">NAVAREA VIII · Indian Ocean</option>
-          <option value="NA IX">NAVAREA IX · Red Sea / Persian Gulf</option>
-          <option value="NA X">NAVAREA X · Australia</option>
-          <option value="NA XI">NAVAREA XI · East Asia / Japan</option>
-          <option value="NA XII">NAVAREA XII · East Pacific</option>
-          <option value="NA XIII">NAVAREA XIII · NW Pacific / Okhotsk</option>
-          <option value="NA XIV">NAVAREA XIV · New Zealand / S. Pacific</option>
-          <option value="NA XV">NAVAREA XV · Chile / SE Pacific</option>
-          <option value="NA XVI">NAVAREA XVI · Peru / E. South Pacific</option>
-          <option value="NA XVII">NAVAREA XVII · Arctic Canada (West)</option>
-          <option value="NA XVIII">NAVAREA XVIII · Arctic Canada (East)</option>
-          <option value="NA XIX">NAVAREA XIX · Arctic Norway</option>
-          <option value="NA XX">NAVAREA XX · Arctic Russia (Kara/Laptev)</option>
-          <option value="NA XXI">NAVAREA XXI · Arctic Russia (East Siberian)</option>
-        </select>
-        <svg class="navarea-select-chevron" viewBox="0 0 24 24" aria-hidden="true">
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
+  <!-- Collapsible Top Controls Block -->
+  <div class="map-top-section" id="mapTopSection">
+    <div class="page-header">
+      <div><h1>Active Warnings</h1><p class="subtitle" id="mapSubtitle">0 in-force across 0 NAVAREAs</p></div>
+      <div class="actions">
+        <div class="navarea-select-wrapper">
+          <label for="mapNavAreaSelect" class="sr-only">Select Navigation Area</label>
+          <select id="mapNavAreaSelect" class="navarea-select" onchange="filterMapByNavArea(this.value)" aria-label="Select Navigation Area">
+            <option value="" selected>All NAVAREAs (Global View)</option>
+            <option value="NA I">NAVAREA I · North Atlantic / UK</option>
+            <option value="NA II">NAVAREA II · East Atlantic</option>
+            <option value="NA III">NAVAREA III · Mediterranean</option>
+            <option value="NA IV">NAVAREA IV · West Atlantic</option>
+            <option value="NA V">NAVAREA V · Brazil / SW Atlantic</option>
+            <option value="NA VI">NAVAREA VI · Argentina / SE Atlantic</option>
+            <option value="NA VII">NAVAREA VII · South Africa</option>
+            <option value="NA VIII">NAVAREA VIII · Indian Ocean</option>
+            <option value="NA IX">NAVAREA IX · Red Sea / Persian Gulf</option>
+            <option value="NA X">NAVAREA X · Australia</option>
+            <option value="NA XI">NAVAREA XI · East Asia / Japan</option>
+            <option value="NA XII">NAVAREA XII · East Pacific</option>
+            <option value="NA XIII">NAVAREA XIII · NW Pacific / Okhotsk</option>
+            <option value="NA XIV">NAVAREA XIV · New Zealand / S. Pacific</option>
+            <option value="NA XV">NAVAREA XV · Chile / SE Pacific</option>
+            <option value="NA XVI">NAVAREA XVI · Peru / E. South Pacific</option>
+            <option value="NA XVII">NAVAREA XVII · Arctic Canada (West)</option>
+            <option value="NA XVIII">NAVAREA XVIII · Arctic Canada (East)</option>
+            <option value="NA XIX">NAVAREA XIX · Arctic Norway</option>
+            <option value="NA XX">NAVAREA XX · Arctic Russia (Kara/Laptev)</option>
+            <option value="NA XXI">NAVAREA XXI · Arctic Russia (East Siberian)</option>
+          </select>
+          <svg class="navarea-select-chevron" viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <button class="btn btn-primary" onclick="refreshData()">Refresh Data</button>
+        <button class="btn btn-secondary" onclick="switchTab('data')">Data Bank →</button>
       </div>
-      <button class="btn btn-primary" onclick="refreshData()">Refresh Data</button>
-      <button class="btn btn-secondary" onclick="switchTab('data')">Data Bank →</button>
     </div>
   </div>
   <div class="map-container">
     <div id="map"></div>
+
+    <!-- Floating Map Controls Toggle Chip (reveals / collapses top controls) -->
+    <button type="button" class="map-controls-chip is-expanded" id="mapControlsChip" onclick="toggleMapTopControls()" aria-label="Toggle map filter controls" title="Toggle navigation area filter and controls" aria-expanded="true" aria-controls="mapTopSection">
+      <span class="chip-dot"></span>
+      <span id="chipNavAreaText">Global View</span>
+      <span class="chip-count" id="chipLiveCount">0 live</span>
+      <svg class="chip-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+
     <div class="map-ctrl-topright" role="toolbar" aria-label="Map Navigation Controls">
       <button type="button" class="map-recenter-pill-btn" onclick="resetMapView()" title="Re-center / Locate" aria-label="Re-center navigation area on map">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8"/></svg>
         <span>Re-center</span>
+      </button>
+      <button type="button" class="map-focus-btn" id="btnMapFocus" onclick="toggleMapFocusMode()" title="Maximize Map View (Focus Mode)" aria-label="Maximize map view full screen">
+        <svg id="iconMapFocusMax" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        </svg>
+        <svg id="iconMapFocusMin" style="display:none" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+        </svg>
       </button>
       <button type="button" class="map-gear-btn" id="btnMapSettings" onclick="toggleMapSettings(event)" title="Layers & Chart Type (Long-press to reset)" aria-label="Map layers and chart settings" aria-expanded="false" aria-controls="mapSettingsPopover">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -387,9 +414,14 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 
     <!-- Floating / Docked Compact Title Card for Progressive Disclosure -->
     <div class="nw-title-card" id="mapTitleCard" role="tooltip" aria-hidden="true" onclick="handleTitleCardClick()">
-      <span class="nw-title-card-pill" id="titleCardPill"></span>
-      <span id="titleCardText">NAVAREA Warning</span>
-      <span class="nw-title-card-hint" id="titleCardHint">Tap for details →</span>
+      <div style="display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden">
+        <span class="nw-title-card-pill" id="titleCardPill"></span>
+        <span id="titleCardText" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">NAVAREA Warning</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        <span class="nw-title-card-hint" id="titleCardHint">Tap for details →</span>
+        <button type="button" class="nw-title-card-close" onclick="event.stopPropagation(); hideTitleCard(true);" aria-label="Dismiss warning card" title="Dismiss">✕</button>
+      </div>
     </div>
 
     <!-- Desktop Warning Details Side Drawer -->

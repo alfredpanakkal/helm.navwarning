@@ -241,3 +241,32 @@ interface NavWarningActiveSpatialRow {
   - All 5 standard overlays re-enable.
   - Toast confirmation appears: "Map settings reset to defaults".
   - Preference saved in `localStorage`.
+
+---
+
+## 7. Maximum Map View & Distraction Reduction
+
+### Objective
+Maximize visible cartographic screen area on both mobile and desktop by systematically reducing or collapsing non-essential UI elements, while keeping critical controls (Re-center, Focus Mode, Gear, warning interaction) instantly accessible.
+
+### Architecture & Mechanisms
+1. **Collapsible Top Controls Block (`#mapTopSection` & `#mapControlsChip`)**:
+   - The top block ("Active Warnings" title, subtitle, NAVAREA selector, Refresh & Data Bank buttons) is housed in `#mapTopSection`.
+   - Starts expanded on first visit. Automatically collapses upon user interaction on the map (pan, zoom, tap) with a 2.5s debounce.
+   - When collapsed, `#mapTopSection` smoothly collapses (`max-height: 0; opacity: 0`), and the floating `#mapControlsChip` pill displays the active NAVAREA and live count at top-left.
+   - Tapping `#mapControlsChip` instantly re-expands the controls block.
+   - Mobile viewport: Map grows from 62vh to >85% screen real estate (`calc(100dvh - 120px)`). Desktop viewport: Map occupies `calc(100vh - 90px)` with minimum 660px height.
+
+2. **Floating Controls Idle Transparency**:
+   - The top-right control toolbar (`.map-ctrl-topright`) transitions to a subtle translucent idle state (`opacity: 0.65; backdrop-filter: blur(4px)`) after 4 seconds of idle map viewing.
+   - Any mouse hover, touch interaction, or map drag immediately restores full opacity.
+
+3. **Full Viewport Focus Mode (`toggleMapFocusMode`)**:
+   - Dedicated Focus / Max Map toggle button (`#btnMapFocus`) in `.map-ctrl-topright` (plus `F` / `Escape` keyboard shortcuts).
+   - When engaged (`body.map-focus-active`), hides `.site-header`, `.bottom-nav`, `.site-footer`, and page padding, giving 100% edge-to-edge chart viewing.
+   - Automatically triggers Leaflet `invalidateSize()` to ensure pristine tile loading.
+
+4. **Refined Compact Title Card**:
+   - Reduced vertical height and tight padding (`5px 10px; font-size: 11.5px; border-radius: 6px`).
+   - Integrated dismiss `✕` button and touch swipe-down gesture to dismiss.
+
