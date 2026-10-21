@@ -157,7 +157,7 @@ export default function App() {
             if (!g || !g._geometries || g._geometries.length === 0) return w;
             // geojsonBlobToGeometry guarantees { type, coordinates } GeoJSON shapes;
             // cast to the NavWarning SpatialGeometry contract.
-            const geometries = g._geometries as NavWarning['spatial']['geometries'];
+            const geometries = g._geometries as unknown as NavWarning['spatial']['geometries'];
             return {
               ...w,
               spatial: {
