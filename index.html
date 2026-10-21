@@ -4,10 +4,61 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
-<title>Helm.Warning — NAVAREA Maritime Safety Information System</title>
-<meta name="description" content="NAVAREA maritime navigational warning ingestion pipeline, cartographic visualization, and operational administration console.">
-<meta property="og:title" content="Helm.Warning — NAVAREA Maritime Safety Information System">
-<meta property="og:description" content="NAVAREA maritime navigational warning ingestion pipeline, cartographic visualization, and operational administration console.">
+<title>Live NAVAREA Warnings Map | Free Maritime Safety Information</title>
+<meta name="description" content="Free interactive map of live NAVAREA navigational warnings. Fast, mobile-friendly maritime safety information for passage planning. No login required.">
+<link rel="canonical" href="https://helmwarning.vercel.app/">
+<meta name="google-site-verification" content="GSC_VERIFICATION_TOKEN_PLACEHOLDER">
+
+<!-- OpenGraph Social Metadata -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Helm.Warning">
+<meta property="og:title" content="Live NAVAREA Warnings Map | Free Maritime Safety Information">
+<meta property="og:description" content="Free interactive map of live NAVAREA navigational warnings. Fast, mobile-friendly maritime safety information for passage planning. No login required.">
+<meta property="og:url" content="https://helmwarning.vercel.app/">
+<meta property="og:image" content="https://helmwarning.vercel.app/og-preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter Card Metadata -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Live NAVAREA Warnings Map | Free Maritime Safety Information">
+<meta name="twitter:description" content="Free interactive map of live NAVAREA navigational warnings. Fast, mobile-friendly maritime safety information for passage planning. No login required.">
+<meta name="twitter:image" content="https://helmwarning.vercel.app/og-preview.png">
+
+<!-- Schema.org Structured Data (WebApplication + Dataset) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "@id": "https://helmwarning.vercel.app/#app",
+      "name": "Helm.Warning",
+      "url": "https://helmwarning.vercel.app/",
+      "applicationCategory": "NavigationApplication",
+      "operatingSystem": "All",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Free interactive global map and operational directory for active NAVAREA navigational warnings and Maritime Safety Information (MSI)."
+    },
+    {
+      "@type": "Dataset",
+      "@id": "https://helmwarning.vercel.app/#dataset",
+      "name": "Global NAVAREA Maritime Safety Warnings Dataset",
+      "description": "In-force navigational hazard notices, coordinates, and advisory notices across all 21 NAVAREAs.",
+      "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Organization",
+        "name": "Helm.Warning"
+      }
+    }
+  ]
+}
+</script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="/assets/css/tokens.css">
@@ -265,6 +316,18 @@ body.is-mobile .page-header .actions .btn{flex:1}
 body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(--bottomnav-h))}
 .footer-inner{max-width:1400px;margin:0 auto;text-align:center;font-size:13px;color:var(--text-muted)}
 .footer-disclaimer{margin-top:8px;font-size:12px;color:var(--text-light);max-width:600px;margin-inline:auto}
+.seo-accordion{max-width:1400px;margin:20px auto 0 auto;border-top:1px solid var(--border);padding-top:16px;text-align:left}
+.seo-accordion summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--text-muted);list-style:none;display:inline-flex;align-items:center;gap:8px;padding:4px 0}
+.seo-accordion summary::-webkit-details-marker{display:none}
+.seo-accordion summary::after{content:"▾";font-size:12px;transition:transform .2s ease}
+.seo-accordion[open] summary::after{transform:rotate(180deg)}
+.seo-content-body{margin-top:14px;font-size:13px;color:var(--text-muted);line-height:1.6}
+.seo-content-body h2{font-size:15px;font-weight:600;color:var(--text);margin:0 0 8px 0}
+.seo-content-body h3{font-size:13.5px;font-weight:600;color:var(--text);margin:14px 0 8px 0}
+.seo-area-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:6px 16px;padding-left:0;list-style:none;margin:8px 0 14px 0}
+.seo-area-list li{font-size:12px;color:var(--text-muted)}
+.seo-area-list li strong{color:var(--text)}
+.seo-disclaimer-note{margin-top:10px;font-size:11.5px;color:var(--text-light);font-style:italic}
 @media (max-height:500px) and (orientation:landscape){body.is-mobile .map-container{height:75vh}body.is-mobile .stat-grid{grid-template-columns:repeat(4,1fr)}}
 </style>
 </head>
@@ -309,7 +372,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
   <!-- Collapsible Top Controls Block -->
   <div class="map-top-section" id="mapTopSection">
     <div class="page-header">
-      <div><h1>Active Warnings</h1><p class="subtitle" id="mapSubtitle">0 in-force across 0 NAVAREAs</p></div>
+      <div><h1>Live NAVAREA Warnings <span class="sr-only">Map &amp; Maritime Safety Information</span></h1><p class="subtitle" id="mapSubtitle">0 in-force across 0 NAVAREAs</p></div>
       <div class="actions">
         <div class="navarea-select-wrapper">
           <label for="mapNavAreaSelect" class="sr-only">Select Navigation Area</label>
@@ -674,6 +737,45 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
   <div class="footer-inner">
     <div>Helm.Warning — NAVAREA Maritime Safety Information Pipeline</div>
     <div class="footer-disclaimer">Automated decision-support system. Not a substitute for GMDSS or official MSI.</div>
+
+    <!-- Crawlable Pre-baked Semantic Content for Search Engines & Mariners -->
+    <details class="seo-accordion">
+      <summary>About NAVAREA Maritime Safety Information (MSI) &amp; Geographic Areas</summary>
+      <div class="seo-content-body">
+        <h2>What Are NAVAREA Navigational Warnings?</h2>
+        <p>
+          The World-Wide Navigational Warning Service (WWNWS) is a coordinated international service established jointly by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO) for promulgating urgent navigational warnings and meteorological information. Navigational warnings communicate immediate hazards to ocean navigation, including firing exercises, seismic surveys, subsea cable operations, drifting hazards, and aids-to-navigation discrepancies.
+        </p>
+        <p>
+          <strong>Helm.Warning</strong> is a free, modern decision-support cartography tool that ingests active, in-force navigational warnings from official hydrographic coordinators across all 21 global NAVAREAs, providing an uncluttered, responsive chart view with zero required login.
+        </p>
+        <h3>Official NAVAREA Operational Coordinators</h3>
+        <ul class="seo-area-list">
+          <li><strong>NAVAREA I</strong>: North Atlantic &amp; North Sea · UKHO (United Kingdom)</li>
+          <li><strong>NAVAREA II</strong>: East Atlantic &amp; Biscay · SHOM (France)</li>
+          <li><strong>NAVAREA III</strong>: Mediterranean &amp; Black Sea · IHM (Spain)</li>
+          <li><strong>NAVAREA IV</strong>: West Atlantic &amp; Gulf of Mexico · NGA (United States)</li>
+          <li><strong>NAVAREA V</strong>: South Atlantic (Brazil) · DHN (Brazil)</li>
+          <li><strong>NAVAREA VI</strong>: South Atlantic (Argentina) · SHN (Argentina)</li>
+          <li><strong>NAVAREA VII</strong>: South Africa &amp; Southern Ocean · SAN (South Africa)</li>
+          <li><strong>NAVAREA VIII</strong>: North Indian Ocean · INHD (India)</li>
+          <li><strong>NAVAREA IX</strong>: Red Sea, Persian Gulf &amp; Arabian Sea · PNHD (Pakistan)</li>
+          <li><strong>NAVAREA X</strong>: Australia &amp; Coral Sea · AMSA (Australia)</li>
+          <li><strong>NAVAREA XI</strong>: East Asia, South China Sea &amp; Japan · JCG (Japan)</li>
+          <li><strong>NAVAREA XII</strong>: East Pacific &amp; US West Coast · NGA (United States)</li>
+          <li><strong>NAVAREA XIII</strong>: NW Pacific &amp; Sea of Okhotsk · Rosmorrechflot (Russia)</li>
+          <li><strong>NAVAREA XIV</strong>: South Pacific &amp; Tasman Sea · LINZ (New Zealand)</li>
+          <li><strong>NAVAREA XV</strong>: Southeast Pacific · SHOA (Chile)</li>
+          <li><strong>NAVAREA XVI</strong>: Southeast Pacific · DHN (Peru)</li>
+          <li><strong>NAVAREA XVII &amp; XVIII</strong>: Arctic Canada · CCG (Canada)</li>
+          <li><strong>NAVAREA XIX</strong>: Arctic Norway · NCA (Norway)</li>
+          <li><strong>NAVAREA XX &amp; XXI</strong>: Arctic Russia · Rosmorrechflot (Russia)</li>
+        </ul>
+        <p class="seo-disclaimer-note">
+          Notice to Mariners: Helm.Warning is an automated decision-support cartography tool. It is not an official substitute for SOLAS carriage requirements, GMDSS equipment, NAVTEX receivers, or Inmarsat-C / Iridium SafetyNET broadcasts.
+        </p>
+      </div>
+    </details>
   </div>
 </footer>
 

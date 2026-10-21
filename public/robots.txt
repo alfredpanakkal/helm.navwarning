@@ -1,0 +1,11 @@
+# Helm.Warning robots.txt
+# https://helmwarning.vercel.app/
+
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /admin/
+Disallow: /admin
+
+# Sitemaps
+Sitemap: https://helmwarning.vercel.app/sitemap.xml

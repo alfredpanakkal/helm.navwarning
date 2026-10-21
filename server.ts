@@ -2923,6 +2923,9 @@ Instructions:
   app.all('/api/scrape-scrapling', scrapeScraplingHandler);
   app.all('/api/scraper/scrapling', scrapeScraplingHandler);
 
+  // Serve static files from public directory (robots.txt, sitemap.xml, og-preview.png, etc.)
+  app.use(express.static(path.join(process.cwd(), 'public')));
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120" />
+      <stop offset="60%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0d9488" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#334155" stroke-width="0.75" stroke-opacity="0.35" />
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <rect width="1200" height="630" fill="url(#grid)" />
+
+  <!-- Compass / Range rings in background -->
+  <circle cx="980" cy="315" r="240" fill="none" stroke="#0d9488" stroke-width="1.5" stroke-opacity="0.2" stroke-dasharray="6 6" />
+  <circle cx="980" cy="315" r="160" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.25" />
+  <circle cx="980" cy="315" r="80" fill="none" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.3" />
+  <line x1="980" y1="55" x2="980" y2="575" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.2" stroke-dasharray="4 4" />
+  <line x1="720" y1="315" x2="1240" y2="315" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.2" stroke-dasharray="4 4" />
+
+  <!-- Decorative hazard polygon on chart -->
+  <polygon points="920,240 1060,260 1020,380 890,340" fill="#ea580c" fill-opacity="0.15" stroke="#ea580c" stroke-width="2" stroke-opacity="0.7" />
+  <circle cx="920" cy="240" r="5" fill="#ea580c" />
+  <circle cx="1060" cy="260" r="5" fill="#ea580c" />
+  <circle cx="1020" cy="380" r="5" fill="#ea580c" />
+  <circle cx="890" cy="340" r="5" fill="#ea580c" />
+
+  <!-- Content Container -->
+  <g transform="translate(90, 80)">
+    <!-- Category pill / tag -->
+    <rect x="0" y="0" width="310" height="42" rx="21" fill="#1e293b" stroke="#334155" stroke-width="1" />
+    <circle cx="24" cy="21" r="6" fill="#10b981" />
+    <text x="42" y="27" fill="#f8fafc" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" font-weight="700" letter-spacing="1.5">LIVE MSI CARTOGRAPHY</text>
+
+    <!-- Main Title -->
+    <text x="0" y="130" fill="#ffffff" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="64" font-weight="800" letter-spacing="-1.5">Helm.Warning</text>
+
+    <!-- Subtitle -->
+    <text x="0" y="200" fill="url(#accent)" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="34" font-weight="700" letter-spacing="-0.5">Live NAVAREA Warnings Map</text>
+
+    <!-- Descriptive text -->
+    <text x="0" y="260" fill="#94a3b8" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22" font-weight="400">
+      Free interactive chart of in-force maritime navigational warnings.
+    </text>
+    <text x="0" y="296" fill="#94a3b8" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22" font-weight="400">
+      Fast, mobile-ready situational awareness for passage planning.
+    </text>
+
+    <!-- Value Badges -->
+    <g transform="translate(0, 360)">
+      <!-- Badge 1 -->
+      <rect x="0" y="0" width="165" height="46" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="20" y="28" fill="#e2e8f0" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" font-weight="600">21 NAVAREAs</text>
+
+      <!-- Badge 2 -->
+      <rect x="180" y="0" width="165" height="46" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="200" y="28" fill="#e2e8f0" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" font-weight="600">No Login Required</text>
+
+      <!-- Badge 3 -->
+      <rect x="360" y="0" width="165" height="46" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="380" y="28" fill="#e2e8f0" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" font-weight="600">Mobile &amp; Desktop</text>
+    </g>
+
+    <!-- Domain link -->
+    <text x="0" y="470" fill="#64748b" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="16" font-weight="500">
+      helmwarning.vercel.app · Official IMO/IHO NAVAREA Ingestion
+    </text>
+  </g>
+</svg>

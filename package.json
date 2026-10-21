@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/express": "^4.17.21",
     "@types/leaflet.markercluster": "^1.5.6",
     "@types/node": "^22.14.0",
