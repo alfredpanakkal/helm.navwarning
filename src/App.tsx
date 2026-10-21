@@ -155,13 +155,16 @@ export default function App() {
           hydrated = hydrated.map((w) => {
             const g = groupedByCanonical.get(w.warning_id);
             if (!g || !g._geometries || g._geometries.length === 0) return w;
+            // geojsonBlobToGeometry guarantees { type, coordinates } GeoJSON shapes;
+            // cast to the NavWarning SpatialGeometry contract.
+            const geometries = g._geometries as NavWarning['spatial']['geometries'];
             return {
               ...w,
               spatial: {
-                geometries: g._geometries,
+                geometries,
                 circles: [],
                 raw_coordinate_text: [],
-                validation_status: 'passed',
+                validation_status: 'passed' as const,
               },
             };
           });
