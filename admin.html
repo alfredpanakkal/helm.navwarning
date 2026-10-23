@@ -3,374 +3,119 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0f172a">
-<!-- Keep admin OUT of search engines -->
 <meta name="robots" content="noindex, nofollow, noarchive">
-<title>Helm.Warning — Admin Console</title>
+<title>Helm.Warning — Admin Gateway</title>
 <link rel="stylesheet" href="/assets/css/tokens.css">
 <link rel="stylesheet" href="/assets/css/components.css">
 <style>
-.skip-link{position:fixed;left:-9999px;top:0;background:var(--surface-dark);color:#fff;padding:8px 16px;z-index:10001;border-radius:0 0 8px 0;text-decoration:none;font:600 13px system-ui;transition:left .15s ease}
-.skip-link:focus{left:0;outline:2px solid var(--verified);outline-offset:2px}
-#adminMain:focus{outline:none}
-/* ═══ LOGIN GATE ═══ */
-#loginView{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--surface-dark)}
-.login-card{background:var(--surface);border-radius:16px;padding:40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.login-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;font:600 20px system-ui;color:#fff;}
-.login-logo .logo-badge{width:40px;height:40px;background:#fff;color:var(--surface-dark);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
-.login-sub{text-align:center;color:var(--text-light);font-size:13px;margin-bottom:28px}
-.login-label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-light);margin-bottom:6px}
-.login-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;font:400 15px system-ui;background:var(--surface);color:var(--text);margin-bottom:16px;min-height:48px}
-.login-input:focus{outline:none;border-color:var(--text-muted)}
-.login-error{background:#fef2f2;color:var(--critical);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none}
-
-/* ═══ ADMIN APP ═══ */
-#adminView{display:none}
-.admin-header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1000;padding-top:var(--safe-top)}
-.admin-header-inner{max-width:1400px;margin:0 auto;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px}
-.admin-brand{display:flex;align-items:center;gap:10px;font:600 16px system-ui}
-.admin-brand .logo-badge{width:30px;height:30px;background:var(--surface-dark);color:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
-.admin-chip{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:var(--high);color:#fff;padding:3px 8px;border-radius:6px}
-.admin-header-actions{display:flex;align-items:center;gap:10px}
-.admin-user{font-size:13px;color:var(--text-muted)}
-.main{max-width:1400px;margin:0 auto;padding:24px 16px}
-
-.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px;flex-wrap:wrap}
-.page-header h1{font:600 24px/1.3 system-ui;margin-bottom:4px}
-.page-header .subtitle{color:var(--text-muted);font-size:14px}
-
-.admin-subnav{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.admin-subnav::-webkit-scrollbar{display:none}
-.asub-btn{flex:1;white-space:nowrap;padding:9px 16px;border:none;background:none;border-radius:7px;font:500 13px system-ui;color:var(--text-muted);cursor:pointer;min-height:40px}
-.asub-btn.active{background:var(--surface-dark);color:#fff}
-.asub-badge{background:var(--high);color:#fff;font-size:10px;font-weight:600;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;margin-left:4px}
-.admin-sub{display:none}
-.admin-sub.active{display:block;animation:fadeUp .25s}
-
-.admin-hero{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:16px}
-.hero-status{font:600 18px system-ui;display:flex;align-items:center}
-.hero-meta{font-size:13px;color:var(--text-muted);margin-top:4px}
-.hero-meta b{color:var(--text)}
-.hero-stages{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
-.hero-stage{font-size:11px;font-weight:600;padding:3px 10px;border-radius:10px;background:#ecfdf5;color:var(--active)}
-.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
-.status-dot.live{background:var(--active);animation:pulse 2s infinite}
-
-.attention{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px}
-.att-title{padding:14px 20px;font:600 14px system-ui;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-.att-item{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border)}
-.att-item:last-child{border-bottom:none}
-.att-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.att-icon.warn{background:#fff7ed;color:var(--high)}
-.att-icon.stale{background:#f1f5f9;color:var(--neutral)}
-.att-text{flex:1}
-.att-text b{font-size:14px}
-.att-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
-.att-clear{padding:28px 20px;text-align:center;color:var(--text-muted);font-size:14px}
-.att-clear .big{font-size:32px;color:var(--active);margin-bottom:8px}
-
-.qa-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-.qa-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;align-items:center;gap:14px;cursor:pointer;font:inherit;text-align:left}
-.qa-card:hover{border-color:var(--text-muted)}
-.qa-ico{width:40px;height:40px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.qa-card b{display:block;font-size:14px}
-.qa-card span{font-size:12px;color:var(--text-muted)}
-
-.section-title{font:600 15px system-ui;margin:24px 0 10px;display:flex;align-items:center;gap:8px}
-.section-title .count{font-size:12px;color:var(--text-muted);font-weight:400}
-
-.stage-row{display:flex;align-items:stretch;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.stage-card{flex:1;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;transition:.2s}
-.stage-arrow{align-self:center;color:var(--text-light)}
-.stage-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.stage-num{font:700 11px system-ui;color:var(--text-light);letter-spacing:1px}
-.stage-state{font-size:11px;font-weight:600;color:var(--text-muted);display:flex;align-items:center;gap:5px}
-.stage-state .dot{width:7px;height:7px;border-radius:50%;background:var(--neutral)}
-.stage-card.running{border-color:var(--high)}
-.stage-card.running .stage-state{color:var(--high)}
-.stage-card.running .stage-state .dot{background:var(--high);animation:pulse .8s infinite}
-.stage-card.done{border-color:var(--active)}
-.stage-card.done .stage-state{color:var(--active)}
-.stage-card.done .stage-state .dot{background:var(--active)}
-.stage-name{font:600 15px system-ui}
-.stage-desc{font-size:12px;color:var(--text-muted);margin:2px 0 10px}
-.stage-metrics{display:flex;gap:16px}
-.stage-metrics div b{font-size:15px;display:block}
-.stage-metrics div span{font-size:11px;color:var(--text-muted)}
-
-.wizard-steps{display:flex;align-items:center;gap:6px;margin-bottom:20px;flex-wrap:wrap}
-.wstep{display:flex;align-items:center;gap:8px;font:500 13px system-ui;color:var(--text-light)}
-.wstep-num{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
-.wstep.active{color:var(--text)}
-.wstep.active .wstep-num{border-color:var(--surface-dark);color:var(--surface-dark)}
-.wstep.done{color:var(--active)}
-.wstep.done .wstep-num{border-color:var(--active);background:var(--active);color:#fff}
-.wstep-line{flex:1;min-width:20px;height:2px;background:var(--border)}
-.wstep-line.done{background:var(--active)}
-.wpanel{display:none}
-.wpanel.active{display:block;animation:fadeUp .25s}
-.method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
-.method-card{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:18px;display:flex;gap:14px;align-items:flex-start;cursor:pointer;text-align:left;font:inherit}
-.method-card.selected{border-color:var(--surface-dark);background:#f8fafc}
-.method-icon{font-size:24px;flex-shrink:0}
-.method-name{font-weight:600;font-size:14px}
-.method-desc{font-size:12px;color:var(--text-muted);margin-top:2px}
-.method-tag{margin-left:auto;font-size:10px;font-weight:600;text-transform:uppercase;padding:2px 8px;border-radius:8px;background:var(--bg);color:var(--text-muted);flex-shrink:0}
-.wiz-textarea{width:100%;min-height:220px;padding:14px;border:1px solid var(--border);border-radius:10px;font:400 13px ui-monospace,monospace;background:var(--surface);resize:vertical;line-height:1.6;color:var(--text)}
-.wiz-count{font-size:12px;color:var(--text-muted);margin-top:6px;display:flex;justify-content:space-between}
-.wiz-config{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:16px 0}
-.filter-group label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:4px}
-.filter-group select{width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font:400 14px system-ui;background:var(--surface);min-height:44px;color:var(--text)}
-.wiz-nav{display:flex;justify-content:space-between;gap:10px;margin-top:20px}
-.parse-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.pill{font-size:12px;font-weight:600;padding:4px 12px;border-radius:14px}
-.pill-ok{background:#ecfdf5;color:var(--active)}
-.parse-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;gap:14px}
-.parse-card.accepted{border-left:3px solid var(--active)}
-.parse-check input{width:18px;height:18px;accent-color:var(--active);margin-top:2px}
-.parse-main{flex:1;min-width:0}
-.parse-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
-.parse-title{font-size:14px;font-weight:500;margin:4px 0}
-.parse-meta{font-size:12px;color:var(--text-muted)}
-.publish-review{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
-.pr-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
-.pr-row:last-child{border-bottom:none}
-.pr-row .k{color:var(--text-muted)}
-.pr-row .v{font-weight:600}
-.success-panel{background:#ecfdf5;border:1px solid var(--active);border-radius:12px;padding:28px;text-align:center}
-.success-panel .big{font-size:40px;color:var(--active)}
-.success-panel h3{font:600 17px system-ui;margin:8px 0 4px}
-.success-panel p{font-size:13px;color:var(--text-muted)}
-.gen-id{font-family:ui-monospace,monospace;font-size:12px;background:var(--surface);padding:6px 12px;border-radius:6px;display:inline-block;margin-top:12px;border:1px solid var(--border)}
-
-.verify-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:12px}
-.verify-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
-.verify-title{font:600 15px system-ui}
-.verify-text{font-family:ui-monospace,monospace;font-size:12px;line-height:1.6;background:var(--bg);padding:12px;border-radius:6px;margin:10px 0;color:var(--text-muted)}
-.verify-checks{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);margin-bottom:14px}
-.verify-actions{display:flex;gap:8px;flex-wrap:wrap}
-
-.sys-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:16px}
-.ai-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px}
-.ai-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
-.ai-name{font:600 15px system-ui}
-.ai-meta{font-size:12px;color:var(--text-muted);font-family:ui-monospace,monospace}
-.ai-last{font-size:12px;color:var(--text-muted);margin:10px 0}
-
-.db-status{display:flex;align-items:center;gap:8px;font:600 14px system-ui;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:12px 12px 0 0}
-.schema-box{background:var(--surface-dark);color:#e2e8f0;padding:16px;border-radius:6px;overflow-x:auto;font:400 12px/1.5 ui-monospace,monospace}
-
-@media (max-width:768px){
-  .main{padding:16px 12px}
-  .stage-row{display:grid;grid-template-columns:1fr 1fr}
-  .stage-arrow{display:none}
-  .wiz-nav{flex-direction:column}
-  .wiz-nav .btn{width:100%}
-  .att-item{flex-wrap:wrap}
-  .att-item .btn{width:100%}
-  .admin-user{display:none}
-}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--surface-dark);font:400 15px system-ui}
+.card{background:var(--surface);border-radius:16px;padding:40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;font:600 20px system-ui;color:#fff}
+.logo .badge{width:40px;height:40px;background:#fff;color:var(--surface-dark);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.sub{text-align:center;color:var(--text-light);font-size:13px;margin-bottom:24px}
+.notice{background:#eff6ff;color:#1d4ed8;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.5;margin-bottom:20px}
+.notice a{color:#1d4ed8;font-weight:600}
+label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-light);margin-bottom:6px}
+input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;font:400 15px system-ui;background:var(--surface);color:var(--text);margin-bottom:16px;min-height:48px;box-sizing:border-box}
+input:focus{outline:none;border-color:var(--text-muted)}
+.error{background:#fef2f2;color:var(--critical);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none}
+.links{margin-top:20px;text-align:center;display:flex;flex-direction:column;gap:8px}
+.links a{font-size:13px;color:var(--text-light);text-decoration:none}
+.links a:hover{color:#fff}
 </style>
 </head>
 <body>
-<a href="#adminMain" class="skip-link">Skip to main content</a>
+<div class="card">
+  <div class="logo"><span class="badge">HW</span> Helm.Warning</div>
+  <div class="sub">Admin Gateway — restricted access</div>
 
-<!-- ═══════════════ LOGIN GATE ═══════════════ -->
-<div id="loginView">
-  <div class="login-card">
-    <div class="login-logo"><span class="logo-badge">HW</span> Helm.Warning</div>
-    <div class="login-sub">Admin Console — restricted access</div>
-    <div class="login-error" id="loginError"></div>
-    <form onsubmit="handleLogin(event)">
-      <label class="login-label" for="loginEmail">Email</label>
-      <input class="login-input" type="email" id="loginEmail" placeholder="admin@helm.warning" autocomplete="username" required>
-      <label class="login-label" for="loginPassword">Password</label>
-      <input class="login-input" type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required>
-      <button class="btn btn-primary" type="submit" id="loginBtn" style="width:100%">Sign In</button>
-    </form>
-    <div style="text-align:center;margin-top:20px"><a href="/" style="font-size:13px;color:var(--text-light);text-decoration:none">← Back to public site</a></div>
+  <div class="notice">
+    The legacy single-file admin console has been retired. Sign in here to be
+    redirected to the unified React admin console (Data Bank tools, manual
+    parser, imports, audit and Supabase views).
+  </div>
+
+  <div class="error" id="loginError"></div>
+  <form onsubmit="handleLogin(event)" id="loginForm">
+    <label for="loginEmail">Email</label>
+    <input type="email" id="loginEmail" placeholder="admin@helm.warning" autocomplete="username" required>
+    <label for="loginPassword">Password</label>
+    <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required>
+    <button class="btn btn-primary" type="submit" id="loginBtn" style="width:100%">Sign In &amp; Continue</button>
+  </form>
+
+  <div class="links">
+    <a href="/">← Back to public site</a>
   </div>
 </div>
 
-<!-- ═══════════════ ADMIN APP ═══════════════ -->
-<div id="adminView">
-<header class="admin-header">
-  <div class="admin-header-inner">
-    <div class="admin-brand">
-      <span class="logo-badge">HW</span>
-      Helm.Warning <span class="admin-chip">Admin</span>
-    </div>
-    <div class="admin-header-actions">
-      <span class="admin-user" id="adminUserEmail"></span>
-      <a href="/" class="btn btn-ghost" style="text-decoration:none">View Site ↗</a>
-      <button class="btn btn-sm btn-secondary" onclick="logout()">Sign Out</button>
-    </div>
-  </div>
-</header>
-
-<main class="main" id="adminMain" tabindex="-1">
-  <nav class="admin-subnav" aria-label="Admin console navigation">
-    <div role="tablist" aria-label="Admin console sections" style="display:flex;gap:4px;width:100%;align-items:center">
-      <button class="asub-btn active" data-sub="overview" role="tab" aria-selected="true" onclick="switchAdminSub('overview')">Overview</button>
-      <button class="asub-btn" data-sub="pipeline" role="tab" aria-selected="false" onclick="switchAdminSub('pipeline')">Pipeline</button>
-      <button class="asub-btn" data-sub="import" role="tab" aria-selected="false" onclick="switchAdminSub('import')">Import</button>
-      <button class="asub-btn" data-sub="verify" role="tab" aria-selected="false" onclick="switchAdminSub('verify')">Verify <span class="asub-badge" id="verifyBadge" style="display:none">0</span></button>
-      <button class="asub-btn" data-sub="system" role="tab" aria-selected="false" onclick="switchAdminSub('system')">System</button>
-    </div>
-  </nav>
-
-  <!-- OVERVIEW -->
-  <div class="admin-sub active" id="admin-overview">
-    <div class="admin-hero">
-      <div>
-        <div class="hero-status"><span class="status-dot live"></span> Pipeline Operational</div>
-        <div class="hero-meta">Cycle operational · background worker active</div>
-        <div class="hero-stages"><span class="hero-stage">✓ Fetch</span><span class="hero-stage">✓ Parse</span><span class="hero-stage">✓ Geocode</span><span class="hero-stage">✓ Publish</span></div>
-      </div>
-      <button class="btn btn-primary" id="runCycleBtn" onclick="runPipelineCycle()">▶ Run Cycle Now</button>
-    </div>
-    <div class="attention" id="attentionPanel"></div>
-    <div class="section-title">Quick Actions</div>
-    <div class="qa-row">
-      <button class="qa-card" onclick="switchAdminSub('import')"><span class="qa-ico">⬆</span><div><b>Import Data</b><span>Bulk ingestion wizard</span></div></button>
-      <button class="qa-card" onclick="switchAdminSub('verify')"><span class="qa-ico">✓</span><div><b>Verify Warnings</b><span id="qaVerifySub">All verified</span></div></button>
-    </div>
-  </div>
-
-  <!-- PIPELINE -->
-  <div class="admin-sub" id="admin-pipeline">
-    <div class="stage-row">
-      <div class="stage-card" id="stage-fetch"><div class="stage-top"><span class="stage-num">01</span><span class="stage-state" id="st-fetch"><span class="dot"></span> Ready</span></div><div class="stage-name">Fetch Sources</div><div class="stage-desc">Poll coordinators via HTTPS</div></div>
-      <div class="stage-arrow">→</div>
-      <div class="stage-card" id="stage-parse"><div class="stage-top"><span class="stage-num">02</span><span class="stage-state" id="st-parse"><span class="dot"></span> Ready</span></div><div class="stage-name">Parse &amp; Normalize</div><div class="stage-desc">Tokenize raw text</div></div>
-      <div class="stage-arrow">→</div>
-      <div class="stage-card" id="stage-geocode"><div class="stage-top"><span class="stage-num">03</span><span class="stage-state" id="st-geocode"><span class="dot"></span> Ready</span></div><div class="stage-name">Geocode Geometry</div><div class="stage-desc">Points, polygons, circles</div></div>
-      <div class="stage-arrow">→</div>
-      <div class="stage-card" id="stage-publish"><div class="stage-top"><span class="stage-num">04</span><span class="stage-state" id="st-publish"><span class="dot"></span> Ready</span></div><div class="stage-name">Publish Generation</div><div class="stage-desc">Atomic pointer swap</div></div>
-    </div>
-    <div class="wiz-nav" style="margin:0 0 20px">
-      <span></span>
-      <button class="btn btn-primary" id="runCycleBtn2" onclick="runPipelineCycle()">▶ Run Cycle Now</button>
-    </div>
-  </div>
-
-  <!-- IMPORT -->
-  <div class="admin-sub" id="admin-import">
-    <div class="wizard-steps">
-      <div class="wstep active" id="ws1"><span class="wstep-num">1</span>Source</div><div class="wstep-line" id="wl1"></div>
-      <div class="wstep" id="ws2"><span class="wstep-num">2</span>Input</div><div class="wstep-line" id="wl2"></div>
-      <div class="wstep" id="ws3"><span class="wstep-num">3</span>Validate</div><div class="wstep-line" id="wl3"></div>
-      <div class="wstep" id="ws4"><span class="wstep-num">4</span>Publish</div>
-    </div>
-    <div class="wpanel active" id="wstep1">
-      <div class="method-grid">
-        <button class="method-card selected" data-method="paste" onclick="selectMethod('paste')"><span class="method-icon">✎</span><div><div class="method-name">Paste Warning Text</div><div class="method-desc">Raw NAVAREA / MSI bulletin text</div></div><span class="method-tag">manual</span></button>
-      </div>
-      <div class="wiz-nav"><span></span><button class="btn btn-primary" onclick="wizardGo(2)">Continue →</button></div>
-    </div>
-    <div class="wpanel" id="wstep2">
-      <div class="wiz-config" style="margin:0 0 14px">
-        <div class="filter-group">
-          <label for="wizRegion">NAVAREA region</label>
-          <select id="wizRegion">
-            <option value="auto" selected>Auto — detect from bulletin header</option>
-            <option value="8">NAVAREA VIII (India / NHO)</option>
-            <option value="1">NAVAREA I</option>
-            <option value="iv">NAVAREA IV</option>
-            <option value="xi">NAVAREA XI</option>
-            <option value="xii">NAVAREA XII</option>
-            <option value="baltic">Baltic / Swedish Nav Warn</option>
-          </select>
-        </div>
-      </div>
-      <label for="wizInput" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Raw Warning Bulletin Text</label>
-      <textarea class="wiz-textarea" id="wizInput" aria-label="Raw warning bulletin text" placeholder="Paste mixed maritime feed, bulletin, or web dump..." oninput="updateWizCount()"></textarea>
-      <div class="wiz-count"><span id="wizCountLabel">0 lines · 0 KB</span></div>
-      <div class="wiz-nav">
-        <button class="btn btn-secondary" onclick="wizardGo(1)">← Back</button>
-        <button class="btn btn-primary" id="wizContinue2" onclick="wizardGo(3)" disabled>Validate →</button>
-      </div>
-    </div>
-    <div class="wpanel" id="wstep3">
-      <div class="parse-summary" id="parseSummary"></div>
-      <div id="parseResults"></div>
-      <div class="wiz-nav">
-        <button class="btn btn-secondary" onclick="wizardGo(2)">← Back</button>
-        <button class="btn btn-primary" onclick="wizardGo(4)">Review &amp; Publish →</button>
-      </div>
-    </div>
-    <div class="wpanel" id="wstep4">
-      <div id="publishArea">
-        <div class="publish-review">
-          <div class="pr-row"><span class="k">Paste job</span><span class="v" id="prJob">—</span></div>
-          <div class="pr-row"><span class="k">Route</span><span class="v">manual_ingest_queue → GitHub Action → nav_warnings</span></div>
-          <div class="pr-row"><span class="k">Pickup latency</span><span class="v">≤ 15 min (or run the Action now)</span></div>
-        </div>
-        <div class="wiz-nav"><span></span><button class="btn btn-primary" id="publishBtn" onclick="publishImport()">🔒 Submit to Ingest Pipeline</button></div>
-      </div>
-      <div id="successArea" style="display:none">
-        <div class="success-panel">
-          <div class="big">✓</div><h3>Submitted to Ingest Pipeline</h3>
-          <p>Queued for the GitHub Action. Status updates live below.</p>
-          <div class="pr-row" style="border-top:1px solid var(--border);border-bottom:none;padding:14px 0 0"><span class="k">Pipeline status</span><span class="v" id="queueLiveStatus">PENDING</span></div>
-          <div class="gen-id" id="genId"></div>
-          <div class="wiz-nav" style="justify-content:center;margin-top:20px">
-            <a href="/" class="btn btn-secondary" style="text-decoration:none">View Public Site ↗</a>
-            <button class="btn btn-ghost" onclick="resetWizard()">Start New Import</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- VERIFY -->
-  <div class="admin-sub" id="admin-verify">
-    <div id="verifyQueue"></div>
-  </div>
-
-  <!-- SYSTEM -->
-  <div class="admin-sub" id="admin-system">
-    <div class="section-title">AI Extraction Chain</div>
-    <div class="sys-grid">
-      <div class="ai-card"><div class="ai-head"><span class="ai-name">Gemini API</span><span class="badge-simple badge-neutral" id="geminiStatus"><span class="dot"></span> Idle</span></div><div class="ai-meta">gemini-3.1-flash-lite</div><div class="ai-last" id="geminiLast">Last test: never</div><button class="btn btn-sm btn-secondary" id="geminiBtn" onclick="testModel('gemini')">Test Connection</button></div>
-    </div>
-    <div class="section-title">Database</div>
-    <div class="db-status"><span class="status-dot live"></span> Connected — Supabase Postgres</div>
-    <div style="margin-bottom:16px; margin-top:8px;">
-      <div style="padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:0 0 12px 12px;">
-        <pre class="schema-box" id="sqlSchema">-- Current schema (20261019/20 backend contract)
-CREATE TABLE public.nav_warnings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  canonical_id TEXT UNIQUE NOT NULL,   -- e.g. 'NAVAREA XI 0451/26'
-  navarea TEXT NOT NULL,               -- full name, e.g. 'NAVAREA XI'
-  source_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  area_text TEXT,
-  raw_text TEXT NOT NULL,
-  status TEXT NOT NULL,                -- active|cancelled|expired|superseded|unverified
-  categories TEXT[] NOT NULL,          -- replaces category/severity/risk_level
-  triage_tier TEXT NOT NULL,           -- A (auto-plot) | B (review) | C (blocked)
-  data_quality TEXT NOT NULL,          -- EXPLICIT|INFERRED|AMBIGUOUS|INVALID
-  parsing_method TEXT NOT NULL,        -- RULE|AI
-  qa_flags JSONB,
-  unplotted_reason TEXT,
-  valid_from TIMESTAMPTZ, valid_to TIMESTAMPTZ, issued_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
-);
--- Geometry lives in public.nav_warning_geometries (PostGIS).
--- The map reads public.nav_warnings_active_spatial (geojson_blob).
--- Full contract: docs/supabase-backend-contract.md</pre>
-      </div>
-    </div>
-  </div>
-</main>
-</div><!-- /adminView -->
-
-<div class="toast" id="toast"></div>
-
-<!-- Data & Logic Scripts -->
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/assets/js/supabase.js"></script>
-<script src="/assets/js/admin.js"></script>
+<script>
+'use strict';
+
+var ADMIN_EMAILS = ['alfredpanakkal47@gmail.com'];
+
+function showError(msg) {
+  var el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function isAdminUser(user) {
+  if (!user) return false;
+  var role = (user.app_metadata && user.app_metadata.role) || '';
+  if (String(role).toLowerCase() === 'admin') return true;
+  return ADMIN_EMAILS.indexOf(String(user.email || '').toLowerCase()) !== -1;
+}
+
+function enterAdminMode(email) {
+  try {
+    localStorage.setItem('helm_admin_mode', 'true');
+    localStorage.setItem('hw_admin_email', String(email || ''));
+  } catch (e) { /* storage unavailable */ }
+  window.location.replace('/#/databank');
+}
+
+async function checkExistingSession() {
+  try {
+    if (!window.hwSupabase) return;
+    var s = await window.hwSupabase.auth.getSession();
+    var session = s && s.data && s.data.session;
+    if (session && session.access_token && isAdminUser(session.user)) {
+      enterAdminMode(session.user.email);
+    }
+  } catch (e) { /* stay on gate */ }
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  showError('');
+  var btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  try {
+    if (!window.hwSupabase) {
+      throw new Error('Supabase client unavailable. Reload the page.');
+    }
+    var email = document.getElementById('loginEmail').value.trim();
+    var password = document.getElementById('loginPassword').value;
+    var res = await window.hwSupabase.auth.signInWithPassword({ email: email, password: password });
+    if (res.error) throw new Error(res.error.message);
+    var user = res.data && res.data.user;
+    if (!isAdminUser(user)) {
+      await window.hwSupabase.auth.signOut();
+      throw new Error('This account is not authorized as an admin.');
+    }
+    enterAdminMode(user.email);
+  } catch (err) {
+    showError((err && err.message) ? err.message : 'Sign-in failed. Check your credentials.');
+    btn.disabled = false;
+    btn.textContent = 'Sign In & Continue';
+  }
+}
+
+checkExistingSession();
+</script>
 </body>
 </html>
