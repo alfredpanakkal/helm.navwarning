@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  contents: read
-  pull-requests: write
-
 jobs:
   verify-applet:
     name: Verify Node & TypeScript Build
@@ -28,52 +24,10 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Typecheck TypeScript
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set +e
-          npx tsc --noEmit > /tmp/tsc.log 2>&1
-          TSC_EXIT=$?
-          cat /tmp/tsc.log
-          if [ $TSC_EXIT -ne 0 ]; then
-            {
-              echo 'TSC failed on this branch:'
-              echo '```'
-              cat /tmp/tsc.log
-              echo '```'
-            } > /tmp/comment.md
-            BODY=$(jq -Rs '{body: .}' /tmp/comment.md)
-            curl -s -X POST \
-              -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              https://api.github.com/repos/alfredpanakkal/helm.navwarning/issues/16/comments \
-              -d "$BODY"
-            exit 1
-          fi
+        run: npx tsc --noEmit
 
       - name: Build Applet Bundle
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set +e
-          npx vite build > /tmp/vite.log 2>&1
-          VITE_EXIT=$?
-          cat /tmp/vite.log
-          if [ $VITE_EXIT -ne 0 ]; then
-            {
-              echo 'Vite build failed on this branch:'
-              echo '```'
-              tail -n 60 /tmp/vite.log
-              echo '```'
-            } > /tmp/comment.md
-            BODY=$(jq -Rs '{body: .}' /tmp/comment.md)
-            curl -s -X POST \
-              -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              https://api.github.com/repos/alfredpanakkal/helm.navwarning/issues/16/comments \
-              -d "$BODY"
-            exit 1
-          fi
+        run: npx vite build
 
   verify-scrapling:
     name: Verify Scrapling Ingestion Engine

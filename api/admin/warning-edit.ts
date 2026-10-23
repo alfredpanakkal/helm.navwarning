@@ -163,7 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .select('id, canonical_id, navarea, title, area_text, raw_text, categories, status, triage_tier,'
         + ' data_quality, qa_flags, unplotted_reason, parsing_method, valid_from, valid_to, issued_at, updated_at');
     rowQuery = isUuid ? rowQuery.eq('id', warningId) : rowQuery.eq('canonical_id', canonicalId);
-    const { data: current, error: fetchErr } = await rowQuery.maybeSingle();
+    const { data: current, error: fetchErr }: any = await rowQuery.maybeSingle();
 
     if (fetchErr) {
       return res.status(502).json({ error: 'Could not read the warning: ' + fetchErr.message });
@@ -312,7 +312,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // 6b. Create the copy in the target region (geometries copied as a starting point)
-      const { data: created, error: createErr } = await client
+      const { data: created, error: createErr }: any = await client
         .from('nav_warnings')
         .insert({
           canonical_id: newCanonicalId,
@@ -380,7 +380,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Empty patch — nothing to update.' });
     }
 
-    const { data: updated, error: updateErr } = await client
+    const { data: updated, error: updateErr }: any = await client
       .from('nav_warnings')
       .update(update)
       .eq('id', current.id)
