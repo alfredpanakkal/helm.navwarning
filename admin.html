@@ -269,6 +269,20 @@
       <div class="wiz-nav"><span></span><button class="btn btn-primary" onclick="wizardGo(2)">Continue →</button></div>
     </div>
     <div class="wpanel" id="wstep2">
+      <div class="wiz-config" style="margin:0 0 14px">
+        <div class="filter-group">
+          <label for="wizRegion">NAVAREA region</label>
+          <select id="wizRegion">
+            <option value="auto" selected>Auto — detect from bulletin header</option>
+            <option value="8">NAVAREA VIII (India / NHO)</option>
+            <option value="1">NAVAREA I</option>
+            <option value="iv">NAVAREA IV</option>
+            <option value="xi">NAVAREA XI</option>
+            <option value="xii">NAVAREA XII</option>
+            <option value="baltic">Baltic / Swedish Nav Warn</option>
+          </select>
+        </div>
+      </div>
       <label for="wizInput" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Raw Warning Bulletin Text</label>
       <textarea class="wiz-textarea" id="wizInput" aria-label="Raw warning bulletin text" placeholder="Paste mixed maritime feed, bulletin, or web dump..." oninput="updateWizCount()"></textarea>
       <div class="wiz-count"><span id="wizCountLabel">0 lines · 0 KB</span></div>
@@ -288,15 +302,17 @@
     <div class="wpanel" id="wstep4">
       <div id="publishArea">
         <div class="publish-review">
-          <div class="pr-row"><span class="k">New warnings to publish</span><span class="v" id="prNew">0</span></div>
-          <div class="pr-row"><span class="k">Target</span><span class="v">Supabase · public.nav_warnings</span></div>
+          <div class="pr-row"><span class="k">Paste job</span><span class="v" id="prJob">—</span></div>
+          <div class="pr-row"><span class="k">Route</span><span class="v">manual_ingest_queue → GitHub Action → nav_warnings</span></div>
+          <div class="pr-row"><span class="k">Pickup latency</span><span class="v">≤ 15 min (or run the Action now)</span></div>
         </div>
-        <div class="wiz-nav"><span></span><button class="btn btn-primary" id="publishBtn" onclick="publishImport()">🔒 Publish Atomically</button></div>
+        <div class="wiz-nav"><span></span><button class="btn btn-primary" id="publishBtn" onclick="publishImport()">🔒 Submit to Ingest Pipeline</button></div>
       </div>
       <div id="successArea" style="display:none">
         <div class="success-panel">
-          <div class="big">✓</div><h3>Published Successfully</h3>
-          <p>New warnings are now live on the public site.</p>
+          <div class="big">✓</div><h3>Submitted to Ingest Pipeline</h3>
+          <p>Queued for the GitHub Action. Status updates live below.</p>
+          <div class="pr-row" style="border-top:1px solid var(--border);border-bottom:none;padding:14px 0 0"><span class="k">Pipeline status</span><span class="v" id="queueLiveStatus">PENDING</span></div>
           <div class="gen-id" id="genId"></div>
           <div class="wiz-nav" style="justify-content:center;margin-top:20px">
             <a href="/" class="btn btn-secondary" style="text-decoration:none">View Public Site ↗</a>

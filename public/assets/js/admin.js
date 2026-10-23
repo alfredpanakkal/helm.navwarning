@@ -134,6 +134,46 @@ Object.assign(window.hwDb, {
   }
 });
 
+// ═══════════ MANUAL PASTE QUEUE (GitHub Action bridge) ═══════════
+// Mirrors scripts/run_manual_paste.py detect_navarea(): the bulletin
+// header is authoritative; the dropdown is only a fallback.
+function detectNavareaJS(text) {
+  if (!text) return null;
+  const m = (text || '').match(/\bNAVAREA\s+((?:VIII|XII|XI|IV|I)\b|[0-9]{1,2}\b)/i);
+  if (m) {
+    const t = m[1].toUpperCase();
+    if (/^[0-9]/.test(t)) return (t === '1' || t === '01') ? '1' : null;
+    return ({ I: '1', IV: 'iv', VIII: '8', XI: 'xi', XII: 'xii' })[t] || null;
+  }
+  if (/\b(SWEDISH NAV WARN|SKAGERRAK|BALTIC SEA)\b/i.test(text)) return 'baltic';
+  return null;
+}
+Object.assign(window.hwDb, {
+  async submitPasteQueue(navarea, rawText) {
+    if (!window.hwSupabase) return { error: 'No db connection' };
+    const payload = { raw_text: rawText };
+    if (navarea && navarea !== 'auto') payload.navarea = navarea;
+    // RLS on manual_ingest_queue: only public.admin_users may insert.
+    const { data, error } = await window.hwSupabase
+      .from('manual_ingest_queue')
+      .insert(payload)
+      .select('id, navarea, status, detected_navarea, result, created_at')
+      .single();
+    return { data, error };
+  },
+
+  subscribePasteQueue(onChange) {
+    if (!window.hwSupabase || !window.hwSupabase.channel) return () => {};
+    const channel = window.hwSupabase
+      .channel('admin-manual-ingest-queue')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'manual_ingest_queue' },
+        (payload) => onChange(payload))
+      .subscribe();
+    return () => { try { window.hwSupabase.removeChannel(channel); } catch (e) {} };
+  }
+});
+
 // ═══════════ STATE ═══════════
 const SESSION_KEY = 'hw_admin_session';
 const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours
@@ -142,8 +182,9 @@ let currentUser = null;
 const state = {
   unverified: [],
   logFilter: "ALL",
-  wizard: { step:1, method:"paste", results:[], accepted:new Set() },
-  pipelineRunning: false
+  wizard: { step:1, method:"paste", results:[], accepted:new Set(), preflight:null, queueRow:null },
+  pipelineRunning: false,
+  queueChannelUnsub: null
 };
 let logs = [];
 
@@ -342,14 +383,24 @@ window.updateWizCount = function(){
 };
 window.wizardGo = function(step){
   const w=state.wizard;
-  if(step===3){ 
-    w.results=[{status:'new',id:'BULK/26',navarea:'NA I',title:'Bulk Parse Test',coords:'55N 003E',conf:96,lat:55,lng:3}];
-    w.accepted=new Set(w.results.filter(r=>r.status==='new').map(r=>r.id));
-    renderParseResults(); 
+  if(step===3){
+    // Pre-flight only: the REAL parse+validation happens in the backend
+    // pipeline (never client-side). We only summarise + detect region.
+    const text = document.getElementById('wizInput')?.value || '';
+    const sel = document.getElementById('wizRegion')?.value || 'auto';
+    const detected = detectNavareaJS(text);
+    const effective = detected || (sel !== 'auto' ? sel : null);
+    w.preflight = {
+      text, sel, detected, effective,
+      lines: text.split('\n').filter(l => l.trim()).length,
+      kb: (new Blob([text]).size / 1024).toFixed(1)
+    };
+    renderParseResults();
   }
   if(step===4){
-    const news=w.results.filter(r=>r.status==='new'&&w.accepted.has(r.id));
-    document.getElementById('prNew').textContent=news.length;
+    const p = w.preflight || {};
+    const region = p.effective || p.detected || 'auto-detect';
+    document.getElementById('prJob').textContent = `${p.lines || 0} lines · ${p.kb || '0'} KB · NAVAREA ${region}`;
     document.getElementById('publishArea').style.display='block';
     document.getElementById('successArea').style.display='none';
   }
@@ -362,41 +413,72 @@ window.wizardGo = function(step){
   document.querySelectorAll('.wpanel').forEach((p,i)=>p.classList.toggle('active',i===step-1));
 };
 function renderParseResults(){
-  const R=state.wizard.results;
-  const news=R.filter(r=>r.status==='new');
-  document.getElementById('parseSummary').innerHTML=`<span class="pill pill-ok">${news.length} new</span>`;
-  document.getElementById('parseResults').innerHTML=news.map(r=>{
-    return `<div class="parse-card accepted">
-      <label class="parse-check"><input type="checkbox" checked onchange="toggleAccept('${r.id}',this.checked)"></label>
-      <div class="parse-main"><div class="parse-head"><strong>${r.id}</strong> · ${r.navarea} ${badge('active','NEW')}</div>
-      <div class="parse-title">${r.title}</div><div class="parse-meta">🎯 ${r.coords}</div>
-      </div></div>`;
-  }).join('');
+  const p = state.wizard.preflight || {};
+  const pills = [];
+  pills.push(`<span class="pill pill-ok">${p.lines || 0} lines · ${p.kb || '0'} KB</span>`);
+  if (p.detected) {
+    pills.push(`<span class="pill pill-ok">header: NAVAREA ${p.detected.toUpperCase()}</span>`);
+    if (p.sel && p.sel !== 'auto' && p.sel !== p.detected) {
+      pills.push(`<span class="pill" style="background:#fff7ed;color:var(--high)">selection ${p.sel.toUpperCase()} overridden</span>`);
+    }
+  } else if (p.sel && p.sel !== 'auto') {
+    pills.push(`<span class="pill pill-ok">selection: NAVAREA ${p.sel.toUpperCase()}</span>`);
+  } else {
+    pills.push(`<span class="pill" style="background:#fff7ed;color:var(--high)">no header — region must be selected</span>`);
+  }
+  document.getElementById('parseSummary').innerHTML = pills.join(' ');
+  document.getElementById('parseResults').innerHTML =
+    `<div class="parse-card accepted">
+      <div class="parse-main">
+        <div class="parse-head"><strong>Pre-flight check</strong> · backend pipeline does the real parse</div>
+        <div class="parse-title">${p.effective ? 'Will ingest via NAVAREA ' + p.effective.toUpperCase() : 'Region unknown — the pipeline will reject this paste'}</div>
+        <div class="parse-meta">Route: Supabase queue → GitHub Action (≤ 15 min) → region parser → differential sync</div>
+      </div>
+    </div>`;
 }
 window.toggleAccept = function(id,checked){ if(checked)state.wizard.accepted.add(id); else state.wizard.accepted.delete(id); };
 window.publishImport = async function(){
-  const w=state.wizard, news=w.results.filter(r=>r.status==='new'&&w.accepted.has(r.id));
-  if(!news.length){ showToast('Nothing to publish'); return; }
-  const btn=document.getElementById('publishBtn');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Publishing…';
-  
-  const mapped = news.map(r=>({
-    warning_id: r.id, source_id: 'manual', navarea: r.navarea, title: r.title,
-    severity: 'high', status: 'active', raw_text: 'Bulk imported warning',
-    latitude: r.lat, longitude: r.lng, coordinates: r.coords
-  }));
-  
-  if (window.hwDb) {
-    await window.hwDb.publishImport(mapped);
+  const rawText = document.getElementById('wizInput')?.value || '';
+  if (!rawText.trim()) { showToast('Nothing to submit'); return; }
+  const regionSel = document.getElementById('wizRegion')?.value || 'auto';
+  const btn = document.getElementById('publishBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Submitting…';
+  try {
+    const res = await window.hwDb.submitPasteQueue(regionSel, rawText);
+    if (res.error) throw new Error(res.error.message || 'Queue insert rejected — admin only');
+    const row = res.data;
+    state.wizard.queueRow = row;
+    document.getElementById('genId').textContent = 'queue-id: ' + (row.id || '').slice(0, 8);
+    document.getElementById('publishArea').style.display = 'none';
+    document.getElementById('successArea').style.display = 'block';
+
+    let liveRow = { ...row };
+    const statusEl = document.getElementById('queueLiveStatus');
+    const renderStatus = (r) => {
+      if (!statusEl) return;
+      const st = String(r.status || 'pending').toUpperCase();
+      const det = r.detected_navarea ? ' · region ' + String(r.detected_navarea).toUpperCase() : '';
+      const res = r.result ? ' · ' + r.result : '';
+      statusEl.textContent = st + det + res;
+    };
+    renderStatus(liveRow);
+    if (state.queueChannelUnsub) { try { state.queueChannelUnsub(); } catch (e) {} }
+    state.queueChannelUnsub = window.hwDb.subscribePasteQueue((payload) => {
+      const changed = payload.new || {};
+      if (liveRow.id && (changed.id === liveRow.id || (payload.old && payload.old.id === liveRow.id))) {
+        liveRow = { ...liveRow, ...changed };
+        renderStatus(liveRow);
+      }
+    });
+    showToast('Paste submitted — the pipeline picks it up within 15 min');
+  } catch (e) {
+    showToast('Submit failed: ' + e.message);
   }
-  
-  document.getElementById('genId').textContent='gen-bulk-'+Date.now().toString().slice(-6);
-  document.getElementById('publishArea').style.display='none';
-  document.getElementById('successArea').style.display='block';
-  showToast(`${news.length} warnings published`);
+  btn.disabled = false; btn.innerHTML = '🔒 Submit to Ingest Pipeline';
 };
 window.resetWizard = function(){
-  state.wizard={step:1,method:'paste',results:[],accepted:new Set()};
+  if (state.queueChannelUnsub) { try { state.queueChannelUnsub(); } catch (e) {} state.queueChannelUnsub = null; }
+  state.wizard={step:1,method:'paste',results:[],accepted:new Set(),preflight:null,queueRow:null};
   const input = document.getElementById('wizInput'); if(input) input.value='';
   window.updateWizCount();
   document.querySelectorAll('.method-card').forEach(c=>c.classList.toggle('selected',c.dataset.method==='paste'));
