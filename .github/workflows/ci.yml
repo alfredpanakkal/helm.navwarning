@@ -20,9 +20,6 @@ jobs:
           node-version: 22
           cache: npm
 
-      # TODO(lockfile): package-lock.json is stale (predates vitest/chai additions
-      # to package.json). npm ci hard-fails on the sync mismatch. Using npm install
-      # until the lockfile is regenerated locally (npm install && commit the lock).
       - name: Install Node Dependencies
         run: npm install --no-audit --no-fund
 
