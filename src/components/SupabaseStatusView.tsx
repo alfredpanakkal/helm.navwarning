@@ -141,230 +141,72 @@ export const SupabaseStatusView: React.FC<SupabaseStatusViewProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const sqlSchemaScript = `-- Supabase Schema Creation & Updates for Helm.Warning
--- Run this in your Supabase SQL Editor:
+  const sqlSchemaScript = `-- Supabase Schema Reference for Helm.Warning (20261019/20 backend contract)
+-- Source of truth: Helm.Warning.Backend migrations. Run those instead of this
+-- script if you are setting up a fresh project; this DDL is a read-only
+-- reference of the CURRENT schema. Contract: docs/supabase-backend-contract.md
 
-CREATE TABLE IF NOT EXISTS public.nav_warnings (
-  id UUID DEFAULT gen_random_uuid(),
-  warning_id TEXT NOT NULL,
-  publisher_id TEXT,
-  source_id TEXT NOT NULL,
+CREATE TABLE public.nav_warnings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  canonical_id TEXT UNIQUE NOT NULL,
   navarea TEXT NOT NULL,
-  source_warning_id TEXT,
-  title TEXT,
-  authority TEXT,
-  issued_date TEXT,
-  issued_text TEXT,
-  status TEXT DEFAULT 'active',
-  status_basis TEXT,
+  source_id TEXT NOT NULL,
+  title TEXT NOT NULL,
   area_text TEXT,
-  raw_text TEXT,
-  spatial JSONB,
-  longitude DOUBLE PRECISION,
-  latitude DOUBLE PRECISION,
-  valid_until TEXT,
-  validity TEXT,
-  charts TEXT,
-  categories TEXT,
-  web_link TEXT,
-  risk_level TEXT,
-  source_url TEXT,
-  extraction_method TEXT,
-  generation_id TEXT,
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (source_id, warning_id),
-  CONSTRAINT nav_warnings_source_id_warning_id_key UNIQUE (source_id, warning_id)
-);
-
--- Add advanced parsing, expiry & evidence columns if not already present
-ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS valid_until_utc TIMESTAMPTZ;
-ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS is_cancelled BOOLEAN DEFAULT false;
-ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS cancellation_text TEXT;
-ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS spatial_groups JSONB;
-ALTER TABLE public.nav_warnings ADD COLUMN IF NOT EXISTS evidence_trail JSONB;
-
--- Create raw messages table for complete message payloads
-CREATE TABLE IF NOT EXISTS public.raw_messages (
-  message_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  warning_id TEXT NOT NULL,
-  source_id TEXT NOT NULL,
-  full_raw_text TEXT NOT NULL,
-  subject_header TEXT,
-  received_timestamp TIMESTAMPTZ DEFAULT NOW(),
-  checksum_sha256 TEXT
-);
-
--- Notify PostgREST schema cache to immediately recognize updates:
-NOTIFY pgrst, 'reload schema';
-
-CREATE TABLE IF NOT EXISTS public.raw_artifacts (
-  id TEXT PRIMARY KEY,
-  artifact_id TEXT,
-  source_id TEXT NOT NULL,
-  navarea TEXT,
-  fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  path TEXT NOT NULL,
-  content_type TEXT,
-  content_hash TEXT,
-  raw_text TEXT,
-  preview_text TEXT,
-  http_status INT DEFAULT 200,
-  evidence_hash TEXT,
-  artifact_ref TEXT
-);
-
--- Backwards/forwards compatibility for raw_artifacts:
-ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS id TEXT;
-ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS artifact_id TEXT;
-ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS raw_text TEXT;
-ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS preview_text TEXT;
-ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS navarea TEXT;
-ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS fetched_at TIMESTAMPTZ;
-ALTER TABLE public.raw_artifacts ADD COLUMN IF NOT EXISTS http_status INT DEFAULT 200;
-
-CREATE TABLE IF NOT EXISTS public.ingestion_generations (
-  id TEXT PRIMARY KEY,
-  generation_id TEXT,
-  source_id TEXT,
-  navarea TEXT,
-  timestamp TIMESTAMPTZ DEFAULT NOW(),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  total_warnings_found INT DEFAULT 0,
-  active_count INT DEFAULT 0,
-  status TEXT DEFAULT 'COMPLETE',
-  completeness_status TEXT DEFAULT 'verified',
-  evidence_hash TEXT,
-  artifact_ref TEXT
-);
-
--- Backwards/forwards compatibility for ingestion_generations:
-ALTER TABLE public.ingestion_generations ADD COLUMN IF NOT EXISTS id TEXT;
-ALTER TABLE public.ingestion_generations ADD COLUMN IF NOT EXISTS generation_id TEXT;
-ALTER TABLE public.ingestion_generations ADD COLUMN IF NOT EXISTS navarea TEXT;
-ALTER TABLE public.ingestion_generations ADD COLUMN IF NOT EXISTS total_warnings_found INT;
-ALTER TABLE public.ingestion_generations ADD COLUMN IF NOT EXISTS status TEXT;
-
-CREATE TABLE IF NOT EXISTS public.sources_registry (
-  source_id TEXT PRIMARY KEY,
-  publisher_id TEXT NOT NULL,
-  publisher_name TEXT NOT NULL,
-  navareas JSONB,
-  scope TEXT,
-  discovery_url TEXT NOT NULL,
-  format TEXT NOT NULL,
-  publication_semantics TEXT NOT NULL,
-  enabled BOOLEAN DEFAULT true,
-  verification JSONB,
-  health JSONB,
+  raw_text TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('active','cancelled','expired','superseded','unverified')),
+  categories TEXT[] NOT NULL,
+  triage_tier TEXT NOT NULL CHECK (triage_tier IN ('A','B','C')),
+  data_quality TEXT NOT NULL CHECK (data_quality IN ('EXPLICIT','INFERRED','AMBIGUOUS','INVALID')),
+  parsing_method TEXT NOT NULL CHECK (parsing_method IN ('RULE','AI')),
+  qa_flags JSONB,
+  unplotted_reason TEXT,
+  valid_from TIMESTAMPTZ,
+  valid_to TIMESTAMPTZ,
+  issued_at TIMESTAMPTZ,
+  shoal_depth_m DOUBLE PRECISION,
+  tow_length_m DOUBLE PRECISION,
+  tow_speed_kts DOUBLE PRECISION,
+  applicable_vessel_filter TEXT,
+  radio_frequencies TEXT[],
+  space_launch_mission TEXT,
+  duplicate_of_id UUID REFERENCES public.nav_warnings(id),
+  cancels_ids TEXT[],
+  created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- NOTE: there are NO latitude / longitude / spatial / warning_id /
+-- issued_date / issued_text / category / severity / risk_level / hazard_category columns.
 
--- Grant access permissions for service_role, authenticated, and anon:
-GRANT ALL ON TABLE public.nav_warnings TO anon, authenticated, service_role;
-GRANT ALL ON TABLE public.raw_artifacts TO anon, authenticated, service_role;
-GRANT ALL ON TABLE public.sources_registry TO anon, authenticated, service_role;
-GRANT ALL ON TABLE public.ingestion_generations TO anon, authenticated, service_role;
-GRANT ALL ON TABLE public.raw_messages TO anon, authenticated, service_role;
+CREATE TABLE public.nav_warning_geometries (
+  geom_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  warning_id UUID NOT NULL REFERENCES public.nav_warnings(id) ON DELETE CASCADE,
+  feature_type TEXT CHECK (feature_type IN ('POINT','LINE','POLYGON','CORRIDOR','SWEEP_ARC','BOUNDING_BOX')),
+  geom_postgis GEOGRAPHY(GEOMETRY, 4326),
+  zone_label TEXT,
+  buffer_nm DOUBLE PRECISION,
+  corridor_half_width_nm DOUBLE PRECISION,
+  altitude_floor_m DOUBLE PRECISION,
+  altitude_ceiling_fl DOUBLE PRECISION
+);
+-- Geometries are DELETEd and re-inserted on every sync: never cache geom_id.
 
--- ══════════════════════════════════════════════════════════════
--- NAVAREA SEGREGATED SCHEMAS & COMPLETE PARAMETER STORES
--- Creates dedicated PostgreSQL schemas for all 21 NAVAREAs + Baltic
--- ══════════════════════════════════════════════════════════════
+CREATE TABLE public.raw_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  warning_id TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  subject_header TEXT,
+  full_raw_text TEXT NOT NULL,
+  received_timestamp TIMESTAMPTZ DEFAULT NOW(),
+  checksum_sha256 TEXT,
+  UNIQUE (warning_id, source_id, checksum_sha256)
+);
 
-DO $$
-DECLARE
-  areas TEXT[] := ARRAY[
-    'navarea_1', 'navarea_baltic', 'navarea_2', 'navarea_3', 'navarea_4',
-    'navarea_5', 'navarea_6', 'navarea_7', 'navarea_8', 'navarea_9',
-    'navarea_10', 'navarea_11', 'navarea_12', 'navarea_13', 'navarea_14',
-    'navarea_15', 'navarea_16', 'navarea_17', 'navarea_18', 'navarea_19',
-    'navarea_20', 'navarea_21'
-  ];
-  schema_name TEXT;
-BEGIN
-  FOREACH schema_name IN ARRAY areas LOOP
-    EXECUTE format('CREATE SCHEMA IF NOT EXISTS %I', schema_name);
-
-    EXECUTE format('
-      CREATE TABLE IF NOT EXISTS %I.nav_warnings (
-        id UUID DEFAULT gen_random_uuid(),
-        warning_id TEXT NOT NULL,
-        source_id TEXT NOT NULL,
-        publisher_id TEXT,
-        navarea TEXT NOT NULL,
-        source_warning_id TEXT,
-        series TEXT,
-        warning_number TEXT,
-        warning_year INT,
-        title TEXT,
-        authority TEXT,
-        sub_area TEXT,
-        area_text TEXT,
-        risk_level TEXT DEFAULT ''high'',
-        urgency_score INT,
-        issued_date TEXT,
-        issued_text TEXT,
-        issued_at TIMESTAMPTZ,
-        valid_from TIMESTAMPTZ,
-        valid_to TIMESTAMPTZ,
-        valid_until_utc TIMESTAMPTZ,
-        coordinates TEXT,
-        latitude DOUBLE PRECISION,
-        longitude DOUBLE PRECISION,
-        spatial JSONB,
-        spatial_groups JSONB,
-        status TEXT DEFAULT ''active'',
-        status_basis TEXT,
-        category TEXT,
-        categories TEXT,
-        hazard_category TEXT,
-        charts TEXT,
-        web_link TEXT,
-        source_url TEXT,
-        raw_text TEXT NOT NULL,
-        is_cancelled BOOLEAN DEFAULT false,
-        cancellation_text TEXT,
-        extraction_method TEXT DEFAULT ''deterministic'',
-        generation_id TEXT,
-        evidence_trail JSONB,
-        is_verified BOOLEAN DEFAULT false,
-        verified_at TIMESTAMPTZ,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW(),
-        PRIMARY KEY (source_id, warning_id),
-        CONSTRAINT %I UNIQUE (source_id, warning_id)
-      )', schema_name, schema_name || '_uniq_warn');
-
-    EXECUTE format('
-      CREATE TABLE IF NOT EXISTS %I.raw_messages (
-        message_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-        warning_id TEXT NOT NULL,
-        source_id TEXT NOT NULL,
-        full_raw_text TEXT NOT NULL,
-        subject_header TEXT,
-        received_timestamp TIMESTAMPTZ DEFAULT NOW(),
-        checksum_sha256 TEXT
-      )', schema_name);
-
-    EXECUTE format('ALTER TABLE %I.nav_warnings ENABLE ROW LEVEL SECURITY', schema_name);
-    EXECUTE format('ALTER TABLE %I.raw_messages ENABLE ROW LEVEL SECURITY', schema_name);
-
-    EXECUTE format('
-      DROP POLICY IF EXISTS %I ON %I.nav_warnings;
-      CREATE POLICY %I ON %I.nav_warnings FOR SELECT USING (status = ''active'');
-      
-      DROP POLICY IF EXISTS %I ON %I.nav_warnings;
-      CREATE POLICY %I ON %I.nav_warnings FOR ALL USING (auth.role() = ''authenticated'');
-
-      DROP POLICY IF EXISTS %I ON %I.raw_messages;
-      CREATE POLICY %I ON %I.raw_messages FOR ALL USING (auth.role() = ''authenticated'');
-    ', 
-      schema_name || '_pub_read', schema_name, schema_name || '_pub_read', schema_name,
-      schema_name || '_adm_all', schema_name, schema_name || '_adm_all', schema_name,
-      schema_name || '_msg_adm', schema_name, schema_name || '_msg_adm', schema_name
-    );
-  END LOOP;
-END $$;
+-- Read API (created by the backend migrations):
+--   public.nav_warnings_active_spatial  -> map layer (active + Tier A + geojson_blob)
+--   public.nav_warnings_review_queue    -> Tier B admin triage view
+-- RLS: anon / authenticated are SELECT-only; writes go through the
+-- service_role / the upsert_nav_warning(jsonb) RPC.
 `;
 
   const handleCopySql = () => {

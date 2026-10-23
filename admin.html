@@ -338,17 +338,28 @@
     <div class="db-status"><span class="status-dot live"></span> Connected — Supabase Postgres</div>
     <div style="margin-bottom:16px; margin-top:8px;">
       <div style="padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:0 0 12px 12px;">
-        <pre class="schema-box" id="sqlSchema">CREATE TABLE IF NOT EXISTS public.nav_warnings (
-  id UUID DEFAULT gen_random_uuid(),
-  warning_id TEXT NOT NULL,
+        <pre class="schema-box" id="sqlSchema">-- Current schema (20261019/20 backend contract)
+CREATE TABLE public.nav_warnings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  canonical_id TEXT UNIQUE NOT NULL,   -- e.g. 'NAVAREA XI 0451/26'
+  navarea TEXT NOT NULL,               -- full name, e.g. 'NAVAREA XI'
   source_id TEXT NOT NULL,
-  navarea TEXT NOT NULL,
-  status TEXT DEFAULT 'active',
-  latitude DOUBLE PRECISION,
-  longitude DOUBLE PRECISION,
-  risk_level TEXT,
-  PRIMARY KEY (source_id, warning_id)
-);</pre>
+  title TEXT NOT NULL,
+  area_text TEXT,
+  raw_text TEXT NOT NULL,
+  status TEXT NOT NULL,                -- active|cancelled|expired|superseded|unverified
+  categories TEXT[] NOT NULL,          -- replaces category/severity/risk_level
+  triage_tier TEXT NOT NULL,           -- A (auto-plot) | B (review) | C (blocked)
+  data_quality TEXT NOT NULL,          -- EXPLICIT|INFERRED|AMBIGUOUS|INVALID
+  parsing_method TEXT NOT NULL,        -- RULE|AI
+  qa_flags JSONB,
+  unplotted_reason TEXT,
+  valid_from TIMESTAMPTZ, valid_to TIMESTAMPTZ, issued_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+-- Geometry lives in public.nav_warning_geometries (PostGIS).
+-- The map reads public.nav_warnings_active_spatial (geojson_blob).
+-- Full contract: docs/supabase-backend-contract.md</pre>
       </div>
     </div>
   </div>
