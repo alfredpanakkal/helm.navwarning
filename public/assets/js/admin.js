@@ -45,8 +45,7 @@ Object.assign(window.hwDb, {
       parsing_method: 'RULE'
     };
 
-    let query = window.hwSupabase.from('nav_warnings').update(updatePayload);
-    query = isUuid ? query.eq('id', id) : query.or(`warning_id.eq."${id}",canonical_id.eq."${id}"`);
+    query = isUuid ? query.eq('id', id) : query.or(`warning_id.eq."${id}",canonical_id.eq."${id"`);
     const res = await query.select('id, canonical_id');
 
     // Record immutable operator audit row to nav_warning_audits
@@ -82,8 +81,7 @@ Object.assign(window.hwDb, {
       unplotted_reason: reason
     };
 
-    let query = window.hwSupabase.from('nav_warnings').update(updatePayload);
-    query = isUuid ? query.eq('id', id) : query.or(`warning_id.eq."${id}",canonical_id.eq."${id}"`);
+    query = isUuid ? query.eq('id', id) : query.or(`warning_id.eq."${id}",canonical_id.eq."${id"`);
     const res = await query.select('id, canonical_id');
 
     // Record immutable audit row
@@ -137,13 +135,24 @@ Object.assign(window.hwDb, {
 // ═══════════ MANUAL PASTE QUEUE (GitHub Action bridge) ═══════════
 // Mirrors scripts/run_manual_paste.py detect_navarea(): the bulletin
 // header is authoritative; the dropdown is only a fallback.
+// Region keys match the backend registry (dedicated: 1, 8, iv, xi, xii,
+// baltic; universal: ii, iii, v, vi, vii, ix, x, xiii-xx).
+const NAVAREA_ROMAN_TO_KEY = {
+  I: '1', II: 'ii', III: 'iii', IV: 'iv', V: 'v', VI: 'vi', VII: 'vii',
+  VIII: '8', IX: 'ix', X: 'x', XI: 'xi', XII: 'xii', XIII: 'xiii',
+  XIV: 'xiv', XV: 'xv', XVI: 'xvi', XVII: 'xvii', XVIII: 'xviii',
+  XIX: 'xix', XX: 'xx'
+};
+// Longest-first alternation so NAVAREA XVII never truncates to XV.
+const NAVAREA_ROMAN_RE = 'XVIII|XVII|XIII|XIV|XVI|XIX|XII|XV|XI|IX|VIII|VII|VI|IV|III|II|XX|X|V|I';
+const NAVAREA_HEADER_RE = new RegExp('\\bNAVAREA\\s+(?:' + NAVAREA_ROMAN_RE + '|[0-9]{1,2})\\b', 'i');
 function detectNavareaJS(text) {
   if (!text) return null;
-  const m = (text || '').match(/\bNAVAREA\s+((?:VIII|XII|XI|IV|I)\b|[0-9]{1,2}\b)/i);
+  const m = String(text).match(NAVAREA_HEADER_RE);
   if (m) {
     const t = m[1].toUpperCase();
     if (/^[0-9]/.test(t)) return (t === '1' || t === '01') ? '1' : null;
-    return ({ I: '1', IV: 'iv', VIII: '8', XI: 'xi', XII: 'xii' })[t] || null;
+    return NAVAREA_ROMAN_TO_KEY[t] || null;
   }
   if (/\b(SWEDISH NAV WARN|SKAGERRAK|BALTIC SEA)\b/i.test(text)) return 'baltic';
   return null;
@@ -270,23 +279,23 @@ window.switchAdminSub = function(sub){
   document.querySelectorAll('.admin-sub').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.asub-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('admin-'+sub)?.classList.add('active');
-  document.querySelector(`.asub-btn[data-sub="${sub}"]`)?.classList.add('active');
+  document.querySelector('.asub-btn[data-sub="'+sub+'"]')?.classList.add('active');
   if(sub==='overview') renderAttention();
   if(sub==='verify') renderVerifyQueue();
 };
 
 // ═══════════ OVERVIEW ═══════════
-function badge(cls,txt){return `<span class="badge-simple badge-${cls}"><span class="dot"></span> ${txt}</span>`}
+function badge(cls,txt){return '<span class="badge-simple badge-'+cls+'"><span class="dot"></span> '+txt+'</span>'}
 function renderAttention(){
   const p=document.getElementById('attentionPanel');
   if(!p) return;
   const items=[];
-  if(state.unverified.length>0) items.push({icon:'⚠',cls:'warn',html:`<b>${state.unverified.length} warning${state.unverified.length>1?'s':''}</b> awaiting verification`,sub:state.unverified.map(w=>w.warning_id).join(' · '),btn:'Review',fn:"switchAdminSub('verify')"});
-  if(!items.length){ p.innerHTML=`<div class="att-clear"><div class="big">✓</div>All clear — no items need attention.</div>`; return; }
-  p.innerHTML=`<div class="att-title">Needs Attention <span class="badge-simple badge-high"><span class="dot"></span> ${items.length}</span></div>`+
-    items.map(i=>`<div class="att-item"><span class="att-icon ${i.cls}">${i.icon}</span><div class="att-text">${i.html}<div class="att-sub">${i.sub}</div></div><button class="btn btn-sm btn-secondary" onclick="${i.fn}">${i.btn}</button></div>`).join('');
+  if(state.unverified.length>0) items.push({icon:'⚠',cls:'warn',html:'<b>'+state.unverified.length+' warning'+(state.unverified.length>1?'s':'')+'</b> awaiting verification',sub:state.unverified.map(w=>w.warning_id).join(' · '),btn:'Review',fn:"switchAdminSub('verify')"});
+  if(!items.length){ p.innerHTML='<div class="att-clear"><div class="big">✓</div>All clear — no items need attention.</div>'; return; }
+  p.innerHTML='<div class="att-title">Needs Attention <span class="badge-simple badge-high"><span class="dot"></span> '+items.length+'</span></div>'+
+    items.map(i=>'<div class="att-item"><span class="att-icon '+i.cls+'">'+i.icon+'</span><div class="att-text">'+i.html+'<div class="att-sub">'+i.sub+'</div></div><button class="btn btn-sm btn-secondary" onclick="'+i.fn+'">'+i.btn+'</button></div>').join('');
   const qa = document.getElementById('qaVerifySub');
-  if(qa) qa.textContent = state.unverified.length ? `${state.unverified.length} awaiting review` : 'All verified';
+  if(qa) qa.textContent = state.unverified.length ? state.unverified.length+' awaiting review' : 'All verified';
   const vb = document.getElementById('verifyBadge');
   if(vb) {
     vb.style.display = state.unverified.length ? 'inline-flex' : 'none';
@@ -299,30 +308,30 @@ function renderVerifyQueue(){
   const q=document.getElementById('verifyQueue');
   if(!q) return;
   const items=state.unverified;
-  if(!items.length){ q.innerHTML=`<div class="success-panel"><div class="big">✓</div><h3>Verification Queue Empty</h3><p>All published warnings carry verified status.</p></div>`; return; }
-  q.innerHTML=`<div class="page-header" style="margin-bottom:14px"><div><h1 style="font-size:20px">Verification Queue</h1><p class="subtitle">${items.length} human confirmation required</p></div><div><button class="btn btn-secondary" onclick="verifyAll()">✓ Verify All</button></div></div>`+
-  items.map(w=>`<div class="verify-card">
-    <div class="verify-head"><span class="verify-title">${w.warning_id || w.id} · ${w.navarea}</span>${badge('high',w.severity?.toUpperCase() || 'HIGH')}</div>
-    <div style="font-weight:500">${w.title}</div>
-    <div class="verify-text">${w.raw_text || w.text}</div>
-    <div class="verify-checks"><span>✓ Coords valid (${w.coordinates || w.coords})</span><span>✓ In-force window open</span></div>
+  if(!items.length){ q.innerHTML='<div class="success-panel"><div class="big">✓</div><h3>Verification Queue Empty</h3><p>All published warnings carry verified status.</p></div>'; return; }
+  q.innerHTML='<div class="page-header" style="margin-bottom:14px"><div><h1 style="font-size:20px">Verification Queue</h1><p class="subtitle">'+items.length+' human confirmation required</p></div><div><button class="btn btn-secondary" onclick="verifyAll()">✓ Verify All</button></div></div>'+
+  items.map(w=>'<div class="verify-card">
+    <div class="verify-head"><span class="verify-title">'+(w.warning_id || w.id)+' · '+w.navarea+'</span>'+badge('high',w.severity?.toUpperCase() || 'HIGH')+'</div>
+    <div style="font-weight:500">'+w.title+'</div>
+    <div class="verify-text">'+(w.raw_text || w.text)+'</div>
+    <div class="verify-checks"><span>✓ Coords valid ('+(w.coordinates || w.coords)+')</span><span>✓ In-force window open</span></div>
     <div class="verify-actions">
-      <button class="btn btn-sm btn-secondary" style="color:var(--critical)" onclick="rejectWarning('${w.warning_id || w.id}')">Reject</button>
-      <button class="btn btn-sm btn-primary" style="width:auto" onclick="verifyWarning('${w.warning_id || w.id}')">✓ Verify</button>
-    </div></div>`).join('');
+      <button class="btn btn-sm btn-secondary" style="color:var(--critical)" onclick="rejectWarning(\''+(w.warning_id || w.id)+'\')">Reject</button>
+      <button class="btn btn-sm btn-primary" style="width:auto" onclick="verifyWarning(\''+(w.warning_id || w.id)+'\')">✓ Verify</button>
+    </div></div>').join('');
 }
 window.verifyWarning = async function(id){
   if(window.hwDb) {
     await window.hwDb.verifyWarning(id);
     state.unverified = state.unverified.filter(w => (w.warning_id || w.id) !== id);
-    afterVerifyChange(`${id} verified`);
+    afterVerifyChange(id+' verified');
   }
 };
 window.rejectWarning = async function(id){
   if(window.hwDb) {
     await window.hwDb.rejectWarning(id);
     state.unverified = state.unverified.filter(w => (w.warning_id || w.id) !== id);
-    afterVerifyChange(`${id} rejected`);
+    afterVerifyChange(id+' rejected');
   }
 };
 window.verifyAll = async function(){ 
@@ -352,20 +361,20 @@ window.testModel = async function(m){
     const res = await fetch('/api/admin/test-gemini', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${(await window.hwSupabase?.auth.getSession())?.data?.session?.access_token || ''}`
+        'Authorization': 'Bearer '+((await window.hwSupabase?.auth.getSession())?.data?.session?.access_token || '')
       }
     });
     const data = await res.json();
     if(res.ok && data.success) {
       document.getElementById(m+'Status').innerHTML='<span class="dot"></span> Connected';
-      document.getElementById(m+'Last').textContent=`Last test: just now · ${data.latency_ms}ms · key operational`;
-      showToast(`${m} API operational — ${data.latency_ms}ms`);
+      document.getElementById(m+'Last').textContent='Last test: just now · '+data.latency_ms+'ms · key operational';
+      showToast(m+' API operational — '+data.latency_ms+'ms');
     } else {
       throw new Error(data.error || 'Test failed');
     }
   } catch(e) {
     document.getElementById(m+'Status').innerHTML='<span class="dot" style="background:var(--critical)"></span> Error';
-    showToast(`Test failed: ${e.message}`);
+    showToast('Test failed: '+e.message);
   }
   btn.disabled=false; btn.textContent='Test Again';
 };
@@ -378,7 +387,7 @@ window.selectMethod = function(m){
 window.updateWizCount = function(){
   const v=document.getElementById('wizInput')?.value;
   const lines=v?v.split('\n').filter(l=>l.trim()).length:0;
-  const wl = document.getElementById('wizCountLabel'); if(wl) wl.textContent=`${lines} lines · ${(new Blob([v||'']).size/1024).toFixed(1)} KB`;
+  const wl = document.getElementById('wizCountLabel'); if(wl) wl.textContent=lines+' lines · '+(new Blob([v||'']).size/1024).toFixed(1)+' KB';
   const wc = document.getElementById('wizContinue2'); if(wc) wc.disabled=lines===0;
 };
 window.wizardGo = function(step){
@@ -400,7 +409,7 @@ window.wizardGo = function(step){
   if(step===4){
     const p = w.preflight || {};
     const region = p.effective || p.detected || 'auto-detect';
-    document.getElementById('prJob').textContent = `${p.lines || 0} lines · ${p.kb || '0'} KB · NAVAREA ${region}`;
+    document.getElementById('prJob').textContent = (p.lines || 0)+' lines · '+(p.kb || '0')+' KB · NAVAREA '+region;
     document.getElementById('publishArea').style.display='block';
     document.getElementById('successArea').style.display='none';
   }
@@ -415,26 +424,26 @@ window.wizardGo = function(step){
 function renderParseResults(){
   const p = state.wizard.preflight || {};
   const pills = [];
-  pills.push(`<span class="pill pill-ok">${p.lines || 0} lines · ${p.kb || '0'} KB</span>`);
+  pills.push('<span class="pill pill-ok">'+(p.lines || 0)+' lines · '+(p.kb || '0')+' KB</span>');
   if (p.detected) {
-    pills.push(`<span class="pill pill-ok">header: NAVAREA ${p.detected.toUpperCase()}</span>`);
+    pills.push('<span class="pill pill-ok">header: NAVAREA '+p.detected.toUpperCase()+'</span>');
     if (p.sel && p.sel !== 'auto' && p.sel !== p.detected) {
-      pills.push(`<span class="pill" style="background:#fff7ed;color:var(--high)">selection ${p.sel.toUpperCase()} overridden</span>`);
+      pills.push('<span class="pill" style="background:#fff7ed;color:var(--high)">selection '+p.sel.toUpperCase()+' overridden</span>');
     }
   } else if (p.sel && p.sel !== 'auto') {
-    pills.push(`<span class="pill pill-ok">selection: NAVAREA ${p.sel.toUpperCase()}</span>`);
+    pills.push('<span class="pill pill-ok">selection: NAVAREA '+p.sel.toUpperCase()+'</span>');
   } else {
-    pills.push(`<span class="pill" style="background:#fff7ed;color:var(--high)">no header — region must be selected</span>`);
+    pills.push('<span class="pill" style="background:#fff7ed;color:var(--high)">no header — region must be selected</span>');
   }
   document.getElementById('parseSummary').innerHTML = pills.join(' ');
   document.getElementById('parseResults').innerHTML =
-    `<div class="parse-card accepted">
+    '<div class="parse-card accepted">
       <div class="parse-main">
         <div class="parse-head"><strong>Pre-flight check</strong> · backend pipeline does the real parse</div>
-        <div class="parse-title">${p.effective ? 'Will ingest via NAVAREA ' + p.effective.toUpperCase() : 'Region unknown — the pipeline will reject this paste'}</div>
+        <div class="parse-title">'+(p.effective ? 'Will ingest via NAVAREA ' + p.effective.toUpperCase() : 'Region unknown — the pipeline will reject this paste')+'</div>
         <div class="parse-meta">Route: Supabase queue → GitHub Action (≤ 15 min) → region parser → differential sync</div>
       </div>
-    </div>`;
+    </div>';
 }
 window.toggleAccept = function(id,checked){ if(checked)state.wizard.accepted.add(id); else state.wizard.accepted.delete(id); };
 window.publishImport = async function(){
