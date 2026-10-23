@@ -138,6 +138,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
+  const operatorEmail = (auth.user && auth.user.email) || 'unknown-admin';
   const client = getSupabaseClient();
   if (!client) {
     return res.status(503).json({ error: 'Supabase is not configured on the server.' });
@@ -357,9 +358,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // 6d. Audit both sides of the move
-      await writeAuditRow(client, current.id, auth.user!.email, 'MOVE_OUT',
+      await writeAuditRow(client, current.id, operatorEmail, 'MOVE_OUT',
         'Superseded by move to ' + targetFull + ' → ' + newCanonicalId, String(current.triage_tier || 'B'), 'B', { moved_to: newCanonicalId });
-      await writeAuditRow(client, created.id, auth.user!.email, 'MOVE_IN',
+      await writeAuditRow(client, created.id, operatorEmail, 'MOVE_IN',
         'Created by move from ' + current.canonical_id + ' (' + (patch.note || 'admin move') + ')', String(current.triage_tier || 'B'), 'B', { moved_from: current.canonical_id });
 
       return res.status(200).json({
@@ -407,7 +408,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── 9. Audit ──
     const auditStatus = await writeAuditRow(
-      client, current.id, auth.user!.email, 'EDIT',
+      client, current.id, operatorEmail, 'EDIT',
       patch.note || 'Admin edit (geometry ' + geometryStatus + ')',
       String(current.triage_tier || 'B'), String(updated.triage_tier || 'B'),
       { ...update, geometry: geometryStatus }
