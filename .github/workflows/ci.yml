@@ -28,6 +28,8 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Typecheck TypeScript (debug capture)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
           npx tsc --noEmit > /tmp/tsc.log 2>&1
