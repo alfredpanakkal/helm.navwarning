@@ -415,6 +415,7 @@ export default function App() {
             isAdminMode={isAdminMode}
             selectedWarning={selectedWarning}
             onGeometrySaved={() => loadData()}
+            onEditWarning={(w) => setEditingWarning(w)}
           />
         </div>
 

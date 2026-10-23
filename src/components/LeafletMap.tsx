@@ -23,6 +23,7 @@ import {
   Sliders,
   Globe,
   Waves,
+  Edit3,
 } from 'lucide-react';
 import { getLeafletLatLng } from '../utils/coordinateParser';
 import { useMapNavigation } from '../hooks/useMapNavigation';
@@ -76,6 +77,7 @@ interface LeafletMapProps {
   isAdminMode?: boolean;
   selectedWarning?: NavWarning | null;
   onGeometrySaved?: () => void;
+  onEditWarning?: (warning: NavWarning) => void;
 }
 
 export const LeafletMap: React.FC<LeafletMapProps> = ({
@@ -88,6 +90,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   isAdminMode = false,
   selectedWarning,
   onGeometrySaved,
+  onEditWarning,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletInstance = useRef<L.Map | null>(null);
@@ -1300,6 +1303,20 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 <span>Open Warning Details</span>
               </button>
             )}
+
+            {/* E3: Admin edit entry inside the map context menu */}
+            {isAdminMode && onEditWarning && contextMenu.targetWarning && (
+              <button
+                onClick={() => {
+                  onEditWarning(contextMenu.targetWarning!);
+                  closeContextMenu();
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-gw-primary/10 text-gw-primary transition-all font-bold text-left text-[11px] border-t border-gw-secondary mt-0.5 pt-2"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-gw-primary" />
+                <span>Edit Warning (Admin)</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1577,6 +1594,20 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                       >
                         <span>Details</span>
                       </button>
+                      {isAdminMode && onEditWarning && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditWarning(w);
+                          }}
+                          className="flex items-center gap-1 px-2 py-1 bg-gw-primary border border-gw-primary text-gw-bg rounded text-[10px] font-bold uppercase hover:bg-gw-accent hover:text-gw-primary transition-colors"
+                          title="Edit this warning (admin)"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          <span>Edit</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
