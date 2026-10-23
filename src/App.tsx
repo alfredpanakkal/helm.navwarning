@@ -16,6 +16,7 @@ import { EvidenceLockerView } from './components/EvidenceLockerView';
 import { SupabaseStatusView } from './components/SupabaseStatusView';
 import { WarningDetailModal } from './components/WarningDetailModal';
 import { WarningEditModal } from './components/WarningEditModal';
+import { AdminDataBankTools } from './components/AdminDataBankTools';
 import { IngestionProcedureModal } from './components/IngestionProcedureModal';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from './types';
 import { ShieldCheck, RefreshCw, Edit3 } from 'lucide-react';
@@ -421,6 +422,11 @@ export default function App() {
 
         {/* Data Bank */}
         <div className={activeTab === 'databank' ? 'block' : 'hidden'}>
+          {isAdminMode && (
+            <div className="mb-3">
+              <AdminDataBankTools warnings={warnings} onRefresh={() => loadData()} />
+            </div>
+          )}
           <DataBankV2
             warnings={warnings}
             archivedWarnings={archivedWarnings}
