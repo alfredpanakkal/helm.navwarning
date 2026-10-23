@@ -46,6 +46,7 @@ import {
   formatWgs84Dms,
 } from '../core/coordinates';
 import { SpatialPlotType } from '../types/maritime';
+import { MapGeometryEditor } from './MapGeometryEditor';
 
 export type ScopeFilterType = 'all' | 'navarea' | 'coastal';
 
@@ -72,6 +73,9 @@ interface LeafletMapProps {
   onSelectWarning: (warning: NavWarning) => void;
   isolatedWarning?: NavWarning | null;
   onClearIsolation?: () => void;
+  isAdminMode?: boolean;
+  selectedWarning?: NavWarning | null;
+  onGeometrySaved?: () => void;
 }
 
 export const LeafletMap: React.FC<LeafletMapProps> = ({
@@ -81,6 +85,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   onSelectWarning,
   isolatedWarning,
   onClearIsolation,
+  isAdminMode = false,
+  selectedWarning,
+  onGeometrySaved,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletInstance = useRef<L.Map | null>(null);
@@ -1578,6 +1585,15 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           </div>
         </aside>
       )}
+
+      {/* E2: map-native admin geometry editor overlay */}
+      <MapGeometryEditor
+        map={mapReady}
+        isAdminMode={isAdminMode}
+        selectedWarning={selectedWarning ?? null}
+        onGeometrySaved={onGeometrySaved}
+      />
+
       {/* Screen Reader Live Region for Marker Selections */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {srAnnouncement}

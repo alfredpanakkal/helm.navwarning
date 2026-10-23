@@ -298,7 +298,7 @@ export default function App() {
         setWarnings((prev) => [res.warning, ...prev]);
         return { warning: res.warning, ai_parsing_failed: res.ai_parsing_failed, ai_error: res.ai_error };
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Manual API error, using deterministic client parser:', err);
     }
 
@@ -412,6 +412,9 @@ export default function App() {
             }}
             isolatedWarning={isolatedWarning}
             onClearIsolation={() => setIsolatedWarning(null)}
+            isAdminMode={isAdminMode}
+            selectedWarning={selectedWarning}
+            onGeometrySaved={() => loadData()}
           />
         </div>
 
@@ -596,5 +599,3 @@ export default function App() {
     </div>
   );
 }
-
-
