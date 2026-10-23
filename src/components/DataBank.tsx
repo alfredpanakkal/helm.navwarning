@@ -439,8 +439,9 @@ export const DataBank: React.FC<DataBankProps> = ({
                 <option value="ALL">All Status ({warnings.length})</option>
                 <option value="active">Active ({activeCount})</option>
                 <option value="unverified">Unverified ({unverifiedCount})</option>
-                <option value="expiring">Expiring</option>
                 <option value="cancelled">Cancelled</option>
+                <option value="superseded">Superseded</option>
+                <option value="expired">Expired</option>
                 <option value="archived">Archived / Cancelled ({model.archivedCount})</option>
               </select>
               <div className={`absolute right-2.5 w-1.5 h-1.5 border-r-2 border-b-2 rotate-45 pointer-events-none ${

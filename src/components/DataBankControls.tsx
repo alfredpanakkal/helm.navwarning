@@ -149,8 +149,9 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
               <option value="ALL">All Status ({warnings.length})</option>
               <option value="active">Active ({activeCount})</option>
               <option value="unverified">Unverified ({unverifiedCount})</option>
-              <option value="expiring">Expiring</option>
               <option value="cancelled">Cancelled</option>
+              <option value="superseded">Superseded</option>
+              <option value="expired">Expired</option>
               <option value="archived">Archived / Cancelled ({archivedCount})</option>
             </select>
             {selectChevron(selectedStatus !== 'ALL')}
@@ -298,7 +299,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
               className="inline-flex items-center gap-1 px-2 py-0.5 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
               title="Clear coordinates filter"
             >
-              <span>{coordFilter === 'with_coords' ? 'With Coordinates' : 'Text Only'}</span>
+              <span>{coordFilter === 'with_coords' ? 'Mapped Geometry' : 'Text Only'}</span>
               <X className="w-3 h-3" />
             </button>
           )}
@@ -389,7 +390,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                   : 'bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100'
               }`}
             >
-              With Coords ({coordsCount})
+              Mapped ({coordsCount})
             </button>
 
             {unverifiedCount > 0 && (
@@ -436,8 +437,8 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 className={selectClass(coordFilter !== 'ALL')}
               >
                 <option value="ALL">All Coordinates</option>
-                <option value="with_coords">With Coordinates ({coordsCount})</option>
-                <option value="without_coords">Text Only ({warnings.length - coordsCount})</option>
+                <option value="with_coords">Mapped Geometry — PostGIS ({coordsCount})</option>
+                <option value="without_coords">Text Only — No Validated Geometry ({warnings.length - coordsCount})</option>
               </select>
               {selectChevron(coordFilter !== 'ALL')}
             </div>
