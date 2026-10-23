@@ -55,6 +55,21 @@ function deriveExtractionConfidence(row: any, status: string): number {
 }
 
 /**
+ * Extracts the sequential warning number and year from a canonical_id
+ * ('NAVAREA XI 0451/26' -> { number: '451', year: 2026 }). Returns nulls
+ * when the id has no 'NNNN/YY' tail so callers can fall back safely —
+ * previously parseInt(canonicalId) yielded NaN for every backend row.
+ */
+function parseCanonicalIdentity(canonicalId: string): { number: string | null; year: number | null } {
+  const m = /(\d{1,4})\s*\/\s*(\d{2,4})\s*$/.exec(canonicalId || '');
+  if (!m) return { number: null, year: null };
+  const number = String(parseInt(m[1], 10));
+  let year = parseInt(m[2], 10);
+  if (year < 100) year += 2000;
+  return { number, year };
+}
+
+/**
  * Maps a raw Supabase nav_warnings row (20261019/20 schema) into a fully
  * typed NavWarning. Contract: docs/supabase-backend-contract.md
  * - Stable key is canonical_id; row may carry db uuid under `id`.
@@ -76,6 +91,14 @@ export function mapSupabaseRowToNavWarning(
   const effectiveStatus = row.status || fallbackStatus;
   const issuedIso = row.issued_at || row.created_at || new Date().toISOString();
   const issuedDateStr = String(issuedIso).slice(0, 10);
+  const identity = parseCanonicalIdentity(canonicalId);
+  // Bulletin subject for the title column: the schema has no issued_text
+  // column, and raw ISO timestamps must never render as the "title".
+  const subjectLine = rawText.split('\n').map((l: string) => l.trim()).find((l: string) => l.length > 0) || '';
+  const displaySubject = row.title
+    || (row.area_text && row.area_text !== 'Unknown Navigational Area' ? row.area_text : null)
+    || (subjectLine ? subjectLine.slice(0, 200) : null)
+    || issuedDateStr;
 
   // 1) Geometry from geojson_blob (nav_warnings_active_spatial view row)
   let spatial: any = null;
@@ -138,7 +161,9 @@ export function mapSupabaseRowToNavWarning(
           ],
           circles: [],
           raw_coordinate_text: [coordsMatch[0]],
-          validation_status: 'passed',
+          // Regex-derived geometry is NOT validated PostGIS geometry; flag it
+          // so the coords filter can distinguish text parses from real shapes.
+          validation_status: 'parsed_from_text',
         };
       }
     } catch {
@@ -202,15 +227,16 @@ export function mapSupabaseRowToNavWarning(
     navarea,
     series: row.series || `NAVAREA ${navarea}`,
     source_warning_id: canonicalId,
-    warning_number: row.warning_number != null ? String(row.warning_number) : canonicalId,
-    warning_year: Number(row.warning_year) || new Date().getFullYear(),
+    warning_number: identity.number ?? (row.warning_number != null ? String(row.warning_number) : canonicalId),
+    warning_year: identity.year ?? (Number(row.warning_year) || new Date(issuedIso).getFullYear()),
     issued_at: row.issued_at || null,
     issued_date: issuedDateStr,
     issued_time_precision: 'day',
-    issued_text: row.issued_at || issuedDateStr,
+    issued_text: displaySubject,
     valid_from: row.valid_from || null,
     valid_to: row.valid_to ?? null,
-    cancelled_at: effectiveStatus === 'cancelled' ? (row.updated_at || null) : null,
+    status_changed_at: row.status_changed_at || null,
+    cancelled_at: effectiveStatus === 'cancelled' ? (row.status_changed_at || row.updated_at || null) : null,
     status: effectiveStatus as any,
     status_basis: row.status_basis || 'listed_in_complete_in_force_publication',
     area_text: row.area_text || 'Unknown Navigational Area',

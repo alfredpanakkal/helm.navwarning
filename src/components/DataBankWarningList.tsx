@@ -478,9 +478,24 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
 
                       <div>
                         <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">Status</span>
-                        <span className="flex items-center gap-1.5 font-bold uppercase text-gw-primary mt-1">
-                          <span className={`w-2 h-2 rounded-full ${w.status === 'active' ? 'bg-green-600' : 'bg-amber-600'}`}></span>
-                          <span className={w.status === 'active' ? 'text-green-600' : 'text-amber-600'}>{w.status}</span>
+                        <span
+                          className="flex items-center gap-1.5 font-bold uppercase text-gw-primary mt-1"
+                          title={(w as any).status_changed_at ? `Status changed: ${new Date((w as any).status_changed_at).toLocaleString()}` : undefined}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${
+                            w.status === 'active' ? 'bg-green-600'
+                              : w.status === 'unverified' ? 'bg-amber-500'
+                              : w.status === 'superseded' ? 'bg-indigo-500'
+                              : w.status === 'cancelled' ? 'bg-rose-500'
+                              : 'bg-zinc-400'
+                          }`}></span>
+                          <span className={
+                            w.status === 'active' ? 'text-green-600'
+                              : w.status === 'unverified' ? 'text-amber-600'
+                              : w.status === 'superseded' ? 'text-indigo-600'
+                              : w.status === 'cancelled' ? 'text-rose-600'
+                              : 'text-zinc-600'
+                          }>{w.status}</span>
                         </span>
                       </div>
                     </div>
@@ -819,12 +834,23 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                   {formatSpatialCoordinates(w.spatial)}
                 </div>
                 <div className="text-[11px] text-gw-accent whitespace-nowrap">{getWarningDate(w)}</div>
-                <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase">
+                <div
+                  className="flex items-center gap-1.5 text-[11px] font-bold uppercase"
+                  title={(w as any).status_changed_at ? `Status changed: ${new Date((w as any).status_changed_at).toLocaleString()}` : undefined}
+                >
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                    w.status === 'active' ? 'bg-green-600' : w.status === 'unverified' ? 'bg-amber-500' : 'bg-zinc-400'
+                    w.status === 'active' ? 'bg-green-600'
+                      : w.status === 'unverified' ? 'bg-amber-500'
+                      : w.status === 'superseded' ? 'bg-indigo-500'
+                      : w.status === 'cancelled' ? 'bg-rose-500'
+                      : 'bg-zinc-400'
                   }`}></span>
                   <span className={
-                    w.status === 'active' ? 'text-green-700' : w.status === 'unverified' ? 'text-amber-700' : 'text-zinc-600'
+                    w.status === 'active' ? 'text-green-700'
+                      : w.status === 'unverified' ? 'text-amber-700'
+                      : w.status === 'superseded' ? 'text-indigo-700'
+                      : w.status === 'cancelled' ? 'text-rose-700'
+                      : 'text-zinc-600'
                   }>
                     {w.status}
                   </span>

@@ -168,6 +168,19 @@ function isUnverifiedRow(w: NavWarning): boolean {
     || (Array.isArray(flags) && (flags as unknown[]).length > 0);
 }
 
+/**
+ * True geometry = PostGIS-backed shapes (hydrated from the spatial view or
+ * geojson_blob), NOT the raw-text regex fallback. The mapper flags regex
+ * parses as validation_status 'parsed_from_text' precisely so "with coords"
+ * means "actually mapped", not "mentions a coordinate pattern in text".
+ */
+function hasTrueGeometry(w: NavWarning): boolean {
+  const sp: any = w.spatial;
+  if (!sp) return false;
+  if (sp.validation_status === 'parsed_from_text') return false;
+  return (sp.geometries?.length > 0) || (sp.circles?.length > 0);
+}
+
 export function useDataBankModel({
   warnings,
   archivedWarnings = [],
@@ -239,7 +252,7 @@ export function useDataBankModel({
   }, [navareaCounts]);
 
   const activeCount = useMemo(() => warnings.filter(w => w.status === 'active').length, [warnings]);
-  const coordsCount = useMemo(() => warnings.filter(w => (w.spatial?.geometries?.length > 0 || w.spatial?.circles?.length > 0)).length, [warnings]);
+  const coordsCount = useMemo(() => warnings.filter(w => hasTrueGeometry(w)).length, [warnings]);
   const criticalCount = useMemo(() => warnings.filter(w => isTierAClean(w)).length, [warnings]);
   const unverifiedCount = useMemo(() => warnings.filter(w => isUnverifiedRow(w)).length, [warnings]);
   // Archived lane count: prefer the dedicated archive dataset, fall back to
@@ -334,9 +347,9 @@ export function useDataBankModel({
       }
 
       if (coordFilter === 'with_coords') {
-        if (!item.hasCoordinates) return false;
+        if (!hasTrueGeometry(w)) return false;
       } else if (coordFilter === 'without_coords') {
-        if (item.hasCoordinates) return false;
+        if (hasTrueGeometry(w)) return false;
       }
 
       if (searchTerm.trim()) {
@@ -384,8 +397,8 @@ export function useDataBankModel({
         } else if (sortField === 'severity') {
           cmp = (a.extraction_confidence ?? 0) - (b.extraction_confidence ?? 0);
         } else if (sortField === 'coords') {
-          const aHas = (a.spatial?.geometries?.length > 0 || a.spatial?.circles?.length > 0) ? 1 : 0;
-          const bHas = (b.spatial?.geometries?.length > 0 || b.spatial?.circles?.length > 0) ? 1 : 0;
+          const aHas = hasTrueGeometry(a) ? 1 : 0;
+          const bHas = hasTrueGeometry(b) ? 1 : 0;
           cmp = aHas - bHas;
         } else if (sortField === 'issued') {
           const aTime = a.issued_at ? new Date(a.issued_at).getTime() : (a.issued_date ? new Date(a.issued_date).getTime() : 0);
