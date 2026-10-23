@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   verify-applet:
     name: Verify Node & TypeScript Build
@@ -23,11 +27,28 @@ jobs:
       - name: Install Node Dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Typecheck TypeScript
-        run: npx tsc --noEmit
-
-      - name: Build Applet Bundle
-        run: npx vite build
+      - name: Typecheck TypeScript (debug capture)
+        run: |
+          set +e
+          npx tsc --noEmit > /tmp/tsc.log 2>&1
+          TSC_EXIT=$?
+          npx vite build > /tmp/vite.log 2>&1
+          VITE_EXIT=$?
+          echo "TSC_EXIT=$TSC_EXIT VITE_EXIT=$VITE_EXIT"
+          {
+            echo "### CI Debug Output (PR #17)"
+            echo '```'
+            cat /tmp/tsc.log
+            echo '--- vite ---'
+            tail -n 60 /tmp/vite.log
+            echo '```'
+          } > /tmp/comment.md
+          curl -s -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/alfredpanakkal/helm.navwarning/issues/17/comments" \
+            -d "{\"body\": $(python3 -c "import json,sys;print(json.dumps(open('/tmp/comment.md').read()))")}" || true
+          exit 1
 
   verify-scrapling:
     name: Verify Scrapling Ingestion Engine
