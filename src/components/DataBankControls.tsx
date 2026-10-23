@@ -60,6 +60,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
     activeCount,
     coordsCount,
     unverifiedCount,
+    archivedCount,
     sortedWarnings,
     hasActiveFilters,
     handleResetFilters
@@ -150,6 +151,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
               <option value="unverified">Unverified ({unverifiedCount})</option>
               <option value="expiring">Expiring</option>
               <option value="cancelled">Cancelled</option>
+              <option value="archived">Archived / Cancelled ({archivedCount})</option>
             </select>
             {selectChevron(selectedStatus !== 'ALL')}
           </div>
@@ -417,8 +419,8 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 className={selectClass(selectedSeverity !== 'ALL')}
               >
                 <option value="ALL">All Severities</option>
-                <option value="critical">Critical Only</option>
-                <option value="high">High Confidence</option>
+                <option value="critical">Critical (Tier A, no flags)</option>
+                <option value="high">High (Tier A)</option>
               </select>
               {selectChevron(selectedSeverity !== 'ALL')}
             </div>

@@ -15,6 +15,7 @@ import { useDataBankModel, type DataBankProps } from '../hooks/useDataBankModel'
  */
 export const DataBankV2: React.FC<DataBankProps> = ({
   warnings,
+  archivedWarnings,
   onLocate,
   onVerifyWarning,
   onTriggerRefresh,
@@ -25,7 +26,7 @@ export const DataBankV2: React.FC<DataBankProps> = ({
   initialNavAreaFilter
 }) => {
   const [showMissingDrawer, setShowMissingDrawer] = React.useState(false);
-  const model = useDataBankModel({ warnings, initialStatusFilter, initialNavAreaFilter });
+  const model = useDataBankModel({ warnings, archivedWarnings, initialStatusFilter, initialNavAreaFilter });
 
   return (
     <div data-databank-v2 className="flex flex-col gap-3 font-ui">

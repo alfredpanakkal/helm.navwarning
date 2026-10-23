@@ -30,6 +30,7 @@ export type { DataBankProps };
  */
 export const DataBank: React.FC<DataBankProps> = ({
   warnings,
+  archivedWarnings,
   onLocate,
   onVerifyWarning,
   initialStatusFilter = 'ALL',
@@ -43,7 +44,7 @@ export const DataBank: React.FC<DataBankProps> = ({
   onNavigate
 }) => {
   const [showMissingDrawer, setShowMissingDrawer] = React.useState(false);
-  const model = useDataBankModel({ warnings, initialStatusFilter, initialNavAreaFilter });
+  const model = useDataBankModel({ warnings, archivedWarnings, initialStatusFilter, initialNavAreaFilter });
   const {
     searchTerm,
     setSearchTerm,
@@ -411,8 +412,8 @@ export const DataBank: React.FC<DataBankProps> = ({
                 }`}
               >
                 <option value="ALL">All Severities</option>
-                <option value="critical">Critical Only</option>
-                <option value="high">High Confidence</option>
+                <option value="critical">Critical (Tier A, no flags)</option>
+                <option value="high">High (Tier A)</option>
               </select>
               <div className={`absolute right-2.5 w-1.5 h-1.5 border-r-2 border-b-2 rotate-45 pointer-events-none ${
                 selectedSeverity !== 'ALL' ? 'border-white' : 'border-gw-primary'
@@ -440,6 +441,7 @@ export const DataBank: React.FC<DataBankProps> = ({
                 <option value="unverified">Unverified ({unverifiedCount})</option>
                 <option value="expiring">Expiring</option>
                 <option value="cancelled">Cancelled</option>
+                <option value="archived">Archived / Cancelled ({model.archivedCount})</option>
               </select>
               <div className={`absolute right-2.5 w-1.5 h-1.5 border-r-2 border-b-2 rotate-45 pointer-events-none ${
                 selectedStatus !== 'ALL' ? 'border-white' : 'border-gw-primary'
