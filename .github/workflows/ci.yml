@@ -48,7 +48,28 @@ jobs:
           fi
 
       - name: Build Applet Bundle
-        run: npx vite build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          npx vite build > /tmp/vite.log 2>&1
+          VITE_EXIT=$?
+          cat /tmp/vite.log
+          if [ $VITE_EXIT -ne 0 ]; then
+            {
+              echo 'Vite build failed on this branch:'
+              echo '```'
+              tail -n 60 /tmp/vite.log
+              echo '```'
+            } > /tmp/comment.md
+            BODY=$(jq -Rs '{body: .}' /tmp/comment.md)
+            curl -s -X POST \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/alfredpanakkal/helm.navwarning/issues/16/comments \
+              -d "$BODY"
+            exit 1
+          fi
 
   verify-scrapling:
     name: Verify Scrapling Ingestion Engine
