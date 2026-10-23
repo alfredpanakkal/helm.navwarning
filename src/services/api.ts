@@ -32,6 +32,29 @@ export function normalizeNavarea(name: unknown): string {
 }
 
 /**
+ * Derives a triage-based confidence score from the 20261019/20 backend
+ * signals (triage_tier / data_quality / qa_flags) instead of the removed
+ * risk_level column:
+ *   Tier A + EXPLICIT + no flags + active  -> 1.0 (matches the Critical filter)
+ *   Tier A with inferred data or qa_flags -> 0.9  (matches the High filter)
+ *   Tier B (review queue)                 -> 0.6  (below the 0.8 verify threshold)
+ *   Tier C (blocked)                      -> 0.3
+ * The legacy confidence-threshold UI (>= 0.8, >= 1.0 bands) keeps working
+ * and now reflects actual backend data quality.
+ */
+function deriveExtractionConfidence(row: any, status: string): number {
+  const tier = row.triage_tier || 'C';
+  const quality = row.data_quality || 'EXPLICIT';
+  const flags = Array.isArray(row.qa_flags) ? row.qa_flags : [];
+  if (tier === 'A') {
+    if (quality === 'EXPLICIT' && flags.length === 0 && status === 'active') return 1.0;
+    return 0.9;
+  }
+  if (tier === 'B') return 0.6;
+  return 0.3;
+}
+
+/**
  * Maps a raw Supabase nav_warnings row (20261019/20 schema) into a fully
  * typed NavWarning. Contract: docs/supabase-backend-contract.md
  * - Stable key is canonical_id; row may carry db uuid under `id`.
@@ -214,7 +237,7 @@ export function mapSupabaseRowToNavWarning(
     content_hash: '',
     parser_version: 'v2.0',
     extraction_method: row.parsing_method === 'AI' ? 'llm_assisted' : 'deterministic',
-    extraction_confidence: 0.95,
+    extraction_confidence: deriveExtractionConfidence(row, effectiveStatus),
     first_seen_at: row.created_at || new Date().toISOString(),
     last_seen_at: row.updated_at || new Date().toISOString(),
     not_in_force_observed_at: null,
@@ -236,6 +259,7 @@ export async function fetchWarnings(params?: {
   sourceId?: string;
   navarea?: string;
   status?: string;
+  triageTiers?: string[]; // default ['A','B']: blocked Tier C never reaches the public bank
 }): Promise<NavWarning[]> {
   try {
     const { supabase } = await import('../lib/supabaseClient');
@@ -248,6 +272,7 @@ export async function fetchWarnings(params?: {
         sourceId: params?.sourceId,
         navarea: params?.navarea,
         status: params?.status,
+        triageTiers: params?.triageTiers ?? ['A', 'B'],
       });
 
       if (allRows.length > 0) {
@@ -271,6 +296,22 @@ export async function fetchWarnings(params?: {
     return await res.json();
   } catch (err) {
     console.warn('API fetchWarnings error:', err);
+    return [];
+  }
+}
+
+/**
+ * Archived / cancelled / expired / superseded warnings from the backend's
+ * nav_warnings_archive view (20261023_lifecycle_safety migration). Powers
+ * the Data Bank archive lane. Returns [] when the view is unavailable.
+ */
+export async function fetchArchivedWarnings(): Promise<NavWarning[]> {
+  try {
+    const { fetchArchivedNavWarnings } = await import('./navWarningQueries');
+    const rows = await fetchArchivedNavWarnings();
+    return rows.map((row: any) => mapSupabaseRowToNavWarning(row, row.status || 'cancelled'));
+  } catch (err) {
+    console.warn('API fetchArchivedWarnings error:', err);
     return [];
   }
 }

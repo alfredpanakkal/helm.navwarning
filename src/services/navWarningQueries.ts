@@ -37,6 +37,7 @@ export interface NavWarningListFilters {
   navarea?: string;
   status?: string;
   triageTier?: string;
+  triageTiers?: string[]; // multi-tier filter; public reads pass ['A','B'] to hide blocked Tier C
   category?: string; // categories[] contains
   limit?: number;
 }
@@ -144,10 +145,50 @@ export async function fetchNavWarningsList(params?: NavWarningListFilters & { se
     if (params?.navarea) query = query.eq('navarea', params.navarea);
     if (params?.status) query = query.eq('status', params.status);
     if (params?.triageTier) query = query.eq('triage_tier', params.triageTier);
+    if (params?.triageTiers && params.triageTiers.length > 0) query = query.in('triage_tier', params.triageTiers);
     if (params?.category) query = query.contains('categories', [params.category]);
     const { data, error } = await query;
     if (error) {
       console.warn('[navWarningQueries] nav_warnings list query notice:', error.message);
+      break;
+    }
+    if (data && data.length > 0) {
+      rows.push(...(data as unknown as Record<string, unknown>[]));
+      hasMore = data.length === PAGE_SIZE;
+      from += PAGE_SIZE;
+    } else {
+      hasMore = false;
+    }
+  }
+  return rows;
+}
+
+const ARCHIVE_COLUMNS =
+  'id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, ' +
+  'status, status_basis, status_changed_at, triage_tier, data_quality, parsing_method, ' +
+  'qa_flags, unplotted_reason, valid_from, valid_to, created_at, updated_at';
+
+/**
+ * Archived warnings (status <> 'active') from the nav_warnings_archive view
+ * created by the backend 20261023_lifecycle_safety migration: cancelled,
+ * expired and superseded records stay searchable without a geometry join.
+ * Powers the Data Bank "Archived / Cancelled" lane.
+ */
+export async function fetchArchivedNavWarnings(opts?: { serverClient?: boolean }): Promise<Record<string, unknown>[]> {
+  const client = resolveClient(opts?.serverClient);
+  if (!client) return [];
+  const rows: Record<string, unknown>[] = [];
+  let from = 0;
+  let hasMore = true;
+  while (hasMore) {
+    const to = from + PAGE_SIZE - 1;
+    const { data, error } = await client
+      .from('nav_warnings_archive')
+      .select(ARCHIVE_COLUMNS)
+      .order('status_changed_at', { ascending: false, nullsFirst: false })
+      .range(from, to);
+    if (error) {
+      console.warn('[navWarningQueries] archive query notice:', error.message);
       break;
     }
     if (data && data.length > 0) {

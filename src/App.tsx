@@ -31,6 +31,7 @@ import {
   fetchArtifacts,
   triggerPipelineRefresh,
   parseManualWarning,
+  fetchArchivedWarnings,
 } from './services/api';
 import { parseCoordinatesDeterministic } from './utils/coordinateParser';
 import {
@@ -85,6 +86,7 @@ export default function App() {
 
   // Core Data Bank State
   const [warnings, setWarnings] = useState<NavWarning[]>([]);
+  const [archivedWarnings, setArchivedWarnings] = useState<NavWarning[]>([]);
   const [sources, setSources] = useState<SourceRegistryItem[]>(INITIAL_SOURCES_REGISTRY);
   const [generations, setGenerations] = useState<IngestionGeneration[]>([]);
   const [artifacts, setArtifacts] = useState<RawArtifact[]>([]);
@@ -135,11 +137,12 @@ export default function App() {
     setIsLoadingData(true);
     setDataError(null);
     try {
-      const [apiSources, apiWarnings, apiGens, apiArts] = await Promise.all([
+      const [apiSources, apiWarnings, apiGens, apiArts, apiArchived] = await Promise.all([
         fetchSources(),
         fetchWarnings(),
         fetchGenerations(),
         fetchArtifacts(),
+        fetchArchivedWarnings(),
       ]);
 
       if (apiSources && apiSources.length > 0) setSources(apiSources);
@@ -174,6 +177,7 @@ export default function App() {
       }
 
       setWarnings(hydrated);
+      setArchivedWarnings(apiArchived || []);
       setGenerations(apiGens || []);
       setArtifacts(apiArts || []);
 
@@ -260,15 +264,17 @@ export default function App() {
       await triggerPipelineRefresh(sourceId);
 
       // Reload updated collections from server
-      const [apiSources, apiWarnings, apiGens, apiArts] = await Promise.all([
+      const [apiSources, apiWarnings, apiGens, apiArts, apiArchived] = await Promise.all([
         fetchSources(),
         fetchWarnings(),
         fetchGenerations(),
         fetchArtifacts(),
+        fetchArchivedWarnings(),
       ]);
 
       if (apiSources.length > 0) setSources(apiSources);
       if (apiWarnings.length > 0) setWarnings(apiWarnings);
+      setArchivedWarnings(apiArchived || []);
       if (apiGens.length > 0) setGenerations(apiGens);
       if (apiArts.length > 0) setArtifacts(apiArts);
     } catch (err: any) {
@@ -411,6 +417,7 @@ export default function App() {
         <div className={activeTab === 'databank' ? 'block' : 'hidden'}>
           <DataBankV2
             warnings={warnings}
+            archivedWarnings={archivedWarnings}
             initialStatusFilter={dataBankStatusFilter}
             onVerifyWarning={handleVerifyWarning}
             onLocate={(w) => {

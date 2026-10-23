@@ -19,6 +19,7 @@ import { FEATURE_FLAGS } from '../lib/featureFlags';
 
 export interface DataBankProps {
   warnings: NavWarning[];
+  archivedWarnings?: NavWarning[];
   onLocate: (warning: NavWarning) => void;
   onVerifyWarning?: (warningId: string) => void;
   initialStatusFilter?: string;
@@ -98,6 +99,7 @@ export interface DataBankModel {
   navareaCounts: Record<string, number>;
   extraNavAreas: string[];
   activeCount: number;
+  archivedCount: number;
   coordsCount: number;
   criticalCount: number;
   unverifiedCount: number;
@@ -141,12 +143,39 @@ export interface DataBankModel {
  * presentations of this one model — never fork the filtering/sorting logic into
  * a component.
  */
+/**
+ * Tier A + EXPLICIT data quality + no qa_flags: the "critical / verified"
+ * band of the bank. Falls back to the legacy confidence threshold for
+ * offline/locally-parsed rows that carry no triage metadata.
+ */
+function isTierAClean(w: NavWarning): boolean {
+  const tier = (w as any).triage_tier;
+  if (tier === undefined) return (w.extraction_confidence ?? 0) >= 0.8;
+  const flags = (w as any).qa_flags;
+  return tier === 'A'
+    && (w.data_quality ?? 'EXPLICIT') === 'EXPLICIT'
+    && (!Array.isArray(flags) || (flags as unknown[]).length === 0);
+}
+
+/** Review needed: explicit 'unverified' status, Tier B, or any qa_flags. */
+function isUnverifiedRow(w: NavWarning): boolean {
+  const tier = (w as any).triage_tier;
+  if (tier === undefined) {
+    return w.status === 'unverified' || (w.extraction_confidence !== undefined && w.extraction_confidence < 0.8);
+  }
+  const flags = (w as any).qa_flags;
+  return w.status === 'unverified' || tier === 'B'
+    || (Array.isArray(flags) && (flags as unknown[]).length > 0);
+}
+
 export function useDataBankModel({
   warnings,
+  archivedWarnings = [],
   initialStatusFilter = 'ALL',
   initialNavAreaFilter = 'ALL',
 }: {
   warnings: NavWarning[];
+  archivedWarnings?: NavWarning[];
   initialStatusFilter?: string;
   initialNavAreaFilter?: string;
 }): DataBankModel {
@@ -211,8 +240,14 @@ export function useDataBankModel({
 
   const activeCount = useMemo(() => warnings.filter(w => w.status === 'active').length, [warnings]);
   const coordsCount = useMemo(() => warnings.filter(w => (w.spatial?.geometries?.length > 0 || w.spatial?.circles?.length > 0)).length, [warnings]);
-  const criticalCount = useMemo(() => warnings.filter(w => w.extraction_confidence >= 0.8).length, [warnings]);
-  const unverifiedCount = useMemo(() => warnings.filter(w => w.status === 'unverified' || (w.extraction_confidence !== undefined && w.extraction_confidence < 0.8)).length, [warnings]);
+  const criticalCount = useMemo(() => warnings.filter(w => isTierAClean(w)).length, [warnings]);
+  const unverifiedCount = useMemo(() => warnings.filter(w => isUnverifiedRow(w)).length, [warnings]);
+  // Archived lane count: prefer the dedicated archive dataset, fall back to
+  // status-based counting when the archive view is unavailable (offline mode).
+  const archivedCount = useMemo(() => archivedWarnings.length > 0
+    ? archivedWarnings.length
+    : warnings.filter(w => w.status === 'cancelled' || w.status === 'expired' || w.status === 'superseded').length,
+    [archivedWarnings, warnings]);
 
   const recent24hCount = useMemo(() => {
     const now = Date.now();
@@ -268,18 +303,35 @@ export function useDataBankModel({
     return analyzed.filter(item => {
       const w = item.warning;
       if (selectedNavArea !== 'ALL' && w.navarea?.toUpperCase() !== selectedNavArea.toUpperCase()) return false;
-      if (selectedStatus !== 'ALL') {
+      if (selectedStatus === 'archived') {
+        // Archive lane: cancelled / expired / superseded records from the
+        // backend nav_warnings_archive view. Falls back to plain status
+        // matching when the archive dataset is unavailable.
+        if (archivedWarnings.length > 0) {
+          const inArchive = archivedWarnings.some(a => a.warning_id === w.warning_id);
+          if (!inArchive) return false;
+        } else if (w.status === 'active' || w.status === 'unverified') {
+          return false;
+        }
+      } else if (selectedStatus !== 'ALL') {
         const sLower = selectedStatus.toLowerCase();
         if (sLower === 'unverified') {
-          const isUnverified = w.status === 'unverified' || (w.extraction_confidence !== undefined && w.extraction_confidence < 0.8);
-          if (!isUnverified) return false;
+          if (!isUnverifiedRow(w)) return false;
         } else if (w.status !== sLower) {
           return false;
         }
       }
       if (selectedCategory !== 'ALL' && item.category !== selectedCategory) return false;
-      if (selectedSeverity === 'critical' && w.extraction_confidence < 1) return false;
-      if (selectedSeverity === 'high' && (w.extraction_confidence >= 1 || w.extraction_confidence < 0.8)) return false;
+      // Severity bands are now derived from backend triage signals:
+      // critical = Tier A + EXPLICIT + no flags; high = any Tier A.
+      if (selectedSeverity === 'critical' && !isTierAClean(w)) return false;
+      if (selectedSeverity === 'high') {
+        const tier = (w as any).triage_tier;
+        const inBand = tier === undefined
+          ? ((w.extraction_confidence ?? 0) >= 0.8 && (w.extraction_confidence ?? 0) < 1)
+          : tier === 'A';
+        if (!inBand) return false;
+      }
 
       if (coordFilter === 'with_coords') {
         if (!item.hasCoordinates) return false;
@@ -291,16 +343,19 @@ export function useDataBankModel({
         const q = searchTerm.toLowerCase();
         const matchId = w.source_warning_id.toLowerCase().includes(q);
         const matchText = w.issued_text.toLowerCase().includes(q);
+        const matchTitle = (w.title || '').toLowerCase().includes(q);
+        const matchRaw = (w.raw_text || '').toLowerCase().includes(q);
+        const matchAreaText = (w.area_text || '').toLowerCase().includes(q);
         const matchArea = `navarea ${w.navarea}`.toLowerCase().includes(q);
         const matchStatus = w.status.toLowerCase().includes(q);
         const matchAuth = item.issuingAuthorityLabel.toLowerCase().includes(q);
         const matchCat = item.categoryMeta.label.toLowerCase().includes(q);
-        return matchId || matchText || matchArea || matchStatus || matchAuth || matchCat;
+        return matchId || matchText || matchTitle || matchRaw || matchAreaText || matchArea || matchStatus || matchAuth || matchCat;
       }
 
       return true;
     });
-  }, [analyzed, selectedNavArea, selectedStatus, selectedCategory, selectedSeverity, coordFilter, searchTerm]);
+  }, [analyzed, archivedWarnings, selectedNavArea, selectedStatus, selectedCategory, selectedSeverity, coordFilter, searchTerm]);
 
   // 2. Sort analyzed warnings
   const sortedAnalyzed = useMemo(() => {
@@ -461,6 +516,7 @@ export function useDataBankModel({
     navareaCounts,
     extraNavAreas,
     activeCount,
+    archivedCount,
     coordsCount,
     criticalCount,
     unverifiedCount,
