@@ -3,42 +3,54 @@
 if (!window.hwDb) window.hwDb = {};
 Object.assign(window.hwDb, {
   async fetchUnverified() {
-    if (!window.hwSupabase) return [];
+    if (!window.hwSupabase) return { items: [], error: 'No db connection' };
     try {
       // 1. Prioritize nav_warnings_review_queue view
       const { data: queueData, error: queueErr } = await window.hwSupabase
         .from('nav_warnings_review_queue')
         .select('*');
       if (!queueErr && Array.isArray(queueData) && queueData.length > 0) {
-        return queueData.map(q => ({
-          ...q,
-          id: q.warning_id,
-          warning_id: q.canonical_id || q.warning_id,
-          canonical_id: q.canonical_id,
-        }));
+        return {
+          items: queueData.map(q => ({
+            ...q,
+            id: q.warning_id,
+            warning_id: q.canonical_id || q.warning_id,
+            canonical_id: q.canonical_id
+          })),
+          error: null
+        };
       }
 
-      // 2. Fallback to unverified in master table
+      // 2. Fallback to review-needed rows in the master table.
+      //    20261019/20 schema: is_verified/verified_at/warning_id columns no
+      //    longer exist. Review queue = active warnings in Tier B or C.
       const { data, error } = await window.hwSupabase
         .from('nav_warnings')
-        .select('*')
-        .or('is_verified.eq.false,triage_tier.in.(B,C)')
-        .eq('status', 'active');
-      return data || [];
+        .select('id, canonical_id, navarea, title, raw_text, area_text, categories,'
+          + ' triage_tier, data_quality, qa_flags, status, valid_from, valid_to, updated_at')
+        .in('triage_tier', ['B', 'C'])
+        .eq('status', 'active')
+        .order('updated_at', { ascending: false })
+        .limit(200);
+      if (error) return { items: [], error: error.message };
+      return { items: data || [], error: null };
     } catch (e) {
-      return [];
+      return { items: [], error: (e && e.message) || String(e) };
     }
   },
 
   async verifyWarning(id, details = {}) {
     if (!window.hwSupabase) return { error: 'No db connection' };
-    const operator = (currentUser && currentUser.email) || 'safety-operator';
+    // Hard-fail: an audit row without a real operator attribution is a lie.
+    if (!currentUser || !currentUser.email) {
+      return { error: 'Not signed in — audit attribution unavailable. Sign in again.' };
+    }
+    const operator = currentUser.email;
     const isUuid = typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    
-    // Update master record to Tier A and explicit data quality
+
+    // 20261019/20 schema: is_verified / verified_at do not exist.
+    // Verification = promote to Tier A with explicit data quality.
     const updatePayload = {
-      is_verified: true,
-      verified_at: new Date().toISOString(),
       triage_tier: 'A',
       data_quality: 'EXPLICIT',
       unplotted_reason: null,
@@ -46,71 +58,86 @@ Object.assign(window.hwDb, {
     };
 
     let query = window.hwSupabase.from('nav_warnings').update(updatePayload);
-    query = isUuid ? query.eq('id', id) : query.or(`warning_id.eq."${id}",canonical_id.eq."${id}"`);
+    query = isUuid ? query.eq('id', id) : query.eq('canonical_id', id);
     const res = await query.select('id, canonical_id');
+    if (res.error) return res;
 
     // Record immutable operator audit row to nav_warning_audits
-    try {
-      const masterId = res.data?.[0]?.id || (isUuid ? id : null);
-      if (masterId) {
-        await window.hwSupabase.from('nav_warning_audits').insert([{
-          warning_id: masterId,
+    // (soft-optional: the table is owned by the backend repo; report status)
+    res.audit = 'skipped';
+    const masterId = res.data && res.data[0] && res.data[0].id;
+    if (masterId || isUuid) {
+      try {
+        const a = await window.hwSupabase.from('nav_warning_audits').insert([{
+          warning_id: masterId || id,
           operator_id: operator,
           previous_tier: 'B',
           new_tier: 'A',
           action: 'PROMOTE',
           reason: details.reason || 'Operator verified in Admin Console',
-          signature_hash: btoa(masterId + ':' + Date.now()),
+          signature_hash: btoa((masterId || id) + ':' + Date.now()),
           diff_patch: updatePayload
         }]);
+        res.audit = a.error ? 'failed' : 'written';
+        if (a.error) console.warn('nav_warning_audits insert failed:', a.error.message);
+      } catch (auditErr) {
+        res.audit = 'failed';
+        console.warn('nav_warning_audits insert notice:', auditErr);
       }
-    } catch (auditErr) {
-      console.warn('nav_warning_audits insert notice:', auditErr);
     }
-
     return res;
   },
 
   async rejectWarning(id, reason = 'Operator rejected') {
     if (!window.hwSupabase) return { error: 'No db connection' };
-    const operator = (currentUser && currentUser.email) || 'safety-operator';
+    if (!currentUser || !currentUser.email) {
+      return { error: 'Not signed in — audit attribution unavailable. Sign in again.' };
+    }
+    const operator = currentUser.email;
     const isUuid = typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
+    // 20261019/20 schema: status CHECK whitelist is
+    // active|cancelled|expired|superseded|unverified — 'rejected' is not a
+    // status. Rejection = demote to Tier C (excluded from all public reads);
+    // the free-text reason lives on the audit row, not on the row itself.
     const updatePayload = {
-      status: 'rejected',
       triage_tier: 'C',
-      unplotted_reason: reason
+      unplotted_reason: null
     };
 
     let query = window.hwSupabase.from('nav_warnings').update(updatePayload);
-    query = isUuid ? query.eq('id', id) : query.or(`warning_id.eq."${id}",canonical_id.eq."${id}"`);
+    query = isUuid ? query.eq('id', id) : query.eq('canonical_id', id);
     const res = await query.select('id, canonical_id');
+    if (res.error) return res;
 
-    // Record immutable audit row
-    try {
-      const masterId = res.data?.[0]?.id || (isUuid ? id : null);
-      if (masterId) {
-        await window.hwSupabase.from('nav_warning_audits').insert([{
-          warning_id: masterId,
+    res.audit = 'skipped';
+    const masterId = res.data && res.data[0] && res.data[0].id;
+    if (masterId || isUuid) {
+      try {
+        const a = await window.hwSupabase.from('nav_warning_audits').insert([{
+          warning_id: masterId || id,
           operator_id: operator,
           previous_tier: 'B',
           new_tier: 'C',
           action: 'DEMOTE',
           reason: reason,
-          signature_hash: btoa(masterId + ':' + Date.now()),
+          signature_hash: btoa((masterId || id) + ':' + Date.now()),
           diff_patch: updatePayload
         }]);
+        res.audit = a.error ? 'failed' : 'written';
+        if (a.error) console.warn('nav_warning_audits insert failed:', a.error.message);
+      } catch (auditErr) {
+        res.audit = 'failed';
+        console.warn('nav_warning_audits insert notice:', auditErr);
       }
-    } catch (auditErr) {
-      console.warn('nav_warning_audits insert notice:', auditErr);
     }
-
     return res;
   },
 
   async publishImport(warnings) {
     if (!window.hwSupabase) return { error: 'No db connection' };
-    // Call server sync endpoint with auth header for atomic multi-table persistence
+    // Call server sync endpoint with the operator's real JWT for atomic
+    // multi-table persistence (hw_admin_token is written at login/checkSession)
     try {
       const token = sessionStorage.getItem('hw_admin_token') || '';
       const res = await fetch('/api/supabase/sync', {
@@ -174,6 +201,32 @@ Object.assign(window.hwDb, {
   }
 });
 
+// ═══════════ SECURITY HELPERS (E0) ═══════════
+// HTML-escape every user-controlled value before innerHTML interpolation.
+// Bulletin raw_text/title/navarea are attacker-controllable via the paste
+// queue — an unescaped interpolation is a stored XSS on every operator.
+function _esc(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/[&<>"']/g, function (c) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+  });
+}
+
+// Admin authorization. Preferred: set app_metadata.role = 'admin' on the
+// user in the Supabase dashboard (Auth → Users → app_metadata).
+// Fallback: add operator emails to ADMIN_EMAILS (lowercase).
+const ADMIN_EMAILS = [
+  // 'operator@example.com'
+];
+function isAdminUser(user) {
+  if (!user || !user.email) return false;
+  const meta = user.app_metadata || {};
+  if (meta.role === 'admin') return true;
+  if (Array.isArray(meta.roles) && meta.roles.indexOf('admin') !== -1) return true;
+  const email = String(user.email).trim().toLowerCase();
+  return ADMIN_EMAILS.indexOf(email) !== -1;
+}
+
 // ═══════════ STATE ═══════════
 const SESSION_KEY = 'hw_admin_session';
 const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours
@@ -181,6 +234,7 @@ let currentUser = null;
 
 const state = {
   unverified: [],
+  loadError: null,
   logFilter: "ALL",
   wizard: { step:1, method:"paste", results:[], accepted:new Set(), preflight:null, queueRow:null },
   pipelineRunning: false,
@@ -204,7 +258,16 @@ window.handleLogin = async function(e){
     if (window.hwSupabase) {
       const { data, error } = await window.hwSupabase.auth.signInWithPassword({ email, password });
       if (error) throw new Error(error.message);
+      // Authorization: only admins may enter the console (E0 fix BUG-V4).
+      if (!isAdminUser(data.user)) {
+        await window.hwSupabase.auth.signOut();
+        throw new Error('This account is not authorized for the admin console.');
+      }
       currentUser = data.user;
+      const s = await window.hwSupabase.auth.getSession();
+      if (s && s.data && s.data.session) {
+        sessionStorage.setItem('hw_admin_token', s.data.session.access_token);
+      }
       sessionStorage.setItem(SESSION_KEY, JSON.stringify({ email: data.user.email, ts: Date.now() }));
       enterAdmin(data.user.email);
     } else {
@@ -221,28 +284,40 @@ window.handleLogin = async function(e){
 
 window.checkSession = async function(){
   try {
-    if (window.hwSupabase) {
-      const { data: { session } } = await window.hwSupabase.auth.getSession();
-      if (session) {
-        currentUser = session.user;
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify({ email: session.user.email, ts: Date.now() }));
-        enterAdmin(session.user.email);
+    if (!window.hwSupabase) return;
+    // E0 fix BUG-V5: a live JWT is REQUIRED to enter. A stale sessionStorage
+    // entry is only ever a remembered-email hint — never an auth grant.
+    const { data: { session } } = await window.hwSupabase.auth.getSession();
+    if (session && session.user) {
+      if (!isAdminUser(session.user)) {
+        await window.hwSupabase.auth.signOut();
         return;
       }
-    }
-    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY));
-    if (s && (Date.now() - s.ts) < SESSION_TIMEOUT) {
-      currentUser = { email: s.email };
-      enterAdmin(s.email);
+      currentUser = session.user;
+      sessionStorage.setItem('hw_admin_token', session.access_token);
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ email: session.user.email, ts: Date.now() }));
+      enterAdmin(session.user.email);
       return;
     }
-    if (s) sessionStorage.removeItem(SESSION_KEY);
-  } catch(e) {}
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        const emailEl = document.getElementById('loginEmail');
+        if (parsed && parsed.email && emailEl && !emailEl.value) emailEl.value = parsed.email;
+      } catch (e) {}
+      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem('hw_admin_token');
+    }
+  } catch(e) {
+    console.warn('checkSession:', e);
+  }
 };
 
 window.logout = async function(){
   if (window.hwSupabase) await window.hwSupabase.auth.signOut();
   sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem('hw_admin_token');
   currentUser = null;
   location.href = '/';
 };
@@ -258,8 +333,13 @@ function enterAdmin(email){
 // ═══════════ DATA LOAD ═══════════
 async function loadAdminData() {
   if (window.hwDb) {
-    const data = await window.hwDb.fetchUnverified();
-    state.unverified = data;
+    const res = await window.hwDb.fetchUnverified();
+    state.unverified = (res.items || []).map(w => ({
+      ...w,
+      warning_id: w.warning_id || w.canonical_id || w.id
+    }));
+    state.loadError = res.error || null;
+    if (state.loadError) showToast('Verify queue load failed: ' + state.loadError);
   }
   renderVerifyQueue();
   renderAttention();
@@ -281,7 +361,7 @@ function renderAttention(){
   const p=document.getElementById('attentionPanel');
   if(!p) return;
   const items=[];
-  if(state.unverified.length>0) items.push({icon:'⚠',cls:'warn',html:`<b>${state.unverified.length} warning${state.unverified.length>1?'s':''}</b> awaiting verification`,sub:state.unverified.map(w=>w.warning_id).join(' · '),btn:'Review',fn:"switchAdminSub('verify')"});
+  if(state.unverified.length>0) items.push({icon:'⚠',cls:'warn',html:`<b>${state.unverified.length} warning${state.unverified.length>1?'s':''}</b> awaiting verification`,sub:state.unverified.map(w=>_esc(w.warning_id)).join(' · '),btn:'Review',fn:"switchAdminSub('verify')"});
   if(!items.length){ p.innerHTML=`<div class="att-clear"><div class="big">✓</div>All clear — no items need attention.</div>`; return; }
   p.innerHTML=`<div class="att-title">Needs Attention <span class="badge-simple badge-high"><span class="dot"></span> ${items.length}</span></div>`+
     items.map(i=>`<div class="att-item"><span class="att-icon ${i.cls}">${i.icon}</span><div class="att-text">${i.html}<div class="att-sub">${i.sub}</div></div><button class="btn btn-sm btn-secondary" onclick="${i.fn}">${i.btn}</button></div>`).join('');
@@ -299,34 +379,67 @@ function renderVerifyQueue(){
   const q=document.getElementById('verifyQueue');
   if(!q) return;
   const items=state.unverified;
-  if(!items.length){ q.innerHTML=`<div class="success-panel"><div class="big">✓</div><h3>Verification Queue Empty</h3><p>All published warnings carry verified status.</p></div>`; return; }
+  if(!items.length){
+    // E0 fix BUG-V1: an empty queue because the query FAILED must never look
+    // like "all verified".
+    if (state.loadError) {
+      q.innerHTML=`<div class="success-panel"><div class="big">⚠</div><h3>Verification Queue Unavailable</h3><p>${_esc(state.loadError)}</p></div>`;
+    } else {
+      q.innerHTML=`<div class="success-panel"><div class="big">✓</div><h3>Verification Queue Empty</h3><p>All published warnings carry verified status.</p></div>`;
+    }
+    return;
+  }
   q.innerHTML=`<div class="page-header" style="margin-bottom:14px"><div><h1 style="font-size:20px">Verification Queue</h1><p class="subtitle">${items.length} human confirmation required</p></div><div><button class="btn btn-secondary" onclick="verifyAll()">✓ Verify All</button></div></div>`+
   items.map(w=>`<div class="verify-card">
-    <div class="verify-head"><span class="verify-title">${w.warning_id || w.id} · ${w.navarea}</span>${badge('high',w.severity?.toUpperCase() || 'HIGH')}</div>
-    <div style="font-weight:500">${w.title}</div>
-    <div class="verify-text">${w.raw_text || w.text}</div>
-    <div class="verify-checks"><span>✓ Coords valid (${w.coordinates || w.coords})</span><span>✓ In-force window open</span></div>
+    <div class="verify-head"><span class="verify-title">${_esc(w.warning_id || w.id)} · ${_esc(w.navarea)}</span>${badge('high','TIER ' + _esc(String(w.triage_tier || 'B')) + ' · REVIEW')}</div>
+    <div style="font-weight:500">${_esc(w.title)}</div>
+    <div class="verify-text">${_esc(w.raw_text || w.text || '')}</div>
+    <div class="verify-checks"><span>${_esc((Array.isArray(w.categories) ? w.categories : []).join(', ') || 'general')}</span><span>✓ In-force window open</span></div>
     <div class="verify-actions">
-      <button class="btn btn-sm btn-secondary" style="color:var(--critical)" onclick="rejectWarning('${w.warning_id || w.id}')">Reject</button>
-      <button class="btn btn-sm btn-primary" style="width:auto" onclick="verifyWarning('${w.warning_id || w.id}')">✓ Verify</button>
+      <button class="btn btn-sm btn-secondary" style="color:var(--critical)" onclick="rejectWarning('${_esc(w.warning_id || w.id)}')">Reject</button>
+      <button class="btn btn-sm btn-primary" style="width:auto" onclick="verifyWarning('${_esc(w.warning_id || w.id)}')">✓ Verify</button>
     </div></div>`).join('');
 }
+// E0 fix BUG-V7/V8: never fake success. Branch on the real DB result and
+// keep the item in the queue on failure.
 window.verifyWarning = async function(id){
-  if(window.hwDb) {
-    await window.hwDb.verifyWarning(id);
-    state.unverified = state.unverified.filter(w => (w.warning_id || w.id) !== id);
-    afterVerifyChange(`${id} verified`);
+  if(!window.hwDb) return;
+  const res = await window.hwDb.verifyWarning(id);
+  if (res && res.error) {
+    showToast('Verify FAILED: ' + (res.error.message || res.error));
+    renderVerifyQueue();
+    return;
   }
+  state.unverified = state.unverified.filter(w => (w.warning_id || w.id) !== id);
+  const auditNote = res && res.audit === 'failed' ? ' — audit row FAILED (check console)' : '';
+  afterVerifyChange(`${id} verified${auditNote}`);
 };
 window.rejectWarning = async function(id){
-  if(window.hwDb) {
-    await window.hwDb.rejectWarning(id);
-    state.unverified = state.unverified.filter(w => (w.warning_id || w.id) !== id);
-    afterVerifyChange(`${id} rejected`);
+  if(!window.hwDb) return;
+  const res = await window.hwDb.rejectWarning(id);
+  if (res && res.error) {
+    showToast('Reject FAILED: ' + (res.error.message || res.error));
+    renderVerifyQueue();
+    return;
   }
+  state.unverified = state.unverified.filter(w => (w.warning_id || w.id) !== id);
+  const auditNote = res && res.audit === 'failed' ? ' — audit row FAILED (check console)' : '';
+  afterVerifyChange(`${id} rejected to Tier C${auditNote}`);
 };
-window.verifyAll = async function(){ 
-  for(const w of state.unverified) { await verifyWarning(w.warning_id || w.id); } 
+window.verifyAll = async function(){
+  if(!window.hwDb) return;
+  const targets = state.unverified.slice();
+  let ok = 0, fail = 0;
+  for (const w of targets) {
+    const id = w.warning_id || w.id;
+    const res = await window.hwDb.verifyWarning(id);
+    if (res && res.error) { fail++; }
+    else {
+      ok++;
+      state.unverified = state.unverified.filter(x => (x.warning_id || x.id) !== id);
+    }
+  }
+  afterVerifyChange(`Verified ${ok}${fail ? `, failed ${fail}` : ''}`);
 };
 function afterVerifyChange(msg){
   renderVerifyQueue(); renderAttention();
@@ -417,12 +530,12 @@ function renderParseResults(){
   const pills = [];
   pills.push(`<span class="pill pill-ok">${p.lines || 0} lines · ${p.kb || '0'} KB</span>`);
   if (p.detected) {
-    pills.push(`<span class="pill pill-ok">header: NAVAREA ${p.detected.toUpperCase()}</span>`);
+    pills.push(`<span class="pill pill-ok">header: NAVAREA ${_esc(p.detected.toUpperCase())}</span>`);
     if (p.sel && p.sel !== 'auto' && p.sel !== p.detected) {
-      pills.push(`<span class="pill" style="background:#fff7ed;color:var(--high)">selection ${p.sel.toUpperCase()} overridden</span>`);
+      pills.push(`<span class="pill" style="background:#fff7ed;color:var(--high)">selection ${_esc(p.sel.toUpperCase())} overridden</span>`);
     }
   } else if (p.sel && p.sel !== 'auto') {
-    pills.push(`<span class="pill pill-ok">selection: NAVAREA ${p.sel.toUpperCase()}</span>`);
+    pills.push(`<span class="pill pill-ok">selection: NAVAREA ${_esc(p.sel.toUpperCase())}</span>`);
   } else {
     pills.push(`<span class="pill" style="background:#fff7ed;color:var(--high)">no header — region must be selected</span>`);
   }
@@ -431,7 +544,7 @@ function renderParseResults(){
     `<div class="parse-card accepted">
       <div class="parse-main">
         <div class="parse-head"><strong>Pre-flight check</strong> · backend pipeline does the real parse</div>
-        <div class="parse-title">${p.effective ? 'Will ingest via NAVAREA ' + p.effective.toUpperCase() : 'Region unknown — the pipeline will reject this paste'}</div>
+        <div class="parse-title">${p.effective ? 'Will ingest via NAVAREA ' + _esc(p.effective.toUpperCase()) : 'Region unknown — the pipeline will reject this paste'}</div>
         <div class="parse-meta">Route: Supabase queue → GitHub Action (≤ 15 min) → region parser → differential sync</div>
       </div>
     </div>`;
