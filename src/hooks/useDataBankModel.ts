@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction, useEffect, useMemo, useState } from 'react';
-import { NavWarning, SourceRegistryItem } from '../types';
+import { NavWarning, SourceRegistryItem, IngestionGeneration } from '../types';
 import {
   analyzeDataset,
   sortAnalyzedWarnings,
@@ -28,6 +28,8 @@ export interface DataBankProps {
   isRefreshing?: boolean;
   onCommitWarnings?: (newWarnings: NavWarning[]) => void;
   sources?: SourceRegistryItem[];
+  /** Ingestion run ledger (ingestion_generations) for the Summary panel. */
+  generations?: IngestionGeneration[];
   isOfflineMode?: boolean;
   onOpenConsole?: () => void;
   onNavigate?: (tab: any) => void;
@@ -562,3 +564,4 @@ export function useDataBankModel({
     getInForceStatus,
   };
 }
+

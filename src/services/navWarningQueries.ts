@@ -202,6 +202,46 @@ export async function fetchArchivedNavWarnings(opts?: { serverClient?: boolean }
   return rows;
 }
 
+const GENERATION_COLUMNS =
+  'generation_id, source_id, navarea, started_at, completed_at, status, parsed_count, active_count, evidence_hash, details';
+
+/**
+ * Ingestion run ledger (20261023_lifecycle_safety migration): one row per
+ * sync run in ingestion_generations, newest first. Public anon reads are
+ * granted by the "public read ingestion_generations" RLS policy. This is
+ * what lets the Data Bank Summary answer "where did the warnings go?".
+ */
+export async function fetchIngestionGenerations(
+  opts?: { serverClient?: boolean; limit?: number }
+): Promise<Record<string, unknown>[]> {
+  const client = resolveClient(opts?.serverClient);
+  if (!client) return [];
+  const rows: Record<string, unknown>[] = [];
+  const limit = opts?.limit ?? 200;
+  let from = 0;
+  let hasMore = true;
+  while (hasMore && from < limit) {
+    const to = Math.min(from + PAGE_SIZE, limit) - 1;
+    const { data, error } = await client
+      .from('ingestion_generations')
+      .select(GENERATION_COLUMNS)
+      .order('started_at', { ascending: false })
+      .range(from, to);
+    if (error) {
+      console.warn('[navWarningQueries] ingestion_generations query notice:', error.message);
+      break;
+    }
+    if (data && data.length > 0) {
+      rows.push(...(data as unknown as Record<string, unknown>[]));
+      hasMore = data.length === to - from + 1;
+      from += PAGE_SIZE;
+    } else {
+      hasMore = false;
+    }
+  }
+  return rows;
+}
+
 /** Tier B review queue rows for the admin triage UI. */
 export async function fetchReviewQueueRows(opts?: { serverClient?: boolean }): Promise<Record<string, unknown>[]> {
   const client = resolveClient(opts?.serverClient);
@@ -233,4 +273,5 @@ export function subscribeToNavWarnings(onChange: () => void): { unsubscribe: () 
     },
   };
 }
+
 

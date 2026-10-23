@@ -7,6 +7,14 @@ interface GenerationInspectorViewProps {
   sources: SourceRegistryItem[];
 }
 
+/** Ledger run status (ingestion_generations) badge colors. */
+const RUN_BADGE_CLASSES: Record<string, string> = {
+  running: 'bg-blue-100 text-blue-800 border-blue-300',
+  succeeded: 'bg-green-100 text-green-800 border-green-300',
+  failed: 'bg-red-100 text-red-800 border-red-300',
+  empty_feed: 'bg-amber-100 text-amber-800 border-amber-300',
+};
+
 export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = ({ generations, sources }) => {
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
@@ -91,8 +99,9 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
                 <tr>
                   <th className="py-3 px-4">Generation ID</th>
                   <th className="py-3 px-4">Source ID</th>
-                  <th className="py-3 px-4">Created At</th>
+                  <th className="py-3 px-4">Run Window</th>
                   <th className="py-3 px-4">Parsed / Active</th>
+                  <th className="py-3 px-4">Run Status</th>
                   <th className="py-3 px-4">Evidence Hash</th>
                   <th className="py-3 px-4">Completeness</th>
                 </tr>
@@ -101,10 +110,25 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
                 {generations.map((gen) => (
                   <tr key={gen.generation_id} className="hover:bg-gw-bg transition-colors">
                     <td className="py-3 px-4 font-bold text-gw-primary">{gen.generation_id}</td>
-                    <td className="py-3 px-4 text-gw-primary font-bold">{gen.source_id}</td>
-                    <td className="py-3 px-4 text-gw-accent">{gen.created_at.replace('T', ' ').slice(0, 19)}</td>
                     <td className="py-3 px-4 text-gw-primary font-bold">
-                      {gen.parsed_count} / {gen.active_count}
+                      {gen.source_id}
+                      {gen.navarea && (
+                        <span className="block text-[10px] font-normal text-gw-accent">{gen.navarea}</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-gw-accent">
+                      {gen.created_at.replace('T', ' ').slice(0, 19)}
+                      {gen.completed_at && (
+                        <span className="text-gw-accent/60"> → {gen.completed_at.replace('T', ' ').slice(11, 19)}</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-gw-primary font-bold">
+                      {gen.parsed_count} / {gen.active_count ?? '—'}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`${RUN_BADGE_CLASSES[gen.run_status ?? 'succeeded']} border px-2 py-0.5 rounded font-mono text-[10px] font-bold uppercase`}>
+                        {(gen.run_status ?? gen.completeness_status).toUpperCase()}
+                      </span>
                     </td>
                     <td className="py-3 px-4 text-gw-accent truncate max-w-[120px]" title={gen.evidence_hash}>
                       {gen.evidence_hash.slice(0, 16)}...
@@ -124,3 +148,4 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
     </div>
   );
 };
+

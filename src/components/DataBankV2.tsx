@@ -22,6 +22,7 @@ export const DataBankV2: React.FC<DataBankProps> = ({
   isRefreshing = false,
   onCommitWarnings,
   sources = [],
+  generations,
   initialStatusFilter,
   initialNavAreaFilter
 }) => {
@@ -53,7 +54,7 @@ export const DataBankV2: React.FC<DataBankProps> = ({
 
       <DataBankWarningList model={model} onLocate={onLocate} onVerifyWarning={onVerifyWarning} sources={sources} />
 
-      <DataBankSummary model={model} sources={sources} />
+      <DataBankSummary model={model} sources={sources} generations={generations} />
 
       <MissingWarningsDrawer
         isOpen={showMissingDrawer}
@@ -80,4 +81,5 @@ export const DataBankV2: React.FC<DataBankProps> = ({
     </div>
   );
 };
+
 
