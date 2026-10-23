@@ -46,6 +46,7 @@ import {
   formatWgs84Dms,
 } from '../core/coordinates';
 import { SpatialPlotType } from '../types/maritime';
+import { MapGeometryEditor } from './MapGeometryEditor';
 
 export type ScopeFilterType = 'all' | 'navarea' | 'coastal';
 
@@ -72,6 +73,9 @@ interface LeafletMapProps {
   onSelectWarning: (warning: NavWarning) => void;
   isolatedWarning?: NavWarning | null;
   onClearIsolation?: () => void;
+  isAdminMode?: boolean;
+  selectedWarning?: NavWarning | null;
+  onGeometrySaved?: () => void;
 }
 
 export const LeafletMap: React.FC<LeafletMapProps> = ({
@@ -81,6 +85,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   onSelectWarning,
   isolatedWarning,
   onClearIsolation,
+  isAdminMode = false,
+  selectedWarning,
+  onGeometrySaved,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletInstance = useRef<L.Map | null>(null);
@@ -363,6 +370,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         const seamarkLayer = L.tileLayer(osmSeamarksConfig.url, {
           attribution: osmSeamarksConfig.attribution,
           maxZoom: osmSeamarksConfig.maxZoom,
+          maxNativeZoom: osmSeamarksConfig.maxNativeZoom,
           pane: osmSeamarksConfig.pane,
           opacity: 1.0,
         });
@@ -1503,85 +1511,3 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                         {w.issued_text || w.area_text}
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-gw-accent font-mono">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-gw-primary" />
-                          {w.issued_date}
-                        </span>
-                        <span className="text-gw-primary font-bold group-hover:underline">
-                          Details →
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div
-                    key={w.warning_id}
-                    onClick={() => onSelectWarning(w)}
-                    className={`p-2.5 border rounded-lg cursor-pointer transition-all shadow-xs group ${
-                      isHidden
-                        ? 'bg-amber-50/50 border-amber-300 opacity-60'
-                        : 'bg-gw-bg hover:bg-white border-gw-secondary hover:border-gw-primary'
-                    }`}
-                  >
-                    <WarningHierarchyLines
-                      warning={w}
-                      sources={sources}
-                      showStatus={false}
-                      line1Right={
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleWarningVisibility(w.warning_id);
-                          }}
-                          className={`p-0.5 rounded transition-all ${
-                            isHidden
-                              ? 'text-amber-700 hover:bg-amber-200'
-                              : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
-                          }`}
-                          title={isHidden ? 'Unhide this layer' : 'Hide this layer from map'}
-                        >
-                          {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
-                      }
-                    />
-                    <div className="mt-2 flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          centerOnWarningArea(w);
-                        }}
-                        title="View this warning on the map"
-                        className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
-                      >
-                        <MapPin className="w-3 h-3" />
-                        <span>View on map</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectWarning(w);
-                        }}
-                        className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:border-gw-primary hover:text-gw-primary transition-colors"
-                      >
-                        <span>Details</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </aside>
-      )}
-      {/* Screen Reader Live Region for Marker Selections */}
-      <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {srAnnouncement}
-      </div>
-    </div>
-  );
-};
