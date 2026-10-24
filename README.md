@@ -143,16 +143,14 @@ flowchart TD
 
 ### 🔐 Admin Console (`/admin`)
 
-- **Role-Gated Supabase Authentication**: Validates unalterable administrative JWT roles (`app_metadata.role === 'admin'`).
-- **Hardened Defense-in-Depth**: Protected with `X-Frame-Options: DENY`, `noindex, nofollow, noarchive` robots directives, and CSP policies.
-- **5 Dedicated Operational Workspaces**:
-  1. **Overview**: Real-time pipeline health, active hazard count, error alerts, and database metrics.
-  2. **Pipeline Orchestrator**: Stage-by-stage pipeline inspection (`Fetch Sources` → `Parse & Normalize` → `Geocode Geometry` → `Publish Generation`), feed latency monitoring, and live logs.
-  3. **Bulk Import Wizard**: 4-step wizard supporting manual bulletin text, CSV, GPX, and S-124 formats with instant deduplication preview.
-  4. **Verification Queue**: Human-in-the-loop triage interface (`Tier B` review queue) to corroborate, correct geometry, or confirm/reject warnings before publication.
-  5. **System Diagnostics**: Live connectivity test for the AI extraction model (Gemini Flash-Lite) and database status.
-
----
+- **One admin URL**: `/admin` is a login gateway only — after Supabase sign-in it redirects to the React console at `/console`. The console itself is organized into **4 sections** with sub-tabs:
+  1. **Warnings**: warning list, detail views with audit trail, geometry editing (undo/redo, diff banners, AMBIGUOUS confirm guard)
+  2. **Ingest**: manual paste, CSV/import wizards, scraper + pipeline orchestration, pipeline-run ledger
+  3. **Trace**: raw messages, generations, evidence, QA triage queue
+  4. **System**: Supabase status/sync, AI connectivity (Gemini), source registry
+- **Legacy hash aliases keep resolving**: old deep links (`#/map`, `#/databank`, `#/sources`, `#/imports`, `#/audit`, …) redirect to their canonical sections.
+- **Role-Gated Supabase Authentication**: validates unalterable administrative JWT roles (`app_metadata.role`), verified server-side (`server/auth.ts`, fail-closed Bearer).
+- **Hardened Defense-in-Depth**: `X-Frame-Options: DENY`, `noindex, nofollow, noarchive` robots directives, and CSP policies on both `/admin` and `/console`.
 
 ## 🔧 Built With
 
@@ -200,14 +198,18 @@ Helm.Warning strictly implements the **20261019/20 schema contract** documented 
 
 ### Row Level Security (RLS) Matrix
 
-| Table / View | Public (`anon`) | Admin (`authenticated`) | Service Role (`pipeline`) |
+Live state as of 2026-10-24 (post-hardening; RLS enabled on all tables):
+
+| Table / View | Public (`anon`) | Admin (JWT, role-gated) | Service Role (pipeline) |
 |---|---|---|---|
-| `public.nav_warnings` | `SELECT` (active only) | `ALL` (insert/update/delete) | `ALL` (RPC bypass) |
-| `public.nav_warning_geometries` | `SELECT` | `ALL` | `ALL` |
+| `public.nav_warnings` | `SELECT` (active only) | `INSERT` / `UPDATE` (admin-gated) | `ALL` |
+| `public.nav_warning_geometries` | `SELECT` | `ALL` (admin-gated) | `ALL` |
 | `public.nav_warnings_active_spatial` | `SELECT` | `SELECT` | `SELECT` |
-| `public.nav_warnings_review_queue` | ❌ No access | `SELECT` / `UPDATE` | `ALL` |
-| `public.raw_messages` | ❌ No access | `SELECT` | `ALL` |
-| `public.pipeline_logs` | ❌ No access | `SELECT` | `ALL` |
+| `public.raw_messages` | `SELECT` | `SELECT` | `ALL` |
+| `public.nav_warning_audits` | ❌ No access | `INSERT` / `SELECT` (append-only: UPDATE and DELETE denied) | `ALL` |
+| `public.pipeline_runs` | ❌ No access | `SELECT` / `INSERT` / `UPDATE` (admin-gated; DELETE denied) | — |
+
+**No table grants writes to `authenticated` at large** — only the role-gated admin policies above.
 
 ### Key Architectural Safeguards
 1. **No Geometry in `nav_warnings`**: Spatial coordinates live exclusively in `nav_warning_geometries` (PostGIS) or the pre-computed `geojson_blob` column of the `nav_warnings_active_spatial` view.
@@ -225,9 +227,9 @@ Helm.Warning strictly implements the **20261019/20 schema contract** documented 
 | 📐 [**DESIGN.md**](DESIGN.md) | Technical architecture, component boundaries, state flow, and design tokens |
 | 🗄️ [**docs/supabase-backend-contract.md**](docs/supabase-backend-contract.md) | Authoritative database schema contract, column specifications, and query cheat-sheet |
 | 🛡️ [**AGENTS.md**](AGENTS.md) | Operational rules, design tokens, non-negotiables, and security conventions |
-| 🧪 [**UI_UX_AUDIT_REPORT.md**](UI_UX_AUDIT_REPORT.md) | Complete visual audit report, screenshot manifest, and DOM capture baseline |
+| 🧪 [**docs/archive/UI_UX_AUDIT_REPORT.md**](docs/archive/UI_UX_AUDIT_REPORT.md) | Archived visual audit report (2026-10-17; superseded snapshot) |
 | 💾 [**docs/supabase_setup.sql**](docs/supabase_setup.sql) | DDL migrations, PostGIS indexes, and RLS policies for PostgreSQL |
-| 📝 [**CODE_REVIEW.md**](CODE_REVIEW.md) | Safety findings, parsing performance benchmarks, and code quality reviews |
+| 📝 [**docs/archive/CODE_REVIEW.md**](docs/archive/CODE_REVIEW.md) | Archived code review (2026-10-06; findings resolved by roadmap #6) |
 
 ---
 

@@ -1,8 +1,10 @@
 # Helm.Warning Implementation Guide
 
 ## CONTEXT
-This is a NAVAREA maritime warning pipeline site. We're refactoring from a
-cluttered single-page to a clean public site + admin console.
+NAVAREA maritime warning pipeline site: a read-only public portal (`/`),
+an admin login gateway (`/admin`), and the React admin console at `/console`
+organized into 4 sections (Warnings / Ingest / Trace / System) with legacy
+hash aliases kept resolving.
 
 ## CRITICAL: Supabase schema (read first)
 The backend (Helm.Warning.Backend) now writes the 20261019/20 schema. Read
@@ -36,6 +38,11 @@ layer. Non-negotiables:
   `console.html` (React admin console).
 - The gateway never mounts the React app; the console mounts only at
   `/console` (redirect target: `/console#/warnings/list`).
+- Console topology (PR #31): 4 sections — Warnings (`#/warnings/*`), Ingest,
+  Trace, System. Old hash routes (`#/map`, `#/databank`, `#/sources`,
+  `#/imports`, `#/audit`, …) are permanent aliases that must keep resolving.
+- AI is Gemini-only (@google/genai Flash-Lite). Mistral was intentionally
+  removed (roadmap #6); do not reintroduce fallback chains.
 - Deployment parity: `vercel.json` gives `/console` the same security
   headers as `/admin` (X-Frame-Options: DENY, noindex); `server.ts`
   serves `/console` for self-hosted parity.
