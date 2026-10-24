@@ -15,9 +15,11 @@ import { GenerationInspectorView } from './components/GenerationInspectorView';
 import { EvidenceLockerView } from './components/EvidenceLockerView';
 import { SupabaseStatusView } from './components/SupabaseStatusView';
 import { WarningDetailModal } from './components/WarningDetailModal';
+import { WarningEditModal } from './components/WarningEditModal';
+import { AdminDataBankTools } from './components/AdminDataBankTools';
 import { IngestionProcedureModal } from './components/IngestionProcedureModal';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from './types';
-import { ShieldCheck, RefreshCw } from 'lucide-react';
+import { ShieldCheck, RefreshCw, Edit3 } from 'lucide-react';
 import {
   INITIAL_WARNINGS,
   INITIAL_SOURCES_REGISTRY,
@@ -72,6 +74,7 @@ export default function App() {
   const initialRoute = typeof window !== 'undefined' ? parseHashRoute(window.location.hash) : { tab: 'map' as TabType };
   const [activeTab, setActiveTab] = useState<TabType>(initialRoute.tab);
   const [selectedWarning, setSelectedWarning] = useState<NavWarning | null>(null);
+  const [editingWarning, setEditingWarning] = useState<NavWarning | null>(null);
   const [isolatedWarning, setIsolatedWarning] = useState<NavWarning | null>(null);
 
   // Admin Access Gate State
@@ -296,7 +299,7 @@ export default function App() {
         setWarnings((prev) => [res.warning, ...prev]);
         return { warning: res.warning, ai_parsing_failed: res.ai_parsing_failed, ai_error: res.ai_error };
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Manual API error, using deterministic client parser:', err);
     }
 
@@ -410,11 +413,20 @@ export default function App() {
             }}
             isolatedWarning={isolatedWarning}
             onClearIsolation={() => setIsolatedWarning(null)}
+            isAdminMode={isAdminMode}
+            selectedWarning={selectedWarning}
+            onGeometrySaved={() => loadData()}
+            onEditWarning={(w) => setEditingWarning(w)}
           />
         </div>
 
         {/* Data Bank */}
         <div className={activeTab === 'databank' ? 'block' : 'hidden'}>
+          {isAdminMode && (
+            <div className="mb-3">
+              <AdminDataBankTools warnings={warnings} onRefresh={() => loadData()} />
+            </div>
+          )}
           <DataBankV2
             warnings={warnings}
             archivedWarnings={archivedWarnings}
@@ -538,11 +550,54 @@ export default function App() {
       )}
 
 
+      {/* Edit FAB (Admin Only): opens the fully-editable modal for the warning
+          currently open in the detail modal. Writes go through the server-side
+          admin-guarded /api/admin/warning-edit endpoint. */}
+      {isAdminMode && selectedWarning && !editingWarning && (
+        <div className="fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-[900]">
+          <button
+            onClick={() => setEditingWarning(selectedWarning)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gw-primary hover:bg-gw-accent text-gw-bg rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-2xl border-2 border-gw-accent active:scale-95"
+            title="Edit this warning (admin) — type, time/expiry, status, tier, geometry, NAVAREA move"
+          >
+            <Edit3 className="w-4 h-4" />
+            <span>Edit Warning</span>
+          </button>
+        </div>
+      )}
+
       {/* Warning Provenance Detail Modal */}
       {selectedWarning && (
         <WarningDetailModal
           warning={selectedWarning}
           onClose={() => setSelectedWarning(null)}
+        />
+      )}
+
+      {/* Fully-Editable Admin Warning Modal (Phase E1) */}
+      {editingWarning && (
+        <WarningEditModal
+          warning={editingWarning}
+          onClose={() => setEditingWarning(null)}
+          onSaved={(result, original) => {
+            if (result.moved && result.superseded) {
+              // NAVAREA move: supersede + recreate — reload everything.
+              setEditingWarning(null);
+              setSelectedWarning(null);
+              loadData();
+              return;
+            }
+            // Field-level edit: patch the local row so the UI updates in place.
+            const updated = result.warning || {};
+            setWarnings((prev) =>
+              prev.map((w) =>
+                w.warning_id === original.warning_id || w.source_warning_id === original.warning_id
+                  ? { ...w, ...updated }
+                  : w
+              )
+            );
+            setEditingWarning(null);
+          }}
         />
       )}
         {/* Ingestion Procedure Modal - placeholder */}
@@ -552,5 +607,4 @@ export default function App() {
     </div>
   );
 }
-
 
