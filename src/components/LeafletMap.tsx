@@ -32,7 +32,6 @@ import { formatDecimalCoordinates, type CoordinateParseError } from '../utils/co
 import { NAVAREA_ZONE_LIST, NAVAREA_ZONES_BY_ID } from '../utils/navareaZones';
 import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
 import { useMapLayers, WarningSeverityLevel } from '../hooks/useMapLayers';
-import { useUILegacy } from '../lib/uiFlags';
 import { WarningHierarchyLines } from './WarningItemV2';
 import { classifyWarning } from '../parsers/warningClassifier';
 import { renderHazardBadgeHtml } from '../utils/hazardIcons';
@@ -95,7 +94,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletInstance = useRef<L.Map | null>(null);
   const [mapReady, setMapReady] = useState<L.Map | null>(null);
-  const legacyUI = useUILegacy();
+  const legacyUI = false; // legacy UI path retired (was: useUILegacy())
   const { isFocused, setFocused, toggleFocus } = useMapFocus();
 
   // Layer references
