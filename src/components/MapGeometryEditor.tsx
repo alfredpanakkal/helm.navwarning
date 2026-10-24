@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { NavWarning } from '../types';
 import { saveWarningEdit, WarningGeometryPatch } from '../services/warningEditApi';
-import { PenTool, Save, X, RotateCcw, Loader2, MousePointerClick, Circle as CircleIcon, Square, Route } from 'lucide-react';
+import { PenTool, Save, X, RotateCcw, Loader2, MousePointerClick, Circle as CircleIcon, Square, Route, Undo2, Redo2, FileDiff } from 'lucide-react';
 
 /**
  * Phase E2 — Map-native geometry editing for admins.
@@ -117,16 +117,49 @@ function partsToPatches(parts: EditablePart[]): { patches: WarningGeometryPatch[
   return { patches, skipped };
 }
 
+/** Human-readable original-vs-proposed diff between two part snapshots. */
+function summarizeDiff(original: EditablePart[], current: EditablePart[]): string | null {
+  if (JSON.stringify(original) === JSON.stringify(current)) return null;
+  let movedShapes = 0;
+  let structChanges = 0;
+  const max = Math.max(original.length, current.length);
+  for (let i = 0; i < max; i++) {
+    const o = original[i];
+    const c = current[i];
+    if (!o || !c) {
+      structChanges++;
+      continue;
+    }
+    const moved =
+      o.kind !== c.kind ||
+      o.latlngs.length !== c.latlngs.length ||
+      o.latlngs.some((ll, j) => Math.abs(ll[0] - c.latlngs[j][0]) > 1e-9 || Math.abs(ll[1] - c.latlngs[j][1]) > 1e-9) ||
+      Math.abs((o.bufferNm || 0) - (c.bufferNm || 0)) > 1e-9;
+    if (moved) movedShapes++;
+  }
+  const bits: string[] = [];
+  if (movedShapes > 0) bits.push(`${movedShapes} shape(s) moved/edited`);
+  if (structChanges > 0) bits.push(`${structChanges} shape(s) added/removed`);
+  return bits.length > 0 ? bits.join(' · ') : 'geometry modified';
+}
+
 export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdminMode, selectedWarning, onGeometrySaved }) => {
   const [mode, setMode] = useState<'off' | 'edit' | 'draw'>('off');
   const [drawShape, setDrawShape] = useState<DrawShape>('polygon');
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageKind, setMessageKind] = useState<'info' | 'success' | 'error'>('info');
+  const [histLen, setHistLen] = useState({ undo: 0, redo: 0 });
 
   const partsRef = useRef<EditablePart[]>([]);
   const drawPtsRef = useRef<[number, number][]>([]);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
+  // Edit history (undo/redo) — snapshots of the draft taken before each mutation.
+  const undoStackRef = useRef<EditablePart[][]>([]);
+  const redoStackRef = useRef<EditablePart[][]>([]);
+  // The stored geometry snapshot: reset-to-original + original-vs-proposed diff.
+  const originalPartsRef = useRef<EditablePart[]>([]);
 
   const active = isAdminMode && !!selectedWarning && !!map && mode !== 'off';
   const canonical = selectedWarning?.source_warning_id || selectedWarning?.warning_id || '—';
@@ -138,6 +171,27 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
       layerGroupRef.current = null;
     }
   }, [map]);
+
+  /** Deep copy of a parts snapshot (for undo/redo + original diff). */
+  const cloneParts = useCallback((parts: EditablePart[]): EditablePart[] =>
+    parts.map((p) => ({ kind: p.kind, latlngs: p.latlngs.map((ll) => [ll[0], ll[1]] as [number, number]), bufferNm: p.bufferNm })), []);
+
+  const syncHistState = useCallback(() => {
+    setHistLen({ undo: undoStackRef.current.length, redo: redoStackRef.current.length });
+  }, []);
+
+  /** Push the current draft onto the undo stack before each mutation. */
+  const pushHistory = useCallback(() => {
+    undoStackRef.current.push(cloneParts(partsRef.current));
+    if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+    redoStackRef.current = [];
+    syncHistState();
+  }, [cloneParts, syncHistState]);
+
+  /** Recompute the dirty flag against the stored (original) geometry. */
+  const markDirtyIfChanged = useCallback(() => {
+    setDirty(JSON.stringify(partsRef.current) !== JSON.stringify(originalPartsRef.current));
+  }, []);
 
   /** Re-render the current draft (parts + in-progress draw points) imperatively. */
   const renderDraft = useCallback(() => {
@@ -176,6 +230,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
           pane: DRAW_PANE,
         }).addTo(group);
         handle.bindTooltip('Drag to set radius', { direction: 'top', offset: [0, -6] });
+        handle.on('dragstart', () => pushHistory());
         handle.on('drag', (e: any) => {
           const latlng = e.target.getLatLng();
           const meters = L.latLng(center[0], center[1]).distanceTo(L.latLng(latlng.lat, latlng.lng));
@@ -208,6 +263,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
         part.latlngs.forEach((ll, vi) => {
           const marker = L.marker(ll, { draggable: true, icon: vertexIcon('#dc2626'), pane: DRAW_PANE }).addTo(group);
           marker.bindTooltip(`V${vi + 1} — drag to move, double-click to delete`, { direction: 'top', offset: [0, -8] });
+          marker.on('dragstart', () => pushHistory());
           marker.on('drag', (e: any) => {
             const p = e.target.getLatLng();
             part.latlngs[vi] = [p.lat, p.lng];
@@ -227,6 +283,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
               setMessage(`A ${part.kind} needs at least ${min} vertices.`);
               return;
             }
+            pushHistory();
             part.latlngs.splice(vi, 1);
             setDirty(true);
             renderDraft();
@@ -236,6 +293,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
         const center = part.latlngs[0];
         const centerHandle = L.marker(center, { draggable: true, icon: vertexIcon('#dc2626'), pane: DRAW_PANE }).addTo(group);
         centerHandle.bindTooltip('Circle center — drag to move', { direction: 'top', offset: [0, -8] });
+        centerHandle.on('dragstart', () => pushHistory());
         centerHandle.on('drag', (e: any) => {
           const p = e.target.getLatLng();
           part.latlngs[0] = [p.lat, p.lng];
@@ -261,7 +319,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
           .addTo(group);
       });
     }
-  }, [map, mode, drawShape, clearDraftLayers]);
+  }, [map, mode, drawShape, clearDraftLayers, pushHistory]);
 
   const vertexIcon = (color: string) =>
     L.divIcon({
@@ -283,17 +341,48 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
   const enterMode = (next: 'off' | 'edit' | 'draw') => {
     if (!selectedWarning) return;
     partsRef.current = buildPartsFromWarning(selectedWarning);
+    originalPartsRef.current = cloneParts(partsRef.current);
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    setHistLen({ undo: 0, redo: 0 });
+    setMessageKind('info');
     drawPtsRef.current = [];
     setDirty(false);
     setMessage(null);
     setMode(next);
   };
 
+  const undo = useCallback(() => {
+    if (undoStackRef.current.length === 0) return;
+    redoStackRef.current.push(cloneParts(partsRef.current));
+    partsRef.current = undoStackRef.current.pop() || [];
+    syncHistState();
+    markDirtyIfChanged();
+    setMessage('Undo.');
+    setMessageKind('info');
+    renderDraft();
+  }, [cloneParts, syncHistState, markDirtyIfChanged, renderDraft]);
+
+  const redo = useCallback(() => {
+    if (redoStackRef.current.length === 0) return;
+    undoStackRef.current.push(cloneParts(partsRef.current));
+    partsRef.current = redoStackRef.current.pop() || [];
+    syncHistState();
+    markDirtyIfChanged();
+    setMessage('Redo.');
+    setMessageKind('info');
+    renderDraft();
+  }, [cloneParts, syncHistState, markDirtyIfChanged, renderDraft]);
+
   const exitMode = () => {
     setMode('off');
     setDirty(false);
     setMessage(null);
+    setMessageKind('info');
     drawPtsRef.current = [];
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    setHistLen({ undo: 0, redo: 0 });
     clearDraftLayers();
   };
 
@@ -334,6 +423,24 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, mode, drawShape]);
 
+  // Ctrl/Cmd+Z and Ctrl/Cmd+Y while an edit/draw mode is active.
+  useEffect(() => {
+    if (mode === 'off') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z') {
+        e.preventDefault();
+        undo();
+      } else if (k === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mode, undo, redo]);
+
   const finishDraw = () => {
     const pts = drawPtsRef.current;
     if (pts.length === 0) { setMessage('Draw: no points placed yet.'); return; }
@@ -354,6 +461,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
       setMessage(drawShape === 'polygon' ? 'A polygon needs at least 3 points.' : 'A route needs at least 2 points.');
       return;
     }
+    pushHistory();
     partsRef.current = [part]; // Draw-new replaces the existing geometry on save.
     drawPtsRef.current = [];
     setDirty(true);
@@ -371,6 +479,21 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
     setSaving(true);
     setMessage(null);
     const w = selectedWarning as any;
+    // Hemisphere-ambiguity guard: a manual edit is allowed only as an explicit
+    // human decision — never an automated guess. The AMBIGUOUS flag itself is
+    // cleared through the edit modal (quality change + audit note), never
+    // implicitly by a map geometry edit.
+    if (w.data_quality === 'AMBIGUOUS' || (Array.isArray(w.ambiguous_positions) && w.ambiguous_positions.length > 0)) {
+      const proceed = window.confirm(
+        'This warning is flagged AMBIGUOUS (hemisphere-ambiguous coordinates).\n\n' +
+        'Saving a manual geometry edit is allowed only as an explicit human decision — never an automated guess. ' +
+        'The AMBIGUOUS flag stays until it is cleared through the edit modal with a quality change and an audit note.\n\nProceed with this manual edit?'
+      );
+      if (!proceed) {
+        setSaving(false);
+        return;
+      }
+    }
     const res = await saveWarningEdit({
       warningId: w.db_uuid || undefined,
       canonicalId: selectedWarning.warning_id,
@@ -382,16 +505,23 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
     });
     setSaving(false);
     if (res.ok) {
-      setMessage(`Saved (${res.geometry || 'replaced'}${skipped ? `, ${skipped} empty shape(s) skipped` : ''}).`);
+      setMessageKind('success');
+      setMessage(`Saved (${res.geometry || 'replaced'}${skipped ? `, ${skipped} empty shape(s) skipped` : ''}). Geometry updated and audit row written.`);
       setDirty(false);
       exitMode();
       onGeometrySaved?.();
+    } else if ((res as any).status === 409) {
+      setMessageKind('error');
+      setMessage('Save conflict: this warning was changed by another operator. Reload the latest version, then re-apply your edit.');
     } else {
-      setMessage(res.error || 'Save failed.');
+      setMessageKind('error');
+      setMessage(res.error || 'Save failed — the geometry and audit trail are unchanged.');
     }
   };
 
   if (!isAdminMode || !selectedWarning || !map) return null;
+
+  const diffSummary = summarizeDiff(originalPartsRef.current, partsRef.current);
 
   const modeBtn = (m: 'edit' | 'draw', icon: React.ReactNode, label: string) => (
     <button
@@ -421,11 +551,29 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
               <>
                 <button
                   type="button"
-                  onClick={() => { partsRef.current = buildPartsFromWarning(selectedWarning); drawPtsRef.current = []; setDirty(false); setMessage('Draft reset to the stored geometry.'); renderDraft(); }}
+                  onClick={() => { pushHistory(); partsRef.current = buildPartsFromWarning(selectedWarning); drawPtsRef.current = []; markDirtyIfChanged(); setMessage('Draft reset to the stored geometry.'); setMessageKind('info'); renderDraft(); }}
                   className="flex items-center gap-1 px-2 py-1.5 bg-white border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:text-gw-primary transition-colors"
                   title="Reset draft to stored geometry"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={undo}
+                  disabled={histLen.undo === 0}
+                  className="p-1.5 bg-white border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Undo (Ctrl+Z)"
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={redo}
+                  disabled={histLen.redo === 0}
+                  className="p-1.5 bg-white border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Redo (Ctrl+Y)"
+                >
+                  <Redo2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   type="button"
@@ -483,8 +631,21 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
           </div>
         )}
 
+        {mode !== 'off' && dirty && diffSummary && (
+          <div className="text-[10px] font-mono px-2 py-1 rounded border bg-sky-50 text-sky-900 border-sky-300 flex items-center gap-1.5">
+            <FileDiff className="w-3 h-3 shrink-0" />
+            <span>Proposed change vs stored geometry: {diffSummary}</span>
+          </div>
+        )}
+
         {message && (
-          <div className={`text-[10px] font-mono px-2 py-1 rounded border ${message.startsWith('Saved') ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-amber-50 text-amber-900 border-amber-300'}`}>
+          <div className={`text-[10px] font-mono px-2 py-1 rounded border ${
+            messageKind === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+              : messageKind === 'error'
+              ? 'bg-red-50 text-red-800 border-red-300'
+              : 'bg-amber-50 text-amber-900 border-amber-300'
+          }`}>
             {message}
           </div>
         )}
