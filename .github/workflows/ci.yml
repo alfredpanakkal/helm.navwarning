@@ -24,7 +24,12 @@ jobs:
           cache: npm
 
       - name: Install Node Dependencies
-        run: npm install --no-audit --no-fund
+        run: |
+          set -o pipefail
+          echo "=== marker: workspace before install ===" | tee ci-install.log
+          ls -la | tee -a ci-install.log
+          node --version; npm --version | tee -a ci-install.log
+          npm install --no-audit --no-fund 2>&1 | tee -a ci-install.log
 
       - name: Typecheck TypeScript
         run: |
@@ -43,7 +48,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           printf 'CI verify-applet failed on commit %s.\n' "${GITHUB_SHA:0:7}" > /tmp/ci-fail-comment.md
-          for f in tsc.log vitest.log; do
+          for f in ci-install.log tsc.log vitest.log; do
             if [ -s "$f" ]; then printf '\n### tail of %s\n\`\`\`\n' "$f" >> /tmp/ci-fail-comment.md; tail -c 4000 "$f" >> /tmp/ci-fail-comment.md; printf '\n\`\`\`\n' >> /tmp/ci-fail-comment.md; fi
           done
           gh pr comment "$PR_NUMBER" --body-file /tmp/ci-fail-comment.md || true
