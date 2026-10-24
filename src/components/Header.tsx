@@ -95,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
     setActiveTab(SECTION_OF[activeTab] === section ? activeTab : DEFAULT_SECTION_TAB[section]);
   };
 
-  const [isLoggingIn, setIsLoggingIn] = useState(false);  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const handleUnlockAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
