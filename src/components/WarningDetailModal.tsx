@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavWarning } from '../types';
+import { fetchWarningAudit, WarningAuditRow } from '../services/warningAuditApi';
 import { EcdisFeatureEditor } from './EcdisFeatureEditor';
 import { extractEcdisIntermediateLayer } from '../utils/coordinateParser';
 import { copyToClipboard } from '../utils/coordinateConversion';
@@ -35,6 +36,7 @@ import {
   Compass,
   Check,
   Filter,
+  History,
 } from 'lucide-react';
 
 interface WarningDetailModalProps {
@@ -62,9 +64,15 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
   isIsolated,
   onClearIsolation,
 }) => {
-  const [activeTab, setActiveTab] = useState<'message' | 'geometry' | 'ecdis'>('message');
+  const [activeTab, setActiveTab] = useState<'message' | 'geometry' | 'ecdis' | 'audit'>('message');
   const [copiedType, setCopiedType] = useState<string | null>(null);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+
+  // Audit trail (read-only) state — lazily fetched only when the Audit tab opens.
+  const [auditRows, setAuditRows] = useState<WarningAuditRow[] | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState<string | null>(null);
+  const [auditLoadedFor, setAuditLoadedFor] = useState<string | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -75,6 +83,36 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
+
+  // Audit trail: fetch read-only nav_warning_audits rows the first time the
+  // Audit tab is opened for this warning. Reads go through the admin-guarded
+  // /api/admin/warning-audit endpoint — this panel never writes.
+  useEffect(() => {
+    if (activeTab !== 'audit' || !warning) return;
+    const key = String((warning as any).db_uuid || warning.warning_id);
+    if (auditLoadedFor === key) return;
+    let cancelled = false;
+    setAuditLoading(true);
+    setAuditError(null);
+    fetchWarningAudit({
+      warningId: (warning as any).db_uuid || undefined,
+      canonicalId: warning.warning_id,
+      limit: 100,
+    }).then((res) => {
+      if (cancelled) return;
+      setAuditLoading(false);
+      if (res.ok) {
+        setAuditRows(res.audits);
+        setAuditLoadedFor(key);
+      } else {
+        setAuditRows([]);
+        setAuditError(res.error || 'Audit lookup failed.');
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, warning, auditLoadedFor]);
 
   if (!warning) return null;
 
@@ -235,6 +273,19 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             >
               <Edit3 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">ECDIS Layer</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
+                activeTab === 'audit'
+                  ? 'bg-gw-primary text-gw-bg'
+                  : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
+              }`}
+              title="Read-only audit trail for this warning (nav_warning_audits)"
+            >
+              <History className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Audit Trail</span>
             </button>
           </div>
         </div>
@@ -524,6 +575,66 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 navarea={warning.navarea}
                 rawText={warning.raw_text}
               />
+            </div>
+          )}
+
+          {/* TAB 4: READ-ONLY AUDIT TRAIL */}
+          {activeTab === 'audit' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-xs font-bold text-gw-primary uppercase tracking-wider">
+                  <History className="w-4 h-4 text-gw-primary" />
+                  <span>Audit History (Read-Only)</span>
+                </span>
+                <span className="text-[11px] font-mono text-gw-accent font-bold">
+                  {auditRows ? `${auditRows.length} entr${auditRows.length === 1 ? 'y' : 'ies'}` : ''}
+                </span>
+              </div>
+
+              {auditLoading && (
+                <div className="p-4 text-center text-xs font-mono text-gw-accent" role="status">
+                  Loading audit rows…
+                </div>
+              )}
+              {auditError && (
+                <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl text-[11px] font-mono text-rose-800" role="alert">
+                  {auditError}
+                </div>
+              )}
+              {auditRows && auditRows.length === 0 && !auditError && (
+                <div className="p-6 text-center rounded-xl border border-gw-secondary bg-gw-bg text-gw-accent font-mono text-xs">
+                  No audit rows recorded for this warning.
+                </div>
+              )}
+              {auditRows && auditRows.length > 0 && (
+                <ul className="space-y-1.5">
+                  {auditRows.map((row, i) => (
+                    <li
+                      key={row.audit_id || i}
+                      className="border border-gw-secondary rounded-lg px-3 py-2 bg-gw-bg/40 font-mono text-[11px]"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-gw-primary uppercase">{String(row.action || '—')}</span>
+                        {row.previous_tier && row.new_tier && (
+                          <span className="text-gw-accent">
+                            tier {String(row.previous_tier).toUpperCase()} → {String(row.new_tier).toUpperCase()}
+                          </span>
+                        )}
+                        <span className="text-gw-accent ml-auto">
+                          {row.created_at ? String(row.created_at).replace('T', ' ').slice(0, 19) + 'Z' : ''}
+                        </span>
+                      </div>
+                      <div className="text-gw-accent pt-0.5">
+                        by {String(row.operator_id || 'unknown')}
+                        {row.reason ? ' — ' + row.reason : ''}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-[10px] text-gw-accent font-mono pt-1">
+                Audit rows are append-only (no update/delete); this panel is read-only.
+              </p>
             </div>
           )}
         </div>
