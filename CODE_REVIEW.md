@@ -295,3 +295,42 @@ Used **inside their own file only** — no external consumer. Harmless, but they
 5. **D1/D2/D7:** delete `GenerationsView.tsx`, the 6 dead functions, and the 1.1 MB `public/export/navwarn-ui.html` + `generate_single_file.sh` + `firebase-applet-config.json` + stale `metadata.json`; drop the 5 unused dependencies.
 6. **N6/N7:** make `build` cross-platform; extend CI to run the esbuild server bundle (and, eventually, ESLint + a test runner).
 7. **Prior 5/7/8/9/10:** CORS/rate-limit on login, `JSON.parse` guard, one env-var convention (incl. dropping `SUPABASE_JWKS_URL`), User-Agent cleanup, then split `server.ts` (Gemini/Mistral client first, persistence second).
+
+---
+
+## Part H — Delta review @ `257730d` (2026-10-24)
+
+Scope of this delta: the commits since `de8065f` — `ccf1fc7` (PR #24,
+`fix/admin-console-entry`) and `257730d` (`docs: update project documentation
+and structure`). This is a commit-level delta analysis, not a full re-review;
+all Part A–C findings retain their `de8065f` status until re-verified against source.
+
+### What changed
+- **PR #24 (`ccf1fc7`)** adds `console.html` (React console entry), a `console`
+  Vite build input, a `/console` route in `server.ts`, `/console` security headers
+  in `vercel.json`, and re-points the `admin.html` gateway redirect from
+  `/#/databank` to `/console#/databank`. This fixes the E5 defect where every admin
+  login landed on the public site because no served page mounted the React app.
+  Side effect: `server.ts` gains one more route (Prior finding 10 — monolith — persists).
+- **`257730d`** is documentation + single-file exports: new
+  `helm-warning-complete.html` at repo root (~6.4k lines), new
+  `public/export/index.single.html` (~5.3k lines) and `public/export/admin.single.html`,
+  an updated `scripts/build-complete-singlefile.cjs`, plus README/branding refresh and
+  the finalized Admin Design Critique Framework.
+
+### New observations
+
+| # | Sev | Location | Issue |
+|---|---|---|---|
+| H1 | Medium | `helm-warning-complete.html` (root), `public/export/*.single.html` | Large generated single-file builds are committed to git. Vercel serves `public/`, so `public/export/*.single.html` ship with every deploy — the same pattern as D7 (the 1.1 MB `navwarn-ui.html`). If these exports are deliverables, generate them in CI, not in-tree. |
+| H2 | Medium | `admin.html` | Gateway loads `@supabase/supabase-js` from `unpkg.com` at runtime — unpinned version (`@2` floating), a CDN supply-chain and availability dependency on the admin login path. |
+| H3 | Low | `admin.html` inline `<style>` | Hardcoded colors (`#eff6ff`, `#1d4ed8`, `rgba(0,0,0,.4)`) violate the design-tokens-only rule (AGENTS.md Rule 6). |
+| H4 | Info | `vite.config.ts` | `console` correctly added to rollup inputs. `admin.html` remains a build input even though it no longer mounts React — acceptable, but `tokens.css`/`components.css` must keep shipping for the gateway. |
+
+### Positive
+- The gateway no longer writes spoofable client-side trust flags
+  (`helm_admin_mode` / `hw_admin_email` removed); authorization is server-side only
+  (`server/auth.ts`), consistent with the auth design praised in Part E.
+- `/console` inherits `X-Frame-Options: DENY` + noindex on Vercel, and the Express
+  twin serves `/console` for self-hosted parity — the dual-backend (N5) stayed in
+  sync for this change.

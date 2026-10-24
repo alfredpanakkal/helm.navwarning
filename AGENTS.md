@@ -27,7 +27,21 @@ layer. Non-negotiables:
 ## REFERENCE FILES
 - `docs/supabase-backend-contract.md` - backend data contract (authoritative)
 - `index.html` - APPROVED public site design (Map/Data Bank/Sources)
-- `admin.html` - APPROVED admin console design (5 sub-tabs + login)
+- `admin.html` - admin GATEWAY (login card only; redirects to /console#/databank)
+- `console.html` - React admin console entry page (mounts src/main.tsx; noindex, frame-DENY)
+
+## ENTRY-POINT ARCHITECTURE (PR #24, 2026-10-24)
+- Three served entry points, all Vite build inputs (`vite.config.ts`):
+  `index.html` (public portal), `admin.html` (admin GATEWAY),
+  `console.html` (React admin console).
+- The gateway never mounts the React app; the console mounts only at
+  `/console` (redirect target: `/console#/databank`).
+- Deployment parity: `vercel.json` gives `/console` the same security
+  headers as `/admin` (X-Frame-Options: DENY, noindex); `server.ts`
+  serves `/console` for self-hosted parity.
+- Admin authorization is server-side only (`server/auth.ts` requireAdmin /
+  verifyAdminRequest). The gateway writes NO client-side trust flags.
+
 
 ## RULES
 1. Never break the ingestion pipeline or atomic publishing

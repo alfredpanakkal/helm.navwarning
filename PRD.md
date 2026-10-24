@@ -154,6 +154,16 @@ To provide a centralized, secure, and intelligent platform for maritime safety i
 - **Form Handling**: React Hook Form implied (validation patterns)
 - **HTTP Client**: Fetch API with wrapper functions in services layer
 
+#### 5.1.1 Entry-Point Architecture (v2.5, PR #24)
+- `index.html` — public portal (Map / Data Bank / Sources)
+- `admin.html` — admin gateway: login card only; on successful sign-in (or an
+  existing admin session) it redirects to `/console#/databank`. It never mounts
+  the React app and writes no client-side trust flags.
+- `console.html` — React admin console entry page; mounts `src/main.tsx`
+  (noindex, frame-DENY). Served at `/console` on both Vercel (security headers
+  in vercel.json) and the self-hosted Express server (server.ts route).
+- All three pages are Vite build inputs (`vite.config.ts` rollupOptions.input).
+
 #### 5.2 Backend Stack
 - **Primary Server**: Express.js (Node.js) for development and self-hosted deployment
 - **Serverless Option**: Vercel Serverless Functions for specific endpoints
