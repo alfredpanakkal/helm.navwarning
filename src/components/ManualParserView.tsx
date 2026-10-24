@@ -445,7 +445,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                 onChange={(e) => setParseMode(e.target.value as any)}
                 className="bg-gw-bg border-2 border-gw-primary text-gw-primary text-xs px-3 py-1.5 rounded font-mono font-bold focus:outline-none focus:border-gw-accent transition-colors"
               >
-                <option value="hybrid">✨ Auto (Rules First → Mistral → Gemini)</option>
+                <option value="hybrid">✨ Auto (Rules First → Gemini)</option>
                 <option value="jhod_structured">🇯🇵 JHOD Gemini 3.1 Flash-Lite (Strict Schema)</option>
                 <option value="regex">⚡ Deterministic Rules Only (No AI)</option>
                 <option value="llm">🤖 Direct AI Test (Override Rules)</option>
@@ -465,11 +465,10 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                 {parseMode === 'jhod_structured' ? (
                   <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Zero Hallucination)</option>
                 ) : parseMode === 'hybrid' ? (
-                  <option value="auto">Auto: Mistral-Small → Gemini Flash-Lite</option>
+                  <option value="auto">Auto: Gemini Flash-Lite</option>
                 ) : (
                   <>
                     <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Recommended)</option>
-                    <option value="mistral-small-latest">Mistral Small</option>
                   </>
                 )}
               </select>

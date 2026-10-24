@@ -95,7 +95,7 @@ To provide a centralized, secure, and intelligent platform for maritime safety i
 - Direct text entry for warning messages
 - NAVAREA selection for context
 - Parsing mode selection (hybrid/LLM/regex)
-- AI model selection (Mistral/Gemini variants)
+- AI model selection (Gemini variants)
 - Real-time parsing with spatial coordinate extraction
 - Deterministic fallback when AI services unavailable
 - Warning preview before commitment to database
@@ -172,8 +172,7 @@ To provide a centralized, secure, and intelligent platform for maritime safety i
 - **Storage**: Supabase Storage for evidence locker artifacts
 - **Edge Functions**: Deno-based functions for scheduled scraping (referenced but external)
 - **AI Integration**: 
-  - Google Gemini API (primary for most AI tasks)
-  - Mistral AI (fallback and primary for parse-manual)
+  - Google Gemini API (sole AI provider for all AI tasks)
 - **Security**: Custom SSRF protection, CSP headers, rate limiting, input validation
 - **Proxying**: Server-side proxies for CARTO tiles and FreeOpenAPI to protect API keys
 
@@ -273,7 +272,7 @@ Based on `src/types.ts` and initialization data:
 #### 6.2 AI Processing Flows
 - **Single Warning Parse** (`/api/parse-navwarn`):
   - Input: Raw warning text
-  - Process: Gemini/Mistral → Structured WWNWS JSON
+  - Process: Gemini → Structured WWNWS JSON
   - Output: Parsed warning with spatial data and metadata
   - Auth: Required (admin only)
 
@@ -297,7 +296,7 @@ Based on `src/types.ts` and initialization data:
 
 - **Manual Parse** (`/api/pipeline/parse-manual`):
   - Input: Single warning text + NAVAREA + mode preference
-  - Process: Deterministic → Mistral → Gemini fallback
+  - Process: Deterministic → Gemini fallback
   - Output: Parsed warning with AI failure flags
   - Auth: Required (admin only)
 
@@ -363,7 +362,7 @@ Based on `src/types.ts` and initialization data:
 #### 8.1 Technical Constraints
 - Browser support: Modern browsers (Chrome, Firefox, Safari, Edge) - last 2 versions
 - Mobile support: Responsive design, not native app
-- AI dependency: Requires valid Gemini and/or Mistral API keys
+- AI dependency: Requires a valid Gemini API key
 - Supabase dependency: Requires valid Supabase project credentials
 - Network dependency: Requires internet connectivity for live data
 - Storage limits: Subject to Supabase storage plan limits
