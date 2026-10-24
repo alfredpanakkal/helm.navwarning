@@ -145,8 +145,6 @@ function normalizeGeminiModel(requestedModel?: string): string {
   return clean;
 }
 
-}
-
 async function generateContentWithRetry(ai: any, prompt: string, model: string, schema?: any, systemInstruction?: string) {
   // Enforce max 10,000 characters prompt bound
   const boundedPrompt = prompt.slice(0, 10000);
