@@ -1,7 +1,7 @@
 // src/parsers/common/ids.ts
 // Shared Identifier Parsers & Normalizers
 
-import { Sourced } from './provenance';
+import { Sourced } from './provenance.js';
 
 export function normalizeYear(input?: number | string | null): number | null {
   if (input === null || input === undefined || input === '') return null;

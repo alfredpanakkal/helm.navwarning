@@ -1,16 +1,16 @@
 // src/services/snapshotService.ts
 // In-Force Snapshots persistence, validation, date extraction, and PostgREST query layer
 
-import { supabase } from '../lib/supabaseClient';
-import { getSupabaseClient } from '../lib/supabaseServer';
-import { FEATURE_FLAGS } from '../lib/featureFlags';
-import type { ParsedInForceList } from '../parsers/inForceListParser';
+import { supabase } from '../lib/supabaseClient.js';
+import { getSupabaseClient } from '../lib/supabaseServer.js';
+import { FEATURE_FLAGS } from '../lib/featureFlags.js';
+import type { ParsedInForceList } from '../parsers/inForceListParser.js';
 import type {
   InForceSnapshot,
   InForceSnapshotRow,
   CreateSnapshotInput,
   SnapshotQueryOptions,
-} from '../types/snapshot';
+} from '../types/snapshot.js';
 
 // ESM-safe test hook: Allows tests to inject a mock Supabase client without module mocking
 let isOverrideSet = false;

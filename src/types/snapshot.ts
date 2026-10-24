@@ -1,7 +1,7 @@
 // src/types/snapshot.ts
 // Maritime NAVAREA in-force snapshots domain model and database row types
 
-import type { InForceEntry } from '../parsers/inForceListParser';
+import type { InForceEntry } from '../parsers/inForceListParser.js';
 
 /**
  * Raw database row representation matching public.in_force_snapshots in PostgreSQL / Supabase

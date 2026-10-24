@@ -9,10 +9,10 @@
  *     categories TEXT[], triage_tier, data_quality, status, valid_from/to
  *   - geometry in nav_warning_geometries / nav_warnings_active_spatial view
  *
- * New code should import from './supabaseServer' (server) or
+ * New code should import from './supabaseServer.js' (server) or
  * './supabaseClient' (browser) instead. This module will be removed once
  * all remaining consumers are migrated.
  */
-import { getSupabaseClient } from './supabaseServer';
+import { getSupabaseClient } from './supabaseServer.js';
 
 export const supabase = getSupabaseClient();

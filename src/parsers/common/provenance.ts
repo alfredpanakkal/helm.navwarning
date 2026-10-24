@@ -1,7 +1,7 @@
 // src/parsers/common/provenance.ts
 // Provenance & Field Quality Metadata Models
 
-import { ParserFlag } from './flags';
+import { ParserFlag } from './flags.js';
 
 export type FieldState = 'explicit' | 'repaired' | 'inferred' | 'ambiguous' | 'invalid' | 'human_verified';
 

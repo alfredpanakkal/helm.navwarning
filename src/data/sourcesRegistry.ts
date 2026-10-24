@@ -1,4 +1,4 @@
-import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from '../types';
+import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from '../types.js';
 
 export const INITIAL_SOURCES_REGISTRY: SourceRegistryItem[] = [
   {

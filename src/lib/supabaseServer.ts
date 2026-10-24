@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from '../types';
+import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from '../types.js';
 
 let supabaseClient: SupabaseClient | null = null;
 let lastUsedUrl = '';
@@ -467,4 +467,4 @@ export async function syncSourcesToSupabase(sources: SourceRegistryItem[]): Prom
   }
 }
 
-export { syncInForceSnapshot } from '../services/snapshotService';
+export { syncInForceSnapshot } from '../services/snapshotService.js';

@@ -1,14 +1,14 @@
 // src/services/aiStudioService.ts
 // AI Studio / Vertex AI fallback service for NAVAREA in-force list extraction
 
-import type { RawMessageBlock } from '../types/navarea';
+import type { RawMessageBlock } from '../types/navarea.js';
 import {
   parseInForceList,
   type ParsedInForceList,
   type InForceEntry,
   normalizeSeriesYear,
   formatWarningId,
-} from '../parsers/inForceListParser';
+} from '../parsers/inForceListParser.js';
 
 export interface AIStudioConfig {
   projectId: string;
