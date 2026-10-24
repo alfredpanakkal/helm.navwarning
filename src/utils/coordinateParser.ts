@@ -769,7 +769,9 @@ export function parseCoordinatesDeterministic(
           spatial_group_id: groupId,
           evidence: [{ rule: 'STRONG_POLYGON_INDICATOR', matched_text: 'BOUNDED BY' }],
         });
-      } else if (hasLineIndicator || rawCoordsOnly.length === 2) {
+      // P0 safety: a corridor/LineString requires >= 2 vertices. A line keyword
+      // (e.g. "SUBMARINE CABLE") with a single coordinate is a Point hazard, not a corridor.
+      } else if ((hasLineIndicator && rawCoordsOnly.length >= 2) || rawCoordsOnly.length === 2) {
         const effectiveCorridorNm = corridorWidth !== undefined ? corridorWidth : 1.0; // Rule 74: 1.0 NM default
         const corridorHalfWidthM = effectiveCorridorNm * 1852.0; // Rule 58 & 75
         const geomType = 'LINE_WITH_WIDTH';
