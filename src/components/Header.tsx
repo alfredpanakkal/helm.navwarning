@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TabType } from '../App';
 import { Map, Database, Upload, Radio, MoreHorizontal, Terminal, Activity, FileText, HardDrive, RefreshCw, X, Lock, Unlock, Key, Mail, ShieldCheck, Loader2 } from 'lucide-react';
 import { adminLogin, adminLogout } from '../services/api';
@@ -9,6 +9,8 @@ interface HeaderProps {
   activeCount: number;
   isAdminMode: boolean;
   setIsAdminMode: (admin: boolean) => void;
+  /** Incremented by the App access gate to request the admin sign-in modal. */
+  loginPrompt?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeCount,
   isAdminMode,
   setIsAdminMode,
+  loginPrompt = 0,
 }) => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
@@ -42,6 +45,17 @@ export const Header: React.FC<HeaderProps> = ({
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showAdminModal, showMobileMenu]);
+
+  // External login prompt: the App-level access gate bumps loginPrompt when an
+  // unauthenticated visitor tries to use the console; open the real Supabase
+  // admin sign-in modal in response.
+  const lastPrompt = useRef<number>(0);
+  useEffect(() => {
+    if (loginPrompt > 0 && loginPrompt !== lastPrompt.current) {
+      lastPrompt.current = loginPrompt;
+      if (!isAdminMode) setShowAdminModal(true);
+    }
+  }, [loginPrompt, isAdminMode]);
 
   // Synchronize initial session state on component mount
   useEffect(() => {
@@ -360,7 +374,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             <p className="text-xs text-gw-accent leading-relaxed">
-              Administrative tools (Pipeline, Manual Parser, Bulk Import, Audit Logs, Evidence Locker, Supabase Server) are restricted. Sign in with your Supabase Administrator account (<code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-zinc-800">app_metadata.role: "admin"</code>).
+              The console (Map, Data Bank, Sources, Pipeline, Manual Parser, Bulk Import, Audit Logs, Evidence Locker, Supabase Server) is restricted. Sign in with your Supabase Administrator account (<code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-zinc-800">app_metadata.role: "admin"</code>).
             </p>
 
             <form onSubmit={handleUnlockAdmin} className="space-y-3">
@@ -435,5 +449,3 @@ export const Header: React.FC<HeaderProps> = ({
     </>
   );
 };
-
-
