@@ -702,6 +702,9 @@ function initMap(){
   // Maximum Map View: Auto-collapse top controls on map interaction
   setupMapInteractionAutoCollapse(leafletMap);
 
+  // Coordinate picker: live cursor readout + click-to-pin in degrees/decimal minutes
+  setupCoordinatePicker(leafletMap);
+
   // Setup idle state detector for map controls
   setupControlsIdleDetector();
 
@@ -2518,3 +2521,113 @@ document.addEventListener('keydown', (e) => {
 });
 
 
+
+
+// ═════════════ COORDINATE PICKER (degrees + decimal minutes) ═════════════
+// Toggle via the crosshair button in the map toolbar. When active:
+//  - the cursor position is shown live in the readout panel
+//    (bottom-left on desktop, below the controls chip on mobile)
+//  - clicking/tapping the map drops a pin with the exact position in
+//    degrees and decimal minutes, e.g. 56°11.400'N 003°12.600'E
+// The readout sits in an unobstructed corner (attribution is bottom-right,
+// the warning list docks top-right on desktop / bottom on mobile).
+
+const COORD_MINUTE_DECIMALS = 3;
+
+function formatDMD(lat, lng) {
+  const fmt = (value, pos, neg, pad) => {
+    const abs = Math.abs(value);
+    const deg = Math.floor(abs);
+    const min = (abs - deg) * 60;
+    const dir = value >= 0 ? pos : neg;
+    return String(deg).padStart(pad, '0') + '°' + min.toFixed(COORD_MINUTE_DECIMALS) + "'" + dir;
+  };
+  // Latitude is padded to 2 digits, longitude to 3 (standard nautical notation)
+  return fmt(lat, 'N', 'S', 2) + ' ' + fmt(lng, 'E', 'W', 3);
+}
+
+let coordModeActive = false;
+let coordPin = null;
+
+function setCoordReadout(text, label) {
+  const txtEl = document.getElementById('coordText');
+  const lblEl = document.getElementById('coordLabel');
+  if (txtEl) txtEl.textContent = text;
+  if (lblEl && label) lblEl.textContent = label;
+}
+
+function copyCoordReadout() {
+  const txtEl = document.getElementById('coordText');
+  const value = txtEl ? txtEl.textContent.trim() : '';
+  if (!value || value === '—') return;
+  const done = () => { if (typeof showToast === 'function') showToast('Coordinates copied: ' + value); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(value).then(done).catch(() => {});
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = value;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (err) { /* clipboard unavailable */ }
+    document.body.removeChild(ta);
+  }
+}
+
+function toggleCoordMode(force) {
+  coordModeActive = (typeof force === 'boolean') ? force : !coordModeActive;
+  document.body.classList.toggle('coord-mode-active', coordModeActive);
+  const btn = document.getElementById('btnMapCoord');
+  const panel = document.getElementById('coordPanel');
+  if (btn) {
+    btn.classList.toggle('is-active', coordModeActive);
+    btn.setAttribute('aria-pressed', String(coordModeActive));
+  }
+  if (panel) panel.classList.toggle('open', coordModeActive);
+  if (!coordModeActive && coordPin) {
+    coordPin.remove();
+    coordPin = null;
+  }
+  setCoordReadout(coordModeActive ? '—' : '', coordModeActive ? 'Cursor' : '');
+}
+
+function setupCoordinatePicker(map) {
+  if (!map) return;
+
+  // Live cursor readout (superseded while a pin is placed)
+  map.on('mousemove', (e) => {
+    if (!coordModeActive || coordPin) return;
+    const w = e.latlng.wrap();
+    setCoordReadout(formatDMD(w.lat, w.lng), 'Cursor');
+  });
+
+  map.on('mouseout', () => {
+    if (coordModeActive && !coordPin) setCoordReadout('—', 'Cursor');
+  });
+
+  // Click/tap to pin the exact position
+  map.on('click', (e) => {
+    if (!coordModeActive) return;
+    const w = e.latlng.wrap();
+    const dmd = formatDMD(w.lat, w.lng);
+    if (coordPin) {
+      coordPin.setLatLng(e.latlng);
+      coordPin.setTooltipContent(dmd);
+    } else {
+      // #dc2626 mirrors the --critical token for Leaflet SVG (CSS vars unsupported here)
+      coordPin = L.circleMarker(e.latlng, {
+        radius: 6,
+        color: '#dc2626',
+        weight: 2,
+        fillColor: '#ffffff',
+        fillOpacity: 1
+      }).addTo(map).bindTooltip(dmd, {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -8],
+        className: 'coord-pin-tooltip'
+      });
+    }
+    coordPin.openTooltip();
+    setCoordReadout(dmd, 'Selected');
+  });
+}
