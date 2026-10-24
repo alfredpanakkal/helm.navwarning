@@ -434,19 +434,6 @@ async function startServer() {
     });
   });
 
-  /**
-   * Route: POST /api/parse-navwarn
-   * Protected: Admin only (requireAdmin) + Rate limited (aiRouteLimiter, 10 req/min per user)
-   * Spends: Gemini AI quota
-   * Security: Input text bounded to 10,000 chars, 30s timeout, sanitized errors
-   */
-  /**
-   * Route: POST /api/enrich-evidence
-   * Protected: Admin only (requireAdmin) + Rate limited (aiRouteLimiter, 10 req/min per user)
-   * Spends: Gemini AI quota + fetches user-supplied URL
-   * Security: SSRF protected via safeFetch (DNS lookup, IP blocklist, redirect hop verification, hostname allowlist),
-   *           Max 2MB response, 10s fetch timeout, 10,000 char prompt bound, 30s AI timeout.
-   */
   // Sources registry
   app.get('/api/sources', (req, res) => {
     res.json(sourcesDb);
