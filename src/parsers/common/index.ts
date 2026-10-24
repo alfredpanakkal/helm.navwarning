@@ -1,6 +1,6 @@
 // src/parsers/common/index.ts
-export * from './flags';
-export * from './provenance';
-export * from './ids';
-export * from './dates';
-export * from './units';
+export * from './flags.js';
+export * from './provenance.js';
+export * from './ids.js';
+export * from './dates.js';
+export * from './units.js';

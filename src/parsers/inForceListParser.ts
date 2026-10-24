@@ -3,9 +3,9 @@
 // Supports Format IX/IHO Series, Format IV comma/space separated, Format I JHOD space-separated,
 // "AND" clause parsing, year suffix handling, range expansion, and rich cancellation context.
 
-import type { RawMessageBlock } from '../types/navarea';
-import { FEATURE_FLAGS } from '../lib/featureFlags';
-import { parseInForceListWithAI } from '../services/aiStudioService';
+import type { RawMessageBlock } from '../types/navarea.js';
+import { FEATURE_FLAGS } from '../lib/featureFlags.js';
+import { parseInForceListWithAI } from '../services/aiStudioService.js';
 
 export interface InForceEntry {
   seriesYear: number;
@@ -49,7 +49,7 @@ export interface InForceListParseOptions {
   truncated?: boolean;
 }
 
-import { normalizeYear, formatWarningId as commonFormatWarningId, parseWarningRef, MONTH_MAP } from './common';
+import { normalizeYear, formatWarningId as commonFormatWarningId, parseWarningRef, MONTH_MAP } from './common/index.js';
 
 /**
  * Normalizes year numbers down to a 2-digit integer.

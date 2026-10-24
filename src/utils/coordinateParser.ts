@@ -13,7 +13,7 @@ import {
   DataQualityRating,
   AmbiguousPosition,
   RadiusSpecification,
-} from '../types';
+} from '../types.js';
 
 export const NAVAREA_BOUNDS: Record<NavAreaId, BoundingBox> = {
   I: { minLat: 48, maxLat: 75, minLng: -30, maxLng: 30 },

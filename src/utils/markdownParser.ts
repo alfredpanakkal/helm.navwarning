@@ -1,5 +1,5 @@
-import { NavWarning, NavAreaId, SpatialData } from '../types';
-import { parseCoordinatesDeterministic, NAVAREA_BOUNDS } from './coordinateParser';
+import { NavWarning, NavAreaId, SpatialData } from '../types.js';
+import { parseCoordinatesDeterministic, NAVAREA_BOUNDS } from './coordinateParser.js';
 
 /**
  * Strips basic Markdown formatting symbols for clean database text
