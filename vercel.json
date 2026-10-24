@@ -3,15 +3,15 @@
   "rewrites": [
     {
       "source": "/api/tiles/carto/:style/:z/:x/:y",
-      "destination": "/api/tiles/carto?style=:style&z=:z&x=:x&y=:y"
+      "destination": "/api/tiles?provider=carto&style=:style&z=:z&x=:x&y=:y"
     },
     {
       "source": "/api/tiles/osm/:z/:x/:y",
-      "destination": "/api/tiles/osm?z=:z&x=:x&y=:y"
+      "destination": "/api/tiles?provider=osm&z=:z&x=:x&y=:y"
     },
     {
       "source": "/api/tiles/openseamap/:z/:x/:y",
-      "destination": "/api/tiles/openseamap?z=:z&x=:x&y=:y"
+      "destination": "/api/tiles?provider=openseamap&z=:z&x=:x&y=:y"
     }
   ],
   "headers": [
