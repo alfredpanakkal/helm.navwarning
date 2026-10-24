@@ -26,6 +26,9 @@ jobs:
       - name: Typecheck TypeScript
         run: npx tsc --noEmit
 
+      - name: Run P0 Safety Regression Tests (vitest)
+        run: npx vitest run src/utils/__tests__/p0SafetyRegression.test.ts
+
       - name: Build Applet Bundle
         run: npx vite build
 
