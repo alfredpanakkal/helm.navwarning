@@ -14,7 +14,8 @@
     "dev:audit": "tsx scripts/ux-audit/dev-server.ts",
     "ux:capture": "tsx scripts/ux-audit/capture.ts",
     "ux:capture:live": "tsx scripts/ux-audit/capture.ts --live",
-    "ux:smoke": "playwright test"
+    "ux:smoke": "playwright test",
+    "build:singlefile": "node scripts/build-complete-singlefile.cjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

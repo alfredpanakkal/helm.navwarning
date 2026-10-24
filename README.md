@@ -1,195 +1,312 @@
-# Helm.Warning (NAVAREA Maritime Safety Information Pipeline)
+<div align="center">
 
-> **Live Application:** [helmwarning.vercel.app](https://helmwarning.vercel.app/)  
-> **Repository:** [github.com/alfredpanakkal/helm.navwarning](https://github.com/alfredpanakkal/helm.navwarning)
+<img src="public/og-preview.svg" alt="Helm.Warning logo" width="128"/>
 
-Helm.Warning is an automated pipeline, spatial geometry visualizer, and navigational warning management platform for global **NAVAREA** maritime safety information (MSI). It aggregates data from national hydrographic offices, parses geographic coordinates, verifies active hazard areas, and visualizes them on nautical chart layers.
+# ⚓ Helm.Warning
+
+**Global NAVAREA Maritime Safety Information (MSI) Ingestion Pipeline & Chart Plotter**
+
+[![Live App](https://img.shields.io/badge/Live-helmwarning.vercel.app-00C7B7?style=for-the-badge&logo=vercel&logoColor=white)](https://helmwarning.vercel.app)
+
+[![CI](https://github.com/alfredpanakkal/helm.navwarning/actions/workflows/ci.yml/badge.svg)](https://github.com/alfredpanakkal/helm.navwarning/actions/workflows/ci.yml)
+[![Last Commit](https://img.shields.io/github/last-commit/alfredpanakkal/helm.navwarning)](https://github.com/alfredpanakkal/helm.navwarning/commits)
+![Repo Size](https://img.shields.io/github/repo-size/alfredpanakkal/helm.navwarning)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+
+<br/>
+
+[![React](https://img.shields.io/badge/React_19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript_5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite_6-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind](https://img.shields.io/badge/Tailwind_4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Leaflet](https://img.shields.io/badge/Leaflet_1.9-199900?style=flat-square&logo=leaflet&logoColor=white)](https://leafletjs.com/)
+[![Express](https://img.shields.io/badge/Express_4-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
+[![Supabase](https://img.shields.io/badge/Supabase_Postgres-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
+[![Gemini](https://img.shields.io/badge/AI-Gemini%20Flash--Lite-8E75B2?style=flat-square&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
+[![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev/)
+
+</div>
 
 ---
 
-## 🚀 Key Features
+Helm.Warning is an automated pipeline, spatial geometry visualizer, and navigational warning management platform for global **NAVAREA** maritime safety information (MSI). It continuously monitors national hydrographic offices, parses complex coordinate formats, normalizes polymorphic hazards (firing zones, drifting hazards, cable operations, offshore rigs), and visualizes them on nautical chart layers with bidirectional spatial synchronization.
+
+---
+
+## 🧭 Table of Contents
+
+- [Overview & Screenshot](#-overview--visual-showcase)
+- [System Architecture & Pipeline](#-system-architecture--pipeline)
+- [Key Features](#-key-features)
+  - [Public Portal (`/`)](#-public-portal-)
+  - [Admin Console (`/admin`)](#-admin-console-admin)
+- [Technology Stack](#-built-with-)
+- [Database Contract & Security](#-database-contract--security)
+- [Documentation Grid](#-documentation-grid)
+- [Local Development & Setup](#-local-development--setup)
+- [Development Changelog](#-development-changelog)
+- [Disclaimer](#-disclaimer)
+
+---
+
+## 📸 Overview & Visual Showcase
+
+```
++------------------------------------------------------------------------------------------+
+|  ⚓ Helm.Warning | NAVAREA Maritime Safety Information                     [Sources] [Admin] |
++------------------------------------+-----------------------------------------------------+
+|  🗺️ INTERACTIVE MARITIME CHART     |  📋 FLOATING WARNINGS DRAWER / DATA BANK           |
+|                                    |                                                     |
+|  - Esri Ocean / Seamark Layers     |  - Real-Time Status Metric Strip                    |
+|  - Polymorphic Vectors (Polygons,  |    (In-Force, Coverage %, Critical, Georeferenced)  |
+|    Lines, Circles, Offshore Rigs)  |  - Inline Accordion Details (No Disruptive Modals)  |
+|  - Antimeridian-Safe Projections   |  - Dual-Mode Minimize (44px) & Maximize Controls    |
+|  - Live Clustering & Pins          |  - Bidirectional Focus: Pin Click <-> Card Scroll   |
++------------------------------------+-----------------------------------------------------+
+```
+
+| Desktop Chart & Floating Warnings Drawer | Inline Accordion Detail & Raw Bulletins |
+|:---:|:---:|
+| ![Map Drawer](docs/ux-audit/screenshots/v2/v2-map-drawer-1440.png) | ![Data Bank Details](docs/ux-audit/screenshots/v2/v2-databank-details-open-1440.png) |
+
+---
+
+## 🔄 System Architecture & Pipeline
+
+The pipeline continuously cycles through hydrographic feed ingestion, rule-based coordinate normalization, resilient AI extraction, triage verification, and PostGIS spatial storage.
+
+```mermaid
+flowchart TD
+    subgraph INGESTION["1. Ingestion & Crawling"]
+        A[Global Hydrographic Feeds<br/>UKHO, NGA, Kaiho, Baltic, AMSA] --> B[Crawler Worker<br/>Vercel Cron / Cheerio / Scrapling]
+        B --> C[Raw Bulletins Archive<br/>raw_messages table]
+    end
+
+    subgraph PROCESSING["2. Parsing & Normalization"]
+        C --> D[WWNWS Rule Engine<br/>Header, Dates, Categories, IDs]
+        D --> E[Coordinate Lexer & Geometry Extractor<br/>DMS / DDM / Lat-Long / Polygons]
+        E -->|Ambiguous or Complex Bounds| F[AI Extraction<br/>Gemini Flash-Lite + Mistral Fallback]
+    end
+
+    subgraph TRIAGE["3. Quality & Triage"]
+        E -->|Explicit Geometry| G[Tier A: Auto-Plot]
+        F -->|Verified Coordinates| G
+        F -->|Low Confidence / Missing Bounds| H[Tier B: Review Queue]
+        D -->|Corrupt / Non-Spatial| I[Tier C: Blocked / Logged]
+    end
+
+    subgraph PERSISTENCE["4. Atomic Persistence"]
+        G --> J[RPC upsert_nav_warning<br/>Supabase PostgreSQL + PostGIS]
+        H --> J
+        J --> K[(public.nav_warnings<br/>canonical_id key)]
+        J --> L[(public.nav_warning_geometries<br/>PostGIS SRID 4326)]
+    end
+
+    subgraph PRESENTATION["5. Presentation Layer"]
+        K & L --> M[View: nav_warnings_active_spatial<br/>Pre-computed GeoJSON Blob]
+        M --> N[Public Portal: Leaflet Map & Data Bank<br/>Read-only anon client]
+        K & H --> O[Admin Console: Verification & Orchestrator<br/>Role-gated JWT authenticated]
+    end
+
+    classDef primary fill:#0284c7,stroke:#0369a1,stroke-width:2px,color:#fff;
+    classDef success fill:#059669,stroke:#047857,stroke-width:2px,color:#fff;
+    classDef warning fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#fff;
+    classDef danger fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#fff;
+
+    class G,M,N success;
+    class H,O warning;
+    class I danger;
+    class J,K,L primary;
+```
+
+---
+
+## ✨ Key Features
 
 ### 🌐 Public Portal (`/`)
-- **Interactive Maritime Map:** Powered by Leaflet.js with Esri Ocean Base, seamark layers, and cluster markers.
-- **Collapsible Floating Warnings Drawer:**
-  - **Minimize Button:** Collapses the panel down to 44px to provide an unobstructed chart view.
-  - **Maximize Button:** Expands the panel up to 520px (75vh on mobile) for reviewing multiple active hazards simultaneously.
-- **Inline Accordion Hazard Inspection:** Clicking any warning in the floating list or the Data Bank expands its full details, metadata badges, coordinates, and raw bulletin text **in-place within the list**—eliminating modal overlays and keeping visual context intact.
-- **Bidirectional Geo-Synchronization:**
-  - Clicking **📍 Focus on Map** within any expanded warning smoothly centers and zooms the Leaflet chart on that coordinate.
-  - Clicking any chart pin automatically scrolls to and expands that warning inside the list.
-- **Executive Data Bank Metrics Strip:** A compact summary strip displaying real-time metrics (Active in-force, Global Coverage %, Critical/High count, and GPS Georeferenced %) with designated status icons.
-- **NAVAREA Data Bank Table & Mobile Cards:** Searchable and filterable by NAVAREA region, severity (`Critical`, `High`, `Moderate`), and hazard category (`Military`, `Drifting`, `AtoN`, `Subsea`, `General`). Desktop table features inline expansion rows (`.table-detail-row`).
-- **Source Registry:** Live tracking across global hydrographic offices (UKHO, NGA, SHOM, AMSA, etc.).
-- **Zero-Admin Decoupling:** Strictly read-only public interface containing zero administrative code, internal schemas, or leaked credentials.
+
+- **Interactive Maritime Chart**: Powered by Leaflet.js with Esri Ocean Basemap, OpenSeaMap seamark overlay, and animated coordinate clustering.
+- **Polymorphic Spatial Geometry Engine**:
+  - Plots points, complex multi-vertex polygons, corridor buffers, firing exercise zones, and line strings.
+  - Granular layer toggles for **Points**, **Polygons**, **Circles**, and **Lines**.
+  - **Offshore Rig (MODU) Plotting**: Dedicated rig pins (`.nw-rig-pin`) with 500m (0.27 NM) safety exclusion perimeters and crosshairs.
+- **Collapsible Floating Warnings Drawer**:
+  - **Minimize (44px)**: Snaps the drawer down to leave an unobstructed nautical chart view.
+  - **Maximize (520px / 75vh mobile)**: Expands for multi-hazard comparison and inspection.
+- **In-Place Inline Accordions**: Click any hazard to expand full coordinate stamps, metadata chips, authority source tags, and raw immutable WWNWS text directly within the list—**no disruptive modals**.
+- **Bidirectional Geo-Synchronization**:
+  - Click **📍 Focus on Map** inside any warning to pan, center, and smoothly fit map bounds to the hazard envelope.
+  - Click any map pin or geometry on the water to auto-scroll and highlight its corresponding card in the drawer.
+- **Executive Data Bank Metrics Strip**: Real-time count of active in-force bulletins, NAVAREA coverage percentage, critical hazard tallies, and GPS georeferencing rate.
+- **NAVAREA Data Bank**: Searchable and filterable by NAVAREA region (`NAVAREA I` through `XXI`, `BALTIC`), status, and category (`military`, `drifting`, `aton`, `subsea`, `offshore`, `electronic`, `general`).
+- **Zero-Admin Decoupling**: Strictly read-only public bundle containing zero administrative endpoints, write handlers, or internal schemas.
 
 ### 🔐 Admin Console (`/admin`)
-- **Gated Authentication:** Authenticates against Supabase Auth, strictly validating unalterable administrative roles (`app_metadata.role === 'admin'`).
-- **Defense-in-Depth Headers:** Hardened with `X-Frame-Options: DENY`, `noindex, nofollow, noarchive` robots tags, and strict Content Security Policies.
-- **5 Operational Workspaces:**
-  1. **Overview:** Health monitoring, attention notifications, and pipeline operational stats.
-  2. **Pipeline Orchestrator:** Stage-by-stage pipeline inspection (`Fetch Sources` → `Parse & Normalize` → `Geocode Geometry` → `Publish Generation`), feed latency, and live log streaming.
-  3. **Bulk Import Wizard:** 4-step wizard supporting manual bulletin text, CSV, GPX, and S-124 formats with real-time validation and deduplication preview.
-  4. **Verification Queue:** Human-in-the-loop triage interface to review, corroborate, and confirm or reject warnings before publication.
-  5. **System Diagnostics:** Live connectivity test for AI extraction models (Gemini Flash-Lite primary, Mistral fallback) and database health metrics.
+
+- **Role-Gated Supabase Authentication**: Validates unalterable administrative JWT roles (`app_metadata.role === 'admin'`).
+- **Hardened Defense-in-Depth**: Protected with `X-Frame-Options: DENY`, `noindex, nofollow, noarchive` robots directives, and CSP policies.
+- **5 Dedicated Operational Workspaces**:
+  1. **Overview**: Real-time pipeline health, active hazard count, error alerts, and database metrics.
+  2. **Pipeline Orchestrator**: Stage-by-stage pipeline inspection (`Fetch Sources` → `Parse & Normalize` → `Geocode Geometry` → `Publish Generation`), feed latency monitoring, and live logs.
+  3. **Bulk Import Wizard**: 4-step wizard supporting manual bulletin text, CSV, GPX, and S-124 formats with instant deduplication preview.
+  4. **Verification Queue**: Human-in-the-loop triage interface (`Tier B` review queue) to corroborate, correct geometry, or confirm/reject warnings before publication.
+  5. **System Diagnostics**: Live connectivity test for AI extraction models (Gemini Flash-Lite primary, Mistral fallback) and database status.
 
 ---
 
-## 📋 Recent Updates & Development Changelog
+## 🔧 Built With
 
-### Update: Multi-Area, Multi-Sector & Offshore Rig Spatial Plotting Engine
-* **Issue Addressed**: Navigational warnings containing non-point geometries (polygons, lines, circle buffers) were previously dropped or skipped on the map because the UI solely queried scalar `latitude`/`longitude` properties. Bulletins with multiple sub-areas, sectors, or offshore drilling rigs were either flattened into a single distorted polygon or omitted entirely.
-* **Polymorphic Spatial Layers**:
-  - Implemented 4 isolated Leaflet `LayerGroup` instances (`pointsLayer`, `polygonsLayer`, `circlesLayer`, `linesLayer`) with granular toggle checkboxes in the maritime overlays panel.
-  - Added full support for `Polygon`, `MultiPolygon`, `LineString`, `MultiLineString`, and `Circle` geometries with auto-calculated geographic bounding boxes (`L.latLngBounds`).
-* **Multi-Area & Sector Segmentation**:
-  - Upgraded both the client-side fallback extractor and backend parser (`src/utils/coordinateParser.ts`, `src/parsers/geometryExtractor.ts`, `public/assets/js/supabase.js`) to parse discrete sub-blocks: `AREA [A-Z0-9]+` (*Area Alfa*, *Area Bravo*), `SECTOR [A-Z0-9]+` (*Sector 1*, *Sector Charlie*), `SUB-AREA`, `ZONE`, `FIRING AREA`, and parenthetical markers `(A), (B)`.
-  - Each sub-area/sector is plotted as an independent vector geometry with its own label, square nautical miles area badge, and popup.
-* **Offshore Rig (MODU / Drilling Platforms) Visualization**:
-  - Automatically parses multiple rig listings from RIGLIST bulletins (e.g., *VALARIS 120*, *NOBLE PROSPECT*, *STENA DON*).
-  - Plots each rig with a dedicated offshore platform pin (`.nw-rig-pin`) alongside a 500m (0.27 NM) dashed safety exclusion perimeter circle and center crosshair.
-* **Global Navigation View**:
-  - Default view set to *All NAVAREAs (Global View)* with automatic `fitBounds` calculation across all live hazard envelopes.
-
-### Update: Database Ingestion & PostGIS Synchronization (Milestone M1)
-* **Service Role Direct Sync**: Built the `syncWarningsToSupabase` pipeline worker utilizing the Supabase Service Role key to bypass Row-Level Security (RLS) for automated background ingestion.
-* **Sentinel Interception**: Automatically catches `depth_m == -9999.0` sentinel values and converts them to `NULL` to satisfy the `chk_shoal_depth_sentinel` database constraint.
-* **Relational Batch Processing**: Atomically inserts warning envelopes into `public.nav_warnings` and captures returned UUID primary keys to execute batch child inserts into `nav_warning_geometries`, `nav_warning_entities`, and `nav_warning_schedules`.
-
-### Update: UX Navigation & Interactive Drawer Modernization
-* **Collapsible Floating Warnings Panel**: Dual-mode minimize (44px) and maximize (520px / 75vh mobile) controls for seamless chart exploration.
-* **In-Place Inline Accordions**: Direct warning detail expansion without modal popups.
-* **Bidirectional Sync**: Smooth two-way synchronization between map clicks and warning list items.
-* **Real-Time Data Bank Metrics Strip**: Real-time summary strip tracking active warnings, global coverage, critical alerts, and georeferencing percentage.
-
----
-
-## 🏗️ Architecture
-
-The application operates as a full-stack maritime system supporting both Express server runtime (with Vite middleware) and Vercel Serverless / Cron environments:
-
-```
-helm-warning/
-├── index.html              # Approved public maritime portal (Map, Data Bank, Sources)
-├── admin.html              # Approved gated Admin console (5 management tabs)
-├── server.ts               # Express full-stack server (SSR proxies, SSRF guard, dev middleware)
-├── server/                 # Server security & authentication
-│   ├── auth.ts             # Server-side admin JWT & role verification middleware
-│   ├── securityHeaders.ts  # CSP, frameguard, and security header configurations
-│   └── ssrfGuard.ts        # Outbound fetch protection (IP blocklist, DNS validation, redirects)
-├── public/                 # Static production assets
-│   └── assets/
-│       ├── css/
-│       │   ├── tokens.css     # Design tokens (5 status colors, typography scale)
-│       │   └── components.css # Modular component styles (buttons, badges, modals, toasts)
-│       └── js/
-│           ├── public.js      # Public portal logic & Leaflet controller
-│           ├── admin.js       # Admin portal logic & auth state machine
-│           └── supabase.js    # Supabase JS client & DB helper wrappers
-├── src/                    # Modular application code & React SPA core
-│   ├── components/         # UI components (LeafletMap, DataBank, SourceRegistry)
-│   ├── data/               # Hydrographic source registries & initial seeds
-│   ├── hooks/              # Navigation, layer, and state hooks
-│   ├── lib/                # Database clients, UI flags, and versioning
-│   ├── schemas/            # WWNWS navigational warning validation schemas
-│   └── utils/              # DMS coordinate parsers, nautical export, markdown parsers
-├── api/                    # Serverless API endpoints & cron targets
-│   ├── scrape-navwarn.ts      # Automated ingestion crawler (Vercel Cron: 0 6 * * *)
-│   ├── admin/                 # Protected admin verification & test endpoints
-│   └── supabase/              # Database health & synchronization endpoints
-├── docs/                   # Specifications, SQL schemas, and UX audits
-│   └── supabase_setup.sql     # Database DDL, RLS policies & migration scripts
-├── scripts/ux-audit/       # Playwright UI capture & UX smoke test harness
-├── playwright.config.ts    # End-to-end browser testing configuration
-├── vercel.json             # Deployment routing, cleanUrls, and cron configuration
-└── vite.config.ts          # Multi-page build configuration
-```
-
----
-
-## 🔒 Security & Database Model
-
-### Database Security (Supabase PostgreSQL + RLS)
-The database uses Row Level Security (RLS) on all tables to ensure public callers can never write or modify navigational warnings:
-
-| Table | Public Access (`anon`) | Admin Access (`authenticated`) |
+| Technology | Version | Purpose in Helm.Warning |
 |---|---|---|
-| `public.nav_warnings` | `SELECT` where `status = 'active'` | `ALL` (insert, update, delete) |
-| `public.ingestion_generations` | `SELECT` | `ALL` |
-| `public.sources_registry` | `SELECT` | `ALL` |
-| `public.pipeline_logs` | No access | `ALL` |
-
-To set up or inspect the database schema, run [`docs/supabase_setup.sql`](docs/supabase_setup.sql) in your Supabase SQL Editor.
-
-### Proxy Security & SSRF Protection
-- **SSRF Guard (`server/ssrfGuard.ts`):** All outbound network requests for evidence enrichment or bulletin crawling validate hostnames against an approved hydrographic registry, resolve DNS to block private/internal IP ranges (IPv4/IPv6 RFC 1918, loopbacks), and restrict response payloads to 2MB with strict 10s timeouts.
-- **CARTO Basemap Proxy (`/api/tiles/carto/*`):** Proxies maritime map tiles server-side to prevent exposing `CARTO_API_KEY` to public clients while enforcing dedicated rate limits (600 req/min per IP).
-- **AI Fallback Resilience:** Primary extraction runs via Google Gemini (`gemini-3.1-flash-lite`); if rate limits or outages occur, the pipeline fails over smoothly to Mistral AI (`mistral-small-latest`).
+| **[React](https://react.dev/)** | `19.0.1` | Component architecture for reactive map overlays, drawer controllers, and Data Bank table |
+| **[TypeScript](https://www.typescriptlang.org/)** | `5.9.3` | End-to-end type safety across WWNWS warning schemas, PostGIS geometry types, and API payloads |
+| **[Vite](https://vitejs.dev/)** | `6.2.3` | Ultra-fast client bundler configured for multi-page builds (`index.html` + `admin.html`) |
+| **[Tailwind CSS](https://tailwindcss.com/)** | `4.1.14` | High-performance styling system utilizing strict design tokens for maritime status codes |
+| **[Leaflet](https://leafletjs.com/)** | `1.9.4` | Interactive hydrographic map renderer with custom vector layers, marker clustering, and bounds animation |
+| **[Express](https://expressjs.com/)** | `4.21.2` | Full-stack server providing SSRF-guarded proxies, rate limiting, and dev middleware |
+| **[Supabase](https://supabase.com/)** | `2.116.0` | PostgreSQL with PostGIS extension for spatial queries, RLS policies, and real-time subscriptions |
+| **[Google Gemini](https://ai.google.dev/)** | `2.4.0` | `@google/genai` Flash-Lite integration for zero-shot maritime coordinate and bounding-box extraction |
+| **[Playwright](https://playwright.dev/)** | `1.63.0` | Automated visual regression suite and UX smoke test harness (`scripts/ux-audit/`) |
 
 ---
 
-## 🛠️ Local Development
+## 🔒 Database Contract & Security
+
+Helm.Warning strictly implements the **20261019/20 schema contract** documented in [`docs/supabase-backend-contract.md`](docs/supabase-backend-contract.md).
+
+```
+┌──────────────────────────────────────┐       1:N       ┌─────────────────────────────────────┐
+│         public.nav_warnings          │ ─────────────── │    public.nav_warning_geometries    │
+├──────────────────────────────────────┤                 ├─────────────────────────────────────┤
+│ id (UUID, PK)                        │                 │ geom_id (UUID, PK)                  │
+│ canonical_id (TEXT, UNIQUE)          │                 │ warning_id (UUID, FK)               │
+│ navarea (TEXT, 'NAVAREA XI'...)      │                 │ feature_type (POINT|POLYGON|...)    │
+│ title, area_text, raw_text           │                 │ geom_postgis (geography, SRID=4326) │
+│ status (active|cancelled|expired...) │                 │ zone_label, buffer_nm               │
+│ categories (TEXT[])                  │                 └─────────────────────────────────────┘
+│ triage_tier (A | B | C)              │
+│ data_quality, parsing_method         │
+│ valid_from, valid_to, issued_at      │
+└──────────────────────────────────────┘
+                   │
+                   ▼
+┌────────────────────────────────────────────────────────┐
+│         public.nav_warnings_active_spatial (VIEW)      │
+├────────────────────────────────────────────────────────┤
+│ Pre-computed ST_AsGeoJSON (geojson_blob) for Leaflet   │
+│ Filtered to active + Tier A warnings                   │
+└────────────────────────────────────────────────────────┘
+```
+
+### Row Level Security (RLS) Matrix
+
+| Table / View | Public (`anon`) | Admin (`authenticated`) | Service Role (`pipeline`) |
+|---|---|---|---|
+| `public.nav_warnings` | `SELECT` (active only) | `ALL` (insert/update/delete) | `ALL` (RPC bypass) |
+| `public.nav_warning_geometries` | `SELECT` | `ALL` | `ALL` |
+| `public.nav_warnings_active_spatial` | `SELECT` | `SELECT` | `SELECT` |
+| `public.nav_warnings_review_queue` | ❌ No access | `SELECT` / `UPDATE` | `ALL` |
+| `public.raw_messages` | ❌ No access | `SELECT` | `ALL` |
+| `public.pipeline_logs` | ❌ No access | `SELECT` | `ALL` |
+
+### Key Architectural Safeguards
+1. **No Geometry in `nav_warnings`**: Spatial coordinates live exclusively in `nav_warning_geometries` (PostGIS) or the pre-computed `geojson_blob` column of the `nav_warnings_active_spatial` view.
+2. **Stable Canonical Identity**: All cross-references and updates use `canonical_id` (e.g., `NAVAREA XI 0451/26`).
+3. **SSRF Guard (`server/ssrfGuard.ts`)**: Outbound evidence enrichment strictly resolves and validates DNS against RFC 1918 internal blocks and limits response sizes to 2MB.
+4. **Anonymous Tile Proxy**: Basemap proxies prevent client-side credential exposure and enforce IP rate limits.
+
+---
+
+## 📚 Documentation Grid
+
+| Document | Focus & Purpose |
+|---|---|
+| 📋 [**PRD.md**](PRD.md) | Product Requirements Document, user personas, operational scope, and acceptance criteria |
+| 📐 [**DESIGN.md**](DESIGN.md) | Technical architecture, component boundaries, state flow, and design tokens |
+| 🗄️ [**docs/supabase-backend-contract.md**](docs/supabase-backend-contract.md) | Authoritative database schema contract, column specifications, and query cheat-sheet |
+| 🛡️ [**AGENTS.md**](AGENTS.md) | Operational rules, design tokens, non-negotiables, and security conventions |
+| 🧪 [**UI_UX_AUDIT_REPORT.md**](UI_UX_AUDIT_REPORT.md) | Complete visual audit report, screenshot manifest, and DOM capture baseline |
+| 💾 [**docs/supabase_setup.sql**](docs/supabase_setup.sql) | DDL migrations, PostGIS indexes, and RLS policies for PostgreSQL |
+| 📝 [**CODE_REVIEW.md**](CODE_REVIEW.md) | Safety findings, parsing performance benchmarks, and code quality reviews |
+
+---
+
+## 🛠️ Local Development & Setup
 
 ### Prerequisites
-- Node.js (v20+ or v22)
-- npm (v10+)
+- **Node.js**: v20+ or v22 LTS
+- **npm**: v10+
 
-### Installation
+### 1. Clone & Install
 ```bash
 git clone https://github.com/alfredpanakkal/helm.navwarning.git
 cd helm.navwarning
 npm install
 ```
 
-### Environment Configuration
-Copy `.env.example` to `.env`:
+### 2. Configure Environment
 ```bash
 cp .env.example .env
 ```
+Configure your `.env` variables:
+```ini
+# Supabase Connectivity
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_PUBLISHABLE_KEY=your-anon-public-key
+SUPABASE_SECRET_KEY=your-service-role-key
 
-Populate the required environment variables:
-| Variable | Required | Description |
-|---|---|---|
-| `SUPABASE_URL` | Yes | Your Supabase project URL (`https://xyz.supabase.co`) |
-| `SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase anon public API key |
-| `SUPABASE_SECRET_KEY` | Yes | Supabase service role key (for serverless/cron DB writes) |
-| `CRON_SECRET` | Recommended | Bearer token for authorized scraper cron invocations |
-| `GEMINI_API_KEY` | Recommended | API key for automated coordinate & text extraction |
-| `MISTRAL_API_KEY` | Optional | Secondary fallback AI provider key for rate limit failover |
-| `CARTO_API_KEY` | Optional | Secret key for CARTO basemap tile proxy |
+# Scraper & Ingestion Security
+CRON_SECRET=your-cron-secret-token
 
-### Development Server
-Start the local server with live Vite middleware on port 3000:
-```bash
-npm run dev
+# AI Feature Extraction
+GEMINI_API_KEY=your-gemini-api-key
+MISTRAL_API_KEY=your-optional-mistral-fallback-key
+
+# Optional Basemap Key
+CARTO_API_KEY=your-optional-carto-key
 ```
-Open [http://localhost:3000](http://localhost:3000) for the public portal or [http://localhost:3000/admin.html](http://localhost:3000/admin.html) for the admin console.
 
-### Build & Verification
-```bash
-# Typecheck codebase
-npm run lint
+### 3. Available Scripts
 
-# Build client bundle & compile server.ts to dist/server.cjs
-npm run build
-
-# Start production server
-npm start
-
-# Run Playwright UX regression smoke tests
-npm run ux:smoke
-```
+| Command | Action |
+|---|---|
+| `npm run dev` | Starts local Express server with live Vite middleware on `http://localhost:3000` |
+| `npm run lint` | Runs TypeScript typecheck (`tsc --noEmit`) |
+| `npm test` | Runs unit tests using Vitest across parsing and geometry modules |
+| `npm run build` | Builds Vite client production bundle and compiles `server.ts` to `dist/server.cjs` |
+| `npm start` | Starts the compiled production Node.js server |
+| `npm run ux:capture` | Launches Playwright to capture DOM snapshots and viewport screenshots |
+| `npm run ux:smoke` | Executes end-to-end browser regression smoke tests |
 
 ---
 
-## 🚢 Deployment
+## 📋 Development Changelog
 
-The project is configured for automated continuous deployment on **Vercel**:
-- Deployments trigger automatically on pushes to `main`.
-- `cleanUrls: true` enables clean routing (`/` for public, `/admin` for console).
-- Scheduled cron `/api/scrape-navwarn` triggers daily at `06:00 UTC` with `Bearer <CRON_SECRET>` authorization.
+<details>
+<summary><b>Click to expand recent milestones and engine updates</b></summary>
+<br/>
+
+### Multi-Area, Multi-Sector & Offshore Rig Spatial Plotting Engine
+- **Polymorphic Spatial Layers**: Isolated Leaflet `LayerGroup` instances (`pointsLayer`, `polygonsLayer`, `circlesLayer`, `linesLayer`) with granular toggle checkboxes in the maritime overlays panel. Full support for `Polygon`, `MultiPolygon`, `LineString`, `MultiLineString`, and `Circle` geometries with auto-calculated geographic bounding boxes.
+- **Multi-Area & Sector Segmentation**: Upgraded parser to split discrete sub-blocks: `AREA [A-Z0-9]+` (*Area Alfa*, *Area Bravo*), `SECTOR [A-Z0-9]+`, `SUB-AREA`, `ZONE`, `FIRING AREA`, and parenthetical markers `(A), (B)`. Each sub-area/sector is plotted as an independent vector geometry with its own label and square nautical miles area badge.
+- **Offshore Rig (MODU / Drilling Platforms)**: Parses multiple rig listings from RIGLIST bulletins (e.g., *VALARIS 120*, *NOBLE PROSPECT*, *STENA DON*). Plots each rig with a dedicated offshore platform pin (`.nw-rig-pin`) alongside a 500m (0.27 NM) dashed safety exclusion perimeter circle and center crosshair.
+- **Global Navigation View**: Default view set to *All NAVAREAs (Global View)* with automatic `fitBounds` calculation across all live hazard envelopes.
+
+### Database Ingestion & PostGIS Synchronization (Milestone M1)
+- **Service Role Direct Sync**: `syncWarningsToSupabase` pipeline worker utilizes the Supabase Service Role key to bypass RLS for automated background ingestion.
+- **Sentinel Interception**: Automatically catches `depth_m == -9999.0` sentinel values and converts them to `NULL` to satisfy the `chk_shoal_depth_sentinel` database constraint.
+- **Relational Batch Processing**: Atomically inserts warning envelopes into `public.nav_warnings` and captures returned UUID primary keys to execute batch child inserts into `nav_warning_geometries`.
+
+### UX Navigation & Interactive Drawer Modernization
+- **Collapsible Floating Warnings Panel**: Dual-mode minimize (44px) and maximize (520px / 75vh mobile) controls for seamless chart exploration.
+- **In-Place Inline Accordions**: Direct warning detail expansion without modal popups.
+- **Bidirectional Sync**: Smooth two-way synchronization between map clicks and warning list items.
+- **Real-Time Data Bank Metrics Strip**: Real-time summary strip tracking active warnings, global coverage, critical alerts, and georeferencing percentage.
+
+</details>
 
 ---
 
 ## 📜 Disclaimer
-*This system is an automated decision-support tool. It is not an official Maritime Safety Information (MSI) distributor and is not a substitute for the Global Maritime Distress and Safety System (GMDSS) or official hydrographic publications.*
+
+*Helm.Warning is an automated decision-support and visualization tool. It is not an official Maritime Safety Information (MSI) distributor and is not a replacement for the Global Maritime Distress and Safety System (GMDSS) or official hydrographic publications issued by national authorities.*

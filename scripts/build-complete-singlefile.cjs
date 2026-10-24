@@ -1,4 +1,9 @@
-// Script to assemble public/export/helm-warning-complete.html
+// Script to assemble single-file standalone reference HTML files
+// 1. helm-warning-complete.html (Unified Public Portal + Admin Console in ONE single file)
+// 2. public/export/helm-warning-complete.html
+// 3. public/export/index.single.html (Standalone Public Portal single file)
+// 4. public/export/admin.single.html (Standalone Admin Console single file)
+
 const fs = require('fs');
 const path = require('path');
 
@@ -18,26 +23,95 @@ const indexHtml = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
 const adminHtml = fs.readFileSync(path.join(rootDir, 'admin.html'), 'utf8');
 
 // 4. Extract custom styles from index.html & admin.html
-const extractStyle = (html) => {
-  const m = html.match(/<style>([\s\S]*?)<\/style>/i);
-  return m ? m[1] : '';
+const extractStyles = (html) => {
+  const matches = [...html.matchAll(/<style>([\s\S]*?)<\/style>/gi)];
+  return matches.map(m => m[1]).join('\n');
 };
-const indexStyles = extractStyle(indexHtml);
-const adminStyles = extractStyle(adminHtml);
+const indexStyles = extractStyles(indexHtml);
+const adminStyles = extractStyles(adminHtml);
 
 // 5. Read App Scripts
 const supabaseAppJs = fs.readFileSync(path.join(rootDir, 'public/assets/js/supabase.js'), 'utf8');
 const publicAppJs = fs.readFileSync(path.join(rootDir, 'public/assets/js/public.js'), 'utf8');
 const adminAppJs = fs.readFileSync(path.join(rootDir, 'public/assets/js/admin.js'), 'utf8');
 
-// 6. Build Unified HTML
-const bundleHtml = `<!DOCTYPE html>
-<html lang="en">
+// Extract clean body DOM from index.html
+const extractIndexBody = (html) => {
+  // Grab everything between <body> and the first <script src="..."> at the bottom
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (!bodyMatch) throw new Error('Could not find <body> in index.html');
+  let bodyContent = bodyMatch[1];
+  
+  // Remove the script tags at the bottom
+  bodyContent = bodyContent.replace(/<!-- Data & Logic Scripts -->[\s\S]*$/i, '');
+  bodyContent = bodyContent.replace(/<script\s+src=[\s\S]*$/i, '');
+  
+  // Inject Admin Console access button into main-nav if not present
+  if (!bodyContent.includes('admin-nav-trigger') && !bodyContent.includes('openAdmin()')) {
+    bodyContent = bodyContent.replace(
+      /(<div role="tablist"[^>]*>[\s\S]*?)(<\/div>\s*<\/nav>)/i,
+      `$1
+        <button type="button" class="admin-nav-trigger" onclick="openAdmin()" title="Access Operator Console">
+          <svg style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>Admin Console</span>
+        </button>
+      $2`
+    );
+    // Also inject into drawer
+    bodyContent = bodyContent.replace(
+      /(<div class="drawer-nav">[\s\S]*?)(<\/div>\s*<div class="drawer-footer">)/i,
+      `$1
+        <div style="height:1px;background:var(--border);margin:8px 0"></div>
+        <button class="drawer-item" onclick="openAdmin();toggleDrawer()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Admin Console 🔐</button>
+      $2`
+    );
+  }
+  return bodyContent.trim();
+};
+
+// Extract clean loginView and adminView from admin.html
+const extractAdminViews = (html) => {
+  const loginMatch = html.match(/<div id="loginView"[\s\S]*?<\/div>\s*<\/div>/i);
+  if (!loginMatch) throw new Error('Could not match #loginView in admin.html');
+  let loginContent = loginMatch[0];
+  
+  // Update link to return to public view
+  loginContent = loginContent.replace(/<a\s+href="\/"([^>]*)>([\s\S]*?)<\/a>/i, '<a href="#" onclick="returnToPublic(); return false;"$1>$2</a>');
+  
+  // Add quick demo operator access button
+  if (!loginContent.includes('quickDemoLogin')) {
+    loginContent = loginContent.replace(
+      /(<button class="btn btn-primary" type="submit" id="loginBtn"[^>]*>[\s\S]*?<\/button>)/i,
+      `$1
+      <button type="button" class="btn btn-secondary" onclick="enterAdmin('safety-lead@helm.warning'); return false;" style="width:100%;margin-top:10px;font-size:13px;border-style:dashed" title="One-click demo access for evaluation">⚡ Instant Operator Preview</button>`
+    );
+  }
+
+  const adminMatch = html.match(/<div id="adminView"[\s\S]*?<\/div><!-- \/adminView -->/i) || html.match(/<div id="adminView"[\s\S]*?<\/main>\s*<\/div>/i);
+  if (!adminMatch) throw new Error('Could not match #adminView in admin.html');
+  let adminContent = adminMatch[0];
+  
+  // Update "View Site ↗" to returnToPublic()
+  adminContent = adminContent.replace(/<a\s+href="\/"\s+class="btn btn-ghost"([^>]*)>([\s\S]*?)<\/a>/i, '<button type="button" class="btn btn-ghost" onclick="returnToPublic()"$1>$2</button>');
+  
+  return { loginContent: loginContent.trim(), adminContent: adminContent.trim() };
+};
+
+const indexBody = extractIndexBody(indexHtml);
+const { loginContent, adminContent } = extractAdminViews(adminHtml);
+
+// ════════════════════════════════════════════════════════════════════════════
+// 1. UNIFIED SINGLE HTML FILE (Public Portal + Admin Console in ONE file)
+// ════════════════════════════════════════════════════════════════════════════
+const unifiedSingleHtml = `<!DOCTYPE html>
+<html lang="en" class="tab-map-active">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
-<title>Helm.Warning — Complete Platform (Offline Bundle)</title>
+<title>Helm.Warning — Complete Reference (Public Portal & Admin Console)</title>
+<meta name="description" content="Single-file self-contained reference edition of Helm.Warning: interactive maritime safety information portal and human-in-the-loop operator console.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f172a'/%3E%3Ctext x='16' y='21' fill='%23ffffff' font-family='sans-serif' font-size='14' font-weight='700' text-anchor='middle'%3EHW%3C/text%3E%3C/svg%3E">
 
 <!-- INLINED LEAFLET CSS -->
 <style>
@@ -50,22 +124,112 @@ ${tokensCss}
 ${componentsCss}
 </style>
 
-<!-- INLINED PORTAL & ADMIN RESPONSIVE STYLES -->
+<!-- INLINED PORTAL & ADMIN COMPONENT STYLES -->
 <style>
 ${indexStyles}
 ${adminStyles}
 
-/* View State Switcher */
+/* ═══════════ UNIFIED REFERENCE SWITCHER & TRANSITIONS ═══════════ */
+.hw-ref-banner {
+  background: #090d16;
+  color: #94a3b8;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 6px 16px;
+  font: 500 12px/1.4 system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
+  z-index: 10002;
+}
+.hw-ref-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hw-ref-badge {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.hw-ref-title {
+  color: #f1f5f9;
+  font-weight: 600;
+}
+.hw-ref-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.hw-ref-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font: 500 11.5px system-ui, sans-serif;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all .15s ease;
+  min-height: 26px;
+}
+.hw-ref-btn:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border-color: rgba(255,255,255,0.25);
+}
+.hw-ref-btn.active {
+  background: #38bdf8;
+  color: #090d16;
+  font-weight: 700;
+  border-color: #38bdf8;
+}
+.hw-ref-btn-demo {
+  background: rgba(234, 88, 12, 0.15);
+  color: #fb923c;
+  border-color: rgba(234, 88, 12, 0.35);
+}
+.hw-ref-btn-demo:hover {
+  background: #ea580c;
+  color: #fff;
+}
+.hw-ref-close {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+.hw-ref-close:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+}
+
+/* Viewport & View Mode Switching */
 #portalView { display: block; }
 #loginView { display: none; }
 #adminView { display: none; }
 
-.app-mode-active #portalView { display: none; }
-.admin-login-active #portalView { display: none; }
-.admin-login-active #loginView { display: flex; }
-.admin-active #portalView { display: none; }
-.admin-active #loginView { display: none; }
-.admin-active #adminView { display: block; }
+body.admin-login-active #portalView { display: none !important; }
+body.admin-login-active #loginView { display: flex !important; }
+body.admin-login-active #adminView { display: none !important; }
+
+body.admin-active #portalView { display: none !important; }
+body.admin-active #loginView { display: none !important; }
+body.admin-active #adminView { display: block !important; }
 
 .admin-nav-trigger {
   display: inline-flex;
@@ -87,485 +251,39 @@ ${adminStyles}
 }
 </style>
 </head>
-<body id="appBody">
-<a href="#main" class="skip-link">Skip to main content</a>
+<body id="appBody" class="tab-map-active">
+
+<!-- PERSISTENT REFERENCE CONTROLLER BANNER -->
+<div class="hw-ref-banner" id="hwRefBanner">
+  <div class="hw-ref-left">
+    <span class="hw-ref-badge">Single-File Reference</span>
+    <span class="hw-ref-title">Helm.Warning Complete Platform</span>
+    <span style="color:#64748b">· Maritime Portal &amp; Operator Console</span>
+  </div>
+  <div class="hw-ref-nav">
+    <button type="button" class="hw-ref-btn active" id="btnRefPortal" onclick="returnToPublic()">🌐 Public Portal</button>
+    <button type="button" class="hw-ref-btn" id="btnRefLogin" onclick="openAdminLogin()">🔐 Admin Login</button>
+    <button type="button" class="hw-ref-btn hw-ref-btn-demo" id="btnRefAdmin" onclick="enterAdmin('safety-lead@helm.warning')">⚡ Demo Operator Console</button>
+    <button type="button" class="hw-ref-close" onclick="document.getElementById('hwRefBanner').style.display='none'" title="Hide reference bar">✕</button>
+  </div>
+</div>
 
 <!-- ════════════════════════════════════════════════════════════════════════════ -->
-<!-- PUBLIC MARITIME PORTAL VIEW                                                 -->
+<!-- 1. PUBLIC MARITIME SAFETY PORTAL VIEW                                       -->
 <!-- ════════════════════════════════════════════════════════════════════════════ -->
 <div id="portalView">
-<header class="site-header">
-  <div class="header-inner">
-    <a href="#" onclick="returnToPublic(); return false;" class="logo">
-      <span class="logo-badge" aria-hidden="true">HW</span>
-      <span>Helm.Warning</span>
-    </a>
-
-    <!-- PUBLIC NAVIGATION -->
-    <nav class="main-nav" aria-label="Main navigation">
-      <div role="tablist" aria-label="Main navigation views" style="display:flex;gap:4px;align-items:center">
-        <button class="nav-tab active" data-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" id="tab-btn-map" onclick="switchTab('map')">Map View <span class="badge" id="nav-map-badge">0</span></button>
-        <button class="nav-tab" data-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" id="tab-btn-data" onclick="switchTab('data')">Data Bank <span class="badge" id="nav-data-badge">0</span></button>
-        <button class="nav-tab" data-tab="sources" role="tab" aria-selected="false" aria-controls="tab-sources" id="tab-btn-sources" onclick="switchTab('sources')">Sources</button>
-        <button type="button" class="admin-nav-trigger" onclick="openAdmin()" title="Access Operator Console">
-          <svg style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          <span>Admin Console</span>
-        </button>
-      </div>
-    </nav>
-
-    <button class="menu-toggle" onclick="toggleDrawer()" aria-label="Navigation Menu" aria-expanded="false" aria-controls="drawer">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
-  </div>
-</header>
-
-<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()" aria-hidden="true"></div>
-<nav class="drawer" id="drawer" aria-label="Mobile drawer navigation" aria-hidden="true">
-  <div class="drawer-header"><span class="logo-badge" aria-hidden="true">HW</span> Helm.Warning</div>
-  <div class="drawer-nav">
-    <button class="drawer-item active" data-drawer-tab="map" onclick="switchTab('map');toggleDrawer()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>Map View<span class="badge" id="drawer-map-badge">0</span></button>
-    <button class="drawer-item" data-drawer-tab="data" onclick="switchTab('data');toggleDrawer()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>Data Bank<span class="badge">0</span></button>
-    <button class="drawer-item" data-drawer-tab="sources" onclick="switchTab('sources');toggleDrawer()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>Sources</button>
-    <div style="height:1px;background:var(--border);margin:8px 0"></div>
-    <button class="drawer-item" onclick="openAdmin();toggleDrawer()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Admin Console 🔐</button>
-  </div>
-  <div class="drawer-footer">Automated decision-support system.<br>Not a substitute for GMDSS.</div>
-</nav>
-
-<main id="main" class="main" tabindex="-1">
-<!-- MAP -->
-<div class="tab-panel active" id="tab-map" role="tabpanel" aria-labelledby="tab-btn-map">
-  <div class="page-header">
-    <div><h1>Active Warnings</h1><p class="subtitle" id="mapSubtitle">0 in-force across 0 NAVAREAs</p></div>
-    <div class="actions">
-      <div class="navarea-select-wrapper">
-        <label for="mapNavAreaSelect" class="sr-only">Select Navigation Area</label>
-        <select id="mapNavAreaSelect" class="navarea-select" onchange="filterMapByNavArea(this.value)" aria-label="Select Navigation Area">
-          <option value="NA I" selected>NAVAREA I · North Atlantic / UK</option>
-          <option value="NA II">NAVAREA II · East Atlantic</option>
-          <option value="NA III">NAVAREA III · Mediterranean</option>
-          <option value="NA IV">NAVAREA IV · West Atlantic</option>
-          <option value="NA V">NAVAREA V · Brazil / SW Atlantic</option>
-          <option value="NA VI">NAVAREA VI · Argentina / SE Atlantic</option>
-          <option value="NA VII">NAVAREA VII · South Africa</option>
-          <option value="NA VIII">NAVAREA VIII · Indian Ocean</option>
-          <option value="NA IX">NAVAREA IX · Red Sea / Persian Gulf</option>
-          <option value="NA X">NAVAREA X · Australia</option>
-          <option value="NA XI">NAVAREA XI · East Asia / Japan</option>
-          <option value="NA XII">NAVAREA XII · East Pacific</option>
-          <option value="NA XIII">NAVAREA XIII · NW Pacific / Okhotsk</option>
-          <option value="NA XIV">NAVAREA XIV · New Zealand / S. Pacific</option>
-          <option value="NA XV">NAVAREA XV · Chile / SE Pacific</option>
-          <option value="NA XVI">NAVAREA XVI · Peru / E. South Pacific</option>
-          <option value="NA XVII">NAVAREA XVII · Arctic Canada (West)</option>
-          <option value="NA XVIII">NAVAREA XVIII · Arctic Canada (East)</option>
-          <option value="NA XIX">NAVAREA XIX · Arctic Norway</option>
-          <option value="NA XX">NAVAREA XX · Arctic Russia (Kara/Laptev)</option>
-          <option value="NA XXI">NAVAREA XXI · Arctic Russia (East Siberian)</option>
-        </select>
-        <svg class="navarea-select-chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <button class="btn btn-primary" onclick="refreshData()">Refresh Data</button>
-      <button class="btn btn-secondary" onclick="switchTab('data')">Data Bank →</button>
-    </div>
-  </div>
-  <div class="map-container">
-    <div id="map"></div>
-    <div class="map-overlay">
-      <details class="map-layer-panel">
-        <summary>
-          <svg class="layer-summary-icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-          <span>Layers</span>
-          <svg class="layer-summary-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-        </summary>
-        <div class="map-layer-section-title">Base Map</div>
-        <label class="map-layer-item"><input type="radio" name="basemap" value="carto-voyager" checked onchange="selectBaseMap(this.value)">CARTO Voyager</label>
-        <label class="map-layer-item"><input type="radio" name="basemap" value="carto-dark" onchange="selectBaseMap(this.value)">CARTO Dark Matter</label>
-        <label class="map-layer-item"><input type="radio" name="basemap" value="carto-positron" onchange="selectBaseMap(this.value)">CARTO Positron</label>
-        <label class="map-layer-item"><input type="radio" name="basemap" value="osm" onchange="selectBaseMap(this.value)">OpenStreetMap</label>
-        <label class="map-layer-item"><input type="radio" name="basemap" value="esri-ocean" onchange="selectBaseMap(this.value)">ESRI Ocean Base</label>
-        <div class="map-layer-divider"></div>
-        <div class="map-layer-section-title">Maritime Overlays</div>
-        <label class="map-layer-item"><input type="checkbox" checked onchange="toggleLayer('warnings',this.checked)">Warning Markers</label>
-        <label class="map-layer-item"><input type="checkbox" checked onchange="toggleLayer('seamarks',this.checked)">OpenSeaMap Seamarks</label>
-        <label class="map-layer-item"><input type="checkbox" onchange="toggleLayer('soundings',this.checked)">Ocean Soundings</label>
-      </details>
-    </div>
-    <div class="map-ctrl-topright" role="toolbar" aria-label="Map Navigation Controls">
-      <button type="button" class="map-recenter-pill-btn" onclick="resetMapView()" title="Re-center / Locate" aria-label="Re-center navigation area on map">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8"/></svg>
-        <span>Re-center</span>
-      </button>
-    </div>
-    <div class="map-warning-list" id="mapWarningList">
-      <div class="panel-header">
-        <div style="display:flex;align-items:center;gap:8px">
-          <h2>Active Warnings</h2>
-          <span class="badge-simple badge-active" id="mapLiveBadge"><span class="dot"></span> 0 live</span>
-        </div>
-        <div class="panel-actions">
-          <button type="button" class="panel-btn" id="btnMinWarningList" onclick="toggleMinimizeWarningList()" title="Minimize" aria-label="Minimize active warnings list">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-          <button type="button" class="panel-btn" id="btnMaxWarningList" onclick="toggleMaximizeWarningList()" title="Maximize" aria-label="Maximize active warnings list">
-            <svg id="iconMaxWarningList" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-          </button>
-        </div>
-      </div>
-    </div>
-    <div class="map-attribution">© OpenStreetMap contributors · CARTO · OpenSeaMap</div>
-  </div>
-</div>
-
-<!-- DATA BANK -->
-<div class="tab-panel" id="tab-data" role="tabpanel" aria-labelledby="tab-btn-data" hidden>
-  <div class="page-header">
-    <div><h1>Data Bank</h1><p class="subtitle" id="dataSubtitle">0 published warnings</p></div>
-    <div class="actions">
-      <button class="btn btn-primary" id="btnRefreshSupabase" onclick="refreshSupabaseConnection()">
-        <svg style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-        <span>Refresh Supabase</span>
-      </button>
-      <button class="btn btn-secondary" onclick="showToast('Exporting data as CSV/JSON (Offline format)')">Export</button>
-    </div>
-  </div>
-  <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-icon active" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M4.93 4.93a10 10 0 0 1 14.14 0M7.76 7.76a6 6 0 0 1 8.48 0"/></svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Active</div>
-        <div class="stat-value-row"><span class="stat-value" id="statActive">0</span><span class="stat-sub">In-force</span></div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon coverage" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Coverage</div>
-        <div class="stat-value-row"><span class="stat-value" id="statCoverage">0/21</span><span class="stat-sub" id="statCoverageSub">0% global</span></div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon high" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Critical / High</div>
-        <div class="stat-value-row"><span class="stat-value" id="statHigh">0</span><span class="stat-sub" id="statHighSub">0 warnings</span></div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon geo" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Georeferenced</div>
-        <div class="stat-value-row"><span class="stat-value" id="statGeo">100%</span><span class="stat-sub">GPS Coords</span></div>
-      </div>
-    </div>
-  </div>
-  <div class="filter-bar">
-    <div class="search">
-      <label for="searchInput" class="sr-only">Search warnings</label>
-      <input type="search" placeholder="Search warnings..." id="searchInput" oninput="filterTable()" aria-label="Search warnings">
-    </div>
-    <button class="btn btn-ghost" id="btnToggleFilters" onclick="toggleAdvancedFilters()" aria-expanded="false" aria-controls="advancedFilters">Filters <span id="activeFilterCount" class="badge-simple badge-neutral" style="display:none">0</span></button>
-  </div>
-  <div class="advanced-filters" id="advancedFilters">
-    <div class="filter-grid">
-      <div class="filter-group">
-        <label for="filter-navarea">NAVAREA</label>
-        <select id="filter-navarea" onchange="applyFilters()" aria-label="Filter by NAVAREA">
-          <option value="">All Regions</option>
-          <option value="NA I">NA I · North Atlantic / UK</option>
-          <option value="NA II">NA II · East Atlantic</option>
-          <option value="NA III">NA III · Mediterranean</option>
-          <option value="NA IV">NA IV · West Atlantic</option>
-          <option value="NA V">NA V · Brazil / SW Atlantic</option>
-          <option value="NA VI">NA VI · Argentina / SE Atlantic</option>
-          <option value="NA VII">NA VII · South Africa</option>
-          <option value="NA VIII">NA VIII · Indian Ocean</option>
-          <option value="NA IX">NA IX · Red Sea / Persian Gulf</option>
-          <option value="NA X">NA X · Australia</option>
-          <option value="NA XI">NA XI · East Asia / Japan</option>
-          <option value="NA XII">NA XII · East Pacific</option>
-          <option value="NA XIII">NA XIII · NW Pacific / Okhotsk</option>
-          <option value="NA XIV">NA XIV · New Zealand / S. Pacific</option>
-          <option value="NA XV">NA XV · Chile / SE Pacific</option>
-          <option value="NA XVI">NA XVI · Peru / E. South Pacific</option>
-          <option value="NA XVII">NA XVII · Arctic Canada (West)</option>
-          <option value="NA XVIII">NA XVIII · Arctic Canada (East)</option>
-          <option value="NA XIX">NA XIX · Arctic Norway</option>
-          <option value="NA XX">NA XX · Arctic Russia (Kara/Laptev)</option>
-          <option value="NA XXI">NA XXI · Arctic Russia (East Siberian)</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="filter-severity">Severity</label>
-        <select id="filter-severity" onchange="applyFilters()" aria-label="Filter by Severity">
-          <option value="">All</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="moderate">Moderate</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="filter-category">Category</label>
-        <select id="filter-category" onchange="applyFilters()" aria-label="Filter by Category">
-          <option value="">All</option>
-          <option value="military">Military</option>
-          <option value="drifting">Drifting</option>
-          <option value="general">General</option>
-          <option value="aton">AtoN</option>
-          <option value="subsea">Subsea</option>
-        </select>
-      </div>
-    </div>
-  </div>
-  <div class="data-table-container">
-    <table class="data-table">
-      <caption class="sr-only">Navigational Warnings Data Bank</caption>
-      <thead>
-        <tr>
-          <th scope="col">ID</th>
-          <th scope="col">Area</th>
-          <th scope="col">Title</th>
-          <th scope="col">Severity</th>
-          <th scope="col">Issued</th>
-          <th scope="col">Coords</th>
-          <th scope="col">Status</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-    <div class="table-footer"><span id="tableCount">Showing 1–0 of 0</span><span>Rows: 10</span></div>
-  </div>
-  <div class="card-list" id="cardList"></div>
-</div>
-
-<!-- SOURCES -->
-<div class="tab-panel" id="tab-sources" role="tabpanel" aria-labelledby="tab-btn-sources" hidden>
-  <div class="page-header">
-    <div><h1>Source Registry</h1><p class="subtitle">14 verified feeds across 21 NAVAREAs</p></div>
-  </div>
-  <div class="sources-grid" id="sourcesGrid"></div>
-</div>
-</main>
-
-<nav class="bottom-nav" aria-label="Mobile bottom navigation">
-  <div role="tablist" aria-label="Mobile navigation views" style="display:flex;width:100%;align-items:center">
-    <button class="bottom-nav-item active" data-bottom-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" onclick="switchTab('map')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg><span>Map</span><span class="bottom-badge" id="bottomBadge">0</span></button>
-    <button class="bottom-nav-item" data-bottom-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" onclick="switchTab('data')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg><span>Data</span></button>
-    <button class="bottom-nav-item" data-bottom-tab="sources" role="tab" aria-selected="false" aria-controls="tab-sources" onclick="switchTab('sources')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg><span>Sources</span></button>
-  </div>
-</nav>
-
-<footer class="site-footer">
-  <div class="footer-inner">
-    <div>Helm.Warning — NAVAREA Maritime Safety Information Pipeline</div>
-    <div class="footer-disclaimer">Automated decision-support system. Not a substitute for GMDSS or official MSI.</div>
-  </div>
-</footer>
-</div><!-- /portalView -->
-
-<!-- ════════════════════════════════════════════════════════════════════════════ -->
-<!-- ADMIN LOGIN GATE                                                            -->
-<!-- ════════════════════════════════════════════════════════════════════════════ -->
-<div id="loginView">
-  <div class="login-card">
-    <div class="login-logo"><span class="logo-badge">HW</span> Helm.Warning</div>
-    <div class="login-sub">Admin Console — restricted operator access</div>
-    <div class="login-error" id="loginError"></div>
-    <form onsubmit="handleLogin(event)">
-      <label class="login-label" for="loginEmail">Email</label>
-      <input class="login-input" type="email" id="loginEmail" placeholder="admin@helm.warning" autocomplete="username" required>
-      <label class="login-label" for="loginPassword">Password</label>
-      <input class="login-input" type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required>
-      <button class="btn btn-primary" type="submit" id="loginBtn" style="width:100%">Sign In</button>
-    </form>
-    <div style="text-align:center;margin-top:20px">
-      <a href="#" onclick="returnToPublic(); return false;" style="font-size:13px;color:var(--text-light);text-decoration:none">← Back to public maritime portal</a>
-    </div>
-  </div>
+${indexBody}
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════════ -->
-<!-- ADMIN OPERATIONAL APP                                                        -->
+<!-- 2. ADMIN LOGIN GATE                                                         -->
 <!-- ════════════════════════════════════════════════════════════════════════════ -->
-<div id="adminView">
-<header class="admin-header">
-  <div class="admin-header-inner">
-    <div class="admin-brand">
-      <span class="logo-badge">HW</span>
-      Helm.Warning <span class="admin-chip">Admin</span>
-    </div>
-    <div class="admin-header-actions">
-      <span class="admin-user" id="adminUserEmail"></span>
-      <button type="button" class="btn btn-ghost" onclick="returnToPublic()" style="text-decoration:none">View Site ↗</button>
-      <button type="button" class="btn btn-sm btn-secondary" onclick="logout()">Sign Out</button>
-    </div>
-  </div>
-</header>
+${loginContent}
 
-<main class="main" id="adminMain" tabindex="-1">
-  <nav class="admin-subnav" aria-label="Admin console navigation">
-    <div role="tablist" aria-label="Admin console sections" style="display:flex;gap:4px;width:100%;align-items:center">
-      <button class="asub-btn active" data-sub="overview" role="tab" aria-selected="true" onclick="switchAdminSub('overview')">Overview</button>
-      <button class="asub-btn" data-sub="pipeline" role="tab" aria-selected="false" onclick="switchAdminSub('pipeline')">Pipeline</button>
-      <button class="asub-btn" data-sub="import" role="tab" aria-selected="false" onclick="switchAdminSub('import')">Import</button>
-      <button class="asub-btn" data-sub="verify" role="tab" aria-selected="false" onclick="switchAdminSub('verify')">Verify <span class="asub-badge" id="verifyBadge" style="display:none">0</span></button>
-      <button class="asub-btn" data-sub="system" role="tab" aria-selected="false" onclick="switchAdminSub('system')">System</button>
-    </div>
-  </nav>
-
-  <!-- OVERVIEW -->
-  <div class="admin-sub active" id="admin-overview">
-    <div class="admin-hero">
-      <div>
-        <div class="hero-status"><span class="status-dot live"></span> Pipeline Operational</div>
-        <div class="hero-meta">Cycle operational · background worker active</div>
-        <div class="hero-stages"><span class="hero-stage">✓ Fetch</span><span class="hero-stage">✓ Parse</span><span class="hero-stage">✓ Geocode</span><span class="hero-stage">✓ Publish</span></div>
-      </div>
-      <button class="btn btn-primary" id="runCycleBtn" onclick="runPipelineCycle()">▶ Run Cycle Now</button>
-    </div>
-    <div class="attention" id="attentionPanel"></div>
-    <div class="section-title">Quick Actions</div>
-    <div class="qa-row">
-      <button class="qa-card" onclick="switchAdminSub('import')"><span class="qa-ico">⬆</span><div><b>Import Data</b><span>Bulk ingestion wizard</span></div></button>
-      <button class="qa-card" onclick="switchAdminSub('verify')"><span class="qa-ico">✓</span><div><b>Verify Warnings</b><span id="qaVerifySub">All verified</span></div></button>
-    </div>
-  </div>
-
-  <!-- PIPELINE -->
-  <div class="admin-sub" id="admin-pipeline">
-    <div class="stage-row">
-      <div class="stage-card" id="stage-fetch"><div class="stage-top"><span class="stage-num">01</span><span class="stage-state" id="st-fetch"><span class="dot"></span> Ready</span></div><div class="stage-name">Fetch Sources</div><div class="stage-desc">Poll coordinators via HTTPS</div></div>
-      <div class="stage-arrow">→</div>
-      <div class="stage-card" id="stage-parse"><div class="stage-top"><span class="stage-num">02</span><span class="stage-state" id="st-parse"><span class="dot"></span> Ready</span></div><div class="stage-name">Parse &amp; Normalize</div><div class="stage-desc">Tokenize raw text</div></div>
-      <div class="stage-arrow">→</div>
-      <div class="stage-card" id="stage-geocode"><div class="stage-top"><span class="stage-num">03</span><span class="stage-state" id="st-geocode"><span class="dot"></span> Ready</span></div><div class="stage-name">Geocode Geometry</div><div class="stage-desc">Points, polygons, circles</div></div>
-      <div class="stage-arrow">→</div>
-      <div class="stage-card" id="stage-publish"><div class="stage-top"><span class="stage-num">04</span><span class="stage-state" id="st-publish"><span class="dot"></span> Ready</span></div><div class="stage-name">Publish Generation</div><div class="stage-desc">Atomic pointer swap</div></div>
-    </div>
-    <div class="wiz-nav" style="margin:0 0 20px">
-      <span></span>
-      <button class="btn btn-primary" id="runCycleBtn2" onclick="runPipelineCycle()">▶ Run Cycle Now</button>
-    </div>
-  </div>
-
-  <!-- IMPORT -->
-  <div class="admin-sub" id="admin-import">
-    <div class="wizard-steps">
-      <div class="wstep active" id="ws1"><span class="wstep-num">1</span>Source</div><div class="wstep-line" id="wl1"></div>
-      <div class="wstep" id="ws2"><span class="wstep-num">2</span>Input</div><div class="wstep-line" id="wl2"></div>
-      <div class="wstep" id="ws3"><span class="wstep-num">3</span>Validate</div><div class="wstep-line" id="wl3"></div>
-      <div class="wstep" id="ws4"><span class="wstep-num">4</span>Publish</div>
-    </div>
-    <div class="wpanel active" id="wstep1">
-      <div class="method-grid">
-        <button class="method-card selected" data-method="paste" onclick="selectMethod('paste')"><span class="method-icon">✎</span><div><div class="method-name">Paste Warning Text</div><div class="method-desc">Raw NAVAREA / MSI bulletin text</div></div><span class="method-tag">manual</span></button>
-      </div>
-      <div class="wiz-nav"><span></span><button class="btn btn-primary" onclick="wizardGo(2)">Continue →</button></div>
-    </div>
-    <div class="wpanel" id="wstep2">
-      <label for="wizInput" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Raw Warning Bulletin Text</label>
-      <textarea class="wiz-textarea" id="wizInput" aria-label="Raw warning bulletin text" placeholder="Paste mixed maritime feed, bulletin, or web dump..." oninput="updateWizCount()"></textarea>
-      <div class="wiz-count"><span id="wizCountLabel">0 lines · 0 KB</span></div>
-      <div class="wiz-nav">
-        <button class="btn btn-secondary" onclick="wizardGo(1)">← Back</button>
-        <button class="btn btn-primary" id="wizContinue2" onclick="wizardGo(3)" disabled>Validate →</button>
-      </div>
-    </div>
-    <div class="wpanel" id="wstep3">
-      <div class="parse-summary" id="parseSummary"></div>
-      <div id="parseResults"></div>
-      <div class="wiz-nav">
-        <button class="btn btn-secondary" onclick="wizardGo(2)">← Back</button>
-        <button class="btn btn-primary" onclick="wizardGo(4)">Review &amp; Publish →</button>
-      </div>
-    </div>
-    <div class="wpanel" id="wstep4">
-      <div id="publishArea">
-        <div class="publish-review">
-          <div class="pr-row"><span class="k">New warnings to publish</span><span class="v" id="prNew">0</span></div>
-          <div class="pr-row"><span class="k">Target</span><span class="v">Supabase · public.nav_warnings</span></div>
-        </div>
-        <div class="wiz-nav"><span></span><button class="btn btn-primary" id="publishBtn" onclick="publishImport()">🔒 Publish Atomically</button></div>
-      </div>
-      <div id="successArea" style="display:none">
-        <div class="success-panel">
-          <div class="big">✓</div><h3>Published Successfully</h3>
-          <p>New warnings are now live on the public site.</p>
-          <div class="gen-id" id="genId"></div>
-          <div class="wiz-nav" style="justify-content:center;margin-top:20px">
-            <button class="btn btn-secondary" onclick="returnToPublic()">View Public Site ↗</button>
-            <button class="btn btn-ghost" onclick="resetWizard()">Start New Import</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- VERIFY -->
-  <div class="admin-sub" id="admin-verify">
-    <div id="verifyQueue"></div>
-  </div>
-
-  <!-- SYSTEM -->
-  <div class="admin-sub" id="admin-system">
-    <div class="section-title">AI Extraction Chain</div>
-    <div class="sys-grid">
-      <div class="ai-card"><div class="ai-head"><span class="ai-name">Gemini API</span><span class="badge-simple badge-neutral" id="geminiStatus"><span class="dot"></span> Idle</span></div><div class="ai-meta">gemini-3.1-flash-lite</div><div class="ai-last" id="geminiLast">Last test: never</div><button class="btn btn-sm btn-secondary" id="geminiBtn" onclick="testModel('gemini')">Test Connection</button></div>
-    </div>
-    <div class="section-title">Database</div>
-    <div class="db-status"><span class="status-dot live"></span> Connected — Supabase Postgres</div>
-    <div style="margin-bottom:16px; margin-top:8px;">
-      <div style="padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:0 0 12px 12px;">
-        <pre class="schema-box" id="sqlSchema">-- Current schema (20261019/20 backend contract)
-CREATE TABLE public.nav_warnings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  canonical_id TEXT UNIQUE NOT NULL,   -- e.g. 'NAVAREA XI 0451/26'
-  navarea TEXT NOT NULL,               -- full name, e.g. 'NAVAREA XI'
-  source_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  area_text TEXT,
-  raw_text TEXT NOT NULL,
-  status TEXT NOT NULL,                -- active|cancelled|expired|superseded|unverified
-  categories TEXT[] NOT NULL,          -- replaces category/severity/risk_level
-  triage_tier TEXT NOT NULL,           -- A (auto-plot) | B (review) | C (blocked)
-  data_quality TEXT NOT NULL,          -- EXPLICIT|INFERRED|AMBIGUOUS|INVALID
-  parsing_method TEXT NOT NULL,        -- RULE|AI
-  qa_flags JSONB,
-  unplotted_reason TEXT,
-  valid_from TIMESTAMPTZ, valid_to TIMESTAMPTZ, issued_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
-);
--- Geometry lives in public.nav_warning_geometries (PostGIS).
--- The map reads public.nav_warnings_active_spatial (geojson_blob).
--- Full contract: docs/supabase-backend-contract.md</pre>
-      </div>
-    </div>
-  </div>
-</main>
-</div><!-- /adminView -->
-
-<!-- SHARED MODALS & NOTIFICATIONS -->
-<div class="modal-overlay" id="warningModal" onclick="closeModal(event)" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-header"><h2 id="modalTitle">Warning</h2><button class="modal-close" onclick="closeWarningModal()" aria-label="Close warning details">✕</button></div>
-    <div class="modal-body" id="modalBody"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeWarningModal()">Close</button>
-      <button class="btn btn-secondary" onclick="locateOnMap()">Locate on Map</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<!-- ════════════════════════════════════════════════════════════════════════════ -->
+<!-- 3. ADMIN OPERATIONAL CONSOLE                                                -->
+<!-- ════════════════════════════════════════════════════════════════════════════ -->
+${adminContent}
 
 <!-- ════════════════════════════════════════════════════════════════════════════ -->
 <!-- INLINED VENDOR LIBRARIES                                                     -->
@@ -579,7 +297,7 @@ ${supabaseJs}
 </script>
 
 <!-- ════════════════════════════════════════════════════════════════════════════ -->
-<!-- INLINED APPLICATION SCRIPTS & CONTROLLERS                                    -->
+<!-- INLINED CORE APPLICATION LOGIC                                              -->
 <!-- ════════════════════════════════════════════════════════════════════════════ -->
 <script>
 ${supabaseAppJs}
@@ -593,13 +311,38 @@ ${publicAppJs}
 ${adminAppJs}
 </script>
 
-<!-- UNIFIED TRANSITION CONTROLLER -->
+<!-- ════════════════════════════════════════════════════════════════════════════ -->
+<!-- REFERENCE RUNTIME CONTROLLER (Transitions & View States)                     -->
+<!-- ════════════════════════════════════════════════════════════════════════════ -->
 <script>
-window.openAdmin = function() {
+function updateRefBannerState(mode) {
+  const pBtn = document.getElementById('btnRefPortal');
+  const lBtn = document.getElementById('btnRefLogin');
+  const aBtn = document.getElementById('btnRefAdmin');
+  if (pBtn) pBtn.classList.toggle('active', mode === 'portal');
+  if (lBtn) lBtn.classList.toggle('active', mode === 'login');
+  if (aBtn) aBtn.classList.toggle('active', mode === 'admin');
+}
+
+window.openAdminLogin = function() {
   document.body.classList.remove('admin-active');
   document.body.classList.add('admin-login-active');
-  window.checkSession();
+  updateRefBannerState('login');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+window.openAdmin = function() {
+  const s = sessionStorage.getItem('hw_admin_session');
+  if (s) {
+    try {
+      const parsed = JSON.parse(s);
+      if (parsed && parsed.email) {
+        enterAdmin(parsed.email);
+        return;
+      }
+    } catch(e) {}
+  }
+  openAdminLogin();
 };
 
 window.returnToPublic = function() {
@@ -607,42 +350,156 @@ window.returnToPublic = function() {
   document.getElementById('portalView').style.display = 'block';
   document.getElementById('loginView').style.display = 'none';
   document.getElementById('adminView').style.display = 'none';
-  const m = typeof getLeafletMap === 'function' ? getLeafletMap() : null;
-  if (m) {
-    setTimeout(() => m.invalidateSize(), 150);
-  }
+  updateRefBannerState('portal');
+  
+  // Re-trigger Leaflet layout calculation so map renders crisply
+  setTimeout(() => {
+    if (typeof getLeafletMap === 'function') {
+      const m = getLeafletMap();
+      if (m) m.invalidateSize();
+    }
+  }, 120);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// Hook into enterAdmin to set body class
-const _origEnterAdmin = window.enterAdmin;
+// Overwrite enterAdmin for reference bundle
+const _baseEnterAdmin = window.enterAdmin;
 window.enterAdmin = function(email) {
   document.body.classList.remove('admin-login-active');
   document.body.classList.add('admin-active');
   document.getElementById('portalView').style.display = 'none';
   document.getElementById('loginView').style.display = 'none';
   document.getElementById('adminView').style.display = 'block';
-  document.getElementById('adminUserEmail').textContent = email;
-  if (typeof loadAdminData === 'function') loadAdminData();
+  const emailEl = document.getElementById('adminUserEmail');
+  if (emailEl) emailEl.textContent = email || 'safety-lead@helm.warning';
+  sessionStorage.setItem('hw_admin_session', JSON.stringify({ email: email || 'safety-lead@helm.warning', ts: Date.now() }));
+  updateRefBannerState('admin');
+  if (typeof loadAdminData === 'function') {
+    try { loadAdminData(); } catch(e) { console.warn('loadAdminData notice:', e); }
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-const _origLogout = window.logout;
+// Overwrite logout for reference bundle
 window.logout = async function() {
   if (window.hwSupabase) {
     try { await window.hwSupabase.auth.signOut(); } catch(_) {}
   }
   sessionStorage.removeItem('hw_admin_session');
   returnToPublic();
-  showToast('Signed out of admin console');
+  if (typeof showToast === 'function') showToast('Signed out of operator console');
 };
 </script>
 </body>
 </html>
 `;
 
-const outputPath = path.join(rootDir, 'public/export/helm-warning-complete.html');
-fs.writeFileSync(outputPath, bundleHtml, 'utf8');
+// ════════════════════════════════════════════════════════════════════════════
+// 2. STANDALONE PUBLIC PORTAL (index.single.html)
+// ════════════════════════════════════════════════════════════════════════════
+const standaloneIndexHtml = `<!DOCTYPE html>
+<html lang="en" class="tab-map-active">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>Live NAVAREA Warnings Map | Free Maritime Safety Information (Single-File Reference)</title>
+<meta name="description" content="Free interactive map of live NAVAREA navigational warnings. Fast, mobile-friendly maritime safety information for passage planning.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f172a'/%3E%3Ctext x='16' y='21' fill='%23ffffff' font-family='sans-serif' font-size='14' font-weight='700' text-anchor='middle'%3EHW%3C/text%3E%3C/svg%3E">
 
-console.log('Successfully generated complete single-file bundle at:');
-console.log(outputPath);
-console.log('File size:', (Buffer.byteLength(bundleHtml, 'utf8') / 1024).toFixed(1), 'KB');
+<style>
+${leafletCss}
+</style>
+<style>
+${tokensCss}
+${componentsCss}
+</style>
+<style>
+${indexStyles}
+</style>
+</head>
+<body class="tab-map-active">
+${indexBody}
+
+<script>
+${leafletJs}
+</script>
+<script>
+${supabaseJs}
+</script>
+<script>
+${supabaseAppJs}
+</script>
+<script>
+${publicAppJs}
+</script>
+</body>
+</html>
+`;
+
+// ════════════════════════════════════════════════════════════════════════════
+// 3. STANDALONE ADMIN CONSOLE (admin.single.html)
+// ════════════════════════════════════════════════════════════════════════════
+const standaloneAdminHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Helm.Warning — Admin Console (Single-File Reference)</title>
+
+<style>
+${tokensCss}
+${componentsCss}
+</style>
+<style>
+${adminStyles}
+</style>
+</head>
+<body>
+<a href="#adminMain" class="skip-link">Skip to main content</a>
+${loginContent}
+${adminContent}
+<div class="toast" id="toast"></div>
+
+<script>
+${supabaseJs}
+</script>
+<script>
+${supabaseAppJs}
+</script>
+<script>
+${adminAppJs}
+</script>
+</body>
+</html>
+`;
+
+// ════════════════════════════════════════════════════════════════════════════
+// WRITE OUTPUT FILES
+// ════════════════════════════════════════════════════════════════════════════
+const exportDir = path.join(rootDir, 'public/export');
+if (!fs.existsSync(exportDir)) {
+  fs.mkdirSync(exportDir, { recursive: true });
+}
+
+// 1. Root & Export Complete Single Files
+const rootCompletePath = path.join(rootDir, 'helm-warning-complete.html');
+const exportCompletePath = path.join(exportDir, 'helm-warning-complete.html');
+fs.writeFileSync(rootCompletePath, unifiedSingleHtml, 'utf8');
+fs.writeFileSync(exportCompletePath, unifiedSingleHtml, 'utf8');
+
+// 2. Standalone Index Single File
+const exportIndexPath = path.join(exportDir, 'index.single.html');
+fs.writeFileSync(exportIndexPath, standaloneIndexHtml, 'utf8');
+
+// 3. Standalone Admin Single File
+const exportAdminPath = path.join(exportDir, 'admin.single.html');
+fs.writeFileSync(exportAdminPath, standaloneAdminHtml, 'utf8');
+
+console.log('✅ Generated Single-File Reference HTML files:');
+console.log('   1. [Combined] /helm-warning-complete.html (' + (Buffer.byteLength(unifiedSingleHtml) / 1024).toFixed(1) + ' KB)');
+console.log('   2. [Combined] /public/export/helm-warning-complete.html (' + (Buffer.byteLength(unifiedSingleHtml) / 1024).toFixed(1) + ' KB)');
+console.log('   3. [Public]   /public/export/index.single.html (' + (Buffer.byteLength(standaloneIndexHtml) / 1024).toFixed(1) + ' KB)');
+console.log('   4. [Admin]    /public/export/admin.single.html (' + (Buffer.byteLength(standaloneAdminHtml) / 1024).toFixed(1) + ' KB)');

@@ -1,102 +1,97 @@
-# Helm.Warning — Phase 1 SEO Implementation Plan (Adapted)
+# Helm.Warning — Admin Section Design Critique Framework & Baseline Audit Plan
 
-Analyse and adapt the Phase 1 SEO Roadmap for **Helm.Warning** (`https://helmwarning.vercel.app/`) to move from unindexed to ranking for primary maritime safety and NAVAREA search queries, fully aligned with the live codebase and confirmed user preferences.
+A structured methodology and live baseline critique for the **Helm.Warning Admin Console** (`admin.html` and `public/assets/js/admin.js`), balancing maritime safety operator rigor (`CORRECT + TRACEABLE + EXPLICITLY UNCERTAIN`) with enterprise UI design system standards.
 
 ---
 
-## User Review & Critical Decisions
+## User Context & Confirmed Decisions
 
 > [!IMPORTANT]
-> The following decisions were clarified in Phase 1 and are baked into this adapted plan:
-
-- **Confirmed Canonical Domain**: Using `https://helmwarning.vercel.app/` as the primary canonical domain across all meta tags, canonical links, sitemap entries, and structured data graph IDs. (If a custom domain such as `helmwarning.com` is acquired later, an atomic global URL update is documented).
-- **Confirmed Social Share Asset**: Retaining and referencing the existing `public/og-preview.png` (1200×630px high-contrast maritime preview) for both OpenGraph and Twitter cards (`summary_large_image`).
-- **Confirmed Sitemap Architecture**: Pruning `public/sitemap.xml` to a single clean canonical root URL (`https://helmwarning.vercel.app/`) without query parameter variations (`?view=map`), matching Google search quality guidelines.
-- **Search Console Verification**: Maintaining the `<meta name="google-site-verification" content="...">` hook in `index.html` ready for live token insertion without redeployment friction.
+> The following parameters were confirmed via clarifying discovery:
+> - **Deliverable Location**: Authoritative reference document located at `/docs/admin-design-critique-framework.md`.
+> - **Scope**: Complete evaluation framework methodology **plus** a comprehensive, live baseline audit of all 5 existing admin console sub-tabs (Overview, Pipeline Orchestrator, Import Wizard, Verification Queue, System Diagnostics).
+> - **Evaluator Perspective**: Balanced maritime safety operator and UI design system perspective, ensuring that human-in-the-loop safety, PostGIS geometry fidelity, and zero-fabrication rules carry equal weight with WCAG 2.1 AA accessibility, token consistency, and interaction ergonomics.
 
 ---
 
-## 1. Overview & Core Concept
+## 1. Overview & Framework Architecture
 
-- **What It Does**: Optimizes `Helm.Warning` for rapid indexing and high-relevance search visibility across Google, Bing, and maritime professional networks. Ensures all search crawlers receive pristine HTTP 200 metadata, comprehensive Schema.org linked data, and crawlable pre-rendered keyword content before client JavaScript hydrations.
-- **Target Audience / Persona**: Watchkeeping officers (OOW), navigators, master mariners, passage planners, maritime safety auditors, yacht skippers, and coastal boaters seeking instant, mobile-friendly active NAVAREA hazard information.
-- **Key Value**: Immediate discovery in search engines for high-intent queries like "live navarea warnings", "navarea warnings map", and "maritime safety information" without requiring vessel login or slow legacy portal navigation.
+The framework establishes an ongoing, repeatable protocol for critiquing, testing, and hardening administrative interfaces in safety-critical maritime warning systems.
 
----
-
-## 2. User Experience & Visual Design
-
-- **Search Engine Result Pages (SERP)**:
-  - Title: `Live NAVAREA Warnings Map | Free Maritime Safety Information` (58 chars, zero truncation).
-  - Meta Description: `Free interactive map of live NAVAREA navigational warnings. Fast, mobile-friendly maritime safety information for passage planning. No login required.` (149 chars, within the 120–160 character sweet spot).
-- **Social Card Sharing (Slack, LinkedIn, X, WhatsApp, Discord)**:
-  - Rich card preview using `public/og-preview.png` with crisp title and description.
-- **Crawlable Semantic Prose (In-App)**:
-  - Pre-rendered inside the footer's `<details class="seo-accordion">` tag.
-  - Zero disruption to Map Focus Mode or the active cartographic viewport.
-  - Provides ~300 words of crawlable, indexable semantic context explaining the World-Wide Navigational Warning Service (WWNWS), all 21 NAVAREAs (I–XXI including the Arctic regions XVII–XXI), 14 official hydrographic sources, and official GMDSS / SOLAS safety notices.
-- **Layout Stability (Cumulative Layout Shift - CLS)**:
-  - Strict CSS reserved heights for the map container (`620px` desktop, `460px` mobile) to guarantee CLS < 0.1 during Leaflet tile hydration.
-
----
-
-## 3. Key Product Decisions & Trade-Offs
-
-- **Decision 1: Single Root Sitemap vs Parameterized URLs**
-  - *Chosen Approach*: Only list `https://helmwarning.vercel.app/` in `public/sitemap.xml`. Remove `?view=map`, `?view=databank`, and `?view=sources`.
-  - *Why*: Google treats single-page app view parameters that share the same canonical URL as duplicates or low-quality URL variants. A single canonical URL prevents crawl budget dilution.
-  - *Alternatives Considered*: Submitting parameterized URLs — rejected as search engines often canonicalize them back to root while flagging soft duplicate warnings.
-- **Decision 2: Connected 3-Entity Schema.org Graph**
-  - *Chosen Approach*: Embed an interconnected `@graph` containing `Organization` (`#org`), `WebApplication` (`#app`), and `Dataset` (`#dataset`) with explicit `creator`, `publisher`, `license`, and `isAccessibleForFree: true`.
-  - *Why*: Provides search engines with verified context that this is an open-access utility providing a dataset of maritime safety notices.
-  - *Alternatives Considered*: Basic single `SoftwareApplication` without Dataset markup — rejected because Dataset structured data unlocks specialized rich results in Google Dataset Search.
-- **Decision 3: Non-Intrusive Semantic Accordion in Footer**
-  - *Chosen Approach*: Keep the crawlable prose in an accessible `<details>` accordion at the bottom of the page rather than cluttering the map header.
-  - *Why*: Balances mariner utility (instant uncluttered chart) with search crawler discoverability (pre-rendered text present in raw HTML `view-source`).
+### Scope of the Framework
+1. **Critique Structure**:
+   - What Works Well (strengths, alignment with tokens, established affordances).
+   - Areas for Improvement (cognitive friction, accessibility gaps, risk surfaces).
+   - Questions and Concerns (ambiguities, data traceability, edge-case risks).
+   - Actionable Recommendations (direct, code-level remediation steps).
+2. **Evaluation Criteria**:
+   - Usability (task efficiency, error tolerance, cognitive load during watchkeeping).
+   - Visual Design (typography scale, spatial density, visual hierarchy, dark theme cohesion).
+   - Accessibility (WCAG 2.1 AA, keyboard roving tabindex, screen reader live regions, touch targets).
+   - Consistency (strict adherence to design tokens `--critical`, `--high`, `--active`, `--verified`, `--neutral`).
+   - Innovation (intelligent pre-flight triage, spatial verification, differential auditing).
+3. **Feedback Categories**:
+   - User Experience (operator mental models, navigational flow, triage throughput).
+   - Visual Design (token discipline, color semantics, typography hierarchy).
+   - Interaction Design (state transitions, debounce/spinners, destructive confirmations).
+   - Content & Copy (maritime terminology, WWNWS/GMDSS standard phrasing, clear error notices).
+   - Technical Feasibility & Security (RLS policies, SSRF bounds, service-role isolation, API limits).
+4. **Feedback Format & Priority Matrix**:
+   - Standard observation template with Observation, Impact Assessment, Priority Level (P0–P3), and Suggested Solution.
+   - Maritime Priority Scale:
+     - **P0 Safety-Critical**: Risk of false navigational publication, coordinate distortion, or silent guessing.
+     - **P1 Operational Blocker**: Functional failure, broken authentication, or unhandled pipeline state.
+     - **P2 Operator Friction / Polish**: Inefficient workflow, minor token deviation, lack of keyboard shortcuts.
+     - **P3 Enhancement / Innovation**: Advanced spatial preview, historical diff inspection, telemetry enhancements.
+5. **Collaborative Approach & Review Lifecycle**:
+   - Presentation protocol (objective, blameless, evidence-backed with DOM/code references).
+   - Reception and triage workflow for engineering and GIS teams.
+   - Follow-up verification (Playwright UX smoke tests, schema contract validation).
+   - Documentation & change logs.
 
 ---
 
-## 4. Technical Architecture & Data Strategy
+## 2. Live Baseline Evaluation of Existing Admin Console
 
-### Technical Architecture Diagram
+The deliverable will apply the framework directly to the current implementation (`admin.html` and `public/assets/js/admin.js`), inspecting:
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        Search Engine Crawlers                          │
-│               (Googlebot, Bingbot, Social Preview Bots)                │
-└──────────────────────────────────┬─────────────────────────────────────┘
-                                   │ HTTP GET
-                                   ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                       Static Edge / Vercel Host                        │
-│                                                                        │
-│   ├── /robots.txt           (Allows root, disallows /admin, links map) │
-│   ├── /sitemap.xml          (Clean canonical root, ISO-8601 lastmod)   │
-│   ├── /og-preview.png       (1200x630 dark-nautical preview asset)     │
-│   │                                                                    │
-│   └── /index.html (Raw Pre-hydrated HTML)                              │
-│       ├── Head: Title (58c), Description (149c), Canonical, Robots     │
-│       ├── OpenGraph & Twitter metadata (summary_large_image)           │
-│       ├── JSON-LD Schema.org (@graph: Org + WebApp + Dataset)          │
-│       ├── Semantic Pre-rendered DOM:                                   │
-│       │   └── <details class="seo-accordion">                          │
-│       │       └── H2 "Live NAVAREA Warnings for Passage Planning"      │
-│       │       └── 21 NAVAREA Coverage + WWNWS + GMDSS Disclaimer       │
-│       └── Application Shell & Leaflet Map Container                    │
-└────────────────────────────────────────────────────────────────────────┘
-```
+### Tab 1: Overview
+- **Strengths**: Clear high-level health card, quick action shortcuts, clean connection status.
+- **Deficiencies**: Static pipeline status without real-time worker heartbeat; quick action cards lack keyboard focus outlines.
 
-### Implementation Sub-Tasks & Deliverables
+### Tab 2: Pipeline Orchestrator
+- **Strengths**: 4-stage pipeline visualization (Fetch -> Parse -> Geocode -> Publish).
+- **Critical Deficiency (P0/P1)**: `runPipelineCycle()` executes a simulated 2-second sleep (`showToast('Pipeline cycle complete (simulated)')`), violating the fundamental project rule against fabricating pipeline activity. Plan outlines real worker trigger / RPC status binding.
 
-1. **Crawler Directives (`public/robots.txt` & `public/sitemap.xml`)**:
-   - Verify `robots.txt` blocks `/admin` and `/admin.html` while exposing `Allow: /` and the exact absolute sitemap URL.
-   - Clean `sitemap.xml` to list solely `https://helmwarning.vercel.app/` with current date `2026-10-21`, removing query-string duplicates.
-2. **Document Head & Social Metadata (`index.html`)**:
-   - Ensure `<html lang="en">` is explicitly declared.
-   - Verify `<meta name="robots" content="index, follow, max-image-preview:large">`.
-   - Ensure OpenGraph and Twitter cards reference `https://helmwarning.vercel.app/og-preview.png`.
-   - Update JSON-LD structured data to include the linked 3-entity graph: `Organization`, `WebApplication`, and `Dataset`.
-3. **Crawlable Keyword Block (`index.html`)**:
-   - Adapt the `<details class="seo-accordion">` content to incorporate high-intent passage planning keywords, Arctic coverage notes (NAVAREA XVII–XXI), and explicit coordinator attribution (UKHO, NGA, SHOM, AMSA, JCG, etc.).
-4. **Build & Accessibility Verification**:
-   - Run compilation and verify that all static assets and head tags pass validation without regressions to Focus Mode or Data Bank features.
+### Tab 3: Bulk Import Wizard
+- **Strengths**: 4-step linear progression, live line/byte calculation, real-time Supabase subscription (`manual_ingest_queue`).
+- **Deficiencies**: Only "Paste Warning Text" is enabled; CSV/GPX/S-124 methods are absent or unselectable; Step 3 pre-flight lacks coordinate extraction preview.
+
+### Tab 4: Verification Queue (Safety-Critical)
+- **Strengths**: Displays raw message text, promotes to Tier A with operator audit entry in `nav_warning_audits`.
+- **Critical Deficiencies (P0/P1)**:
+  - "Verify All" button executes bulk promotion without requiring per-warning coordinate or geometry confirmation, creating a high-risk failure mode for maritime safety.
+  - Absence of Leaflet map preview or coordinate bounding box in the verification card: operator cannot visually confirm geometry before publishing.
+  - Hardcoded fake `severity: 'HIGH'` fallback instead of reflecting authoritative `categories` array.
+
+### Tab 5: System Diagnostics
+- **Strengths**: Live Gemini API connection test with real latency benchmarking; schema reference display.
+- **Deficiencies**: Schema display is static hardcoded text rather than queryable diagnostics; Mistral fallback status is missing from the AI Extraction chain display.
+
+---
+
+## 3. Implementation Deliverable
+
+- **Primary Artifact**: `/docs/admin-design-critique-framework.md`
+- **Structure**:
+  1. Executive Summary & Purpose
+  2. The 5-Pillar Critique Methodology
+  3. Evaluation Criteria & Maritime Scoring Rubrics
+  4. Standardized Feedback Protocol & Priority Matrix
+  5. Collaborative Governance & Follow-Up Lifecycle
+  6. Comprehensive Baseline Audit of Existing Admin Console (Tabs 1–5 with concrete code references)
+  7. High-Priority Remediation Roadmap & Test Plan
+- **Verification**:
+  - Validate markdown formatting and internal links.
+  - Verify that no admin secrets or operational credentials are included.
+  - Run `compile_applet` and `lint_applet` to ensure repository integrity.
