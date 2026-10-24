@@ -85,7 +85,7 @@ flowchart TD
     subgraph PROCESSING["2. Parsing & Normalization"]
         C --> D[WWNWS Rule Engine<br/>Header, Dates, Categories, IDs]
         D --> E[Coordinate Lexer & Geometry Extractor<br/>DMS / DDM / Lat-Long / Polygons]
-        E -->|Ambiguous or Complex Bounds| F[AI Extraction<br/>Gemini Flash-Lite + Mistral Fallback]
+        E -->|Ambiguous or Complex Bounds| F[AI Extraction<br/>Gemini Flash-Lite]
     end
 
     subgraph TRIAGE["3. Quality & Triage"]
@@ -150,7 +150,7 @@ flowchart TD
   2. **Pipeline Orchestrator**: Stage-by-stage pipeline inspection (`Fetch Sources` → `Parse & Normalize` → `Geocode Geometry` → `Publish Generation`), feed latency monitoring, and live logs.
   3. **Bulk Import Wizard**: 4-step wizard supporting manual bulletin text, CSV, GPX, and S-124 formats with instant deduplication preview.
   4. **Verification Queue**: Human-in-the-loop triage interface (`Tier B` review queue) to corroborate, correct geometry, or confirm/reject warnings before publication.
-  5. **System Diagnostics**: Live connectivity test for AI extraction models (Gemini Flash-Lite primary, Mistral fallback) and database status.
+  5. **System Diagnostics**: Live connectivity test for the AI extraction model (Gemini Flash-Lite) and database status.
 
 ---
 
@@ -260,7 +260,6 @@ CRON_SECRET=your-cron-secret-token
 
 # AI Feature Extraction
 GEMINI_API_KEY=your-gemini-api-key
-MISTRAL_API_KEY=your-optional-mistral-fallback-key
 
 # Optional Basemap Key
 CARTO_API_KEY=your-optional-carto-key

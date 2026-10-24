@@ -669,7 +669,7 @@ export async function parseManualWarning(
   rawText: string,
   navarea?: string,
   mode: 'hybrid' | 'llm' | 'regex' | 'jhod_structured' = 'hybrid',
-  aiModel: string = 'mistral-small-latest'
+  aiModel: string = 'gemini-3.1-flash-lite'
 ): Promise<{
   warning: NavWarning;
   extraction_method: 'deterministic' | 'llm_assisted' | 'gemini_structured_output' | 'deterministic_hallucination_fallback';
@@ -764,35 +764,6 @@ export async function testGeminiIntegration(prompt?: string): Promise<{
       success: false,
       hasKey: data.hasKey ?? false,
       error: data.error || 'Failed to trigger Gemini API verification',
-      timestamp: new Date().toISOString(),
-    };
-  }
-  return data;
-}
-
-export async function testMistralIntegration(prompt?: string, model?: string): Promise<{
-  success: boolean;
-  hasKey: boolean;
-  model?: string;
-  latency_ms?: number;
-  response?: string;
-  prompt_used?: string;
-  timestamp?: string;
-  error?: string;
-}> {
-  const headers = await getAdminHeaders();
-  const res = await fetch('/api/admin/test-mistral', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ prompt, model }),
-  });
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    return {
-      success: false,
-      hasKey: data.hasKey ?? false,
-      error: data.error || 'Failed to trigger Mistral API verification',
       timestamp: new Date().toISOString(),
     };
   }
