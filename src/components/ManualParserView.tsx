@@ -25,9 +25,9 @@ import {
 } from 'lucide-react';
 import { saveImportedWarningsToSupabase, parseJhodBatch } from '../services/api';
 import { splitJhodTelexStream } from '../schemas/jhodAiContract';
-i 118-28.0E
-00-14.0N 118-10.1E 00-31.9N 118-10.1E
-00-32.0N 117-47.8E.`;
+import { JHOD_19_NOTICES_CORPUS } from '../data/jhod19NoticesCorpus';
+
+
 
 interface ManualParserViewProps {
   onParseManual: (
