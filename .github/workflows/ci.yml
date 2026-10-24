@@ -41,13 +41,13 @@ jobs:
       - name: Report vitest log to PR
         if: always()
         run: |
-          LOG=$(tail -c 12000 /tmp/vitest.log 2>/dev/null || echo 'no vitest log produced')
-          PAYLOAD=$(printf '%s' "$LOG" | jq -Rs '{body: ("### vitest output (last 12KB)
-```
-" + . + "
-``
-")}')
-          curl -s -f -X POST             -H "Authorization: token $GITHUB_TOKEN"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/alfredpanakkal/helm.navwarning/issues/46/comments"             -d "$PAYLOAD"
+          if [ ! -f /tmp/vitest.log ]; then echo "vitest log was never produced" > /tmp/vitest.log; fi
+          PAYLOAD=$(jq -Rs "{body: (\"### vitest output (last 12KB)\\n\\n~~~\\n\" + . + \"\\n~~~\\n\")}" < <(tail -c 12000 /tmp/vitest.log))
+          curl -s -f -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/alfredpanakkal/helm.navwarning/issues/46/comments" \
+            -d "$PAYLOAD"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
