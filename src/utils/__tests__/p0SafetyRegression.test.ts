@@ -143,6 +143,13 @@ CANCEL THIS MSG 150800Z OCT.`;
       } else if (idx === 0) {
         // Notice 1 is Manifest
         expect(parsed.validation_status).toBe('not_present');
+      } else if (idx === 4 || idx === 5) {
+        // Notices 0448 & 0433: "IN VICINITY OF LINE JOINING" with no stated
+        // corridor width -> CORRIDOR_DEFAULT_1NM_RULE tags the geometry
+        // inference_mode INFERRED, which rolls data_quality up to INFERRED.
+        // Correct safety behavior: a default-applied rule is never EXPLICIT.
+        expect(parsed.validation_status).toBe('passed');
+        expect(parsed.data_quality).toBe('INFERRED');
       } else {
         expect(parsed.validation_status).toBe('passed');
         expect(parsed.data_quality).toBe('EXPLICIT');
