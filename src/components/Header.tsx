@@ -59,11 +59,10 @@ export const Header: React.FC<HeaderProps> = ({
         }
       } catch {}
 
-      const hasStoredToken = typeof window !== 'undefined' && Boolean(sessionStorage.getItem('helm_admin_token') || localStorage.getItem('helm_admin_token'));
-      const hasStoredMode = typeof window !== 'undefined' && localStorage.getItem('helm_admin_mode') === 'true';
-      if (hasStoredToken || hasStoredMode) {
-        setIsAdminMode(true);
-      }
+      // No client-storage trust fallback: helm_admin_mode / helm_admin_token flags
+      // were trivially spoofable and conveyed no real authorization. Admin mode
+      // is only granted by the live server-verified Supabase session above
+      // (app_metadata.role) or an explicit adminLogin() success.
     }
     checkInitialAdminSession();
   }, [setIsAdminMode]);
