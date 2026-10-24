@@ -186,6 +186,8 @@ export interface NavWarning {
 
   supersedes: string[];
   cancels: string[];
+  /** DB lineage (nav_warnings.superseded_by): uuid of the recreated copy when this row was superseded by a NAVAREA move. */
+  superseded_by?: string | null;
 
   // Extended fields for GIS map data and CCG/Kystverket scraper feeds
   title?: string | null;

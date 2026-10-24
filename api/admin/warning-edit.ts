@@ -12,7 +12,10 @@
  *    (docs/supabase-backend-contract.md) — dropped columns can never be
  *    written, CHECK-constrained enums are validated server-side.
  * 4. raw_text is NEVER editable (evidence integrity).
- * 5. Every edit writes a best-effort audit row to nav_warning_audits.
+ * 5. Audit is mandatory: edits are refused when nav_warning_audits is
+ *    unreachable, and a failed audit insert fails the request (500
+ *    AUDIT_FAILED) instead of returning a silently-unaudited success.
+ * 6. NAVAREA moves record DB-enforced lineage via nav_warnings.superseded_by.
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -287,6 +290,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: errors.join(' | '), code: 'VALIDATION' });
     }
 
+    // ── 5b. Audit preflight: refuse edits when the audit log is unreachable ──
+    const { error: auditProbe } = await client
+      .from('nav_warning_audits')
+      .select('*', { head: true, count: 'exact' });
+    if (auditProbe) {
+      return res.status(503).json({
+        error: 'Audit log unavailable — edit refused. (' + auditProbe.message + ')',
+        code: 'AUDIT_UNAVAILABLE',
+      });
+    }
+
     // ── 6. NAVAREA move: supersede + recreate (decided 2026-10-23) ──
     if (patch.move_to_navarea) {
       const targetFull = toFullNavarea(patch.move_to_navarea);
@@ -302,16 +316,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       const newCanonicalId = targetFull + ' ' + m[2] + '/' + m[3];
 
-      // 6a. Supersede the original
-      const { error: supErr } = await client
-        .from('nav_warnings')
-        .update({ status: 'superseded' })
-        .eq('id', current.id);
-      if (supErr) {
-        return res.status(502).json({ error: 'Move failed while superseding the original: ' + supErr.message });
-      }
-
-      // 6b. Create the copy in the target region (geometries copied as a starting point)
+      // 6a. Create the copy in the target region first (geometries copied as a starting point)
       const { data: created, error: createErr }: any = await client
         .from('nav_warnings')
         .insert({
@@ -335,9 +340,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .select('id, canonical_id')
         .single();
       if (createErr || !created) {
-        // Roll back the supersede so we never lose the original
-        await client.from('nav_warnings').update({ status: current.status }).eq('id', current.id);
-        return res.status(502).json({ error: 'Move failed while creating the target copy: ' + (createErr?.message || 'no row'), });
+        return res.status(502).json({ error: 'Move failed while creating the target copy: ' + (createErr?.message || 'no row') });
+      }
+
+      // 6b. Supersede the original and record the superseded_by lineage
+      const { error: supErr } = await client
+        .from('nav_warnings')
+        .update({ status: 'superseded', superseded_by: created.id })
+        .eq('id', current.id);
+      if (supErr) {
+        // Roll back: remove the copy so no duplicate survives a failed move
+        await client.from('nav_warnings').delete().eq('id', created.id);
+        return res.status(502).json({ error: 'Move failed while superseding the original: ' + supErr.message });
       }
 
       // 6c. Copy geometries
@@ -357,11 +371,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         );
       }
 
-      // 6d. Audit both sides of the move
-      await writeAuditRow(client, current.id, operatorEmail, 'MOVE_OUT',
-        'Superseded by move to ' + targetFull + ' → ' + newCanonicalId, String(current.triage_tier || 'B'), 'B', { moved_to: newCanonicalId });
-      await writeAuditRow(client, created.id, operatorEmail, 'MOVE_IN',
-        'Created by move from ' + current.canonical_id + ' (' + (patch.note || 'admin move') + ')', String(current.triage_tier || 'B'), 'B', { moved_from: current.canonical_id });
+      // 6d. Audit both sides of the move (mandatory — a failed audit row fails the request)
+      const outAudit = await writeAuditRow(client, current.id, operatorEmail, 'MOVE_OUT',
+        'Superseded by move to ' + targetFull + ' → ' + newCanonicalId, String(current.triage_tier || 'B'), 'B',
+        { moved_to: newCanonicalId, superseded_by: created.id });
+      const inAudit = await writeAuditRow(client, created.id, operatorEmail, 'MOVE_IN',
+        'Created by move from ' + current.canonical_id + ' (' + (patch.note || 'admin move') + ')', String(current.triage_tier || 'B'), 'B',
+        { moved_from: current.canonical_id });
+      if (outAudit !== 'written' || inAudit !== 'written') {
+        return res.status(500).json({
+          error: 'Move applied but the audit row could not be written — check the audit log.',
+          code: 'AUDIT_FAILED',
+          moved: true,
+          superseded: { id: current.id, canonical_id: current.canonical_id, status: 'superseded' },
+          warning: created,
+        });
+      }
 
       return res.status(200).json({
         success: true,
@@ -406,19 +431,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       geometryStatus = geometryRows.length > 0 ? 'replaced' : 'removed';
     }
 
-    // ── 9. Audit ──
+    // ── 9. Audit (mandatory) ──
     const auditStatus = await writeAuditRow(
       client, current.id, operatorEmail, 'EDIT',
       patch.note || 'Admin edit (geometry ' + geometryStatus + ')',
       String(current.triage_tier || 'B'), String(updated.triage_tier || 'B'),
       { ...update, geometry: geometryStatus }
     );
+    if (auditStatus !== 'written') {
+      return res.status(500).json({
+        error: 'Edit applied but the audit row could not be written — check the audit log.',
+        code: 'AUDIT_FAILED',
+        warning: updated,
+        geometry: geometryStatus,
+      });
+    }
 
     return res.status(200).json({
       success: true,
       warning: updated,
       geometry: geometryStatus,
-      audit: auditStatus,
+      audit: 'written',
     });
   } catch (err: any) {
     console.error('[warning-edit] exception:', err?.message || err);
