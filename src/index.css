@@ -1,27 +1,47 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════
+   TOKEN RESTYLE — align the React console with the public site's
+   design system (public/assets/css/tokens.css).
+
+   The console is fully token-driven: every component consumes the
+   gw-* custom properties below, so remapping them here restyles the
+   whole console without touching a single component.
+
+   Mapping (console token → public-site token):
+     gw-primary   #0f172a  ← --surface-dark (dark chrome + main text)
+     gw-secondary #e2e8f0  ← --border       (hairlines + light text on dark)
+     gw-tertiary  #334155  ← slate-700      (panels/chips on dark chrome)
+     gw-bg        #fafafa  ← --bg           (page background)
+     gw-accent    #64748b  ← --text-muted   (muted text)
+     gw-accent-on-dark #94a3b8 ← --text-light
+     fonts        system-ui ← --font-h1/h2/body (was Courier New everywhere)
+   ═══════════════════════════════════════════════════════════════ */
+
 @theme {
-  --color-gw-primary: #14161c;
-  --color-gw-secondary: #c8ccd8;
-  --color-gw-tertiary: #262a34;
-  --color-gw-bg: #e8e8f0;
-  --color-gw-accent: #5a5f70;
-  /* Muted lift of --color-gw-accent for use on dark chrome (#14161c / #262a34).
-     5.9:1 on primary and 4.7:1 on tertiary, so it clears WCAG AA where the base
-     accent measures 2.85:1. */
-  --color-gw-accent-on-dark: #8d93a6;
+  --color-gw-primary: #0f172a;
+  --color-gw-secondary: #e2e8f0;
+  --color-gw-tertiary: #334155;
+  --color-gw-bg: #fafafa;
+  --color-gw-accent: #64748b;
+  /* Muted lift of --color-gw-accent for use on dark chrome (#0f172a / #334155).
+     Mirrors the public site's --text-light (#94a3b8): AA contrast on dark. */
+  --color-gw-accent-on-dark: #94a3b8;
 
-  --font-mono: 'Courier New', Courier, monospace;
-  --font-sans: 'Courier New', Courier, monospace;
-  --font-ui: 'Courier New', Courier, monospace;
+  /* The public site uses system-ui throughout (ui-monospace only for raw
+     warning text). 'font-mono' is repointed at the same system stack so the
+     console's pervasive font-mono/font-sans/font-ui classes all render the
+     public typography without editing call sites. */
+  --font-mono: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', sans-serif;
 
+  /* Public radius scale: --radius 8px, --radius-sm 4px, --radius-lg 12px. */
   --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
+  --radius-md: 0.5rem;
 
-  /* Hierarchy tokens (Sprint 0 Task 2). Values match today's computed styles;
-     Task 8 tunes values. Primary containers may keep a clear border. Secondary
-     containers, rows and most buttons use background contrast + spacing only.
-     Never border every nested div. */
+  /* Hierarchy tokens (Sprint 0 Task 2). Primary containers keep a clear
+     border; secondary containers use background contrast + spacing only. */
   --border-primary: 1px solid var(--color-gw-primary);
   --border-subtle: 1px solid var(--color-gw-secondary);
   --bg-secondary: #ffffff;
@@ -40,33 +60,23 @@
   body {
     background-color: var(--color-gw-bg);
     color: var(--color-gw-primary);
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
     overflow-x: hidden;
   }
-  
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: 
-      linear-gradient(var(--color-gw-secondary) 1px, transparent 1px),
-      linear-gradient(90deg, var(--color-gw-secondary) 1px, transparent 1px);
-    background-size: 40px 40px;
-    opacity: 0.15;
-    pointer-events: none;
-    z-index: 0;
-  }
-  
+
+  /* The Courier-era 40px grid overlay is gone: the public site has a clean
+     flat #fafafa canvas. */
+
   ::selection {
     background: var(--color-gw-primary);
     color: var(--color-gw-bg);
   }
 
-  /* Keyboard focus was previously indistinguishable from mouse interaction. */
+  /* Keyboard focus matches the public site (2px outline, --surface-dark). */
   :focus-visible {
-    outline: 3px solid var(--color-gw-primary);
+    outline: 2px solid var(--color-gw-primary);
     outline-offset: 2px;
   }
   .gw-dark-surface :focus-visible,
@@ -75,16 +85,15 @@
   }
 
   ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-track { background: var(--color-gw-bg); }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--color-gw-secondary); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--color-gw-accent); }
 }
 
 @layer utilities {
-  /* Accent text inside the dark header/nav/footer chrome failed WCAG AA at
-     2.85:1. Re-pointing the token here repairs every nested `text-gw-accent`
-     without editing call sites, and because the utilities compile to
-     `color: var(--color-gw-accent)` the hover/focus overrides still win. */
+  /* Accent text inside the dark header/nav/footer chrome still needs the
+     AA-safe lift; re-pointing the token here repairs every nested
+     `text-gw-accent` without editing call sites. */
   .gw-dark-surface {
     --color-gw-accent: var(--color-gw-accent-on-dark);
   }
@@ -101,7 +110,7 @@
     position: fixed;
     padding: 0.5rem 0.875rem;
     background: var(--color-gw-primary);
-    color: var(--color-gw-secondary);
+    color: #ffffff;
     border: 2px solid var(--color-gw-secondary);
     border-radius: 4px;
     font-weight: 700;
@@ -110,12 +119,13 @@
     letter-spacing: 0.05em;
   }
 
+  /* Public-site soft shadows (was the 4px hard offset shadow). */
   .shadow-hard {
-    box-shadow: 4px 4px 0 var(--color-gw-tertiary);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
   }
   .shadow-hard-hover:hover {
-    box-shadow: 8px 8px 0 var(--color-gw-tertiary);
-    transform: translateY(-4px);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+    transform: translateY(-1px);
   }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { scrollbar-width: none; }
@@ -140,34 +150,35 @@
 .nw-marker {
   width: 16px; height: 16px; border-radius: 50%;
   border: 2px solid var(--color-gw-primary);
-  box-shadow: 2px 2px 0 var(--color-gw-tertiary);
-  position: relative; background: var(--color-gw-bg);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+  position: relative; background: #ffffff;
 }
 .nw-marker::after {
   content: ''; position: absolute; inset: 2px; border-radius: 50%;
   border: 1px solid var(--color-gw-primary);
 }
-.nw-marker.sev-critical { background: var(--color-gw-primary); }
-.nw-marker.sev-high { background: var(--color-gw-tertiary); }
-.nw-marker.sev-moderate { background: var(--color-gw-accent); }
-.nw-marker.sev-low { background: var(--color-gw-secondary); }
-.nw-marker.sev-info { background: var(--color-gw-bg); }
+.nw-marker.sev-critical { background: #dc2626; }
+.nw-marker.sev-high { background: #ea580c; }
+.nw-marker.sev-moderate { background: #f59e0b; }
+.nw-marker.sev-low { background: #94a3b8; }
+.nw-marker.sev-info { background: #ffffff; }
 
 /* Leaflet overrides */
-.leaflet-container { background: var(--color-gw-bg); font-family: var(--font-mono); }
+.leaflet-container { background: var(--color-gw-bg); font-family: var(--font-sans); }
 .leaflet-control-attribution { background: rgba(255,255,255,0.8) !important; color: var(--color-gw-accent) !important; font-size: 10px !important; }
 .leaflet-control-attribution a { color: var(--color-gw-primary) !important; }
 .leaflet-control-zoom a {
-  background: var(--color-gw-bg) !important; color: var(--color-gw-primary) !important;
-  border: 1px solid var(--color-gw-primary) !important; border-radius: 0 !important;
+  background: #ffffff !important; color: var(--color-gw-primary) !important;
+  border: 1px solid var(--color-gw-secondary) !important; border-radius: 6px !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08) !important;
 }
 .leaflet-control-zoom a:hover { background: var(--color-gw-secondary) !important; }
 .leaflet-popup-content-wrapper {
-  background: var(--color-gw-bg) !important; color: var(--color-gw-primary) !important;
-  border: 2px solid var(--color-gw-primary) !important; border-radius: 4px !important;
-  box-shadow: 4px 4px 0 var(--color-gw-tertiary) !important;
+  background: #ffffff !important; color: var(--color-gw-primary) !important;
+  border: 1px solid var(--color-gw-secondary) !important; border-radius: 8px !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12) !important;
 }
-.leaflet-popup-tip { background: var(--color-gw-bg) !important; border: 2px solid var(--color-gw-primary) !important; }
+.leaflet-popup-tip { background: #ffffff !important; border: 1px solid var(--color-gw-secondary) !important; }
 .leaflet-popup-close-button { color: var(--color-gw-primary) !important; }
 
 /* Jump Target Pulse Beacon */
@@ -242,7 +253,7 @@
   bottom: -14px;
   left: 50%;
   transform: translateX(-50%);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 8px;
   font-weight: 700;
   line-height: 1;
@@ -266,7 +277,7 @@
   background: #fbbf24;
   color: #78350f;
   border: 1.5px solid #d97706;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10px;
   font-weight: 800;
   display: flex;
@@ -300,7 +311,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 9999px;
   padding: 3px 9px;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10.5px;
   font-weight: 700;
   white-space: nowrap;
@@ -311,7 +322,7 @@
   align-items: center;
   gap: 5px;
   backdrop-filter: blur(4px);
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition: transform 0.15s ease, background-color 0.15s ease;
 }
 .centroid-metric-badge:hover {
   transform: scale(1.08);
@@ -332,7 +343,7 @@
   border: 1px solid #b45309;
   border-radius: 4px;
   padding: 1px 6px;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 9.5px;
   font-weight: 800;
   white-space: nowrap;
@@ -348,7 +359,7 @@
   background: #06b6d4;
   color: #083344;
   border: 1.5px solid #0e7490;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10px;
   font-weight: 800;
   display: flex;
@@ -409,4 +420,3 @@
     width: 100% !important;
   }
 }
-
