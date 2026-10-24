@@ -31,23 +31,27 @@ jobs:
           set -o pipefail
           npx tsc --noEmit 2>&1 | tee tsc.log
 
+      - name: Run P0 Safety Regression Tests (vitest)
+        run: |
+          set -o pipefail
+          npx vitest run src/utils/__tests__/p0SafetyRegression.test.ts 2>&1 | tee vitest.log
+
+      - name: Build Applet Bundle
+        run: |
+          set -o pipefail
+          npx vite build 2>&1 | tee build.log
+
       - name: Report failure on PR
         if: failure() && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          printf 'CI verify-applet failed on commit %s:\n\`\`\`\n' "$(git rev-parse --short HEAD)" > /tmp/ci-fail-comment.md
-          tail -c 5000 tsc.log 2>/dev/null >> /tmp/ci-fail-comment.md || true
-          printf '\n\`\`\`\n' >> /tmp/ci-fail-comment.md
+          printf 'CI verify-applet failed on commit %s.\n' "$(git rev-parse --short HEAD)" > /tmp/ci-fail-comment.md
+          for f in tsc.log vitest.log build.log; do
+            if [ -s "$f" ]; then printf '\n### tail of %s\n\`\`\`\n' "$f" >> /tmp/ci-fail-comment.md; tail -c 4000 "$f" >> /tmp/ci-fail-comment.md; printf '\n\`\`\`\n' >> /tmp/ci-fail-comment.md; fi
+          done
           gh pr comment "$PR_NUMBER" --body-file /tmp/ci-fail-comment.md || true
-
-      - name: Run P0 Safety Regression Tests (vitest)
-        run: npx vitest run src/utils/__tests__/p0SafetyRegression.test.ts
-
-      - name: Build Applet Bundle
-        run: npx vite build
-
   verify-scrapling:
     name: Verify Scrapling Ingestion Engine
     runs-on: ubuntu-latest
