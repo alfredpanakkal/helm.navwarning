@@ -23,26 +23,29 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install Node Dependencies
+      - name: Diagnose Build (install, typecheck, vitest, build)
         run: |
-          set -o pipefail
-          npm install --no-audit --no-fund 2>&1 | tee install.log
-
-      - name: Typecheck TypeScript
-        run: |
-          set -o pipefail
-          npx tsc --noEmit 2>&1 | tee tsc.log
-
-      - name: Run P0 Safety Regression Tests (vitest)
-        run: |
-          set -o pipefail
-          npx vitest run src/utils/__tests__/p0SafetyRegression.test.ts 2>&1 | tee vitest.log
-
-      - name: Build Applet Bundle
-        run: |
-          set -o pipefail
-          npx vite build 2>&1 | tee build.log
-
+          set +e
+          : > ci-all.log
+          echo "=== STEP 1: npm install ===" | tee -a ci-all.log
+          ls -la package.json package-lock.json 2>&1 | tee -a ci-all.log
+          npm install --no-audit --no-fund 2>&1 | tail -60 | tee -a ci-all.log
+          INSTALL_RC=${PIPESTATUS[0]}
+          echo "npm install rc=$INSTALL_RC" | tee -a ci-all.log
+          if [ "$INSTALL_RC" = "0" ]; then
+            echo "=== STEP 2: tsc --noEmit ===" | tee -a ci-all.log
+            npx tsc --noEmit 2>&1 | tail -80 | tee -a ci-all.log
+            echo "tsc rc=${PIPESTATUS[0]}" | tee -a ci-all.log
+            echo "=== STEP 3: vitest ===" | tee -a ci-all.log
+            npx vitest run src/utils/__tests__/p0SafetyRegression.test.ts 2>&1 | tail -120 | tee -a ci-all.log
+            echo "vitest rc=${PIPESTATUS[0]}" | tee -a ci-all.log
+            echo "=== STEP 4: vite build ===" | tee -a ci-all.log
+            npx vite build 2>&1 | tail -40 | tee -a ci-all.log
+            echo "vite rc=${PIPESTATUS[0]}" | tee -a ci-all.log
+          fi
+          test ! -s ci-all.log || true
+          # fail the job if any stage failed
+          if grep -q "rc=1" ci-all.log; then exit 1; fi
       - name: Report failure on PR
         if: failure() && github.event_name == 'pull_request'
         env:
@@ -50,7 +53,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           printf 'CI verify-applet failed on commit %s.\n' "${GITHUB_SHA:0:7}" > /tmp/ci-fail-comment.md
-          for f in install.log tsc.log vitest.log build.log; do
+          for f in ci-all.log install.log tsc.log vitest.log build.log; do
             if [ -s "$f" ]; then printf '\n### tail of %s\n\`\`\`\n' "$f" >> /tmp/ci-fail-comment.md; tail -c 4000 "$f" >> /tmp/ci-fail-comment.md; printf '\n\`\`\`\n' >> /tmp/ci-fail-comment.md; fi
           done
           gh pr comment "$PR_NUMBER" --body-file /tmp/ci-fail-comment.md || true
