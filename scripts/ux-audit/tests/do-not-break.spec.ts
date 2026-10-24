@@ -3,13 +3,27 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * Sprint 0 smoke suite: guards docs/ux-audit/do-not-break.md.
  *
- * Every assertion here is a UX behaviour that later hierarchy redesign tasks
- * must keep working. No assertion depends on an API key: without a .env the
- * app runs on its in-memory seed data (5 warnings, 19 sources).
+ * POLICY UPDATE (PR #27): the whole console requires an authenticated admin
+ * session. Map, Data Bank and Sources are no longer public. This suite is
+ * therefore split in two:
+ *
+ *  1. Unauthenticated tests — the Administrative Gate must be active on every
+ *     tab and every hash route, stored client-side flags (helm_admin_mode,
+ *     helm_admin_token, hwUI) must never grant access, and the gate's
+ *     "Admin Sign In" button must open the real Supabase login modal.
+ *  2. Authenticated tests — the content behaviours (data bank, map, warning
+ *     details, sources, admin views, resilience). These run only when
+ *     E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD are set; they sign in through
+ *     the same UI a human uses. Without the credentials they are skipped,
+ *     NOT silently passed.
  *
  * page.evaluate payloads are passed as strings on purpose (a function literal
  * breaks under the tsx/esbuild toolchain used for the capture driver).
  */
+
+const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? '';
+const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? '';
+const hasAdminCredentials = ADMIN_EMAIL.length > 0 && ADMIN_PASSWORD.length > 0;
 
 type PageErrors = string[];
 
@@ -19,10 +33,19 @@ function watchPageErrors(page: Page): PageErrors {
   return errors;
 }
 
-async function openApp(page: Page) {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+async function openApp(page: Page, hash?: string) {
+  await page.goto(hash ? `/${hash}` : '/', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#main-content', { timeout: 60_000 });
   await page.waitForLoadState('networkidle').catch(() => undefined);
+}
+
+async function signInAdmin(page: Page) {
+  await page.getByRole('button', { name: /^Admin Sign In$/ }).click();
+  await expect(page.getByText('Admin Access Gate')).toBeVisible();
+  await page.locator('input[type="email"]').fill(ADMIN_EMAIL);
+  await page.locator('input[type="password"]').fill(ADMIN_PASSWORD);
+  await page.getByRole('button', { name: /Unlock Admin Mode/ }).click();
+  await expect(page.getByText('Administrative Gate Active')).toBeHidden({ timeout: 60_000 });
 }
 
 async function matchingCount(page: Page): Promise<number> {
@@ -47,8 +70,59 @@ async function openMoreFilters(page: Page) {
   }
 }
 
-test.describe('public shell', () => {
-  test('header tabs, active-count shortcut and tab switching keep working', async ({ page }) => {
+test.describe('access gate (unauthenticated)', () => {
+  test('the administrative gate is active on direct hash routes', async ({ page }) => {
+    const errors = watchPageErrors(page);
+
+    // The exact URLs reported in PR #27: direct navigation must never
+    // render console content without a session.
+    for (const hash of ['#/sources', '#/databank', '#/map']) {
+      await openApp(page, hash);
+      await expect(page.getByText('Administrative Gate Active')).toBeVisible();
+      await expect(page.getByRole('button', { name: /^Admin Sign In$/ })).toBeVisible();
+      await expect(page.locator('#databank-table-header')).toHaveCount(0);
+    }
+
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+
+  test('client-side flags never grant admin access (spoof resistance)', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await page.addInitScript(() => {
+      localStorage.setItem('helm_admin_mode', 'true');
+      sessionStorage.setItem('helm_admin_token', 'audit-payload');
+      localStorage.setItem('hwUI', 'classic');
+    });
+
+    await openApp(page);
+
+    await expect(page.getByText('Administrative Gate Active')).toBeVisible();
+    // The App must purge the spoofable legacy flags on mount.
+    await expect
+      .poll(async () => page.evaluate('JSON.stringify({ m: localStorage.getItem("helm_admin_mode"), t: sessionStorage.getItem("helm_admin_token"), u: localStorage.getItem("hwUI") })'))
+      .toBe(JSON.stringify({ m: null, t: null, u: null }));
+
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+
+  test('Admin Sign In opens the Supabase login modal; no client-side unlock exists', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await openApp(page);
+
+    await page.getByRole('button', { name: /^Admin Sign In$/ }).click();
+    await expect(page.getByText('Admin Access Gate')).toBeVisible();
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toBeVisible();
+
+    // Cancel via Escape; the gate must still be active afterwards.
+    await page.keyboard.press('Escape');
+    await expect(page.getByText('Admin Access Gate')).toBeHidden();
+    await expect(page.getByText('Administrative Gate Active')).toBeVisible();
+
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+
+  test('header tabs stay navigable while locked and switch selection', async ({ page }) => {
     const errors = watchPageErrors(page);
     await openApp(page);
 
@@ -60,29 +134,50 @@ test.describe('public shell', () => {
 
     await goTab(page, 'Data Bank');
     await expect(page.getByRole('tab', { name: /^Data Bank/i })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.locator('#databank-table-header')).toBeVisible();
+    await expect(page.getByText('Administrative Gate Active')).toBeVisible();
 
     await goTab(page, 'Sources');
-    await expect(page.getByText('NAVWARN Candidate Discovery Registry')).toBeVisible();
+    await expect(page.getByRole('tab', { name: /^Sources/i })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByText('Administrative Gate Active')).toBeVisible();
 
     expect(errors, 'no uncaught page errors').toEqual([]);
   });
 
-  test('today the app has no URL-driven state (recorded as a constraint)', async ({ page }) => {
+  test('hash routes select their tab but content stays gated (constraint: gate wins)', async ({ page }) => {
     const errors = watchPageErrors(page);
-    await page.goto('/?navarea=I&tab=databank#sources', { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('#main-content', { timeout: 60_000 });
-    await page.waitForLoadState('networkidle').catch(() => undefined);
+    await openApp(page, '#sources');
 
-    await expect(page.getByRole('tab', { name: /^Map View/i })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: /^Sources/i })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByText('Administrative Gate Active')).toBeVisible();
     expect(errors).toEqual([]);
   });
 });
 
-test.describe('data bank', () => {
+test.describe('ui path (v2 always)', () => {
+  test('a stale hwUI=classic flag is purged and the legacy path never renders', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await page.addInitScript(() => {
+      localStorage.setItem('hwUI', 'classic');
+    });
+    await openApp(page);
+
+    // The retired classic path must not be mounted at all.
+    expect(await page.locator('[data-ui-render-path="legacy"]').count()).toBe(0);
+    await expect
+      .poll(() => page.evaluate('localStorage.getItem("hwUI")'))
+      .toBeNull();
+
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+});
+
+test.describe('data bank (authenticated)', () => {
+  test.skip(!hasAdminCredentials, 'requires E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD');
+
   test('filters, quick filters, search, empty state and reset still work', async ({ page }) => {
     const errors = watchPageErrors(page);
     await openApp(page);
+    await signInAdmin(page);
     await goTab(page, 'Data Bank');
     await expect(page.locator('#databank-table-header')).toBeVisible();
 
@@ -91,11 +186,8 @@ test.describe('data bank', () => {
     // Quick filters live in the collapsed More filters panel (Task 3 fix).
     await openMoreFilters(page);
 
-    // Quick filter: the "Unverified (n)" pill counts `status === 'unverified'
-    // || extraction_confidence < 1` but the table filter matches only
-    // `status === 'unverified'`, so the pill narrows the table to 0 today.
-    // The behaviour guarded here is "the pill narrows the result set without
-    // breaking the table" — see finding F-01 in docs/ux-audit/inventory.md.
+    // Quick filter: the "Unverified (n)" pill narrows the result set without
+    // breaking the table — see finding F-01 in docs/ux-audit/inventory.md.
     await page.getByRole('button', { name: /^Unverified \(\d+\)/ }).click();
     expect(await matchingCount(page)).toBeLessThan(5);
 
@@ -145,17 +237,17 @@ test.describe('data bank', () => {
   });
 
   test('Smart Sort presets and column sort headers keep working', async ({ page }) => {
+    test.skip(!hasAdminCredentials, 'requires E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD');
     const errors = watchPageErrors(page);
     await openApp(page);
+    await signInAdmin(page);
     await goTab(page, 'Data Bank');
     await expect(page.locator('#databank-table-header')).toBeVisible();
 
-    // Task 3 fix round: the smart-sort dropdown + direction toggle live in
-    // the collapsed More filters panel; open it first.
+    // The smart-sort dropdown + direction toggle live in the collapsed
+    // More filters panel; open it first.
     await openMoreFilters(page);
 
-    // Task 3: the five legacy smart-sort presets are now one dropdown on the
-    // v2 path (`#databank-sort`). Values keep the legacy preset ids.
     const presets = ['urgency', 'recency', 'navarea', 'quality', 'custom'];
     for (const preset of presets) {
       await page.locator('#databank-sort').selectOption(preset);
@@ -182,10 +274,13 @@ test.describe('data bank', () => {
   });
 });
 
-test.describe('map', () => {
+test.describe('map (authenticated)', () => {
+  test.skip(!hasAdminCredentials, 'requires E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD');
+
   test('drawer, layer toggles, base cartography, go-to-coordinates and fit bounds', async ({ page }) => {
     const errors = watchPageErrors(page);
     await openApp(page);
+    await signInAdmin(page);
     await expect(page.locator('button[title="Collapse active warnings drawer"]')).toBeVisible();
 
     await page.locator('button[title="Collapse active warnings drawer"]').click();
@@ -231,10 +326,13 @@ test.describe('map', () => {
   });
 });
 
-test.describe('warning details', () => {
+test.describe('warning details (authenticated)', () => {
+  test.skip(!hasAdminCredentials, 'requires E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD');
+
   test('details modal opens, shows technical fields and isolates a single message', async ({ page }) => {
     const errors = watchPageErrors(page);
     await openApp(page);
+    await signInAdmin(page);
 
     await page.locator('aside').getByText(/^Details/).first().click();
     await expect(page.locator('button[title="Close modal (Esc)"]')).toBeVisible();
@@ -253,10 +351,13 @@ test.describe('warning details', () => {
   });
 });
 
-test.describe('sources', () => {
+test.describe('sources (authenticated)', () => {
+  test.skip(!hasAdminCredentials, 'requires E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD');
+
   test('registry counters, verification badges and worker action are present', async ({ page }) => {
     const errors = watchPageErrors(page);
     await openApp(page);
+    await signInAdmin(page);
     await goTab(page, 'Sources');
 
     await expect(page.getByText('NAVWARN Candidate Discovery Registry')).toBeVisible();
@@ -271,46 +372,36 @@ test.describe('sources', () => {
 test.describe('admin gate (mobile)', () => {
   test.use({ viewport: { width: 375, height: 812 } });
 
-  test('locked admin tools show the gate, unlock recovers the workspace view', async ({ page }) => {
+  test('every quick-nav destination stays gated while signed out', async ({ page }) => {
     const errors = watchPageErrors(page);
     await openApp(page);
 
     const quickNav = page.locator('nav[aria-label="Primary quick navigation"]');
+    for (const label of ['Map', 'Data Bank', 'Sources'] as const) {
+      await quickNav.getByText(label, { exact: true }).click();
+      await expect(page.getByText('Administrative Gate Active')).toBeVisible();
+    }
+
+    // The locked admin tools drawer also stays gated.
     await quickNav.getByText('More', { exact: true }).click();
     await page.getByRole('button', { name: /Pipeline Ingestion/ }).click();
     await expect(page.getByText('Administrative Gate Active')).toBeVisible();
 
-    // Gate escape hatch: "Return to Map" must leave the locked route.
-    await page.getByRole('button', { name: 'Return to Map' }).click();
-    // At 375px the desktop tablist is hidden; the quick-nav Map button carries
-    // the active styling (font-bold).
-    const mapNavButton = quickNav.locator('button').filter({ hasText: /^Map$/ });
-    await expect(mapNavButton).toHaveClass(/font-bold/);
-
-    // Re-open the locked route, then use the supported recovery path: a stored
-    // session token. Finding F-02 (docs/ux-audit/inventory.md): without a
-    // token the Header session-sync effect reverts the unlock immediately,
-    // because App's setIsAdminMode wrapper gets a new identity on every render.
-    await quickNav.getByText('More', { exact: true }).click();
-    await page.getByRole('button', { name: /Pipeline Ingestion/ }).click();
-    await expect(page.getByText('Administrative Gate Active')).toBeVisible();
-
-    await page.evaluate("sessionStorage.setItem('helm_admin_token', 'audit-payload')");
-    await page.locator('button:has-text("Unlock Admin Tools")').last().click();
-    await expect(page.getByText('CANDIDATE DISCOVERY & INGESTION TOOLS')).toBeVisible();
+    // The only recovery path is the real login modal.
+    await page.getByRole('button', { name: /^Admin Sign In$/ }).click();
+    await expect(page.getByText('Admin Access Gate')).toBeVisible();
 
     expect(errors, 'no uncaught page errors').toEqual([]);
   });
 });
 
-test.describe('admin views', () => {
+test.describe('admin views (authenticated)', () => {
+  test.skip(!hasAdminCredentials, 'requires E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD');
+
   test('all six admin views render for an authenticated session', async ({ page }) => {
     const errors = watchPageErrors(page);
-    await page.addInitScript(() => {
-      localStorage.setItem('helm_admin_mode', 'true');
-      sessionStorage.setItem('helm_admin_token', 'audit-payload');
-    });
     await openApp(page);
+    await signInAdmin(page);
 
     const views: Array<[string, string]> = [
       ['Pipeline', 'CANDIDATE DISCOVERY & INGESTION TOOLS'],
@@ -330,10 +421,13 @@ test.describe('admin views', () => {
   });
 });
 
-test.describe('resilience', () => {
+test.describe('resilience (authenticated)', () => {
+  test.skip(!hasAdminCredentials, 'requires E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD');
+
   test('sync live feeds fails gracefully without server credentials', async ({ page }) => {
     const errors = watchPageErrors(page);
     await openApp(page);
+    await signInAdmin(page);
     await goTab(page, 'Data Bank');
 
     await page.getByRole('button', { name: /Sync Live Feeds/ }).click();
@@ -396,40 +490,6 @@ test.describe('tablet 768', () => {
       const { scrollWidth, clientWidth } = JSON.parse(overflow);
       expect(scrollWidth, `no horizontal overflow on ${tab} at 768px`).toBeLessThanOrEqual(clientWidth);
     }
-
-    expect(errors, 'no uncaught page errors').toEqual([]);
-  });
-});
-
-test.describe('ui path flag (temporary; Task 13 removes)', () => {
-  test('default load renders Data Bank on the v2 path; hwUI=classic uses the legacy path', async ({ page }) => {
-    const errors = watchPageErrors(page);
-    await openApp(page);
-    await goTab(page, 'Data Bank');
-    await expect(page.locator('#databank-table-header')).toBeVisible();
-    await expect(page.locator('[data-ui-render-path="v2"]')).toBeVisible();
-    expect(await matchingCount(page)).toBe(5);
-
-    // Task 3: the v2 hierarchy shows the status bar and folds the classic
-    // stat-card / brief headings out of the default view.
-    await expect(page.locator('[data-databank-status-bar]')).toBeVisible();
-    expect(await page.locator('text=Total Published').count()).toBe(0);
-    expect(await page.locator('text=Executive Operational Brief').count()).toBe(0);
-
-    await page.addInitScript(() => {
-      localStorage.setItem('hwUI', 'classic');
-    });
-    await openApp(page);
-    await goTab(page, 'Data Bank');
-    await expect(page.locator('#databank-table-header')).toBeVisible();
-    await expect(page.locator('[data-ui-render-path="legacy"]')).toBeVisible();
-    expect(await matchingCount(page)).toBe(5);
-
-    // Classic path keeps the original hierarchy: stat cards + brief visible,
-    // and no v2 status bar.
-    await expect(page.locator('text=Total Published').first()).toBeVisible();
-    await expect(page.locator('text=Executive Operational Brief').first()).toBeVisible();
-    expect(await page.locator('[data-databank-status-bar]').count()).toBe(0);
 
     expect(errors, 'no uncaught page errors').toEqual([]);
   });
