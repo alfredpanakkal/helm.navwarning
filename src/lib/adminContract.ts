@@ -1,3 +1,4 @@
+// canary-2026-10-24: trigger fresh CI run for diagnosis
 /**
  * Shared admin contract constants (2026-10-24).
  *
