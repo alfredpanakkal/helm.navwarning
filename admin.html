@@ -74,7 +74,7 @@ function enterAdminMode() {
   // No client-side trust flags (helm_admin_mode / hw_admin_email) are written:
   // they were spoofable and conveyed no real authorization. The React console
   // derives admin mode from the server-verified session on mount.
-  window.location.replace('/console#/databank');
+  window.location.replace('/console#/warnings/list');
 }
 
 async function checkExistingSession() {
