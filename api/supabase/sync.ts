@@ -60,8 +60,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ]);
 
     if (!wRes.success) {
+      console.error('[supabase/sync] warning sync failed:', wRes.error);
       return res.status(400).json({
-        error: 'Warning Sync Failed: ' + (wRes.error || 'unknown error'),
+        error: 'Warning sync failed. Check the server logs; the failure was recorded with full detail there.',
       });
     }
 
@@ -79,6 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message || 'Supabase manual sync failed' });
+    console.error('[supabase/sync] exception:', err?.message || err);
+    return res.status(500).json({ error: 'Supabase manual sync failed with an unexpected server error.' });
   }
 }

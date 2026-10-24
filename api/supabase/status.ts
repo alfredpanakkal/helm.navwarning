@@ -28,6 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const health = await checkSupabaseHealth();
     return res.status(200).json(health);
   } catch (err: any) {
-    return res.status(500).json({ error: err.message || 'Supabase check failed' });
+    console.error('[supabase/status] check failed:', err?.message || err);
+    return res.status(500).json({ error: 'Supabase health check failed with an unexpected server error.' });
   }
 }

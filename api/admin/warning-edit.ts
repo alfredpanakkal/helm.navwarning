@@ -296,8 +296,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .from('nav_warning_audits')
       .select('*', { head: true, count: 'exact' });
     if (auditProbe) {
+      console.error('[warning-edit] audit preflight failed:', auditProbe.message);
       return res.status(503).json({
-        error: 'Audit log unavailable — edit refused. (' + auditProbe.message + ')',
+        error: 'Audit log unavailable — edit refused.',
         code: 'AUDIT_UNAVAILABLE',
       });
     }
