@@ -17,14 +17,21 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Mark checkout done
+        run: echo "checkout-ok sha=$GITHUB_SHA ref=$GITHUB_REF" >> markers.log
+
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      - name: Mark setup-node done
+        run: echo 'setup-node-ok' >> markers.log
+
       - name: Diagnose Build (install, typecheck, vitest, build)
         run: |
           set +e
+          echo 'diag-started' >> markers.log
           : > ci-all.log
           echo "=== STEP 1: npm install ===" | tee -a ci-all.log
           ls -la package.json package-lock.json 2>&1 | tee -a ci-all.log
@@ -46,12 +53,17 @@ jobs:
           # fail the job if any stage failed
           if grep -q "rc=1" ci-all.log; then exit 1; fi
       - name: Report failure on PR
-        if: failure() && github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          printf 'CI verify-applet failed on commit %s.\n' "${GITHUB_SHA:0:7}" > /tmp/ci-fail-comment.md
+          printf 'CI verify-applet report for commit %s.\n' "${GITHUB_SHA:0:7}" > /tmp/ci-fail-comment.md
+          printf '\n### markers\n\`\`\`\n' >> /tmp/ci-fail-comment.md
+          cat markers.log 2>/dev/null >> /tmp/ci-fail-comment.md || printf '(no markers.log)' >> /tmp/ci-fail-comment.md
+          printf '\n\`\`\`\n### ls\n\`\`\`\n' >> /tmp/ci-fail-comment.md
+          ls -la >> /tmp/ci-fail-comment.md 2>&1 || true
+          printf '\n\`\`\`\n' >> /tmp/ci-fail-comment.md
           for f in ci-all.log install.log tsc.log vitest.log build.log; do
             if [ -s "$f" ]; then printf '\n### tail of %s\n\`\`\`\n' "$f" >> /tmp/ci-fail-comment.md; tail -c 4000 "$f" >> /tmp/ci-fail-comment.md; printf '\n\`\`\`\n' >> /tmp/ci-fail-comment.md; fi
           done
