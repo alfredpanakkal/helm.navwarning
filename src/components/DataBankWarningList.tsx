@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { formatSpatialCoordinates } from '../utils/coordinateParser';
 import { DataBankModel, SortDirection, SortField } from '../hooks/useDataBankModel';
-import { useUILegacy } from '../lib/uiFlags';
 import { WarningHierarchyLines, WarningItemDetails } from './WarningItemV2';
 import { WarningStatusBadge } from './WarningStatusBadge';
 import { getWarningBulletinText, getWarningDate, getWarningPositionCount } from '../utils/warningHelpers';
@@ -54,7 +53,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
   onVerifyWarning,
   sources,
 }) => {
-  const legacy = useUILegacy();
+  const legacy = false; // legacy UI path retired (was: useUILegacy())
   const {
     warnings,
     sortField,
