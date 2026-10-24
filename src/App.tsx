@@ -5,8 +5,6 @@ import { Footer } from './components/Footer';
 import { LeafletMap } from './components/LeafletMap';
 import { DataBank } from './components/DataBank';
 import { DataBankV2 } from './components/DataBankV2';
-import { UILegacySwitcher } from './components/UILegacySwitcher';
-import { useUILegacy } from './lib/uiFlags';
 import { WorkspaceView } from './components/WorkspaceView';
 import { SourceRegistryView } from './components/SourceRegistryView';
 import { ManualParserView } from './components/ManualParserView';
@@ -70,14 +68,12 @@ function parseHashRoute(hashStr: string): { tab: TabType; statusFilter?: string 
 }
 
 export default function App() {
-  const legacyUI = useUILegacy();
   const initialRoute = typeof window !== 'undefined' ? parseHashRoute(window.location.hash) : { tab: 'map' as TabType };
   const [activeTab, setActiveTab] = useState<TabType>(initialRoute.tab);
   const [selectedWarning, setSelectedWarning] = useState<NavWarning | null>(null);
   const [editingWarning, setEditingWarning] = useState<NavWarning | null>(null);
   const [isolatedWarning, setIsolatedWarning] = useState<NavWarning | null>(null);
 
-  // Admin Access Gate State
   // Admin Access Gate State — never trust client-stored flags:
   // admin mode is granted only by the server-verified session bootstrap
   // in Header (app_metadata.role) or an explicit adminLogin() success.
@@ -85,7 +81,21 @@ export default function App() {
 
   const setIsAdminMode = useCallback((val: boolean) => {
     setIsAdminModeState(val);
-    localStorage.setItem('helm_admin_mode', String(val));
+  }, []);
+
+  // Counter bumped by the access gate's "Admin Sign In" button; Header opens
+  // the real Supabase login modal whenever it changes.
+  const [loginPrompt, setLoginPrompt] = useState(0);
+
+  // Purge legacy client-side authorization / UI flags left by earlier builds:
+  // helm_admin_mode and helm_admin_token were trivially spoofable and hwUI
+  // forced the retired classic UI path.
+  useEffect(() => {
+    try {
+      localStorage.removeItem('helm_admin_mode');
+      localStorage.removeItem('hwUI');
+      sessionStorage.removeItem('helm_admin_token');
+    } catch { /* private-mode storage can throw */ }
   }, []);
 
   // Core Data Bank State
@@ -367,6 +377,7 @@ export default function App() {
         activeCount={activeCount}
         isAdminMode={isAdminMode}
         setIsAdminMode={setIsAdminMode}
+        loginPrompt={loginPrompt}
       />
       {isLoadingData && (
         <div role="status" aria-live="polite" className="bg-blue-100 border-b-2 border-blue-600 px-3 py-1 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-mono font-bold text-blue-900 flex items-center justify-between shadow-xs">
@@ -403,8 +414,8 @@ export default function App() {
       <DisclaimerBanner />
 
       <main id="main-content" tabIndex={-1} className="relative z-10 max-w-[1600px] mx-auto p-3 sm:p-6 md:p-8 focus:outline-none">
-        {/* Map View */}
-        <div className={activeTab === 'map' ? 'block' : 'hidden'}>
+        {/* Map View (admin-gated) */}
+        <div className={isAdminMode && activeTab === 'map' ? 'block' : 'hidden'}>
           <LeafletMap
             warnings={warnings}
             selectedNavArea="ALL"
@@ -421,8 +432,8 @@ export default function App() {
           />
         </div>
 
-        {/* Data Bank */}
-        <div className={activeTab === 'databank' ? 'block' : 'hidden'}>
+        {/* Data Bank (admin-gated) */}
+        <div className={isAdminMode && activeTab === 'databank' ? 'block' : 'hidden'}>
           {isAdminMode && (
             <div className="mb-3">
               <AdminDataBankTools warnings={warnings} onRefresh={() => loadData()} />
@@ -447,8 +458,8 @@ export default function App() {
           />
         </div>
 
-        {/* Candidate Sources Registry */}
-        <div className={activeTab === 'sources' ? 'block' : 'hidden'}>
+        {/* Candidate Sources Registry (admin-gated) */}
+        <div className={isAdminMode && activeTab === 'sources' ? 'block' : 'hidden'}>
           <SourceRegistryView
             sources={sources}
             initialFilter={sourcesFilterStatus}
@@ -457,8 +468,11 @@ export default function App() {
             isRefreshing={isPipelineRefreshing}
           />
         </div>
-        {/* Admin Access Gate fallback for locked operational views */}
-        {!isAdminMode && ['workspace', 'imports', 'manual', 'audit', 'evidence', 'supabase'].includes(activeTab) && (
+
+        {/* Admin Access Gate: the whole console requires an authenticated admin
+            session. No tab renders content until Header's server-verified
+            session bootstrap or an explicit adminLogin() succeeds. */}
+        {!isAdminMode && (
           <div className="bg-white border-2 border-gw-primary rounded-2xl p-8 sm:p-12 text-center max-w-xl mx-auto my-12 shadow-hard space-y-4">
             <div className="w-12 h-12 rounded-full bg-gw-bg border-2 border-gw-primary text-gw-primary flex items-center justify-center mx-auto">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
@@ -469,21 +483,15 @@ export default function App() {
             <div className="space-y-1">
               <h2 className="text-lg font-bold text-gw-primary uppercase tracking-wider">Administrative Gate Active</h2>
               <p className="text-xs text-gw-accent leading-relaxed">
-                This operational tool is restricted to administrative sessions. Unlock Admin Mode in the navigation bar header to view and interact with pipeline ingestion, manual parsing, bulk imports, audit logs, and Supabase server settings.
+                This console is restricted to administrative sessions. Sign in with your Supabase Administrator account to access the map view, data bank, source registry, pipeline ingestion, manual parsing, bulk imports, audit logs, and Supabase server settings.
               </p>
             </div>
-            <div className="pt-2 flex justify-center gap-3">
+            <div className="pt-2 flex justify-center">
               <button
-                onClick={() => setActiveTab('map')}
-                className="px-4 py-2 border border-gw-secondary text-gw-accent hover:text-gw-primary rounded text-xs font-bold uppercase"
-              >
-                Return to Map
-              </button>
-              <button
-                onClick={() => setIsAdminMode(true)}
+                onClick={() => setLoginPrompt((n) => n + 1)}
                 className="px-5 py-2 bg-gw-primary text-gw-bg font-bold text-xs uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-tertiary transition-all"
               >
-                Unlock Admin Tools
+                Admin Sign In
               </button>
             </div>
           </div>
@@ -602,9 +610,6 @@ export default function App() {
         />
       )}
         {/* Ingestion Procedure Modal - placeholder */}
-
-      <UILegacySwitcher />
-
     </div>
   );
 }
