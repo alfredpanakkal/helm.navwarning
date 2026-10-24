@@ -14,6 +14,7 @@ import type { ParsedInForceList } from '../src/parsers/inForceListParser.js';
 import { extractIssuedAtFromList, syncInForceSnapshot } from '../src/services/snapshotService.js';
 import type { InForceSnapshot } from '../src/types/snapshot.js';
 import { FEATURE_FLAGS } from '../src/lib/featureFlags.js';
+import { startRun, finishRun } from '../src/lib/pipelineRunLedger.js';
 
 function detectHazardCategory(text: string): string {
   const upper = text.toUpperCase();
@@ -274,7 +275,22 @@ export default async function scrapeNavwarnHandler(req: Request, res: Response) 
   const results = [];
   const errors = [];
 
+  // ── Pipeline run ledger (public.pipeline_runs, 20261026 migration) ──
+  // Parent row per invocation + child row per source, inserted at run start
+  // so a crash mid-run leaves a visible 'running' row. Fail-open: ledger
+  // errors never break ingestion.
+  const parentRunId = await startRun({
+    trigger: cronValid ? 'cron' : 'admin',
+    source_id: 'all',
+  });
+
   for (const source of sources) {
+    const runId = await startRun({
+      trigger: cronValid ? 'cron' : 'admin',
+      source_id: source.id,
+      navarea: source.navarea,
+      parent_run_id: parentRunId ?? undefined,
+    });
     try {
       const response = await fetch(source.url);
       if (!response.ok) {
@@ -332,12 +348,28 @@ export default async function scrapeNavwarnHandler(req: Request, res: Response) 
         }
       }
 
+      let syncedCount = 0;
       if (warnings.length > 0) {
         const syncRes = await syncWarningsToSupabase(warnings);
         if (!syncRes.success) {
           throw new Error(syncRes.error || 'Failed syncing to database');
         }
+        syncedCount = Number((syncRes as any).insertedCount ?? warnings.length);
       }
+
+      await finishRun(runId, {
+        status: 'succeeded',
+        fetch_status: response.status,
+        fetch_bytes: Buffer.byteLength(rawContent),
+        artifact_id: artifact.artifact_id,
+        content_hash: contentHash,
+        counts: {
+          blocks_parsed: potentialBlocks.length,
+          warnings_extracted: warnings.length,
+          warnings_synced: syncedCount,
+          snapshots_saved: snapshotsSaved,
+        },
+      });
 
       results.push({
         source: source.id,
@@ -347,12 +379,29 @@ export default async function scrapeNavwarnHandler(req: Request, res: Response) 
       });
 
     } catch (err: any) {
+      await finishRun(runId, {
+        status: 'failed',
+        error: String(err?.message || err),
+        stage_errors: [{ stage: 'source', source: source.id, message: String(err?.message || err) }],
+      });
       errors.push({
         source: source.id,
         error: err.message,
       });
     }
   }
+
+  // Parent run summary: succeeded / partial (some sources failed) / failed.
+  await finishRun(parentRunId, {
+    status: errors.length === 0 ? 'succeeded' : results.length > 0 ? 'partial' : 'failed',
+    counts: {
+      sources_processed: results.length,
+      sources_failed: errors.length,
+      warnings_extracted: results.reduce((sum: number, r: any) => sum + (r.extracted || 0), 0),
+      snapshots_saved: results.reduce((sum: number, r: any) => sum + (r.snapshots || 0), 0),
+    },
+    stage_errors: errors.map((e: any) => ({ stage: 'source', source: e.source, message: e.error })),
+  });
 
   return res.status(200).json({
     success: true,

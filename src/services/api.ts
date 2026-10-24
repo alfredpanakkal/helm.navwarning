@@ -1027,3 +1027,50 @@ export async function auditBatchWithAI(
 
 
 
+
+
+export interface PipelineRunLedgerRow {
+  run_id: string;
+  parent_run_id: string | null;
+  retry_of: string | null;
+  trigger: 'cron' | 'admin' | 'manual' | 'edge_function';
+  source_id: string;
+  navarea: string | null;
+  status: 'running' | 'succeeded' | 'failed' | 'partial';
+  started_at: string;
+  finished_at: string | null;
+  fetch_status: number | null;
+  fetch_bytes: number | null;
+  artifact_id: string | null;
+  content_hash: string | null;
+  counts: Record<string, number>;
+  stage_errors: Array<{ stage: string; message: string; source?: string }>;
+  error: string | null;
+}
+
+/**
+ * Reads the pipeline_runs ingestion ledger (20261026 migration) via the
+ * admin-guarded /api/pipeline/runs endpoint. Degrades to [] when the
+ * endpoint or the ledger is unavailable so the console view stays usable.
+ */
+export async function fetchPipelineRuns(params?: {
+  limit?: number;
+  source_id?: string;
+  status?: string;
+}): Promise<PipelineRunLedgerRow[]> {
+  try {
+    const headers = await getAdminHeaders();
+    const query = new URLSearchParams();
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.source_id) query.set('source_id', params.source_id);
+    if (params?.status) query.set('status', params.status);
+    const qs = query.toString();
+    const res = await fetch('/api/pipeline/runs' + (qs ? '?' + qs : ''), { headers });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.runs) ? data.runs : [];
+  } catch (err) {
+    console.warn('fetchPipelineRuns error:', err);
+    return [];
+  }
+}
