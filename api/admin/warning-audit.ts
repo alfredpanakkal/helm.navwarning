@@ -58,7 +58,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('canonical_id', canonicalId || warningId)
         .maybeSingle();
       if (rowErr) {
-        return res.status(502).json({ error: 'Could not resolve the warning: ' + rowErr.message });
+        console.error('[warning-audit] warning lookup failed:', rowErr.message);
+      return res.status(502).json({ error: 'Could not resolve the warning.', code: 'WARNING_LOOKUP_FAILED' });
       }
       if (!row) {
         return res.status(404).json({ error: 'Warning not found.' });
@@ -73,7 +74,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .limit(limit);
 
     if (auditErr) {
-      return res.status(502).json({ error: 'Could not read audit history: ' + auditErr.message });
+      console.error('[warning-audit] audit history read failed:', auditErr.message);
+      return res.status(502).json({ error: 'Could not read audit history.', code: 'AUDIT_READ_FAILED' });
     }
 
     const rows = Array.isArray(audits) ? audits : [];

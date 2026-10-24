@@ -145,93 +145,13 @@ function normalizeGeminiModel(requestedModel?: string): string {
   return clean;
 }
 
-async function callMistralFallback(prompt: string, schema?: any, specificModel?: string): Promise<{ text: string; modelUsed: string } | null> {
-  const mistralKey = process.env.MISTRAL_API_KEY;
-  if (!mistralKey) {
-    console.warn(`[Mistral Fallback] MISTRAL_API_KEY is not set.`);
-    return null;
-  }
-  // Enforce max 10,000 characters prompt bound
-  const boundedPrompt = prompt.slice(0, 10000);
-  let models = ['mistral-small-latest', 'ministral-8b-latest', 'ministral-3b-latest', 'open-mistral-7b', 'mistral-large-latest'];
-  if (specificModel && specificModel !== 'auto') {
-    models = [specificModel, ...models.filter(m => m !== specificModel)];
-  }
-  for (const model of models) {
-    try {
-      console.warn(`[Mistral AI] Attempting model ${model}...`);
-      const body: any = {
-        model,
-        messages: [{ role: 'user', content: boundedPrompt }],
-        temperature: 0,
-      };
-      if (schema) {
-        body.response_format = { type: 'json_object' };
-      }
-
-      // Add strict 30-second timeout to outgoing Mistral HTTP request
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-      const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${mistralKey}`
-        },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        const errText = await res.text();
-        console.warn(`[Mistral AI] Model ${model} failed (${res.status}): ${errText}`);
-        continue;
-      }
-      const data = await res.json();
-      const content = data.choices?.[0]?.message?.content;
-      if (content) {
-        return { text: content, modelUsed: model };
-      }
-    } catch (err: any) {
-      console.warn(`[Mistral AI] Model ${model} invocation error:`, err?.message || err);
-    }
-  }
-  console.error(`[Mistral AI] All fallback models failed.`);
-  return null;
-}
-
 async function generateContentWithRetry(ai: any, prompt: string, model: string, schema?: any, systemInstruction?: string) {
   // Enforce max 10,000 characters prompt bound
   const boundedPrompt = prompt.slice(0, 10000);
-  const wantsGeminiFirst = model && model.toLowerCase().startsWith('gemini');
-
-  if (!wantsGeminiFirst) {
-    // FIRST PRIORITY: Try Mistral (mistral-small-latest or user-specified model) first
-    const mistralModel = model && model.toLowerCase().startsWith('mistral') ? model : 'mistral-small-latest';
-    console.log(`[AI Parsing Engine] Attempting first priority: Mistral AI (${mistralModel})...`);
-    const mistralPrompt = systemInstruction ? `${systemInstruction}\n\n${boundedPrompt}` : boundedPrompt;
-    const mistralRes = await callMistralFallback(mistralPrompt, schema, mistralModel);
-    if (mistralRes && mistralRes.text) {
-      console.log(`[AI Parsing Engine] Successfully parsed using Mistral (${mistralRes.modelUsed}).`);
-      return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
-    }
-    console.warn(`[AI Parsing Engine] Mistral unavailable or failed. Falling back to Gemini Flash Lite latest...`);
-  }
 
   // SECOND PRIORITY: Gemini Flash Lite latest
   if (!ai) {
-    // If Gemini is not configured, try Mistral as last resort if not tried yet
-    if (wantsGeminiFirst) {
-      console.warn(`[AI Parsing Engine] Gemini client not configured, attempting Mistral fallback...`);
-      const mistralPrompt = systemInstruction ? `${systemInstruction}\n\n${boundedPrompt}` : boundedPrompt;
-      const mistralRes = await callMistralFallback(mistralPrompt, schema, 'mistral-small-latest');
-      if (mistralRes && mistralRes.text) {
-        return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
-      }
-    }
-    throw new Error('Gemini API client is not initialized and Mistral fallback was unavailable. Please ensure MISTRAL_API_KEY or GEMINI_API_KEY is configured.');
+    throw new Error('Gemini API client is not initialized. Please ensure GEMINI_API_KEY is configured.');
   }
 
   let targetModel = normalizeGeminiModel(model || 'gemini-3.1-flash-lite');
@@ -276,14 +196,6 @@ async function generateContentWithRetry(ai: any, prompt: string, model: string, 
         await new Promise(resolve => setTimeout(resolve, delayMs));
         attempt++;
       } else {
-        // As a final failover if Gemini fails and Mistral hasn't been tried
-        if (wantsGeminiFirst) {
-          console.warn(`[AI Parsing Engine] Gemini failed (${err?.message}). Attempting emergency Mistral fallback...`);
-          const mistralRes = await callMistralFallback(boundedPrompt, schema, 'mistral-small-latest');
-          if (mistralRes && mistralRes.text) {
-            return { text: mistralRes.text, modelUsed: mistralRes.modelUsed };
-          }
-        }
         throw err;
       }
     }
@@ -525,7 +437,7 @@ async function startServer() {
   /**
    * Route: POST /api/parse-navwarn
    * Protected: Admin only (requireAdmin) + Rate limited (aiRouteLimiter, 10 req/min per user)
-   * Spends: Gemini / Mistral AI quota
+   * Spends: Gemini AI quota
    * Security: Input text bounded to 10,000 chars, 30s timeout, sanitized errors
    */
   app.post('/api/parse-navwarn', requireAdmin, aiRouteLimiter, async (req, res) => {
@@ -585,7 +497,7 @@ ${inputText.trim()}
   /**
    * Route: POST /api/enrich-evidence
    * Protected: Admin only (requireAdmin) + Rate limited (aiRouteLimiter, 10 req/min per user)
-   * Spends: Gemini / Mistral AI quota + fetches user-supplied URL
+   * Spends: Gemini AI quota + fetches user-supplied URL
    * Security: SSRF protected via safeFetch (DNS lookup, IP blocklist, redirect hop verification, hostname allowlist),
    *           Max 2MB response, 10s fetch timeout, 10,000 char prompt bound, 30s AI timeout.
    */
@@ -2071,57 +1983,11 @@ Instructions:
     }
   });
 
-  // Mistral Integration Diagnostic & Test Key Endpoint (Admin Protected + Rate Limited)
-  app.post('/api/admin/test-mistral', requireAdmin, aiRouteLimiter, async (req, res) => {
-    try {
-      const apiKey = process.env.MISTRAL_API_KEY;
-      if (!apiKey || !apiKey.trim()) {
-        return res.json({
-          success: false,
-          hasKey: false,
-          error: 'MISTRAL_API_KEY environment variable is missing on the server. Please ensure MISTRAL_API_KEY is configured in your Settings > Secrets.',
-        });
-      }
 
-      const userPrompt =
-        typeof req.body?.prompt === 'string' && req.body.prompt.trim()
-          ? req.body.prompt.trim()
-          : "System verification: confirm 'Mistral AI operational check passed' and state current system readiness in 1 short sentence.";
-
-      const specificModel = typeof req.body?.model === 'string' ? req.body.model : 'auto';
-
-      const startTime = Date.now();
-      const mistralRes = await callMistralFallback(userPrompt, undefined, specificModel);
-      const durationMs = Date.now() - startTime;
-
-      if (!mistralRes || !mistralRes.text) {
-        throw new Error(`No response content returned from Mistral API (model: ${specificModel}).`);
-      }
-
-      res.json({
-        success: true,
-        hasKey: true,
-        model: mistralRes.modelUsed,
-        latency_ms: durationMs,
-        response: mistralRes.text,
-        prompt_used: userPrompt,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (err: any) {
-      console.warn('[Mistral Diagnostic Error]', err);
-      res.status(400).json({
-        success: false,
-        hasKey: Boolean(process.env.MISTRAL_API_KEY),
-        error: err.message || String(err),
-        timestamp: new Date().toISOString(),
-      });
-    }
-  });
-
-  // Parse manual text using Deterministic rules first, then Mistral AI, with Gemini Flash Lite fallback (Admin Protected + Rate Limited)
+  // Parse manual text using Deterministic rules first, then Gemini AI (Admin Protected + Rate Limited)
   app.post('/api/pipeline/parse-manual', requireAdmin, aiRouteLimiter, async (req, res) => {
     try {
-      const { rawText, navarea = 'I', mode = 'hybrid', aiModel = 'mistral-small-latest' } = req.body;
+      const { rawText, navarea = 'I', mode = 'hybrid', aiModel = 'gemini-3.1-flash-lite' } = req.body;
       if (!rawText || typeof rawText !== 'string') {
         return res.status(400).json({ error: 'rawText string is required' });
       }
@@ -2277,7 +2143,7 @@ Instructions:
             },
           };
 
-          // Try Mistral first, then Gemini Flash Lite fallback via generateContentWithRetry
+          // AI extraction via Gemini (generateContentWithRetry)
           const ai = getGeminiClient();
           const aiResult = await generateContentWithRetry(ai, prompt, aiModel, schema);
 

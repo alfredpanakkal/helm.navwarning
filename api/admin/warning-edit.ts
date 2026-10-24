@@ -169,7 +169,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: current, error: fetchErr }: any = await rowQuery.maybeSingle();
 
     if (fetchErr) {
-      return res.status(502).json({ error: 'Could not read the warning: ' + fetchErr.message });
+      console.error('[warning-edit] warning read failed:', fetchErr.message);
+      return res.status(502).json({ error: 'Could not read the warning.', code: 'WARNING_READ_FAILED' });
     }
     if (!current) {
       return res.status(404).json({ error: 'Warning not found. It may have been deleted or the id is wrong.' });
@@ -340,7 +341,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .select('id, canonical_id')
         .single();
       if (createErr || !created) {
-        return res.status(502).json({ error: 'Move failed while creating the target copy: ' + (createErr?.message || 'no row') });
+        console.error('[warning-edit] move create failed:', createErr?.message);
+        return res.status(502).json({ error: 'Move failed while creating the target copy.', code: 'PARTIAL' });
       }
 
       // 6b. Supersede the original and record the superseded_by lineage
@@ -351,7 +353,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (supErr) {
         // Roll back: remove the copy so no duplicate survives a failed move
         await client.from('nav_warnings').delete().eq('id', created.id);
-        return res.status(502).json({ error: 'Move failed while superseding the original: ' + supErr.message });
+        console.error('[warning-edit] move supersede failed:', supErr.message);
+        return res.status(502).json({ error: 'Move failed while superseding the original. The created copy was rolled back.', code: 'PARTIAL' });
       }
 
       // 6c. Copy geometries
@@ -412,7 +415,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .select('id, canonical_id, title, status, triage_tier, data_quality, qa_flags, valid_from, valid_to, updated_at')
       .single();
     if (updateErr || !updated) {
-      return res.status(502).json({ error: 'Update failed: ' + (updateErr?.message || 'no row returned') });
+      console.error('[warning-edit] master row update failed:', updateErr?.message);
+      return res.status(502).json({ error: 'Update failed.', code: 'UPDATE_FAILED' });
     }
 
     // ── 8. Geometry replace (only when a geometry patch was supplied) ──
@@ -420,12 +424,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (geometryRows !== null) {
       const { error: delErr } = await client.from('nav_warning_geometries').delete().eq('warning_id', current.id);
       if (delErr) {
-        return res.status(502).json({ error: 'Master row updated but geometry delete failed: ' + delErr.message, code: 'PARTIAL' });
+        console.error('[warning-edit] geometry delete failed:', delErr.message);
+        return res.status(502).json({ error: 'Master row updated but geometry delete failed.', code: 'PARTIAL' });
       }
       if (geometryRows.length > 0) {
         const { error: insErr } = await client.from('nav_warning_geometries').insert(geometryRows);
         if (insErr) {
-          return res.status(502).json({ error: 'Master row updated but geometry insert failed: ' + insErr.message, code: 'PARTIAL' });
+          console.error('[warning-edit] geometry insert failed:', insErr.message);
+          return res.status(502).json({ error: 'Master row updated but geometry insert failed.', code: 'PARTIAL' });
         }
       }
       geometryStatus = geometryRows.length > 0 ? 'replaced' : 'removed';
