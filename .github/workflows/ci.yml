@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  pull-requests: write
+
 jobs:
   verify-applet:
     name: Verify Node & TypeScript Build
@@ -24,7 +27,26 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Typecheck TypeScript
-        run: npx tsc --noEmit
+        run: |
+          set -o pipefail
+          npx tsc --noEmit 2>&1 | tee tsc.log
+
+      - name: Run P0 Safety Regression Tests (vitest)
+        run: |
+          set -o pipefail
+          npx vitest run src/utils/__tests__/p0SafetyRegression.test.ts 2>&1 | tee vitest.log
+
+      - name: Report failure on PR
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          printf 'CI verify-applet failed on commit %s.\n' "${GITHUB_SHA:0:7}" > /tmp/ci-fail-comment.md
+          for f in tsc.log vitest.log; do
+            if [ -s "$f" ]; then printf '\n### tail of %s\n\`\`\`\n' "$f" >> /tmp/ci-fail-comment.md; tail -c 4000 "$f" >> /tmp/ci-fail-comment.md; printf '\n\`\`\`\n' >> /tmp/ci-fail-comment.md; fi
+          done
+          gh pr comment "$PR_NUMBER" --body-file /tmp/ci-fail-comment.md || true
 
       - name: Build Applet Bundle
         run: npx vite build
