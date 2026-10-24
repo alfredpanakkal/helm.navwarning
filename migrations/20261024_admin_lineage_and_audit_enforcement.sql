@@ -16,13 +16,33 @@ create index if not exists idx_nav_warnings_superseded_by
   on public.nav_warnings (superseded_by);
 
 -- Backfill lineage for moves already made (copy carries moved_from:<old canonical>).
-update public.nav_warnings old
-set superseded_by = moved.id
-from public.nav_warnings moved
-where old.status = 'superseded'
-  and moved.qa_flags is not null
-  and ('moved_from:' || old.canonical_id) = any (moved.qa_flags)
-  and old.superseded_by is null;
+-- qa_flags is TEXT[] in docs/supabase_setup.sql but may exist as jsonb/json in
+-- projects provisioned from the backend migrations, so try each shape in turn.
+do $
+begin
+  update public.nav_warnings old
+  set superseded_by = moved.id
+  from public.nav_warnings moved
+  where old.status = 'superseded'
+    and moved.qa_flags is not null
+    and ('moved_from:' || old.canonical_id) = any (moved.qa_flags::text[]);
+exception when others then
+  begin
+    update public.nav_warnings old
+    set superseded_by = moved.id
+    from public.nav_warnings moved
+    where old.status = 'superseded'
+      and moved.qa_flags is not null
+      and ('moved_from:' || old.canonical_id) = any (select jsonb_array_elements_text(moved.qa_flags::jsonb));
+  exception when others then
+    update public.nav_warnings old
+    set superseded_by = moved.id
+    from public.nav_warnings moved
+    where old.status = 'superseded'
+      and moved.qa_flags is not null
+      and strpos(moved.qa_flags::text, 'moved_from:' || old.canonical_id) > 0;
+  end;
+end $;
 
 -- ═══ 2. nav_warning_audits: append-only + admin-only ═══════════════════
 -- Reproducible definition of the audit table (matches the inserts written by
