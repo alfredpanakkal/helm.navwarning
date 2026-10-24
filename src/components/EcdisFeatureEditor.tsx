@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { EcdisIntermediateLayer, EcdisPointFeature, GeometryIntent, FeatureRoleHint } from '../types';
 import { extractEcdisIntermediateLayer, testFourWayInference, isPointInNavArea } from '../utils/coordinateParser';
-import { Layers, MapPin, Download, Copy, Plus, Trash2, ArrowUp, ArrowDown, AlertTriangle, CheckCircle2, ShieldAlert, Edit3 } from 'lucide-react';
+import { Layers, MapPin, Download, Copy, Plus, Trash2, ArrowUp, ArrowDown, AlertTriangle, CheckCircle2, ShieldAlert, Edit3, Undo2, Redo2, RotateCcw, FileDiff } from 'lucide-react';
 
 interface EcdisFeatureEditorProps {
   initialLayer?: EcdisIntermediateLayer;
@@ -9,6 +9,33 @@ interface EcdisFeatureEditorProps {
   warningId?: string;
   navarea?: string | null;
   onLayerChange?: (layer: EcdisIntermediateLayer) => void;
+}
+
+/** Human-readable officer-layer diff against the extracted original. */
+function summarizeLayerDiff(original: EcdisIntermediateLayer, current: EcdisIntermediateLayer): string | null {
+  if (JSON.stringify(original) === JSON.stringify(current)) return null;
+  const bits: string[] = [];
+  if (original.geometry_intent !== current.geometry_intent) bits.push('intent changed');
+  const added = Math.max(0, current.features.length - original.features.length);
+  const removed = Math.max(0, original.features.length - current.features.length);
+  const origById = new Map(original.features.map((f) => [f.id, f]));
+  let movedCount = 0;
+  let noteEdits = 0;
+  for (const f of current.features) {
+    const o = origById.get(f.id);
+    if (!o) continue;
+    const coordChanged =
+      o.geometry.coordinates[0] !== f.geometry.coordinates[0] ||
+      o.geometry.coordinates[1] !== f.geometry.coordinates[1];
+    const roleChanged = (o.properties.role_hint || null) !== (f.properties.role_hint || null);
+    if (coordChanged || roleChanged) movedCount++;
+    if (o.properties.user_notes !== f.properties.user_notes) noteEdits++;
+  }
+  if (added > 0) bits.push(`${added} point(s) added`);
+  if (removed > 0) bits.push(`${removed} point(s) removed`);
+  if (movedCount > 0) bits.push(`${movedCount} point(s) moved/edited`);
+  if (noteEdits > 0) bits.push(`${noteEdits} note edit(s)`);
+  return bits.length > 0 ? bits.join(' · ') : 'layer modified (reordered)';
 }
 
 export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
@@ -25,9 +52,48 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
 
   const [copySuccess, setCopySuccess] = useState(false);
 
+  // Officer-layer edit history (undo/redo) + the extracted original snapshot
+  // used for reset-to-original and the original-vs-proposed diff.
+  const originalLayerRef = useRef<EcdisIntermediateLayer>(layer);
+  const [undoStack, setUndoStack] = useState<EcdisIntermediateLayer[]>([]);
+  const [redoStack, setRedoStack] = useState<EcdisIntermediateLayer[]>([]);
+
   const updateLayer = (newLayer: EcdisIntermediateLayer) => {
+    setUndoStack((prev) => [...prev.slice(-49), layer]);
+    setRedoStack([]);
     setLayer(newLayer);
     if (onLayerChange) onLayerChange(newLayer);
+  };
+
+  /** Apply a historical layer without pushing a new history entry. */
+  const applyHistorical = (next: EcdisIntermediateLayer) => {
+    setLayer(next);
+    if (onLayerChange) onLayerChange(next);
+  };
+
+  const undo = () => {
+    if (undoStack.length === 0) return;
+    const prevLayer = undoStack[undoStack.length - 1];
+    setUndoStack((prev) => prev.slice(0, -1));
+    setRedoStack((prev) => [...prev, layer]);
+    applyHistorical(prevLayer);
+  };
+
+  const redo = () => {
+    if (redoStack.length === 0) return;
+    const nextLayer = redoStack[redoStack.length - 1];
+    setRedoStack((prev) => prev.slice(0, -1));
+    setUndoStack((prev) => [...prev, layer]);
+    applyHistorical(nextLayer);
+  };
+
+  /** Reset the officer layer to the extracted original (undoable). */
+  const resetToOriginal = () => {
+    const original: EcdisIntermediateLayer = JSON.parse(JSON.stringify(originalLayerRef.current));
+    if (JSON.stringify(layer) === JSON.stringify(original)) return;
+    setUndoStack((prev) => [...prev.slice(-49), layer]);
+    setRedoStack([]);
+    applyHistorical(original);
   };
 
   const handleIntentChange = (newIntent: GeometryIntent) => {
@@ -195,6 +261,9 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const diffSummary = summarizeLayerDiff(originalLayerRef.current, layer);
+  const isDirty = diffSummary !== null;
+
   return (
     <div className="bg-white border-2 border-gw-primary rounded-xl overflow-hidden shadow-md font-mono text-xs text-gw-primary">
       {/* Layer Header */}
@@ -226,6 +295,14 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
           </select>
         </div>
       </div>
+
+      {/* Original-vs-proposed diff banner */}
+      {isDirty && (
+        <div className="px-4 py-1.5 bg-sky-50 border-b border-sky-300 text-[10px] text-sky-900 flex items-center gap-1.5">
+          <FileDiff className="w-3 h-3 shrink-0" />
+          <span>Officer layer vs extracted original: {diffSummary}</span>
+        </div>
+      )}
 
       {/* Feature List */}
       <div className="p-4 space-y-3 max-h-[420px] overflow-y-auto no-scrollbar">
@@ -399,12 +476,38 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
 
       {/* Footer Controls */}
       <div className="p-3 bg-gw-bg border-t-2 border-gw-primary flex flex-col sm:flex-row justify-between items-center gap-2">
-        <button
-          onClick={() => handleInsertPoint(layer.features.length - 1)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" /> Add Point Feature
-        </button>
+        <div className="flex items-center gap-1.5 flex-wrap justify-center">
+          <button
+            onClick={() => handleInsertPoint(layer.features.length - 1)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add Point Feature
+          </button>
+          <button
+            onClick={undo}
+            disabled={undoStack.length === 0}
+            className="p-1.5 bg-white border border-gw-secondary rounded text-gw-accent hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Undo last layer change"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={redo}
+            disabled={redoStack.length === 0}
+            className="p-1.5 bg-white border border-gw-secondary rounded text-gw-accent hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Redo"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={resetToOriginal}
+            disabled={!isDirty}
+            className="p-1.5 bg-white border border-gw-secondary rounded text-gw-accent hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Reset officer layer to the extracted original"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
         <div className="flex items-center gap-2">
           <button
