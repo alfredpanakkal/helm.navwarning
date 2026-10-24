@@ -2945,6 +2945,9 @@ Instructions:
     app.get('/admin', (req, res) => {
       res.sendFile(path.join(distPath, 'admin.html'));
     });
+    app.get('/console', (req, res) => {
+      res.sendFile(path.join(distPath, 'console.html'));
+    });
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
