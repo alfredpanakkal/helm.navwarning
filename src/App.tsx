@@ -78,9 +78,10 @@ export default function App() {
   const [isolatedWarning, setIsolatedWarning] = useState<NavWarning | null>(null);
 
   // Admin Access Gate State
-  const [isAdminMode, setIsAdminModeState] = useState<boolean>(() => {
-    return localStorage.getItem('helm_admin_mode') === 'true';
-  });
+  // Admin Access Gate State — never trust client-stored flags:
+  // admin mode is granted only by the server-verified session bootstrap
+  // in Header (app_metadata.role) or an explicit adminLogin() success.
+  const [isAdminMode, setIsAdminModeState] = useState<boolean>(false);
 
   const setIsAdminMode = useCallback((val: boolean) => {
     setIsAdminModeState(val);

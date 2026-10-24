@@ -73,9 +73,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const rawApiKey = process.env.CARTO_API_KEY;
-    const apiKey = rawApiKey && rawApiKey.trim().length > 0
-      ? rawApiKey.trim()
-      : 'cb1_3orr_1_f228f632545fb6733113f41c';
+    const apiKey = (rawApiKey && rawApiKey.trim().length > 0) ? rawApiKey.trim() : null;
+    if (!apiKey) {
+      // Fail closed: never fall back to a hardcoded key committed in source.
+      console.error('[CARTO Tile Proxy Error]: CARTO_API_KEY is not configured.');
+      return res.status(503).json({ error: 'CARTO tile proxy is not configured.', code: 'CARTO_KEY_MISSING' });
+    }
 
     const subdomains = ['a', 'b', 'c', 'd'];
     const sub = subdomains[Math.floor(Math.random() * subdomains.length)];

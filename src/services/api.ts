@@ -443,7 +443,6 @@ export async function adminLogin(
         const token = data.session.access_token;
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('helm_admin_token', token);
-          localStorage.setItem('helm_admin_mode', 'true');
         }
         return { success: true, token };
       }
@@ -468,7 +467,6 @@ export async function adminLogin(
     if (data.token) {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('helm_admin_token', data.token);
-        localStorage.setItem('helm_admin_mode', 'true');
       }
       return { success: true, token: data.token };
     }
@@ -499,7 +497,6 @@ export async function adminLogout(): Promise<void> {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('helm_admin_token');
       localStorage.removeItem('helm_admin_passcode');
-      localStorage.setItem('helm_admin_mode', 'false');
     }
   }
 }

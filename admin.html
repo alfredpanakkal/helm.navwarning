@@ -54,7 +54,6 @@ input:focus{outline:none;border-color:var(--text-muted)}
 <script>
 'use strict';
 
-var ADMIN_EMAILS = ['alfredpanakkal47@gmail.com'];
 
 function showError(msg) {
   var el = document.getElementById('loginError');
@@ -62,18 +61,19 @@ function showError(msg) {
   el.style.display = 'block';
 }
 
+// UX-only hint read from the user's own session. The sole authorization
+// boundary is server-side: server/auth.ts requireAdmin / verifyAdminRequest
+// guard every /api/admin/* route and all admin mutating endpoints.
 function isAdminUser(user) {
   if (!user) return false;
-  var role = (user.app_metadata && user.app_metadata.role) || '';
-  if (String(role).toLowerCase() === 'admin') return true;
-  return ADMIN_EMAILS.indexOf(String(user.email || '').toLowerCase()) !== -1;
+  var meta = (user && user.app_metadata) || {};
+  return meta.role === 'admin' || meta.role === 'superadmin' || meta.is_admin === true;
 }
 
-function enterAdminMode(email) {
-  try {
-    localStorage.setItem('helm_admin_mode', 'true');
-    localStorage.setItem('hw_admin_email', String(email || ''));
-  } catch (e) { /* storage unavailable */ }
+function enterAdminMode() {
+  // No client-side trust flags (helm_admin_mode / hw_admin_email) are written:
+  // they were spoofable and conveyed no real authorization. The React console
+  // derives admin mode from the server-verified session on mount.
   window.location.replace('/#/databank');
 }
 
@@ -83,7 +83,7 @@ async function checkExistingSession() {
     var s = await window.hwSupabase.auth.getSession();
     var session = s && s.data && s.data.session;
     if (session && session.access_token && isAdminUser(session.user)) {
-      enterAdminMode(session.user.email);
+      enterAdminMode();
     }
   } catch (e) { /* stay on gate */ }
 }
@@ -107,7 +107,7 @@ async function handleLogin(event) {
       await window.hwSupabase.auth.signOut();
       throw new Error('This account is not authorized as an admin.');
     }
-    enterAdminMode(user.email);
+    enterAdminMode();
   } catch (err) {
     showError((err && err.message) ? err.message : 'Sign-in failed. Check your credentials.');
     btn.disabled = false;
