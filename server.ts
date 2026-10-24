@@ -2042,11 +2042,15 @@ Instructions:
           // Keep spatial data but ensure it's marked appropriately
         }
         warningsDb.unshift(warning);
+        let dbSyncError: string | null = null;
         const supabase = getSupabaseClient();
         if (supabase) {
           try {
             await syncWarningsToSupabase([warning]);
-          } catch (_) {}
+          } catch (err: any) {
+            dbSyncError = err?.message || String(err);
+            console.error('[JHOD Parse] Supabase warning sync failed:', dbSyncError);
+          }
         }
         return res.json({
           warning,
@@ -2054,6 +2058,8 @@ Instructions:
           ai_parsing_failed: !grounded,
           ai_error: grounded ? null : 'Hallucination Guard Triggered: AI coordinates not present verbatim in raw telex text.',
           jhodOutput: jhodResult,
+          db_sync_succeeded: dbSyncError === null,
+          db_sync_error: dbSyncError,
         });
       }
 
