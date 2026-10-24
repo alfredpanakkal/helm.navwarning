@@ -1,3 +1,36 @@
+-- ================================================================
+-- WARNING: LEGACY / SUPERSEDED SCRIPT - READ BEFORE RUNNING
+-- ================================================================
+--
+-- This is the Phase 4/5 setup script. It creates the OLD flat schema
+-- (warning_id PK, latitude/longitude/spatial columns,
+-- category/risk_level, per-NAVAREA schemas like navarea_11) that the
+-- current Helm.Warning.Backend no longer writes.
+--
+-- The LIVE database contract is the 20261019/20 schema documented in
+-- docs/supabase-backend-contract.md (authoritative):
+--   * PK/keys: id (uuid) + canonical_id - NO warning_id column
+--   * NO latitude/longitude/spatial/category/severity/risk_level columns
+--   * Geometry lives in nav_warning_geometries (PostGIS) /
+--     nav_warnings_active_spatial (geojson_blob)
+--   * NO per-NAVAREA schemas - everything is in public
+--
+-- Known inconsistencies with the live schema (do not fix by editing here;
+-- migrate instead):
+--   * nav_warnings_review_queue below includes triage_tier IN (B, C);
+--     the contract restricts the review queue to Tier B (Tier C is never
+--     surfaced).
+--   * sources_registry / ingestion_generations / raw_artifacts /
+--     in_force_snapshots are created here but are NOT populated by the
+--     current backend.
+--
+-- Run this ONLY for fresh legacy/local sandboxes. For the production
+-- project, use the Helm.Warning.Backend migrations
+-- (20261019_global_navarea_pipeline_adapted.sql,
+--  20261020_realtime_and_audit.sql,
+--  20261019_add_categories_column_and_update_view.sql).
+-- ================================================================
+
 -- ══════════════════════════════════════════════════════════════
 -- HELM.WARNING SUPABASE SETUP & MIGRATION SCRIPT
 -- Phase 4 & Phase 5: Database Setup, NAVAREA Segregation & Security

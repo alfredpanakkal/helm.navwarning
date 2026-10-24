@@ -161,3 +161,31 @@ Findings are categorized across the 6 audit dimensions, complete with user impac
 1. **Sprint Planning Allocation**: Schedule Quick Wins (F-01 predicate fix, F-02 admin setter stabilization, mobile sticky height collapse) into the immediate sprint backlog.
 2. **URL Router Feature Spec**: Draft a concise specification for URL query parameter sync using `window.location.hash` to keep implementation lightweight and zero-dependency.
 3. **Design Token Audit Clean-Up**: Execute a single refactoring pass to alias `--surface-dark` to `--color-gw-primary` across legacy CSS assets.
+
+---
+
+## 6. Addendum — v2.5 Admin Console Entry Re-architecture (2026-10-24)
+
+PR #24 (`fix/admin-console-entry`, merged 2026-10-24) changed the admin surface
+topology from two pages to three:
+
+| Entry point | Role |
+|---|---|
+| `index.html` | Public portal (unchanged) |
+| `admin.html` | Login gateway only — after sign-in (or an existing admin session) it redirects to `/console#/databank`; it no longer hosts any admin UI |
+| `console.html` | New React console entry; mounts `src/main.tsx`, noindex + frame-DENY, served at `/console` (Vercel headers + Express `/console` route) |
+
+Impact on findings:
+- **F-03 (deep-linking)**: the console now uses hash routing (`/console#/databank`),
+  so admin views are bookmarkable/shareable. Public-site URL sync remains open.
+- **F-02 (admin state reset)**: the gateway no longer writes client-side trust flags
+  (`helm_admin_mode` / `hw_admin_email` were removed as spoofable); the console
+  derives admin mode from the server-verified session on mount. Re-test the old
+  gate-loop symptom against the new flow.
+- **Finding 1.2 (token duplication)**: now three token surfaces — `tokens.css`
+  (public + gateway) and `src/index.css` (console). The unification pass is still
+  recommended.
+- **New observation**: `admin.html` loads `@supabase/supabase-js` from `unpkg.com`
+  at runtime — an unpinned-CDN supply-chain and availability dependency on the admin
+  login path not previously flagged. Consider vendoring the UMD bundle or moving
+  sign-in into the React app.
