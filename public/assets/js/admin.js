@@ -45,7 +45,8 @@ Object.assign(window.hwDb, {
       parsing_method: 'RULE'
     };
 
-    query = isUuid ? query.eq('id', id) : query.or(`warning_id.eq."${id}",canonical_id.eq."${id"`);
+    let query = window.hwSupabase.from('nav_warnings').update(updatePayload);
+    query = isUuid ? query.eq('id', id) : query.or(`warning_id.eq."${id}",canonical_id.eq."${id}"`);
     const res = await query.select('id, canonical_id');
 
     // Record immutable operator audit row to nav_warning_audits
@@ -81,7 +82,8 @@ Object.assign(window.hwDb, {
       unplotted_reason: reason
     };
 
-    query = isUuid ? query.eq('id', id) : query.or(`warning_id.eq."${id}",canonical_id.eq."${id"`);
+    let query = window.hwSupabase.from('nav_warnings').update(updatePayload);
+    query = isUuid ? query.eq('id', id) : query.or(`warning_id.eq."${id}",canonical_id.eq."${id}"`);
     const res = await query.select('id, canonical_id');
 
     // Record immutable audit row
@@ -141,10 +143,10 @@ const NAVAREA_ROMAN_TO_KEY = {
   I: '1', II: 'ii', III: 'iii', IV: 'iv', V: 'v', VI: 'vi', VII: 'vii',
   VIII: '8', IX: 'ix', X: 'x', XI: 'xi', XII: 'xii', XIII: 'xiii',
   XIV: 'xiv', XV: 'xv', XVI: 'xvi', XVII: 'xvii', XVIII: 'xviii',
-  XIX: 'xix', XX: 'xx'
+  XIX: 'xix', XX: 'xx', XXI: 'xxi'
 };
 // Longest-first alternation so NAVAREA XVII never truncates to XV.
-const NAVAREA_ROMAN_RE = 'XVIII|XVII|XIII|XIV|XVI|XIX|XII|XV|XI|IX|VIII|VII|VI|IV|III|II|XX|X|V|I';
+const NAVAREA_ROMAN_RE = 'XXI|XVIII|XVII|XIII|XIV|XVI|XIX|XII|XV|XI|IX|VIII|VII|VI|IV|III|II|XX|X|V|I';
 const NAVAREA_HEADER_RE = new RegExp('\\bNAVAREA\\s+(?:' + NAVAREA_ROMAN_RE + '|[0-9]{1,2})\\b', 'i');
 function detectNavareaJS(text) {
   if (!text) return null;
