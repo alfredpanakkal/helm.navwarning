@@ -342,7 +342,51 @@ export async function fetchArchivedWarnings(): Promise<NavWarning[]> {
   }
 }
 
+/**
+ * Maps an ingestion_generations ledger row (backend 20261023_lifecycle_safety
+ * migration) onto the frontend IngestionGeneration contract. Legacy consumers
+ * read created_at / parsed_count / active_count / evidence_hash /
+ * completeness_status, so ledger values are normalized into those fields.
+ */
+function mapIngestionGenerationRow(row: Record<string, unknown>): IngestionGeneration {
+  const runStatus = (row.status as IngestionGeneration['run_status']) ?? 'succeeded';
+  const startedAt = (row.started_at as string) || new Date().toISOString();
+  const completeness: IngestionGeneration['completeness_status'] =
+    runStatus === 'succeeded' ? 'verified' : runStatus === 'failed' ? 'failed' : 'unverified';
+  const details = row.details && typeof row.details === 'object'
+    ? (row.details as Record<string, unknown>)
+    : null;
+  return {
+    generation_id: String(row.generation_id ?? ''),
+    source_id: String(row.source_id ?? 'unknown'),
+    created_at: startedAt,
+    navarea: (row.navarea as string | null) ?? null,
+    started_at: startedAt,
+    completed_at: (row.completed_at as string | null) ?? null,
+    run_status: runStatus,
+    details,
+    parsed_count: Number(row.parsed_count) || 0,
+    active_count: row.active_count == null ? null : Number(row.active_count),
+    evidence_hash: String(row.evidence_hash ?? ''),
+    completeness_status: completeness,
+  };
+}
+
+/**
+ * Ingestion run ledger read straight from Supabase (ingestion_generations,
+ * 20261023_lifecycle_safety migration): one row per sync run with parsed /
+ * active counts and pipeline status, so the Data Bank can answer "where did
+ * the warnings go?". Falls back to the legacy /api/generations endpoint when
+ * the table is empty or unreachable, then to an empty list.
+ */
 export async function fetchGenerations(): Promise<IngestionGeneration[]> {
+  try {
+    const { fetchIngestionGenerations } = await import('./navWarningQueries');
+    const rows = await fetchIngestionGenerations();
+    if (rows.length > 0) return rows.map(mapIngestionGenerationRow);
+  } catch (err) {
+    console.warn('Supabase ingestion_generations read failed, trying legacy /api/generations:', err);
+  }
   try {
     const res = await fetch('/api/generations');
     if (!res.ok) throw new Error('Failed to fetch generations');
@@ -982,6 +1026,7 @@ export async function auditBatchWithAI(
 
   return res.json();
 }
+
 
 
 

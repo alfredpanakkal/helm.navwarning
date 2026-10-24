@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronUp, Compass } from 'lucide-react';
 import { ALL_NAVAREAS, DataBankModel } from '../hooks/useDataBankModel';
-import { SourceRegistryItem } from '../types';
+import { IngestionGeneration, SourceRegistryItem } from '../types';
+
+/** Pipeline run status styling — ingestion_generations ledger (20261023_lifecycle_safety). */
+const RUN_STATUS_STYLES: Record<NonNullable<IngestionGeneration['run_status']>, { dot: string; label: string }> = {
+  running: { dot: 'bg-blue-500 animate-pulse', label: 'RUNNING' },
+  succeeded: { dot: 'bg-emerald-600', label: 'SUCCEEDED' },
+  failed: { dot: 'bg-red-600', label: 'FAILED' },
+  empty_feed: { dot: 'bg-amber-500', label: 'EMPTY FEED' },
+};
 
 /**
  * Collapsed-by-default secondary content: the executive operational brief, the
@@ -12,7 +20,8 @@ import { SourceRegistryItem } from '../types';
 export const DataBankSummary: React.FC<{
   model: DataBankModel;
   sources?: SourceRegistryItem[];
-}> = ({ model, sources = [] }) => {
+  generations?: IngestionGeneration[];
+}> = ({ model, sources = [], generations = [] }) => {
   const [open, setOpen] = useState(false);
   const {
     warnings,
@@ -28,6 +37,7 @@ export const DataBankSummary: React.FC<{
 
   const navareaCoverage = Object.keys(navareaCounts).length;
   const enabledFeeds = sources.filter((s) => s.enabled).length;
+  const lastRun = generations[0];
 
   return (
     <section data-databank-summary className="bg-secondary border-subtle rounded-md overflow-hidden">
@@ -156,13 +166,59 @@ export const DataBankSummary: React.FC<{
             </div>
           </div>
 
+          {generations.length > 0 && (
+            <div className="pt-1 border-t border-subtle flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gw-accent">
+                  Recent Ingestion Runs — where the warnings came from
+                </span>
+                <span className="text-[10px] uppercase tracking-wider text-gw-accent/70 tabular-nums">
+                  {generations.length} logged run{generations.length === 1 ? '' : 's'}
+                </span>
+              </div>
+              {generations.slice(0, 5).map((gen) => {
+                const style = RUN_STATUS_STYLES[gen.run_status ?? 'succeeded'];
+                return (
+                  <div key={gen.generation_id} className="flex items-center gap-2 text-[11px] font-mono leading-tight">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`}
+                      title={style.label}
+                    />
+                    <span className="font-bold text-gw-primary truncate">{gen.source_id}</span>
+                    {gen.navarea && (
+                      <span className="text-gw-accent/70 shrink-0">{gen.navarea}</span>
+                    )}
+                    <span className="ml-auto text-gw-accent tabular-nums shrink-0">
+                      {gen.parsed_count} parsed → {gen.active_count ?? '—'} active
+                    </span>
+                    <span className="text-gw-accent/60 tabular-nums shrink-0" title={gen.created_at}>
+                      {gen.created_at.replace('T', ' ').slice(0, 16)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <div className="pt-1 border-t border-subtle flex flex-col gap-1 text-xs text-gw-accent">
             <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse shrink-0" />
+              <span
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  lastRun ? RUN_STATUS_STYLES[lastRun.run_status ?? 'succeeded'].dot : 'bg-emerald-600 animate-pulse'
+                }`}
+              />
               <span className="font-bold text-gw-primary">
-                {enabledFeeds > 0 ? 'Dynamic Ingestion Pipeline Active' : 'Manual Data Mode'}
+                {lastRun
+                  ? `Last Ingestion Run: ${RUN_STATUS_STYLES[lastRun.run_status ?? 'succeeded'].label}`
+                  : enabledFeeds > 0
+                  ? 'Dynamic Ingestion Pipeline Active'
+                  : 'Manual Data Mode'}
               </span>
-              <span>({enabledFeeds > 0 ? `${enabledFeeds} Feeds Configured` : 'No live feeds configured'})</span>
+              <span>
+                {lastRun
+                  ? `(${lastRun.source_id} · ${lastRun.parsed_count} parsed → ${lastRun.active_count ?? '—'} active)`
+                  : `(${enabledFeeds > 0 ? `${enabledFeeds} Feeds Configured` : 'No live feeds configured'})`}
+              </span>
             </div>
             <div>Zero Hardcoded Data: Live WWNWS Hydrographic Feeds</div>
           </div>
@@ -171,3 +227,4 @@ export const DataBankSummary: React.FC<{
     </section>
   );
 };
+

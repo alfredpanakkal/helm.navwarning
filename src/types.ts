@@ -298,18 +298,32 @@ export interface NavWarning {
 }
 
 
+/**
+ * Pipeline run status as recorded in the ingestion_generations run ledger
+ * (backend 20261023_lifecycle_safety migration).
+ */
+export type IngestionRunStatus = 'running' | 'succeeded' | 'failed' | 'empty_feed';
+
 export interface IngestionGeneration {
   generation_id: string;
   source_id: string;
+  /** Legacy alias for run start time — always mirrors the ledger's started_at. */
   created_at: string;
-  publication_kind: PublicationSemantics;
+  // ingestion_generations ledger fields (20261023_lifecycle_safety)
+  navarea?: string | null;
+  started_at?: string;
+  completed_at?: string | null;
+  run_status?: IngestionRunStatus;
+  details?: Record<string, unknown> | null;
+  // Legacy generation-pointer fields (pre-migration shape; optional now)
+  publication_kind?: PublicationSemantics;
   parsed_count: number;
-  active_count: number;
-  explicit_cancellations: string[];
+  active_count: number | null;
+  explicit_cancellations?: string[];
   completeness_status: 'verified' | 'unverified' | 'failed' | 'sync_failed';
   evidence_hash: string;
-  artifact_ref: string;
-  validation_issues: string[];
+  artifact_ref?: string;
+  validation_issues?: string[];
 }
 
 export interface RawArtifact {
@@ -410,4 +424,5 @@ export interface PipelineSystemStatus {
     started_at: string;
   } | null;
 }
+
 

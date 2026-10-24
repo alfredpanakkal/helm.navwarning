@@ -440,6 +440,7 @@ export default function App() {
             isRefreshing={isPipelineRefreshing}
             onCommitWarnings={handleCommitWarnings}
             sources={sources}
+            generations={generations}
             isOfflineMode={isOfflineMode}
             onNavigate={(tab) => setActiveTab(tab)}
           />
