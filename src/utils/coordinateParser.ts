@@ -56,7 +56,7 @@ export type SemanticGeometryType =
   | 'PARTIAL';
 
 export type GeometryInferenceMode = 'EXPLICIT' | 'INFERRED' | 'PARTIAL' | 'UNKNOWN';
-export type GeometryConfidenceLevel = 'VERIFIED' | 'HIGH_CONFIDENCE' | 'PARTIAL' | 'AMBIGUOUS' | 'UNKNOWN';
+export type GeometryConfidenceLevel = 'RULE_PARSED' | 'HIGH_CONFIDENCE' | 'PARTIAL' | 'AMBIGUOUS' | 'UNKNOWN';
 export type CoordinateRole =
   | 'CENTER'
   | 'BOUNDARY_VERTEX'
@@ -568,7 +568,7 @@ export function parseCoordinatesDeterministic(
           coordinates: [polyCoords],
           label: block.label,
           inference_mode: 'EXPLICIT',
-          confidence_level: 'VERIFIED',
+          confidence_level: 'RULE_PARSED',
           spatial_group_id: groupId,
           group_label: block.label,
           evidence: [{ rule: 'STRONG_POLYGON_INDICATOR', matched_text: block.label }],
@@ -589,7 +589,7 @@ export function parseCoordinatesDeterministic(
           radius_nm: blockRadius,
           label: `${block.label} (${blockRadius >= 1 ? blockRadius.toFixed(1) + ' NM' : (blockRadius * 1852).toFixed(0) + 'm'})`,
           inference_mode: 'EXPLICIT',
-          confidence_level: 'VERIFIED',
+          confidence_level: 'RULE_PARSED',
           evidence: [{ rule: 'EXPLICIT_RADIUS_STATEMENT', matched_text: block.text.slice(0, 50) }],
         });
         // Also add center point for clear marker/pin representation
@@ -599,7 +599,7 @@ export function parseCoordinatesDeterministic(
           coordinates: center,
           label: block.label,
           inference_mode: 'EXPLICIT',
-          confidence_level: 'VERIFIED',
+          confidence_level: 'RULE_PARSED',
           evidence: [{ rule: 'SUB_BLOCK_CENTER_POINT', matched_text: block.label }],
         });
       }
@@ -611,7 +611,7 @@ export function parseCoordinatesDeterministic(
           coordinates: groupCoords,
           label: block.label,
           inference_mode: 'EXPLICIT',
-          confidence_level: 'VERIFIED',
+          confidence_level: 'RULE_PARSED',
           evidence: [{ rule: 'SUB_BLOCK_LINE', matched_text: block.label }],
         });
       }
@@ -623,7 +623,7 @@ export function parseCoordinatesDeterministic(
           coordinates: groupCoords[0],
           label: block.label,
           inference_mode: 'EXPLICIT',
-          confidence_level: 'VERIFIED',
+          confidence_level: 'RULE_PARSED',
           evidence: [{ rule: 'SUB_BLOCK_POINT', matched_text: block.label }],
         });
       }
@@ -653,7 +653,7 @@ export function parseCoordinatesDeterministic(
           radius_nm: radius,
           label: `${radius} NM Radius Area`,
           inference_mode: 'EXPLICIT',
-          confidence_level: 'VERIFIED',
+          confidence_level: 'RULE_PARSED',
           evidence: [{ rule: 'EXPLICIT_RADIUS_STATEMENT', matched_text: circleMatch[0] }],
         });
         rawCoordinateText.push(circleMatch[0]);
@@ -726,7 +726,7 @@ export function parseCoordinatesDeterministic(
         radius_nm: activeRadius,
         label: `${activeRadius} NM Radius Area`,
         inference_mode: 'EXPLICIT',
-        confidence_level: 'VERIFIED',
+        confidence_level: 'RULE_PARSED',
         evidence: [
           {
             rule: 'RADIUS_SPECIFICATION_APPLIED',
@@ -765,7 +765,7 @@ export function parseCoordinatesDeterministic(
           coordinates: [polyCoords],
           label: 'Area Bounded by Coordinates',
           inference_mode: 'EXPLICIT',
-          confidence_level: 'VERIFIED',
+          confidence_level: 'RULE_PARSED',
           spatial_group_id: groupId,
           evidence: [{ rule: 'STRONG_POLYGON_INDICATOR', matched_text: 'BOUNDED BY' }],
         });
@@ -801,7 +801,7 @@ export function parseCoordinatesDeterministic(
           radius_nm: derivedRadius,
           label: derivedRadius ? `Point with Radius (${derivedRadius} NM)` : 'Reported Hazard Position',
           inference_mode: 'EXPLICIT',
-          confidence_level: 'VERIFIED',
+          confidence_level: 'RULE_PARSED',
           evidence: [{ rule: 'SINGLE_COORDINATE_POINT' }],
         });
       } else if (rawCoordsOnly.length > 1 && activeRadius === undefined) {
