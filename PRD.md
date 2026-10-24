@@ -157,7 +157,7 @@ To provide a centralized, secure, and intelligent platform for maritime safety i
 #### 5.1.1 Entry-Point Architecture (v2.5, PR #24)
 - `index.html` — public portal (Map / Data Bank / Sources)
 - `admin.html` — admin gateway: login card only; on successful sign-in (or an
-  existing admin session) it redirects to `/console#/databank`. It never mounts
+  existing admin session) it redirects to `/console#/warnings/list`. It never mounts
   the React app and writes no client-side trust flags.
 - `console.html` — React admin console entry page; mounts `src/main.tsx`
   (noindex, frame-DENY). Served at `/console` on both Vercel (security headers

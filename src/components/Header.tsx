@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TabType } from '../App';
-import { Map, Database, Upload, Radio, MoreHorizontal, Terminal, Activity, FileText, HardDrive, RefreshCw, X, Lock, Unlock, Key, Mail, ShieldCheck, Loader2 } from 'lucide-react';
+import { TabType, SectionType, SECTION_OF, SECTION_VIEWS, DEFAULT_SECTION_TAB } from '../App';
+import { Map, Database, Upload, FileText, X, Lock, Unlock, Key, Mail, Loader2 } from 'lucide-react';
 import { adminLogin, adminLogout } from '../services/api';
 
 interface HeaderProps {
@@ -21,30 +21,24 @@ export const Header: React.FC<HeaderProps> = ({
   setIsAdminMode,
   loginPrompt = 0,
 }) => {
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
 
-  // Handle Escape key dismissal for Admin Modal and Mobile Drawer
+  // Handle Escape key dismissal for Admin Modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (showAdminModal) {
-          setShowAdminModal(false);
-          setAuthErrorMessage(null);
-        }
-        if (showMobileMenu) {
-          setShowMobileMenu(false);
-        }
+      if (e.key === 'Escape' && showAdminModal) {
+        setShowAdminModal(false);
+        setAuthErrorMessage(null);
       }
     };
-    if (showAdminModal || showMobileMenu) {
+    if (showAdminModal) {
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAdminModal, showMobileMenu]);
+  }, [showAdminModal]);
 
   // External login prompt: the App-level access gate bumps loginPrompt when an
   // unauthenticated visitor tries to use the console; open the real Supabase
@@ -81,53 +75,25 @@ export const Header: React.FC<HeaderProps> = ({
     checkInitialAdminSession();
   }, [setIsAdminMode]);
 
-  const publicTabs: { id: TabType; label: string; badge?: number }[] = [
-    { id: 'map', label: 'Map View' },
-    { id: 'databank', label: 'Data Bank', badge: activeCount },
-    { id: 'sources', label: 'Sources' },
+  // 4-section information architecture (2026-10-24): Warnings / Ingest / Trace
+  // / System regroup the nine underlying views. TabType ids are unchanged, so
+  // every activeTab condition and programmatic cross-link in App.tsx keeps
+  // working; sections are a navigation layer only.
+  const activeSection = SECTION_OF[activeTab];
+  const sectionViews = SECTION_VIEWS[activeSection];
+
+  const sectionMeta: { id: SectionType; label: string; icon: React.ReactNode }[] = [
+    { id: 'warnings', label: 'Warnings', icon: <Map className="w-5 h-5" /> },
+    { id: 'ingest', label: 'Ingest', icon: <Upload className="w-5 h-5" /> },
+    { id: 'trace', label: 'Trace', icon: <FileText className="w-5 h-5" /> },
+    { id: 'system', label: 'System', icon: <Database className="w-5 h-5" /> },
   ];
 
-  const adminTabs: { id: TabType; label: string; badge?: number }[] = [
-    { id: 'workspace', label: 'Pipeline' },
-    { id: 'manual', label: 'Manual Parser' },
-    { id: 'imports', label: 'Bulk Import' },
-    { id: 'audit', label: 'Audit Log' },
-    { id: 'evidence', label: 'Evidence' },
-    { id: 'supabase', label: 'Supabase Server' },
-  ];
-
-  const primaryMobileTabs: { id: TabType; label: string; icon: React.ReactNode; badge?: number }[] = [
-    { id: 'map', label: 'Map', icon: <Map className="w-5 h-5" /> },
-    { id: 'databank', label: 'Data Bank', icon: <Database className="w-5 h-5" />, badge: activeCount },
-    { id: 'sources', label: 'Sources', icon: <Radio className="w-5 h-5" /> },
-  ];
-
-  // Grouped Tools for MORE Modal / Drawer
-  const groupedMoreTools = [
-    {
-      group: 'TOOLS',
-      items: [
-        { id: 'workspace' as TabType, label: 'Pipeline Ingestion', icon: <Activity className="w-4 h-4 text-emerald-400" /> },
-        { id: 'manual' as TabType, label: 'Manual Parser', icon: <Terminal className="w-4 h-4 text-sky-400" /> },
-        { id: 'imports' as TabType, label: 'Bulk Import', icon: <Upload className="w-4 h-4 text-indigo-400" /> },
-      ],
-    },
-    {
-      group: 'RECORDS',
-      items: [
-        { id: 'audit' as TabType, label: 'Audit Log', icon: <FileText className="w-4 h-4 text-amber-400" /> },
-        { id: 'evidence' as TabType, label: 'Evidence Locker', icon: <HardDrive className="w-4 h-4 text-teal-400" /> },
-      ],
-    },
-    {
-      group: 'SYSTEM',
-      items: [
-        { id: 'supabase' as TabType, label: 'Supabase Server', icon: <Database className="w-4 h-4 text-emerald-400" /> },
-      ],
-    },
-  ];
-
-  const visibleTabs = isAdminMode ? [...publicTabs, ...adminTabs] : publicTabs;
+  // Switching section keeps the current view when it belongs to that section
+  // (the Warnings Map/List toggle), else lands on the section default.
+  const handleSectionSelect = (section: SectionType) => {
+    setActiveTab(SECTION_OF[activeTab] === section ? activeTab : DEFAULT_SECTION_TAB[section]);
+  };
 
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -166,9 +132,8 @@ export const Header: React.FC<HeaderProps> = ({
   const handleLockAdmin = async () => {
     await adminLogout();
     setIsAdminMode(false);
-    if (adminTabs.some((t) => t.id === activeTab)) {
-      setActiveTab('map');
-    }
+    // The whole console is admin-gated (PR #27 policy): fall back to Warnings - Map.
+    setActiveTab('map');
   };
 
   return (
@@ -191,27 +156,24 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Desktop Navigation Tabs */}
+          {/* Desktop Section Navigation — 4-section IA: Warnings / Ingest / Trace / System.
+              The views of the active section live in the sub-tab strip below. */}
           <nav className="hidden md:flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar" role="tablist">
-            {visibleTabs.map((tab) => {
-              const isActive = activeTab === tab.id;
+            {sectionMeta.map((section) => {
+              const isActive = activeSection === section.id;
               return (
                 <button
-                  key={tab.id}
+                  key={section.id}
                   role="tab"
                   aria-selected={isActive}
-                  aria-label={`${tab.label} tab`}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-2.5 sm:px-3 py-3 font-bold text-xs tracking-wider uppercase border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
-                    isActive
-                      ? 'text-gw-bg border-gw-bg'
-                      : 'text-gw-accent border-transparent hover:text-gw-bg'
-                  }`}
+                  aria-label={section.label + ' tab'}
+                  onClick={() => handleSectionSelect(section.id)}
+                  className={'px-2.5 sm:px-3 py-3 font-bold text-xs tracking-wider uppercase border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ' + (isActive ? 'text-gw-bg border-gw-bg' : 'text-gw-accent border-transparent hover:text-gw-bg')}
                 >
-                  <span>{tab.label}</span>
-                  {tab.badge !== undefined && (
+                  <span>{section.label}</span>
+                  {section.id === 'warnings' && typeof activeCount === 'number' && (
                     <span className="text-[10px] px-1.5 py-0.5 bg-gw-tertiary/90 border border-gw-tertiary rounded text-gw-bg font-mono font-semibold tabular-nums shadow-xs">
-                      {typeof tab.badge === 'number' ? tab.badge.toLocaleString() : tab.badge}
+                      {activeCount.toLocaleString()}
                     </span>
                   )}
                 </button>
@@ -219,139 +181,64 @@ export const Header: React.FC<HeaderProps> = ({
             })}
           </nav>
 
-          {/* Status & Action Buttons */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button 
-              onClick={() => setActiveTab('databank')}
-              title="Jump to active NAVWARNs in Data Bank"
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-gw-tertiary hover:bg-gw-tertiary/80 border border-gw-primary rounded text-xs transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg"
-            >
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-              <span className="text-[10px] sm:text-xs font-bold text-gw-bg tabular-nums tracking-wide">
-                {typeof activeCount === 'number' ? activeCount.toLocaleString() : activeCount} Active
-              </span>
-            </button>
-
-            {/* Admin Gate Toggle Button */}
-            {isAdminMode ? (
-              <button
-                onClick={handleLockAdmin}
-                title="Lock Admin Mode (Return to Public View)"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-amber-500/20 text-amber-300 font-bold text-xs uppercase tracking-wider rounded border border-amber-500/40 hover:bg-amber-500/30 transition-all min-h-[36px]"
-              >
-                <Unlock className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">Admin Mode</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowAdminModal(true)}
-                title="Unlock Admin Tools"
-                className="gw-dark-surface flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-gw-tertiary/60 text-gw-accent hover:text-gw-bg font-bold text-xs uppercase tracking-wider rounded border border-gw-accent/40 hover:border-gw-bg transition-all min-h-[36px]"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Admin Access</span>
-              </button>
-            )}
-          </div>
-
         </div>
+
+        {/* Section sub-tabs: the views of the active section. role=tab +
+            aria-selected mirror activeTab so the smoke suite can keep
+            asserting on them ("Map View tab", "Data Bank tab", ...). */}
+        <nav className="gw-dark-surface bg-gw-primary border-t border-gw-tertiary/70" role="tablist" aria-label="Section view tabs">
+          <div className="max-w-[1600px] mx-auto px-3 sm:px-6 md:px-8 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1.5">
+            {sectionViews.map((view) => {
+              const isActive = activeTab === view.id;
+              return (
+                <button
+                  key={view.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-label={view.label + ' tab'}
+                  onClick={() => setActiveTab(view.id)}
+                  className={'px-2.5 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded border transition-all whitespace-nowrap flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ' + (isActive ? 'bg-gw-tertiary text-gw-bg border-gw-bg' : 'text-gw-accent border-gw-tertiary/70 hover:text-gw-bg hover:border-gw-bg')}
+                >
+                  <span>{view.label}</span>
+                  {view.id === 'databank' && typeof activeCount === 'number' && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-gw-tertiary/90 border border-gw-tertiary rounded text-gw-bg font-mono font-semibold tabular-nums shadow-xs">
+                      {activeCount.toLocaleString()}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
       </header>
 
-      {/* Mobile Bottom Quick Navigation Bar */}
+      {/* Mobile Bottom Quick Navigation — the 4 sections; the views live in the
+          header sub-tab strip, so every view stays reachable without a More drawer. */}
       <nav className="gw-dark-surface md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gw-primary border-t-2 border-gw-tertiary px-2 py-1.5 flex items-center justify-around shadow-2xl" aria-label="Primary quick navigation">
-        {primaryMobileTabs.map((tab) => {
-          const isActive = activeTab === tab.id;
+        {sectionMeta.map((section) => {
+          const isActive = activeSection === section.id;
           return (
             <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setShowMobileMenu(false);
-              }}
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded min-w-[64px] transition-all relative ${
-                isActive ? 'text-gw-bg font-bold' : 'text-gw-accent hover:text-gw-secondary'
-              }`}
+              key={section.id}
+              role="tab"
+              aria-selected={isActive}
+              aria-label={section.label + ' tab'}
+              onClick={() => handleSectionSelect(section.id)}
+              className={'flex flex-col items-center justify-center py-1 px-2 rounded min-w-[64px] transition-all relative ' + (isActive ? 'text-gw-bg font-bold' : 'text-gw-accent hover:text-gw-secondary')}
             >
               <div className="relative">
-                {tab.icon}
-                {tab.badge !== undefined && (
+                {section.icon}
+                {section.id === 'warnings' && typeof activeCount === 'number' && (
                   <span className="absolute -top-1 -right-2 text-[9px] bg-emerald-500 text-slate-950 font-bold px-1 rounded-full min-w-[14px] text-center tabular-nums">
-                    {typeof tab.badge === 'number' ? tab.badge.toLocaleString() : tab.badge}
+                    {activeCount.toLocaleString()}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] mt-0.5 uppercase tracking-tight">{tab.label}</span>
+              <span className="text-[10px] mt-0.5 uppercase tracking-tight">{section.label}</span>
             </button>
           );
         })}
-
-        {/* More Options Button */}
-        <button
-          onClick={() => setShowMobileMenu(!showMobileMenu)}
-          className={`flex flex-col items-center justify-center py-1 px-2 rounded min-w-[64px] transition-all ${
-            showMobileMenu || ['workspace', 'manual', 'imports', 'audit', 'evidence', 'supabase'].includes(activeTab)
-              ? 'text-gw-bg font-bold'
-              : 'text-gw-accent hover:text-gw-secondary'
-          }`}
-        >
-          <MoreHorizontal className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 uppercase tracking-tight">More</span>
-        </button>
       </nav>
-
-      {/* Mobile Bottom Sheet / Drawer for Secondary Tools */}
-      {showMobileMenu && (
-        <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end">
-          <div className="gw-dark-surface bg-gw-primary border-t-2 border-gw-tertiary p-4 rounded-t-2xl shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto" role="dialog" aria-label="Tools and options menu">
-            <div className="flex items-center justify-between pb-2 border-b border-gw-tertiary">
-              <span className="font-bold text-sm text-gw-bg uppercase tracking-wider">Helm.Warning Tools &amp; Options</span>
-              <button
-                onClick={() => setShowMobileMenu(false)}
-                className="p-1 rounded text-gw-accent hover:text-gw-bg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {groupedMoreTools.map((sec) => (
-                <div key={sec.group} className="space-y-1.5">
-                  <div className="text-[10px] font-bold text-gw-accent uppercase tracking-wider px-1">
-                    {sec.group}
-                  </div>
-                  <div className="grid grid-cols-1 gap-1.5">
-                    {sec.items.map((tab) => {
-                      const isActive = activeTab === tab.id;
-                      return (
-                        <button
-                          key={tab.id}
-                          onClick={() => {
-                            setActiveTab(tab.id);
-                            setShowMobileMenu(false);
-                          }}
-                          className={`flex items-center justify-between p-2.5 rounded-lg text-xs font-bold uppercase transition-all ${
-                            isActive
-                              ? 'bg-gw-tertiary text-gw-bg border border-gw-bg'
-                              : 'bg-gw-primary text-gw-secondary border border-gw-tertiary hover:bg-gw-tertiary/50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            {tab.icon}
-                            <span>{tab.label}</span>
-                          </div>
-                          {!isAdminMode && ['workspace', 'manual', 'imports', 'audit', 'evidence', 'supabase'].includes(tab.id) && (
-                            <Lock className="w-3.5 h-3.5 text-gw-accent" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Admin Unlock Modal Overlay */}
       {showAdminModal && (
@@ -374,7 +261,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             <p className="text-xs text-gw-accent leading-relaxed">
-              The console (Map, Data Bank, Sources, Pipeline, Manual Parser, Bulk Import, Audit Logs, Evidence Locker, Supabase Server) is restricted. Sign in with your Supabase Administrator account (<code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-zinc-800">app_metadata.role: "admin"</code>).
+              The console (Warnings, Ingest, Trace and System sections) is restricted. Sign in with your Supabase Administrator account (<code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-zinc-800">app_metadata.role: "admin"</code>).
             </p>
 
             <form onSubmit={handleUnlockAdmin} className="space-y-3">

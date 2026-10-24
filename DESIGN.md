@@ -8,7 +8,7 @@
 | Entry point | Surface | Style source |
 |---|---|---|
 | `index.html` | Public portal (Map / Data Bank / Sources) | `public/assets/css/tokens.css` |
-| `admin.html` | Admin login gateway (card only, redirects to `/console#/databank`) | `tokens.css` + inline `<style>` (see deviations, §8) |
+| `admin.html` | Admin login gateway (card only, redirects to `/console#/warnings/list`) | `tokens.css` + inline `<style>` (see deviations, §8) |
 | `console.html` | React admin console (mounts `src/main.tsx` at `/console`) | `src/index.css` (Tailwind 4 `@theme`) |
 
 All three are Vite build inputs (`vite.config.ts` rollupOptions.input). The gateway never mounts the React app.
@@ -107,7 +107,7 @@ design decision (see UI_UX_AUDIT_REPORT.md 2-font recommendation).
 - **Admin gateway** (`admin.html`): login card only. Server-side authorization
   (`server/auth.ts` requireAdmin / verifyAdminRequest); no client-side trust flags.
 - **React console** (`src/`, mounted at `/console`): Data Bank tools, manual parser,
-  imports, audit and Supabase views. Hash routing (`/console#/databank`).
+  imports, audit and Supabase views. Hash routing (`/console#/warnings/list`).
 - **State flow**: server fetches hydrate from Supabase; live updates via Supabase
   realtime channels on `nav_warnings` / `nav_warning_geometries`; offline mode is
   surfaced with dedicated indicators when Supabase is unavailable. Admin mode is

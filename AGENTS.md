@@ -27,7 +27,7 @@ layer. Non-negotiables:
 ## REFERENCE FILES
 - `docs/supabase-backend-contract.md` - backend data contract (authoritative)
 - `index.html` - APPROVED public site design (Map/Data Bank/Sources)
-- `admin.html` - admin GATEWAY (login card only; redirects to /console#/databank)
+- `admin.html` - admin GATEWAY (login card only; redirects to /console#/warnings/list)
 - `console.html` - React admin console entry page (mounts src/main.tsx; noindex, frame-DENY)
 
 ## ENTRY-POINT ARCHITECTURE (PR #24, 2026-10-24)
@@ -35,7 +35,7 @@ layer. Non-negotiables:
   `index.html` (public portal), `admin.html` (admin GATEWAY),
   `console.html` (React admin console).
 - The gateway never mounts the React app; the console mounts only at
-  `/console` (redirect target: `/console#/databank`).
+  `/console` (redirect target: `/console#/warnings/list`).
 - Deployment parity: `vercel.json` gives `/console` the same security
   headers as `/admin` (X-Frame-Options: DENY, noindex); `server.ts`
   serves `/console` for self-hosted parity.

@@ -86,25 +86,36 @@ in the same PR — do not silently weaken a check.
 | 5.2 | Gate "Return to Map" escapes the locked route | Yes | test 8 |
 | 5.3 | Gate unlock works when a session token is stored | Yes | test 8 |
 | 5.4 | **Known bug F-02:** unlock reverts with no stored token — do not make this *worse*; fixing it is a separate task | Documented | `inventory.md` F-02 |
-| 5.5 | All six admin views render for an authenticated session (Pipeline / Manual Parser / Bulk Import / Audit Log / Evidence / Supabase Server) | Yes | test 9 |
+| 5.5 | All six admin views render for an authenticated session (Pipeline / Manual Parser / Bulk Import / Audit Log / Evidence / Supabase Server — grouped under the Ingest / Trace / System sections since the 4-section IA) | Yes | test 9 |
 | 5.6 | Admin technical content stays admin-only (never appears in public surfaces) | Manual | inventory §8; re-check after any "promote to public" proposal |
 | 5.7 | Sources "Run Worker" and registry health data stay present | Yes (presence) | test 7 |
 
 ## 6. URL state / deep links
 
+Route grammar (4-section IA, 2026-10-24): `#/<section>/<view>` —
+`#/warnings/map`, `#/warnings/list`, `#/ingest/pipeline`, `#/ingest/sources`,
+`#/ingest/bulk`, `#/ingest/manual`, `#/trace/generations`, `#/trace/evidence`,
+`#/system/supabase`. The legacy single-segment hashes (`#/databank`, `#/sources`,
+`#sources`, ...) are **permanent aliases** — bookmarks and the `/admin` gateway
+must never break. `?status=` deep-links keep working for the Data Bank
+(`#/warnings/list?status=…`) and Sources (`#/ingest/sources?status=…`) views.
+
 | # | Behaviour to protect | Automated? | Test / evidence |
 | --- | --- | --- | --- |
-| 6.1 | **Constraint F-03:** the app has no URL-driven state today — query/hash params are ignored and the app boots to Map View. Any new deep-link work is *new* behaviour and needs its own task + tests | Yes | test 2 |
-| 6.2 | No operator/pipeline state is encoded in URLs (nothing to leak) | Manual | grep for `URLSearchParams` / `location.hash` before adding routing |
+| 6.1 | Hash routes select their section + view; unknown segments fall back to Warnings › Map View; the admin gate wins over any route | Yes | tests 1, 5 |
+| 6.2 | Legacy hash aliases (`#/databank`, `#/sources`, `#sources`, ...) keep resolving after the 4-section IA | Yes | tests 1, 5 |
+| 6.3 | No operator/pipeline state is encoded in URLs (nothing to leak) | Manual | grep for `URLSearchParams` / `location.hash` before adding routing |
+
+---
 
 ## 7. Mobile touch targets & overflow
 
 | # | Behaviour to protect | Automated? | Test / evidence |
 | --- | --- | --- | --- |
 | 7.1 | No horizontal overflow on Map / Data Bank / Sources at 375 px | Yes | test 11 (`mobile › …`) |
-| 7.2 | Bottom quick-nav buttons ≥ 60 px wide, ≥ 40 px high (touch targets) | Yes | test 11 (`mobile › …`) |
+| 7.2 | Bottom quick-nav section buttons (Warnings / Ingest / Trace / System) ≥ 60 px wide, ≥ 40 px high (touch targets) | Yes | test 11 (`mobile › …`) |
 | 7.3 | No horizontal overflow on Map / Data Bank / Sources at 768 px | Yes | test 12 (`tablet 768 › …`); per-state evidence: every `docs/ux-audit/dom/*.txt` header carries `overflow: scrollWidth=… clientWidth=… no_horizontal_overflow=…` measured inside `capture()` for that state |
-| 7.4 | Mobile "More" drawer keeps TOOLS / RECORDS / SYSTEM groups reachable | Manual | capture `mobile-375-tools-menu` |
+| 7.4 | Mobile: the 4-section quick-nav plus the header sub-tab strip keep every view reachable at 375 px (the old "More" drawer was replaced by section navigation) | Manual | capture `mobile-375-*` |
 | 7.5 | Mobile warning-card expand control works | Manual | capture `mobile-375-warning-expanded` |
 
 ---
@@ -137,7 +148,7 @@ Expected result: `12 passed`, lint clean, `vite build` succeeds.
 - [ ] Data Bank: open Details → "Show Only This Message" → "Show All Warnings".
 - [ ] Sources: badges + Run Worker button present; no new pipeline jargon on the public surface.
 - [ ] NOTICE disclaimer, zero-count categories, and the empty state are still visible where expected.
-- [ ] Mobile 375 px and tablet 768 px: no horizontal scroll on Map / Data Bank / Sources; More drawer reachable at 375 px.
+- [ ] Mobile 375 px and tablet 768 px: no horizontal scroll on any section view; all four sections and their sub-tabs reachable at 375 px.
 - [ ] Map drawer "Layer Visibility & Panes" labels are plain language (no pane IDs) once the F-04 cleanup lands; test 5 still passes.
 - [ ] Nothing new appears in the URL that would leak operator state.
 - [ ] Compare `docs/ux-audit/dom/*.txt` diffs before/after your change and record intentional

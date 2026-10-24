@@ -55,8 +55,29 @@ async function matchingCount(page: Page): Promise<number> {
   return Number(match![1]);
 }
 
-async function goTab(page: Page, name: 'Data Bank' | 'Sources' | 'Map View') {
-  await page.getByRole('tab', { name: new RegExp(`^${name}`, 'i') }).click();
+// 4-section IA (2026-10-24): section tabs (Warnings / Ingest / Trace / System)
+// live in the desktop header and the mobile bottom quick-nav; view sub-tabs
+// ("Map View", "Data Bank", "Sources", ...) live in the header section strip.
+// goTab activates the owning section first, then clicks the view sub-tab.
+const TAB_SECTION: Record<string, string> = {
+  'Map View': 'Warnings',
+  'Data Bank': 'Warnings',
+  Sources: 'Ingest',
+  Pipeline: 'Ingest',
+  'Manual Parser': 'Ingest',
+  'Bulk Import': 'Ingest',
+  'Audit Log': 'Trace',
+  Evidence: 'Trace',
+  'Supabase Server': 'System',
+};
+
+async function goTab(page: Page, name: keyof typeof TAB_SECTION) {
+  const section = TAB_SECTION[name];
+  const sectionTab = page.getByRole('tab', { name: new RegExp('^' + section, 'i') });
+  if ((await sectionTab.getAttribute('aria-selected')) !== 'true') {
+    await sectionTab.click();
+  }
+  await page.getByRole('tab', { name: new RegExp('^' + name, 'i') }).click();
 }
 
 /**
@@ -76,7 +97,9 @@ test.describe('access gate (unauthenticated)', () => {
 
     // The exact URLs reported in PR #27: direct navigation must never
     // render console content without a session.
-    for (const hash of ['#/sources', '#/databank', '#/map']) {
+    // Legacy single-segment hashes and the new two-segment grammar all
+    // stay gated. The exact URLs reported in PR #27 keep working as aliases.
+    for (const hash of ['#/sources', '#/databank', '#/map', '#/ingest/sources', '#/warnings/list', '#/warnings/map', '#/trace/generations', '#/system/supabase']) {
       await openApp(page, hash);
       await expect(page.getByText('Administrative Gate Active')).toBeVisible();
       await expect(page.getByRole('button', { name: /^Admin Sign In$/ })).toBeVisible();
@@ -126,18 +149,25 @@ test.describe('access gate (unauthenticated)', () => {
     const errors = watchPageErrors(page);
     await openApp(page);
 
+    // 4-section IA: section tabs in the header, view sub-tabs in the strip.
+    await expect(page.getByRole('tab', { name: /^Warnings/i })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /^Ingest/i })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /^Trace/i })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /^System/i })).toBeVisible();
+    // Warnings is the default section: Map View + Data Bank sub-tabs are present.
     await expect(page.getByRole('tab', { name: /^Map View/i })).toBeVisible();
     await expect(page.getByRole('tab', { name: /^Data Bank/i })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /^Sources/i })).toBeVisible();
     await expect(page.getByText('Helm.Warning', { exact: true }).first()).toBeVisible();
     await expect(page.locator('button[title="Jump to active NAVWARNs in Data Bank"]')).toBeVisible();
 
     await goTab(page, 'Data Bank');
     await expect(page.getByRole('tab', { name: /^Data Bank/i })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: /^Warnings/i })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByText('Administrative Gate Active')).toBeVisible();
 
     await goTab(page, 'Sources');
     await expect(page.getByRole('tab', { name: /^Sources/i })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: /^Ingest/i })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByText('Administrative Gate Active')).toBeVisible();
 
     expect(errors, 'no uncaught page errors').toEqual([]);
@@ -145,9 +175,16 @@ test.describe('access gate (unauthenticated)', () => {
 
   test('hash routes select their tab but content stays gated (constraint: gate wins)', async ({ page }) => {
     const errors = watchPageErrors(page);
+    // Legacy single-segment alias (no slash) keeps working.
     await openApp(page, '#sources');
-
     await expect(page.getByRole('tab', { name: /^Sources/i })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: /^Ingest/i })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByText('Administrative Gate Active')).toBeVisible();
+
+    // New two-segment grammar.
+    await openApp(page, '#/warnings/list');
+    await expect(page.getByRole('tab', { name: /^Data Bank/i })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: /^Warnings/i })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByText('Administrative Gate Active')).toBeVisible();
     expect(errors).toEqual([]);
   });
@@ -377,14 +414,13 @@ test.describe('admin gate (mobile)', () => {
     await openApp(page);
 
     const quickNav = page.locator('nav[aria-label="Primary quick navigation"]');
-    for (const label of ['Map', 'Data Bank', 'Sources'] as const) {
+    for (const label of ['Warnings', 'Ingest', 'Trace', 'System'] as const) {
       await quickNav.getByText(label, { exact: true }).click();
       await expect(page.getByText('Administrative Gate Active')).toBeVisible();
     }
 
-    // The locked admin tools drawer also stays gated.
-    await quickNav.getByText('More', { exact: true }).click();
-    await page.getByRole('button', { name: /Pipeline Ingestion/ }).click();
+    // Sub-tabs of the active section also stay gated while signed out.
+    await page.getByRole('tab', { name: /^Supabase Server/i }).click();
     await expect(page.getByText('Administrative Gate Active')).toBeVisible();
 
     // The only recovery path is the real login modal.
@@ -413,7 +449,7 @@ test.describe('admin views (authenticated)', () => {
     ];
 
     for (const [tab, heading] of views) {
-      await page.getByRole('tab', { name: new RegExp(`^${tab}`, 'i') }).click();
+      await goTab(page, tab as keyof typeof TAB_SECTION);
       await expect(page.getByText(heading).first()).toBeVisible();
     }
 
@@ -448,7 +484,7 @@ test.describe('mobile', () => {
 
     const quickNav = page.locator('nav[aria-label="Primary quick navigation"]');
 
-    for (const label of ['Map', 'Data Bank', 'Sources'] as const) {
+    for (const label of ['Warnings', 'Ingest', 'Trace', 'System'] as const) {
       await quickNav.getByText(label, { exact: true }).click();
       await page.waitForTimeout(500);
       const overflow = (await page.evaluate(

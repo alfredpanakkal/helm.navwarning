@@ -3,7 +3,6 @@ import { Header } from './components/Header';
 import { DisclaimerBanner } from './components/DisclaimerBanner';
 import { Footer } from './components/Footer';
 import { LeafletMap } from './components/LeafletMap';
-import { DataBank } from './components/DataBank';
 import { DataBankV2 } from './components/DataBankV2';
 import { WorkspaceView } from './components/WorkspaceView';
 import { SourceRegistryView } from './components/SourceRegistryView';
@@ -53,18 +52,102 @@ export type TabType =
 
 const VALID_TABS: TabType[] = ['map', 'databank', 'sources', 'workspace', 'imports', 'manual', 'audit', 'evidence', 'supabase'];
 
+/**
+ * 4-section information architecture (2026-10-24). Sections only regroup the
+ * nine underlying views (TabType ids unchanged), so every activeTab condition
+ * in App.tsx (view visibility, AdminDataBankTools, the Verify Next FAB) and
+ * every programmatic cross-link (onLocate -> map, commit -> databank,
+ * manual parse -> databank) keeps working without modification.
+ */
+export type SectionType = 'warnings' | 'ingest' | 'trace' | 'system';
+
+export const SECTION_ORDER: SectionType[] = ['warnings', 'ingest', 'trace', 'system'];
+
+export const SECTION_OF: Record<TabType, SectionType> = {
+  map: 'warnings',
+  databank: 'warnings',
+  workspace: 'ingest',
+  sources: 'ingest',
+  imports: 'ingest',
+  manual: 'ingest',
+  audit: 'trace',
+  evidence: 'trace',
+  supabase: 'system',
+};
+
+export const SECTION_VIEWS: Record<SectionType, { id: TabType; label: string }[]> = {
+  warnings: [
+    { id: 'map', label: 'Map View' },
+    { id: 'databank', label: 'Data Bank' },
+  ],
+  ingest: [
+    { id: 'workspace', label: 'Pipeline' },
+    { id: 'sources', label: 'Sources' },
+    { id: 'imports', label: 'Bulk Import' },
+    { id: 'manual', label: 'Manual Parser' },
+  ],
+  trace: [
+    { id: 'audit', label: 'Audit Log' },
+    { id: 'evidence', label: 'Evidence' },
+  ],
+  system: [{ id: 'supabase', label: 'Supabase Server' }],
+};
+
+export const DEFAULT_SECTION_TAB: Record<SectionType, TabType> = {
+  warnings: 'map',
+  ingest: 'workspace',
+  trace: 'audit',
+  system: 'supabase',
+};
+
+/** Canonical second path segment per view (databank -> list, audit -> generations). */
+const ROUTE_NAME: Record<TabType, string> = {
+  map: 'map',
+  databank: 'list',
+  workspace: 'pipeline',
+  sources: 'sources',
+  imports: 'bulk',
+  manual: 'manual',
+  audit: 'generations',
+  evidence: 'evidence',
+  supabase: 'supabase',
+};
+
+export function tabHash(tab: TabType): string {
+  return '#/' + SECTION_OF[tab] + '/' + ROUTE_NAME[tab];
+}
+
+/**
+ * Hash router. Two-segment "#/<section>/<view>" grammar plus PERMANENT legacy
+ * aliases ("#/databank", "#sources", ...) so existing bookmarks, dashboards
+ * and the /admin gateway keep resolving. "?status=" deep-links keep working
+ * for the Data Bank and Sources views. Unknown segments fall back to Map.
+ */
 function parseHashRoute(hashStr: string): { tab: TabType; statusFilter?: string } {
   const cleanHash = hashStr.replace(/^#\/?/, '');
   if (!cleanHash) return { tab: 'map' };
 
   const [pathPart, queryPart] = cleanHash.split('?');
-  const tabCandidate = pathPart.toLowerCase() as TabType;
-  const tab: TabType = VALID_TABS.includes(tabCandidate) ? tabCandidate : 'map';
+  const segments = pathPart.toLowerCase().split('/').filter(Boolean);
+  const [first, second] = segments;
+
+  let tab: TabType | undefined;
+  if (first && (SECTION_ORDER as string[]).includes(first)) {
+    const section = first as SectionType;
+    const match = second
+      ? SECTION_VIEWS[section].find((v) => ROUTE_NAME[v.id] === second)
+      : undefined;
+    tab = match ? match.id : DEFAULT_SECTION_TAB[section];
+  } else if (first) {
+    // Legacy single-segment route — permanent alias.
+    const candidate = first as TabType;
+    tab = VALID_TABS.includes(candidate) ? candidate : undefined;
+  }
 
   const params = new URLSearchParams(queryPart || '');
   const statusFilter = params.get('status') || undefined;
 
-  return { tab, statusFilter };
+  return { tab: tab ?? 'map', statusFilter };
 }
 
 export default function App() {
@@ -131,7 +214,7 @@ export default function App() {
   // Update window.location.hash when activeTab or filters change in React
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    let newHash = `#/${activeTab}`;
+    let newHash = tabHash(activeTab);
     const params = new URLSearchParams();
     if (activeTab === 'databank' && dataBankStatusFilter !== 'ALL') {
       params.set('status', dataBankStatusFilter);
