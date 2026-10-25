@@ -12,17 +12,17 @@ const SMART_SORT_OPTIONS: { id: string; label: string }[] = [
 ];
 
 const selectClass = (active: boolean) =>
-  `appearance-none rounded border px-2.5 pr-7 py-1.5 text-xs font-bold cursor-pointer outline-none transition-all min-h-[36px] max-w-full ${
+  `appearance-none rounded-lg border px-3 pr-7 py-1.5 text-xs font-semibold cursor-pointer outline-none transition-all min-h-[38px] max-w-full ${
     active
-      ? 'bg-gw-primary text-white border-gw-primary'
-      : 'bg-gw-bg border-gw-secondary text-gw-primary focus:border-gw-primary'
+      ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+      : 'bg-white border-slate-200 text-slate-800 hover:border-slate-300 focus:border-slate-900 shadow-2xs'
   }`;
 
 const selectChevron = (active: boolean) => (
   <span
     aria-hidden="true"
-    className={`absolute right-2 w-1.5 h-1.5 border-r-2 border-b-2 rotate-45 pointer-events-none ${
-      active ? 'border-white' : 'border-gw-primary'
+    className={`absolute right-2.5 w-1.5 h-1.5 border-r-2 border-b-2 rotate-45 pointer-events-none ${
+      active ? 'border-white' : 'border-slate-500'
     }`}
   />
 );
@@ -82,15 +82,15 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
   };
 
   return (
-    <div className="p-3 flex flex-col gap-2">
+    <div className="p-3.5 flex flex-col gap-2.5">
       {/* Primary row: search + compact filters + More filters */}
-      <div className="flex flex-col lg:flex-row gap-2">
-        <div className="flex-1 min-w-[200px] flex items-center gap-2 bg-gw-bg border-subtle rounded px-3 py-2 focus-within:border-gw-primary">
-          <Search className="w-4 h-4 text-gw-accent shrink-0" />
+      <div className="flex flex-col lg:flex-row gap-2.5">
+        <div className="flex-1 min-w-[200px] flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900 shadow-2xs">
+          <Search className="w-4 h-4 text-slate-400 shrink-0" />
           <input
             type="text"
             placeholder="Search records by ID, text, area, coords..."
-            className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-gw-primary placeholder:text-gw-accent"
+            className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-slate-900 placeholder:text-slate-400"
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -104,7 +104,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 setSearchTerm('');
                 setCurrentPage(1);
               }}
-              className="text-xs text-gw-accent hover:text-gw-primary font-bold p-0.5"
+              className="text-xs text-slate-400 hover:text-slate-800 font-bold p-0.5"
               title="Clear search text"
             >
               <X className="w-3.5 h-3.5" />
@@ -181,10 +181,10 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             type="button"
             onClick={() => setShowMoreFilters((v) => !v)}
             aria-expanded={showMoreFilters}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-bold uppercase tracking-wider transition-all min-h-[36px] cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold tracking-wide transition-all min-h-[38px] cursor-pointer shadow-2xs ${
               showMoreFilters
-                ? 'bg-gw-primary text-white border-gw-primary'
-                : 'bg-gw-bg text-gw-primary border-gw-secondary hover:bg-white'
+                ? 'bg-slate-900 text-white border-slate-900'
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
             }`}
           >
             <Filter className="w-3.5 h-3.5" />
@@ -193,21 +193,23 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
         </div>
       </div>
 
-      {/* Feedback strip (not controls): result count, active sort, reset */}
-      <div className="flex flex-wrap items-center gap-2 pt-1">
-        <span className="text-[11px] font-bold text-gw-accent">
-          Matching: <strong className="text-gw-primary tabular-nums">{sortedWarnings.length}</strong>
+      {/* Feedback strip: result count, active sort, reset */}
+      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
+        <span className="text-[11px] font-medium text-slate-500">
+          Matching: <strong className="text-slate-900 font-semibold tabular-nums">{sortedWarnings.length}</strong>
         </span>
 
-        <span className="text-[11px] font-bold text-gw-accent hidden sm:inline">
-          Sorted by <strong className="text-gw-primary capitalize">{sortField}</strong>
+        <span className="text-slate-300" aria-hidden="true">·</span>
+
+        <span className="text-[11px] font-medium text-slate-500 hidden sm:inline">
+          Sorted by <strong className="text-slate-900 font-semibold capitalize">{sortField}</strong>
         </span>
 
         {hasActiveFilters && (
           <button
             type="button"
             onClick={handleResetFilters}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gw-bg border-subtle rounded text-xs font-bold uppercase hover:bg-gw-primary hover:border-gw-primary hover:text-white transition-colors min-h-[32px] cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-md text-xs font-semibold text-slate-700 hover:bg-slate-900 hover:text-white transition-colors min-h-[28px] cursor-pointer ml-auto"
             title="Reset all filters"
           >
             <X className="w-3.5 h-3.5" />

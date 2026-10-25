@@ -16,19 +16,6 @@ interface WorkspaceViewProps {
   setIsIngestionProcedureOpen?: (open: boolean) => void;
 }
 
-const MOCK_LOGS = [
-  { t: '14:32:08.142', lvl: 'info', msg: 'Pipeline cycle 0247 initiated — active sources queued' },
-  { t: '14:32:08.517', lvl: 'ok', msg: 'Source UKHO NAVAREA I fetched (200 OK, complete in-force)' },
-  { t: '14:32:08.891', lvl: 'ok', msg: 'Source SMA Baltic Sea fetched (200 OK, subarea feed)' },
-  { t: '14:32:09.318', lvl: 'warn', msg: 'Source SHOM NAVAREA II PDF bulletin parsed (3 warnings extracted)' },
-  { t: '14:32:09.820', lvl: 'ok', msg: 'Source NGA NAVAREA IV/XII live JSON feed synchronized' },
-  { t: '14:32:10.442', lvl: 'info', msg: 'Parsing & Geocoding phase complete — structured geometries emitted' },
-  { t: '14:32:10.881', lvl: 'ok', msg: 'Coordinate parser: 119 deterministic regex extractions' },
-  { t: '14:32:11.012', lvl: 'ok', msg: 'Gemini LLM Assistant: 23 complex geometry extractions verified' },
-  { t: '14:32:11.294', lvl: 'ok', msg: 'Atomic pointer swap to latest ingestion generation successful' },
-  { t: '14:32:11.301', lvl: 'info', msg: 'Pipeline run complete — Evidence hashes sealed in locker' },
-];
-
 export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   sources = [],
   warnings = [],
@@ -42,6 +29,16 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 }) => {
   const attentionItems = computeAttentionRequired(sources, warnings, generations, supabaseConnected);
   const activeSourcesCount = sources.filter((s) => s.enabled).length;
+  const verifiedSourcesCount = sources.filter((s) => s.verification?.status === 'verified').length;
+  const activeWarningsCount = warnings.filter((w) => w.status === 'active').length;
+  const unverifiedWarningsCount = warnings.filter((w) => w.status === 'unverified').length;
+  const spatialCount = warnings.filter((w) => Boolean(w.spatial?.geometries?.length)).length;
+  const deterministicCount = warnings.filter(
+    (w) => w.extraction_method === 'deterministic' || w.extraction_method === 'deterministic_hallucination_fallback'
+  ).length;
+  const aiCount = warnings.filter(
+    (w) => w.extraction_method === 'llm_assisted' || w.extraction_method === 'gemini_structured_output'
+  ).length;
 
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
@@ -100,42 +97,42 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
       )}
 
       {/* 2. Compressed Status Strip & Quick Actions */}
-      <div className="bg-white border-2 border-gw-primary rounded-xl p-3 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-sm">
-        <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-gw-primary">
+      <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-800">
           <button
             onClick={() => onNavigateWithFilter ? onNavigateWithFilter('sources', 'unverified') : onNavigate?.('sources')}
             title="View sources (filtered to unverified if any)"
-            className="flex items-center gap-2 px-3 py-1.5 bg-gw-bg hover:bg-gw-secondary border border-gw-secondary rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors cursor-pointer"
           >
-            <span className="text-emerald-600 font-bold">● ✓</span>
-            <span>Registered Feeds:</span>
-            <span className="text-gw-primary">{activeSourcesCount}/{sources.length} Active</span>
+            <span className="text-emerald-600 font-bold">●</span>
+            <span className="text-slate-600">Registered Feeds:</span>
+            <span className="text-slate-900 font-bold">{activeSourcesCount}/{sources.length} Active</span>
           </button>
           <button
             onClick={() => onNavigateWithFilter ? onNavigateWithFilter('databank', 'unverified') : onNavigate?.('databank')}
             title="Jump to candidate warnings requiring verification"
-            className="flex items-center gap-2 px-3 py-1.5 bg-gw-bg hover:bg-gw-secondary border border-gw-secondary rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors cursor-pointer"
           >
-            <span className="text-emerald-600 font-bold">● ✓</span>
-            <span>Active NAVWARNs:</span>
-            <span className="text-gw-primary">{warnings.filter((w) => w.status === 'active').length} Published</span>
+            <span className="text-emerald-600 font-bold">●</span>
+            <span className="text-slate-600">Active NAVWARNs:</span>
+            <span className="text-slate-900 font-bold">{warnings.filter((w) => w.status === 'active').length} Published</span>
           </button>
           <button
             onClick={() => onNavigate?.('supabase')}
-            className="flex items-center gap-2 px-3 py-1.5 bg-gw-bg hover:bg-gw-secondary border border-gw-secondary rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors cursor-pointer"
           >
-            <span className={supabaseConnected ? 'text-emerald-600 font-bold' : 'text-red-600 font-bold'}>
-              {supabaseConnected ? '● ✓' : '● ✕'}
+            <span className={supabaseConnected ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
+              ●
             </span>
-            <span>Supabase Database:</span>
-            <span className={supabaseConnected ? 'text-emerald-700 font-bold' : 'text-red-700 font-bold'}>
-              {supabaseConnected ? 'Connected' : 'Offline / Unreachable'}
+            <span className="text-slate-600">Supabase Server:</span>
+            <span className={supabaseConnected ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
+              {supabaseConnected ? 'Connected' : 'Offline'}
             </span>
           </button>
         </div>
       </div>
 
-      {/* 3. NAVWARN Candidate Discovery (Primary Position) & Action Grid */}
+      {/* 3. NAVWARN Candidate Discovery & Action Grid */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold uppercase tracking-wider text-gw-primary flex items-center gap-2">
@@ -145,108 +142,108 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-xs text-gw-accent font-bold">Primary Actions</span>
             <button
-              onClick={() => setIsIngestionProcedureOpen(true)}
-              className="text-xs text-gw-accent font-bold hover:text-gw-primary underline"
+              onClick={() => setIsIngestionProcedureOpen?.(true)}
+              className="text-xs text-gw-accent font-bold hover:text-gw-primary underline cursor-pointer"
             >
               Ingestion Procedure
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-3">
           <button
             onClick={() => onNavigate?.('sources')}
-            className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
+            className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-300 hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
-                <Database className="w-4 h-4 text-gw-primary" />
+              <div className="w-8 h-8 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50">
+                <Database className="w-4 h-4 text-slate-700" />
               </div>
-              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
             </div>
             <div>
-              <div className="text-sm font-bold text-gw-primary">Candidate Sources</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">{sources.length} Registered Feeds</div>
+              <div className="text-sm font-bold text-slate-900">Candidate Sources</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">{sources.length} Registered Feeds</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('manual')}
-            className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
+            className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-300 hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
-                <Edit3 className="w-4 h-4 text-gw-primary" />
+              <div className="w-8 h-8 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50">
+                <Edit3 className="w-4 h-4 text-slate-700" />
               </div>
-              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
             </div>
             <div>
-              <div className="text-sm font-bold text-gw-primary">Manual Parser</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">Regex &amp; Gemini LLM</div>
+              <div className="text-sm font-bold text-slate-900">Manual Parser</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Deterministic &amp; Gemini AI</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('imports')}
-            className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
+            className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-300 hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
-                <Upload className="w-4 h-4 text-gw-primary" />
+              <div className="w-8 h-8 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50">
+                <Upload className="w-4 h-4 text-slate-700" />
               </div>
-              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
             </div>
             <div>
-              <div className="text-sm font-bold text-gw-primary">Bulk Imports</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">CSV, GPX, S-124 ZIP</div>
+              <div className="text-sm font-bold text-slate-900">Bulk Imports</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">CSV, GPX, S-124 ZIP</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('audit')}
-            className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
+            className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-300 hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
-                <Shield className="w-4 h-4 text-gw-primary" />
+              <div className="w-8 h-8 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50">
+                <Shield className="w-4 h-4 text-slate-700" />
               </div>
-              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
             </div>
             <div>
-              <div className="text-sm font-bold text-gw-primary">Audit Pointer Log</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">Generations &amp; History</div>
+              <div className="text-sm font-bold text-slate-900">Audit Pointer Log</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Generations &amp; History</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('evidence')}
-            className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
+            className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-300 hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
-                <Archive className="w-4 h-4 text-gw-primary" />
+              <div className="w-8 h-8 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50">
+                <Archive className="w-4 h-4 text-slate-700" />
               </div>
-              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
             </div>
             <div>
-              <div className="text-sm font-bold text-gw-primary">Evidence Locker</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">SHA-256 Raw Artifacts</div>
+              <div className="text-sm font-bold text-slate-900">Evidence Locker</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">SHA-256 Raw Artifacts</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('supabase')}
-            className="bg-white border-2 border-gw-primary rounded-xl p-4 text-left hover:bg-gw-bg transition-all hover:-translate-y-0.5 group flex flex-col justify-between min-h-[110px]"
+            className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-300 hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-gw-primary rounded flex items-center justify-center bg-gw-bg">
-                <HardDrive className="w-4 h-4 text-gw-primary" />
+              <div className="w-8 h-8 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50">
+                <HardDrive className="w-4 h-4 text-slate-700" />
               </div>
-              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-1 transition-all" />
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
             </div>
             <div>
-              <div className="text-sm font-bold text-gw-primary">Supabase Server</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">Storage &amp; Sync Status</div>
+              <div className="text-sm font-bold text-slate-900">Supabase Server</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Storage &amp; Sync Status</div>
             </div>
           </button>
         </div>
@@ -257,112 +254,165 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         {/* Main Column */}
         <div className="flex flex-col gap-6 sm:gap-8">
           {/* Pipeline Card */}
-          <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-4 sm:px-6 py-3.5 sm:py-4 border-b-2 border-gw-primary gap-2">
-              <div className="text-base sm:text-lg font-bold uppercase tracking-wider flex items-center gap-2 sm:gap-3">
-                <div className="w-6 h-6 sm:w-7 sm:h-7 border border-gw-primary rounded flex items-center justify-center shrink-0">
-                  <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gw-primary" />
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 bg-slate-50/80 gap-2">
+              <div className="text-sm sm:text-base font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2 sm:gap-3">
+                <div className="w-6 h-6 sm:w-7 sm:h-7 border border-slate-300 rounded flex items-center justify-center shrink-0 bg-white">
+                  <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
                 </div>
                 Ingestion Pipeline Overview
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-[10px] sm:text-xs text-gw-accent font-bold">LIVE METRICS</span>
+                <span className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase">LIVE SESSION METRICS</span>
               </div>
             </div>
             
             <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="relative bg-gw-bg border border-gw-secondary rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gw-primary rounded-t-lg"></div>
-                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-gw-accent">01</span>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 border-2 border-gw-primary rounded flex items-center justify-center mb-2 sm:mb-3">
-                  <Database className="w-4 h-4 sm:w-5 sm:h-5 text-gw-primary" />
+              <div className="relative bg-slate-50/60 border border-slate-200 rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5 shadow-2xs">
+                <div className="absolute top-0 left-0 w-full h-1 bg-slate-900 rounded-t-lg"></div>
+                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-slate-400">01</span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 border border-slate-300 rounded-lg flex items-center justify-center mb-2 sm:mb-3 bg-white">
+                  <Database className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800" />
                 </div>
-                <div className="text-sm sm:text-base font-bold mb-1">Fetch Sources</div>
-                <div className="text-[11px] sm:text-xs text-gw-accent mb-3 sm:mb-4 leading-relaxed">Poll NAVAREA coordinators via HTTPS.</div>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-gw-secondary">
-                  <div><div className="text-[9px] sm:text-[10px] uppercase text-gw-accent">ENABLED</div><div className="text-sm sm:text-base font-bold mt-0.5">{sources.filter(s => s.enabled).length}/{sources.length}</div></div>
-                  <div><div className="text-[9px] sm:text-[10px] uppercase text-gw-accent">LATENCY</div><div className="text-sm sm:text-base font-bold mt-0.5">412ms</div></div>
+                <div className="text-sm sm:text-base font-bold text-slate-900 mb-1">Fetch Sources</div>
+                <div className="text-[11px] sm:text-xs text-slate-500 mb-3 sm:mb-4 leading-relaxed">Poll NAVAREA coordinators via HTTPS.</div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-200">
+                  <div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">ENABLED</div>
+                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{activeSourcesCount}/{sources.length}</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">VERIFIED</div>
+                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{verifiedSourcesCount}</div>
+                  </div>
                 </div>
-                <div className="mt-3 flex justify-end items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>READY
-                </div>
-              </div>
-
-              <div className="relative bg-gw-bg border border-gw-secondary rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gw-primary rounded-t-lg"></div>
-                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-gw-accent">02</span>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 border-2 border-gw-primary rounded flex items-center justify-center mb-2 sm:mb-3">
-                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-gw-primary" />
-                </div>
-                <div className="text-sm sm:text-base font-bold mb-1">Parse & Normalize</div>
-                <div className="text-[11px] sm:text-xs text-gw-accent mb-3 sm:mb-4 leading-relaxed">Tokenize raw text into structured records.</div>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-gw-secondary">
-                  <div><div className="text-[9px] sm:text-[10px] uppercase text-gw-accent">ACCURACY</div><div className="text-sm sm:text-base font-bold mt-0.5">100%</div></div>
-                  <div><div className="text-[9px] sm:text-[10px] uppercase text-gw-accent">CONFIDENCE</div><div className="text-sm sm:text-base font-bold mt-0.5">98.6%</div></div>
-                </div>
-                <div className="mt-3 flex justify-end items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>OK
+                <div className="mt-3 flex justify-end items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase text-emerald-700">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>{activeSourcesCount > 0 ? 'READY' : 'STANDBY'}
                 </div>
               </div>
 
-              <div className="relative bg-gw-bg border border-gw-secondary rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gw-primary rounded-t-lg"></div>
-                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-gw-accent">03</span>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 border-2 border-gw-primary rounded flex items-center justify-center mb-2 sm:mb-3">
-                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-gw-primary" />
+              <div className="relative bg-slate-50/60 border border-slate-200 rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5 shadow-2xs">
+                <div className="absolute top-0 left-0 w-full h-1 bg-slate-900 rounded-t-lg"></div>
+                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-slate-400">02</span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 border border-slate-300 rounded-lg flex items-center justify-center mb-2 sm:mb-3 bg-white">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800" />
                 </div>
-                <div className="text-sm sm:text-base font-bold mb-1">Geocode Geometry</div>
-                <div className="text-[11px] sm:text-xs text-gw-accent mb-3 sm:mb-4 leading-relaxed">Extract lat/lon points, polygons, circles.</div>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-gw-secondary">
-                  <div><div className="text-[9px] sm:text-[10px] uppercase text-gw-accent">REGEX</div><div className="text-sm sm:text-base font-bold mt-0.5">84%</div></div>
-                  <div><div className="text-[9px] sm:text-[10px] uppercase text-gw-accent">GEMINI AI</div><div className="text-sm sm:text-base font-bold mt-0.5">16%</div></div>
+                <div className="text-sm sm:text-base font-bold text-slate-900 mb-1">Parse &amp; Normalize</div>
+                <div className="text-[11px] sm:text-xs text-slate-500 mb-3 sm:mb-4 leading-relaxed">Tokenize raw text into structured records.</div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-200">
+                  <div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">ACTIVE</div>
+                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{activeWarningsCount}</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">REVIEW</div>
+                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{unverifiedWarningsCount}</div>
+                  </div>
                 </div>
-                <div className="mt-3 flex justify-end items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>OK
+                <div className="mt-3 flex justify-end items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase text-emerald-700">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>SYNCHRONIZED
                 </div>
               </div>
 
-              <div className="relative bg-gw-bg border border-gw-secondary rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gw-primary rounded-t-lg"></div>
-                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-gw-accent">04</span>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 border-2 border-gw-primary rounded flex items-center justify-center mb-2 sm:mb-3">
-                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-gw-primary" />
+              <div className="relative bg-slate-50/60 border border-slate-200 rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5 shadow-2xs">
+                <div className="absolute top-0 left-0 w-full h-1 bg-slate-900 rounded-t-lg"></div>
+                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-slate-400">03</span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 border border-slate-300 rounded-lg flex items-center justify-center mb-2 sm:mb-3 bg-white">
+                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800" />
                 </div>
-                <div className="text-sm sm:text-base font-bold mb-1">Publish Generation</div>
-                <div className="text-[11px] sm:text-xs text-gw-accent mb-3 sm:mb-4 leading-relaxed">Atomic pointer swap to active warnings.</div>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-gw-secondary">
-                  <div><div className="text-[9px] sm:text-[10px] uppercase text-gw-accent">WRITTEN</div><div className="text-sm sm:text-base font-bold mt-0.5">ATOMIC</div></div>
-                  <div><div className="text-[9px] sm:text-[10px] uppercase text-gw-accent">LATENCY</div><div className="text-sm sm:text-base font-bold mt-0.5">&lt;10ms</div></div>
+                <div className="text-sm sm:text-base font-bold text-slate-900 mb-1">Geocode Geometry</div>
+                <div className="text-[11px] sm:text-xs text-slate-500 mb-3 sm:mb-4 leading-relaxed">Extract lat/lon points, polygons, circles.</div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-200">
+                  <div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">SPATIAL</div>
+                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{spatialCount}</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">PARSERS</div>
+                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{deterministicCount}D/{aiCount}AI</div>
+                  </div>
                 </div>
-                <div className="mt-3 flex justify-end items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>SEALED
+                <div className="mt-3 flex justify-end items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase text-emerald-700">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>{spatialCount > 0 ? 'MAPPED' : 'STANDBY'}
+                </div>
+              </div>
+
+              <div className="relative bg-slate-50/60 border border-slate-200 rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5 shadow-2xs">
+                <div className="absolute top-0 left-0 w-full h-1 bg-slate-900 rounded-t-lg"></div>
+                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-slate-400">04</span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 border border-slate-300 rounded-lg flex items-center justify-center mb-2 sm:mb-3 bg-white">
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800" />
+                </div>
+                <div className="text-sm sm:text-base font-bold text-slate-900 mb-1">Publish Generation</div>
+                <div className="text-[11px] sm:text-xs text-slate-500 mb-3 sm:mb-4 leading-relaxed">Atomic pointer swap to active warnings.</div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-200">
+                  <div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">GENERATIONS</div>
+                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{generations.length}</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">STORAGE</div>
+                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{supabaseConnected ? 'LIVE' : 'LOCAL'}</div>
+                  </div>
+                </div>
+                <div className="mt-3 flex justify-end items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase text-emerald-700">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>SEALED
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Logs Card */}
-          <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
-            <div className="flex justify-between items-center px-4 sm:px-6 py-3.5 sm:py-4 border-b-2 border-gw-primary">
-              <div className="text-base sm:text-lg font-bold uppercase tracking-wider flex items-center gap-2 sm:gap-3">
-                <div className="w-6 h-6 sm:w-7 sm:h-7 border border-gw-primary rounded flex items-center justify-center shrink-0">
-                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gw-primary" />
+          {/* Activity / Generation Card */}
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+            <div className="flex justify-between items-center px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 bg-slate-50/80">
+              <div className="text-sm sm:text-base font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2 sm:gap-3">
+                <div className="w-6 h-6 sm:w-7 sm:h-7 border border-slate-300 rounded flex items-center justify-center shrink-0 bg-white">
+                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
                 </div>
-                Ingestion Terminal Logs
+                Ingestion Generations &amp; Activity
               </div>
+              {generations.length > 0 && (
+                <button
+                  onClick={() => onNavigate?.('audit')}
+                  className="text-xs text-gw-accent hover:text-gw-primary font-bold underline uppercase"
+                >
+                  View All ({generations.length})
+                </button>
+              )}
             </div>
             <div className="px-3 sm:px-6 py-3 sm:py-4 text-[11px] sm:text-xs bg-gw-primary text-gw-secondary max-h-[280px] overflow-y-auto table-scroll-container font-mono">
-              {MOCK_LOGS.map((log, i) => (
-                <div key={i} className="flex gap-2 sm:gap-4 py-1 border-b border-dashed border-gw-tertiary last:border-b-0 min-w-[500px] sm:min-w-0">
-                  <span className="text-gw-accent shrink-0">{log.t}</span>
-                  <span className={`font-bold w-12 shrink-0 ${
-                    log.lvl === 'info' ? 'text-sky-400' :
-                    log.lvl === 'ok' ? 'text-green-400' :
-                    log.lvl === 'warn' ? 'text-amber-400' : 'text-red-400'
-                  }`}>{log.lvl.toUpperCase()}</span>
-                  <span className="truncate">{log.msg}</span>
+              {generations.length > 0 ? (
+                generations.slice(0, 10).map((gen, i) => {
+                  const runStatus = gen.run_status || gen.completeness_status || 'verified';
+                  const timestamp = gen.started_at || gen.created_at;
+                  const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString() : 'N/A';
+                  return (
+                    <div key={gen.generation_id || i} className="flex gap-2 sm:gap-4 py-1.5 border-b border-dashed border-gw-tertiary last:border-b-0 min-w-[500px] sm:min-w-0">
+                      <span className="text-gw-accent shrink-0">{timeStr}</span>
+                      <span className={`font-bold w-16 shrink-0 ${
+                        runStatus === 'succeeded' || runStatus === 'verified' ? 'text-green-400' :
+                        runStatus === 'running' ? 'text-sky-400' : 'text-amber-400'
+                      }`}>{runStatus.toUpperCase()}</span>
+                      <span className="truncate">
+                        Gen {gen.generation_id?.slice(0, 12)} — Source {gen.source_id || 'manual'}: {gen.parsed_count ?? 0} warnings parsed
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-4 text-center text-slate-400 space-y-2">
+                  <p>No automated background cycles recorded in this session.</p>
+                  <p className="text-[10px] text-slate-500">
+                    Operating on live synchronized store ({warnings.length} warnings across {sources.length} sources).
+                  </p>
+                  <button
+                    onClick={() => setIsIngestionProcedureOpen?.(true)}
+                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded text-[11px] font-sans font-bold uppercase transition-colors"
+                  >
+                    Open Ingestion Procedure →
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

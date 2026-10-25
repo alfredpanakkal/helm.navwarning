@@ -15,9 +15,9 @@ export type WarningSeverityBand = 'CRITICAL' | 'HIGH' | 'MODERATE';
  */
 export function warningSeverity(w: NavWarning): { label: WarningSeverityBand; className: string } {
   const c = w.extraction_confidence;
-  if (c === 1) return { label: 'CRITICAL', className: 'bg-gw-primary text-white' };
-  if (typeof c === 'number' && c >= 0.8) return { label: 'HIGH', className: 'bg-gw-tertiary text-white' };
-  return { label: 'MODERATE', className: 'bg-gw-bg text-gw-accent border border-gw-secondary' };
+  if (c === 1) return { label: 'CRITICAL', className: 'bg-rose-50 text-rose-700 border border-rose-200 font-bold' };
+  if (typeof c === 'number' && c >= 0.8) return { label: 'HIGH', className: 'bg-orange-50 text-orange-700 border border-orange-200 font-bold' };
+  return { label: 'MODERATE', className: 'bg-slate-50 text-slate-600 border border-slate-200 font-medium' };
 }
 
 export function warningHeadline(w: NavWarning): string {
@@ -129,7 +129,7 @@ export const WarningHierarchyLines: React.FC<WarningHierarchyLinesProps> = ({
       {/* Line 1 — ID & NAVAREA (secondary, prominent) */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono text-[11px] font-bold text-gw-primary truncate">
+          <span className="font-mono text-[11px] font-bold text-slate-900 truncate">
             NAVAREA {w.navarea} · {w.source_warning_id}
           </span>
           {coastal && (
@@ -156,12 +156,12 @@ export const WarningHierarchyLines: React.FC<WarningHierarchyLinesProps> = ({
       </div>
 
       {/* Line 2 — headline (strongest) */}
-      <p className="text-[13px] font-bold text-gw-primary leading-snug line-clamp-2">{warningHeadline(w)}</p>
+      <p className="text-[13px] font-semibold text-slate-900 leading-snug line-clamp-2">{warningHeadline(w)}</p>
 
       {/* Line 3 — validity · source · status */}
-      <div className="flex items-center gap-1.5 text-[10px] text-gw-accent font-mono min-w-0">
+      <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono min-w-0">
         {validity && <span className="shrink-0">{validity}</span>}
-        {validity && <span className="shrink-0">·</span>}
+        {validity && <span className="shrink-0 text-slate-300">·</span>}
         <span className="truncate" title={source}>
           {source}
         </span>

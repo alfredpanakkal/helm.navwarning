@@ -139,26 +139,26 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <>
       {/* Top Main Navigation Bar */}
-      <header className="gw-dark-surface sticky top-0 z-50 bg-gw-primary text-gw-secondary border-b-2 border-gw-tertiary shadow-md">
-        <div className="max-w-[1600px] mx-auto px-3 sm:px-6 md:px-8 flex justify-between items-center py-1.5 md:py-0 gap-2 md:gap-4">
+      <header className="site-header sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 flex justify-between items-center py-2 md:py-0 min-h-[56px] gap-2 md:gap-4">
           
-          {/* Logo & Title */}
+          {/* Logo & Console Title */}
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-8 h-8 border-2 border-gw-secondary rounded flex items-center justify-center text-gw-secondary relative shrink-0">
-              <div className="absolute inset-1 border border-gw-accent rounded-sm"></div>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 z-10 relative">
-                <path d="M12 22V8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><circle cx="12" cy="5" r="3"/>
-              </svg>
-            </div>
-            <div className="flex flex-col leading-tight">
-              <div className="font-bold text-base sm:text-xl tracking-wider text-gw-bg">Helm.Warning</div>
-              <div className="text-[10px] sm:text-xs text-gw-accent tracking-wide">NAVAREA Data Bank &amp; Ingestion</div>
-            </div>
+            <a href="#/warnings/map" className="logo flex items-center gap-2 text-decoration-none" aria-label="Helm.Warning Console Home">
+              <span className="logo-badge w-8 h-8 rounded bg-slate-900 text-white font-bold flex items-center justify-center text-sm shadow-xs select-none" aria-hidden="true">
+                HW
+              </span>
+              <span className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
+                Helm.Warning
+              </span>
+            </a>
+            <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+              Console
+            </span>
           </div>
 
-          {/* Desktop Section Navigation — 4-section IA: Warnings / Ingest / Trace / System.
-              The views of the active section live in the sub-tab strip below. */}
-          <nav className="hidden md:flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar" role="tablist">
+          {/* Desktop Section Navigation — 4-section IA: Warnings / Ingest / Trace / System */}
+          <nav className="hidden md:flex items-center gap-1 overflow-x-auto no-scrollbar" role="tablist" aria-label="Console primary sections">
             {sectionMeta.map((section) => {
               const isActive = activeSection === section.id;
               return (
@@ -168,11 +168,23 @@ export const Header: React.FC<HeaderProps> = ({
                   aria-selected={isActive}
                   aria-label={section.label + ' tab'}
                   onClick={() => handleSectionSelect(section.id)}
-                  className={'px-2.5 sm:px-3 py-3 font-bold text-xs tracking-wider uppercase border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ' + (isActive ? 'text-gw-bg border-gw-bg' : 'text-gw-accent border-transparent hover:text-gw-bg')}
+                  className={
+                    'nav-tab flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ' +
+                    (isActive
+                      ? 'active bg-slate-900 text-white shadow-xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100')
+                  }
                 >
                   <span>{section.label}</span>
                   {section.id === 'warnings' && typeof activeCount === 'number' && (
-                    <span className="text-[10px] px-1.5 py-0.5 bg-gw-tertiary/90 border border-gw-tertiary rounded text-gw-bg font-mono font-semibold tabular-nums shadow-xs">
+                    <span
+                      className={
+                        'badge ml-1.5 px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold tabular-nums ' +
+                        (isActive
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-200 text-slate-700')
+                      }
+                    >
                       {activeCount.toLocaleString()}
                     </span>
                   )}
@@ -181,13 +193,53 @@ export const Header: React.FC<HeaderProps> = ({
             })}
           </nav>
 
+          {/* Header Right Meta & Admin Controls */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Live Stream Status Indicator */}
+            <div className="hidden lg:flex items-center gap-2 text-xs text-slate-500 font-medium">
+              <span className="status-dot live" aria-hidden="true"></span>
+              <span>Live Stream</span>
+            </div>
+
+            {/* Public Portal Link */}
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors border border-transparent hover:border-slate-200"
+              title="Open Public Maritime Portal"
+            >
+              <span>Public Portal</span>
+              <span aria-hidden="true" className="text-[11px]">↗</span>
+            </a>
+
+            {/* Admin Lock / Sign In Status */}
+            {isAdminMode ? (
+              <button
+                onClick={handleLockAdmin}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border border-emerald-200 transition-all cursor-pointer"
+                title="Admin session active (app_metadata.role === 'admin'). Click to lock/sign out."
+              >
+                <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Admin</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAdminModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 shadow-2xs transition-all cursor-pointer"
+                title="Unlock Console Administrator Access"
+              >
+                <Key className="w-3.5 h-3.5 text-amber-600" />
+                <span>Sign In</span>
+              </button>
+            )}
+          </div>
+
         </div>
 
-        {/* Section sub-tabs: the views of the active section. role=tab +
-            aria-selected mirror activeTab so the smoke suite can keep
-            asserting on them ("Map View tab", "Data Bank tab", ...). */}
-        <nav className="gw-dark-surface bg-gw-primary border-t border-gw-tertiary/70" role="tablist" aria-label="Section view tabs">
-          <div className="max-w-[1600px] mx-auto px-3 sm:px-6 md:px-8 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1.5">
+        {/* Section sub-tabs: the views of the active section */}
+        <nav className="bg-slate-50/90 border-t border-slate-200" role="tablist" aria-label="Section view tabs">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1.5 min-h-[40px]">
             {sectionViews.map((view) => {
               const isActive = activeTab === view.id;
               return (
@@ -197,11 +249,16 @@ export const Header: React.FC<HeaderProps> = ({
                   aria-selected={isActive}
                   aria-label={view.label + ' tab'}
                   onClick={() => setActiveTab(view.id)}
-                  className={'px-2.5 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded border transition-all whitespace-nowrap flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ' + (isActive ? 'bg-gw-tertiary text-gw-bg border-gw-bg' : 'text-gw-accent border-gw-tertiary/70 hover:text-gw-bg hover:border-gw-bg')}
+                  className={
+                    'px-3 py-1 text-xs font-semibold rounded-md border transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ' +
+                    (isActive
+                      ? 'bg-white text-slate-900 border-slate-300 shadow-2xs font-bold'
+                      : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-slate-200/50')
+                  }
                 >
                   <span>{view.label}</span>
                   {view.id === 'databank' && typeof activeCount === 'number' && (
-                    <span className="text-[10px] px-1.5 py-0.5 bg-gw-tertiary/90 border border-gw-tertiary rounded text-gw-bg font-mono font-semibold tabular-nums shadow-xs">
+                    <span className="text-[10px] px-1.5 py-0.5 bg-slate-200/80 rounded text-slate-700 font-mono font-semibold tabular-nums">
                       {activeCount.toLocaleString()}
                     </span>
                   )}
@@ -212,9 +269,8 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
       </header>
 
-      {/* Mobile Bottom Quick Navigation — the 4 sections; the views live in the
-          header sub-tab strip, so every view stays reachable without a More drawer. */}
-      <nav className="gw-dark-surface md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gw-primary border-t-2 border-gw-tertiary px-2 py-1.5 flex items-center justify-around shadow-2xl" aria-label="Primary quick navigation">
+      {/* Mobile Bottom Quick Navigation — the 4 sections */}
+      <nav className="bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1 flex items-center justify-around shadow-lg" aria-label="Primary quick navigation">
         {sectionMeta.map((section) => {
           const isActive = activeSection === section.id;
           return (
@@ -224,12 +280,15 @@ export const Header: React.FC<HeaderProps> = ({
               aria-selected={isActive}
               aria-label={section.label + ' tab'}
               onClick={() => handleSectionSelect(section.id)}
-              className={'flex flex-col items-center justify-center py-1 px-2 rounded min-w-[64px] transition-all relative ' + (isActive ? 'text-gw-bg font-bold' : 'text-gw-accent hover:text-gw-secondary')}
+              className={
+                'bottom-nav-item flex flex-col items-center justify-center py-1 px-2 rounded min-w-[64px] min-h-[44px] transition-all relative ' +
+                (isActive ? 'active text-slate-900 font-bold' : 'text-slate-500 hover:text-slate-800')
+              }
             >
               <div className="relative">
                 {section.icon}
                 {section.id === 'warnings' && typeof activeCount === 'number' && (
-                  <span className="absolute -top-1 -right-2 text-[9px] bg-emerald-500 text-slate-950 font-bold px-1 rounded-full min-w-[14px] text-center tabular-nums">
+                  <span className="bottom-badge absolute -top-1 -right-2 text-[9px] bg-emerald-600 text-white font-bold px-1 rounded-full min-w-[14px] text-center tabular-nums">
                     {activeCount.toLocaleString()}
                   </span>
                 )}

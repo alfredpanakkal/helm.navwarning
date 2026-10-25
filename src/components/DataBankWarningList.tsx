@@ -357,28 +357,28 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
               return (
                 <div
                   key={cardId}
-                  className="bg-white border border-gw-primary rounded-md overflow-hidden"
+                  className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs hover:border-slate-300 transition-all"
                 >
-                  <div className="p-2.5">
+                  <div className="p-3">
                     <WarningHierarchyLines warning={w} sources={sources} />
                   </div>
-                  <div className="px-2.5 pb-2.5 flex items-center gap-2 flex-wrap">
+                  <div className="px-3 pb-3 flex items-center gap-2 flex-wrap">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onLocate(w);
                       }}
-                      className="flex items-center gap-1 px-2 py-1.5 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase transition-colors hover:bg-gw-primary hover:text-gw-bg"
+                      className="btn btn-sm btn-secondary text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1.5 text-slate-700"
                       title="Locate on Map"
                     >
-                      <Locate className="w-3 h-3" />
+                      <Locate className="w-3.5 h-3.5" />
                       <span>View on map</span>
                     </button>
                     <button
                       onClick={(e) => toggleExpand(cardId, e)}
                       aria-expanded={isExpanded}
                       aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
-                      className="flex items-center gap-1 px-2 py-1.5 bg-white border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase transition-colors hover:border-gw-primary hover:text-gw-primary"
+                      className="btn btn-sm btn-ghost text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1 text-slate-600 hover:text-slate-900"
                     >
                       <span>Details</span>
                       {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -389,7 +389,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                           e.stopPropagation();
                           onVerifyWarning!(w.warning_id);
                         }}
-                        className="ml-auto flex items-center gap-1 px-2 py-1.5 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase transition-colors hover:bg-emerald-700"
+                        className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1 text-white shadow-xs"
                         title="Quick Verify"
                       >
                         ✓ Verify
@@ -564,23 +564,23 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
       </div>
 
       {/* Desktop / Tablet Grid Table (hidden on mobile < md) */}
-      <div className="hidden md:block bg-secondary border-2 border-gw-primary rounded-2xl overflow-hidden overflow-x-auto shadow-sm">
+      <div className="hidden md:block bg-white border border-slate-200 rounded-xl overflow-hidden overflow-x-auto shadow-2xs">
         {/* v2 header: compact sort strip (all 8 sort fields stay reachable; coords moves into Details) */}
         {!legacy && (
           <div
             id="databank-table-header"
-            className="flex flex-wrap items-center gap-1 p-2 bg-gw-primary text-gw-bg text-[10px] font-bold tracking-wider uppercase select-none sticky top-0 z-10 shadow-xs"
+            className="flex flex-wrap items-center gap-1.5 p-2.5 bg-slate-900 text-white text-[11px] font-semibold tracking-wider uppercase select-none sticky top-0 z-10 shadow-xs"
           >
-            <span className="px-1.5 text-gw-bg/70 font-mono text-[9px]">SORT</span>
+            <span className="px-1.5 text-slate-400 font-mono text-[10px]">SORT</span>
             {V2_SORT_BUTTONS.map(({ field, label }) => (
               <button
                 key={field}
                 type="button"
                 onClick={() => handleSort(field)}
-                className={`flex items-center gap-1 px-2 py-1 rounded transition-all font-mono cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded transition-all font-mono cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
                   sortField === field
-                    ? 'bg-white/20 text-white font-black ring-1 ring-white/40 shadow-xs'
-                    : 'text-gw-bg/90 hover:bg-white/10 hover:text-white'
+                    ? 'bg-white/20 text-white font-bold ring-1 ring-white/30 shadow-xs'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
                 }`}
                 title={getSortLabel(field, field === 'area' ? 'NAVAREA' : label)}
                 aria-sort={sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -895,12 +895,12 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 <div
                   key={cardId}
                   onClick={() => onLocate(w)}
-                  className={`p-2.5 border-b border-gw-secondary bg-white hover:bg-gw-bg/60 transition-colors cursor-pointer group ${
-                    isExpanded ? 'bg-gw-bg/40' : ''
+                  className={`p-3 border-b border-slate-200 bg-white hover:bg-slate-50/80 transition-colors cursor-pointer group ${
+                    isExpanded ? 'bg-slate-50/60' : ''
                   }`}
                 >
                   <WarningHierarchyLines warning={w} sources={sources} />
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2.5 flex items-center gap-2">
                     <button
                       aria-label={`Locate warning ${w.source_warning_id} on map`}
                       title={`Locate warning ${w.source_warning_id} on map`}
@@ -908,9 +908,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         e.stopPropagation();
                         onLocate(w);
                       }}
-                      className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+                      className="btn btn-sm btn-secondary text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1.5 text-slate-700"
                     >
-                      <Locate className="w-3 h-3" />
+                      <Locate className="w-3.5 h-3.5 text-slate-600" />
                       <span>View on map</span>
                     </button>
                     <button
@@ -921,10 +921,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       }}
                       aria-expanded={isExpanded}
                       aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
-                      className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:border-gw-primary hover:text-gw-primary transition-colors"
+                      className="btn btn-sm btn-ghost text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1 text-slate-600 hover:text-slate-900"
                     >
                       <span>Details</span>
-                      {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                     </button>
                     {canVerify && (
                       <button
@@ -933,7 +933,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                           e.stopPropagation();
                           onVerifyWarning!(w.warning_id);
                         }}
-                        className="ml-auto px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase hover:bg-emerald-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                        className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1 text-white shadow-xs"
                       >
                         ✓ Verify
                       </button>
@@ -947,15 +947,15 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         </div>
 
         {/* Shifting & Pagination Controls Footer */}
-        <div className="min-w-[900px] flex items-center justify-between p-3.5 bg-gw-bg border-t border-gw-secondary text-xs font-mono select-none">
+        <div className="min-w-[900px] flex items-center justify-between p-3.5 bg-slate-50/90 border-t border-slate-200 text-xs font-mono select-none">
           {/* Left: Record Range Summary and Page Size Shifter */}
           <div className="flex items-center gap-4">
-            <div className="text-gw-accent font-medium">
-              Showing <span className="font-bold text-gw-primary">{sortedWarnings.length === 0 ? 0 : startIndex + 1}</span>–
-              <span className="font-bold text-gw-primary">{endIndex}</span> of{' '}
-              <span className="font-bold text-gw-primary">{sortedWarnings.length}</span> warnings
+            <div className="text-slate-500 font-medium">
+              Showing <span className="font-bold text-slate-900">{sortedWarnings.length === 0 ? 0 : startIndex + 1}</span>–
+              <span className="font-bold text-slate-900">{endIndex}</span> of{' '}
+              <span className="font-bold text-slate-900">{sortedWarnings.length}</span> warnings
               {warnings.length !== sortedWarnings.length && (
-                <span className="text-[11px] text-gw-accent ml-1.5">(filtered from {warnings.length})</span>
+                <span className="text-[11px] text-slate-400 ml-1.5">(filtered from {warnings.length})</span>
               )}
             </div>
 

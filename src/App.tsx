@@ -479,9 +479,14 @@ export default function App() {
   };
 
   const activeCount = warnings.filter((w) => w.status === 'active').length;
+  const isMapView = isAdminMode && activeTab === 'map';
 
   return (
-    <div className="min-h-screen bg-gw-bg text-gw-primary font-mono selection:bg-gw-primary selection:text-gw-bg relative pb-20 md:pb-6">
+    <div
+      className={`min-h-screen bg-gw-bg text-gw-primary font-mono selection:bg-gw-primary selection:text-gw-bg relative ${
+        isMapView ? 'h-[100dvh] flex flex-col overflow-hidden pb-0' : 'pb-20 md:pb-6'
+      }`}
+    >
       <a href="#main-content" className="gw-skip-link">
         Skip to main content
       </a>
@@ -527,9 +532,17 @@ export default function App() {
       )}
       <DisclaimerBanner />
 
-      <main id="main-content" tabIndex={-1} className="relative z-10 max-w-[1600px] mx-auto p-3 sm:p-6 md:p-8 focus:outline-none">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className={
+          isMapView
+            ? 'relative z-10 flex-1 min-h-0 w-full flex flex-col overflow-hidden focus:outline-none p-2 sm:p-3 md:p-4 max-w-[1800px] mx-auto'
+            : 'relative z-10 max-w-[1600px] mx-auto p-3 sm:p-6 md:p-8 focus:outline-none'
+        }
+      >
         {/* Map View (admin-gated) */}
-        <div className={isAdminMode && activeTab === 'map' ? 'block' : 'hidden'}>
+        <div className={isMapView ? 'flex-1 min-h-0 flex flex-col h-full w-full' : 'hidden'}>
           <LeafletMap
             warnings={warnings}
             selectedNavArea="ALL"
@@ -543,6 +556,7 @@ export default function App() {
             selectedWarning={selectedWarning}
             onGeometrySaved={() => loadData()}
             onEditWarning={(w) => setEditingWarning(w)}
+            isVisible={isMapView}
           />
         </div>
 
@@ -587,23 +601,23 @@ export default function App() {
             session. No tab renders content until Header's server-verified
             session bootstrap or an explicit adminLogin() succeeds. */}
         {!isAdminMode && (
-          <div className="bg-white border-2 border-gw-primary rounded-2xl p-8 sm:p-12 text-center max-w-xl mx-auto my-12 shadow-hard space-y-4">
-            <div className="w-12 h-12 rounded-full bg-gw-bg border-2 border-gw-primary text-gw-primary flex items-center justify-center mx-auto">
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-12 text-center max-w-xl mx-auto my-12 shadow-xs space-y-4">
+            <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-300 text-slate-800 flex items-center justify-center mx-auto shadow-2xs">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
               </svg>
             </div>
             <div className="space-y-1">
-              <h2 className="text-lg font-bold text-gw-primary uppercase tracking-wider">Administrative Gate Active</h2>
-              <p className="text-xs text-gw-accent leading-relaxed">
+              <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wider">Administrative Gate Active</h2>
+              <p className="text-xs text-slate-500 leading-relaxed">
                 This console is restricted to administrative sessions. Sign in with your Supabase Administrator account to access the map view, data bank, source registry, pipeline ingestion, manual parsing, bulk imports, audit logs, and Supabase server settings.
               </p>
             </div>
             <div className="pt-2 flex justify-center">
               <button
                 onClick={() => setLoginPrompt((n) => n + 1)}
-                className="px-5 py-2 bg-gw-primary text-gw-bg font-bold text-xs uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-tertiary transition-all"
+                className="btn btn-primary px-6 py-2.5 text-xs uppercase font-bold tracking-wider"
               >
                 Admin Sign In
               </button>
@@ -621,6 +635,8 @@ export default function App() {
             onNavigate={(tab) => setActiveTab(tab)}
             onNavigateWithFilter={handleNavigateWithFilter}
             onSelectWarning={(w) => setSelectedWarning(w)}
+            isIngestionProcedureOpen={isIngestionProcedureOpen}
+            setIsIngestionProcedureOpen={setIsIngestionProcedureOpen}
           />
         </div>
 
@@ -659,8 +675,8 @@ export default function App() {
       <Footer />
 
       {/* Persistent Floating Action Button (FAB) for Data Bank verification (Admin Only) */}
-      {isAdminMode && activeTab === 'databank' && unverifiedCandidates.length > 0 && (
-        <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[900] flex items-center gap-2 bg-gw-primary/95 text-gw-bg p-1.5 rounded-full shadow-2xl border-2 border-gw-accent backdrop-blur-md">
+      {isAdminMode && activeTab === 'databank' && unverifiedCandidates.length > 0 && !selectedWarning && !editingWarning && !isIngestionProcedureOpen && (
+        <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 flex items-center gap-2 bg-gw-primary/95 text-gw-bg p-1.5 rounded-full shadow-2xl border-2 border-gw-accent backdrop-blur-md">
           <button
             onClick={() => setSelectedWarning(unverifiedCandidates[0])}
             className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
@@ -672,12 +688,11 @@ export default function App() {
         </div>
       )}
 
-
       {/* Edit FAB (Admin Only): opens the fully-editable modal for the warning
           currently open in the detail modal. Writes go through the server-side
           admin-guarded /api/admin/warning-edit endpoint. */}
-      {isAdminMode && selectedWarning && !editingWarning && (
-        <div className="fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-[900]">
+      {isAdminMode && selectedWarning && !editingWarning && !isIngestionProcedureOpen && (
+        <div className="fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-40">
           <button
             onClick={() => setEditingWarning(selectedWarning)}
             className="flex items-center gap-2 px-4 py-2.5 bg-gw-primary hover:bg-gw-accent text-gw-bg rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-2xl border-2 border-gw-accent active:scale-95"
@@ -723,7 +738,17 @@ export default function App() {
           }}
         />
       )}
-        {/* Ingestion Procedure Modal - placeholder */}
+
+      {/* Ingestion Procedure Modal */}
+      <IngestionProcedureModal
+        isOpen={isIngestionProcedureOpen}
+        onClose={() => setIsIngestionProcedureOpen(false)}
+        warningsCount={warnings.length}
+        sources={sources}
+        onTriggerRefresh={handleTriggerRefresh}
+        isRefreshing={isPipelineRefreshing}
+        onCommitWarning={(w) => handleCommitWarnings([w])}
+      />
     </div>
   );
 }

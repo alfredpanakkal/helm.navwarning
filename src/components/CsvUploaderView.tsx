@@ -123,6 +123,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
   // Supabase Saving state
   const [isSavingToSupabase, setIsSavingToSupabase] = useState(false);
   const [supabaseSaveStatus, setSupabaseSaveStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [isConfirmCommitOpen, setIsConfirmCommitOpen] = useState(false);
 
   // Paste Text state
   const [pasteContent, setPasteContent] = useState<string>('');
@@ -788,7 +789,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+    <div className="w-full space-y-6">
       {/* Top Header & Navigation Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-gw-primary pb-4">
         <div>
@@ -1589,9 +1590,9 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                   </button>
 
                   <button
-                    onClick={handleSaveToSupabase}
+                    onClick={() => setIsConfirmCommitOpen(true)}
                     disabled={isSavingToSupabase || parsedWarnings.length === 0}
-                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-lg flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
                     title="Saves parsed warnings directly to Supabase nav_warnings PostgreSQL table"
                   >
                     {isSavingToSupabase ? (
@@ -1779,6 +1780,69 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               </div>
             </div>
           )}
+        </div>
+      )}
+      {/* Pre-Commit Confirmation Barrier Modal */}
+      {isConfirmCommitOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs">
+          <div className="bg-white border-2 border-emerald-600 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-700 flex items-center justify-center shrink-0">
+                <Database className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider">
+                  Confirm Supabase Live Commit
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Target: PostgreSQL table <code className="font-mono font-bold text-slate-800">nav_warnings</code>
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs space-y-2 text-slate-700">
+              <div className="flex justify-between pb-1.5 border-b border-slate-200">
+                <span className="font-medium text-slate-500">Total Staged Warnings:</span>
+                <span className="font-bold font-mono text-slate-900">{parsedWarnings.length}</span>
+              </div>
+              <div className="flex justify-between pb-1.5 border-b border-slate-200">
+                <span className="font-medium text-slate-500">Validated GPS Features:</span>
+                <span className="font-bold font-mono text-emerald-700">
+                  {parsedWarnings.filter(w => (w.latitude != null && w.longitude != null) || (w.spatial?.geometries?.length > 0)).length}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-slate-500">Conflict Policy:</span>
+                <span className="font-bold text-slate-900">Upsert on (source_id, warning_id)</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Writing these warnings will persist them to the live Supabase database and update active GIS geometries. This action takes immediate effect across all administrative and public views.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsConfirmCommitOpen(false)}
+                className="px-4 py-2 border border-slate-300 hover:bg-slate-100 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-700 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsConfirmCommitOpen(false);
+                  handleSaveToSupabase();
+                }}
+                disabled={isSavingToSupabase}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shadow-sm cursor-pointer flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>Confirm &amp; Commit to Database</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

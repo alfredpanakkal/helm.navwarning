@@ -81,6 +81,7 @@ interface LeafletMapProps {
   selectedWarning?: NavWarning | null;
   onGeometrySaved?: () => void;
   onEditWarning?: (warning: NavWarning) => void;
+  isVisible?: boolean;
 }
 
 export const LeafletMap: React.FC<LeafletMapProps> = ({
@@ -94,6 +95,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   selectedWarning,
   onGeometrySaved,
   onEditWarning,
+  isVisible = true,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletInstance = useRef<L.Map | null>(null);
@@ -412,7 +414,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     }
   }, [isolatedWarning, mapReady, centerOnWarningArea]);
 
-  // Close context menu on outside click or Escape, & handle orientation/resize protection
+  // Close context menu on outside click or Escape, & handle orientation/resize/visibility protection
   useEffect(() => {
     if (!mapReady) return;
 
@@ -420,7 +422,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeContextMenu();
     };
-    const handleResize = () => {
+    const invalidate = () => {
       if (leafletInstance.current) {
         leafletInstance.current.invalidateSize();
       }
@@ -428,16 +430,44 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
     mapReady.on('click', handleMapClick);
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
+    window.addEventListener('resize', invalidate);
+    window.addEventListener('orientationchange', invalidate);
+
+    // Multiple staggered invalidation ticks upon mount or visibility transition
+    const t0 = requestAnimationFrame(invalidate);
+    const t1 = setTimeout(invalidate, 100);
+    const t2 = setTimeout(invalidate, 300);
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && mapRef.current) {
+      ro = new ResizeObserver(() => {
+        invalidate();
+      });
+      ro.observe(mapRef.current);
+    }
 
     return () => {
       mapReady.off('click', handleMapClick);
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
+      window.removeEventListener('resize', invalidate);
+      window.removeEventListener('orientationchange', invalidate);
+      cancelAnimationFrame(t0);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      if (ro) ro.disconnect();
     };
-  }, [mapReady, closeContextMenu]);
+  }, [mapReady, isVisible, closeContextMenu]);
+
+  // Bottom sheet drawer transition resize handler
+  useEffect(() => {
+    if (!mapReady) return;
+    const timer = setTimeout(() => {
+      if (leafletInstance.current) {
+        leafletInstance.current.invalidateSize();
+      }
+    }, 320);
+    return () => clearTimeout(timer);
+  }, [bottomSheetState, mapReady]);
 
   // Filter warnings
   const filteredWarnings = warnings.filter((w) => {
@@ -970,14 +1000,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   };
 
   return (
-    <div className="relative h-[calc(100vh-140px)] min-h-[520px] border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden bg-gw-bg isolate">
+    <div className="relative w-full h-full min-h-[480px] flex-1 border border-slate-300 rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900 isolate shadow-xs">
       {/* Map Canvas */}
       <div
         id="map"
         ref={mapRef}
         role="region"
         aria-label="Interactive chart of live navigational warnings. Use arrow keys to pan and plus or minus to zoom."
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-0 w-full h-full"
       ></div>
 
       {/* ISOLATION MODE BANNER */}

@@ -46,67 +46,67 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
   const unverifiedCount = sources.filter((s) => s.verification.status === 'unverified').length;
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+    <div className="w-full space-y-6">
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-secondary border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-2xs hover:border-slate-300 transition-all">
           <div>
-            <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Total NAVAREAs In Registry</div>
-            <div className="text-2xl font-mono font-bold text-gw-primary mt-1">21</div>
-            <div className="text-[11px] text-gw-accent mt-1">18 Candidates + 3 Under Investigation</div>
+            <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Total NAVAREAs</div>
+            <div className="text-2xl font-mono font-bold text-slate-900 mt-1">21</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">18 Candidates + 3 Investigating</div>
           </div>
-          <Radio className="w-8 h-8 text-gw-primary opacity-30" />
+          <Radio className="w-7 h-7 text-slate-400" />
         </div>
 
-        <div className="bg-secondary border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-2xs hover:border-slate-300 transition-all">
           <div>
-            <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Verified Endpoints</div>
-            <div className="text-2xl font-mono font-bold text-green-700 mt-1">{verifiedCount}</div>
-            <div className="text-[11px] text-green-800 font-bold mt-1">Active Ingestion Feeds</div>
+            <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Verified Endpoints</div>
+            <div className="text-2xl font-mono font-bold text-emerald-700 mt-1">{verifiedCount}</div>
+            <div className="text-[11px] text-emerald-700 font-medium mt-0.5">Active Ingestion Feeds</div>
           </div>
-          <CheckCircle2 className="w-8 h-8 text-green-600 opacity-40" />
+          <CheckCircle2 className="w-7 h-7 text-emerald-600" />
         </div>
 
-        <div className="bg-secondary border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-2xs hover:border-slate-300 transition-all">
           <div>
-            <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Unverified Coverage</div>
+            <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Unverified Coverage</div>
             <div className="text-2xl font-mono font-bold text-amber-700 mt-1">{unverifiedCount}</div>
-            <div className="text-[11px] text-amber-800 font-bold mt-1">NAVAREA XIII, XX, XXI</div>
+            <div className="text-[11px] text-amber-700 font-medium mt-0.5">NAVAREA XIII, XX, XXI</div>
           </div>
-          <AlertTriangle className="w-8 h-8 text-amber-500 opacity-40" />
+          <AlertTriangle className="w-7 h-7 text-amber-500" />
         </div>
 
-        <div className="bg-secondary border-2 border-gw-primary p-4 rounded-xl flex items-center justify-between shadow-sm">
+        <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-2xs hover:border-slate-300 transition-all">
           <div>
-            <div className="text-xs text-gw-accent font-bold uppercase tracking-wider">Poll Cadence</div>
-            <div className="text-2xl font-mono font-bold text-gw-primary mt-1">360 min</div>
-            <div className="text-[11px] text-gw-accent mt-1">6-hour Polling Defaults</div>
+            <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Poll Cadence</div>
+            <div className="text-2xl font-mono font-bold text-slate-900 mt-1">360 min</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">6-hour Polling Defaults</div>
           </div>
-          <Clock className="w-8 h-8 text-gw-primary opacity-30" />
+          <Clock className="w-7 h-7 text-slate-400" />
         </div>
       </div>
 
       {/* Registry Table */}
-      <div className="bg-secondary border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
-        <div className="p-4 border-b-2 border-gw-primary bg-gw-bg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+        <div className="p-4 border-b border-slate-200 bg-slate-50/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-bold text-gw-primary flex items-center gap-2 uppercase tracking-wider">
-              <Radio className="w-5 h-5 text-gw-primary" />
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wider">
+              <Radio className="w-4 h-4 text-slate-700" />
               <span>NAVWARN Candidate Discovery Registry</span>
             </h2>
-            <p className="text-xs text-gw-accent mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               Official maritime publication coordinators, endpoint verification status, and publication semantics.
             </p>
           </div>
 
-          <div className="text-xs text-gw-primary bg-secondary px-3 py-1.5 rounded-sm border-primary font-mono font-bold uppercase shrink-0">
-            Status: <span className="text-green-700">18 of 21 NAVAREAs Scaffolded</span>
+          <div className="text-xs text-slate-700 bg-white px-3 py-1.5 rounded-lg border border-slate-200 font-mono font-bold uppercase shrink-0 shadow-2xs">
+            Status: <span className="text-emerald-700">18 of 21 NAVAREAs Scaffolded</span>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-gw-primary">
-            <thead className="bg-gw-bg text-gw-accent font-mono uppercase text-[10px] border-b border-gw-secondary">
+          <table className="w-full text-left text-xs text-slate-900">
+            <thead className="bg-slate-50 text-slate-500 font-mono uppercase text-[10px] border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">NAVAREA</th>
                 <th className="py-3 px-4">Coordinator / Publisher</th>

@@ -1,102 +1,83 @@
-# Admin Map View Harmonization (`console#/warnings/map`)
+# Implementation Plan: Console UI/UX Remediation Across All 4 Sections
 
-Align the admin map view at `/console#/warnings/map` with the clean, modern public map architecture while keeping all administrative workflows—including map-native geometry editing, layer visibility toggling, audited warning editing, and coordinates inspection—fully intact.
-
----
-
-## User Review & Critical Decisions
-
-> [!IMPORTANT]
-> The following architectural and UX decisions were confirmed during clarification:
-> - **Warnings Drawer Layout**: A full-width bottom sheet overlay docked at the bottom of the map, featuring minimize/expand controls and inline accordion warning cards.
-> - **Map Controls & Layer Settings**: Top-right floating toolbar matching the public map (`Re-center`, `Focus Mode`, `Layers & Chart Type` gear popover, and `Coordinate Picker`).
-> - **Admin Tools Integration**: Embedded directly inside expanded warning accordions (Edit Warning button, Verify, Locate) and the right-click / tap map context menu (Edit Warning, Hide Layer, Center on Area, Copy Anchor Coordinates).
-
-- **Confirmed Decision 1**: Adopt public map cartographic layer styling (OpenStreetMap default, CARTO basemaps, OpenSeaMap seamarks, and Ocean soundings) via the top-right gear popover.
-- **Confirmed Decision 2**: Replace the legacy, heavy left sidebar with a sleek, full-width bottom sheet overlay that can minimize to a 44px status bar or expand for dense inspection.
-- **Confirmed Decision 3**: Preserve `MapGeometryEditor` and the admin context menu, attaching geometry modification actions seamlessly to the selected warning.
+This plan outlines the systematic engineering fixes for the critical, moderate, and low severity UI/UX issues identified in the `/console#/` administrative application audit across **Warnings**, **Ingest**, **Trace**, and **System**.
 
 ---
 
-## 1. Overview & Core Concept
+## 1. Phase 1: Critical Operational Blockers & Z-Index Layering
 
-- **What It Does**: Upgrades `console#/warnings/map` from its legacy, high-contrast left-sidebar layout to the polished public map visual standard (tokens, floating chip, top-right toolbar, and smooth layer switching), while maintaining all administrative controls (`MapGeometryEditor`, audited warning editing, layer hide/unhide, and coordinate export).
-- **Target Audience / Persona**: Watchstanders, hydrographic hydrographers, and maritime administrators managing live NAVAREA navigational warnings.
-- **Key Value**: Provides visual and operational consistency between the public portal and admin console, reducing cognitive load when transitioning between public monitoring and admin verification.
+### 1.1 Unify Global Z-Index Hierarchy
+- **Problem**: Modals (`WarningDetailModal` at `z-50`) collide with the sticky header (`z-50`), while the floating action buttons (FABs in `App.tsx` at `z-[900]`) hover awkwardly over open modal dialogs.
+- **Solution**:
+  - Establish a strict z-index scale in `src/index.css` or Tailwind theme:
+    - Base content: `z-0` – `z-10`
+    - Sticky Header (`site-header`): `z-30`
+    - Floating Map Drawer: `z-35`
+    - Floating Action Buttons (FAB): `z-40` (hidden when any modal is open)
+    - Modal Backdrops / Dialogs: `z-50` (`WarningDetailModal`, `IngestionProcedureModal`)
+    - Nested Edit / Confirmation Modals: `z-[60]` (`WarningEditModal`, `ConfirmationModal`)
+    - Toast notifications & critical alerts: `z-[70]`
+  - Conditionally suppress FAB rendering in `App.tsx` whenever `selectedWarning !== null || editingWarning !== null`.
 
----
+### 1.2 Fix Runtime Exception in `WorkspaceView.tsx`
+- **Problem**: Clicking "Ingestion Procedure" calls `setIsIngestionProcedureOpen(true)` directly, which is undefined when rendered by `App.tsx`, causing a fatal React unmount/white-screen crash.
+- **Solution**:
+  - In `src/App.tsx`, instantiate and manage `isIngestionProcedureOpen` state and pass both `isIngestionProcedureOpen` and `setIsIngestionProcedureOpen` to `<WorkspaceView />`.
+  - In `src/components/WorkspaceView.tsx`, use optional chaining: `setIsIngestionProcedureOpen?.(true)` and render `<IngestionProcedureModal />` if requested.
 
-## 2. User Experience & Visual Design
+### 1.3 Add Destructive Action Confirmation Barriers
+- **Problem**: Bulk imports in `CsvUploaderView.tsx` and manual parsing saves in `ManualParserView.tsx` commit directly to the live Supabase database without two-step confirmation.
+- **Solution**:
+  - Introduce a reusable `ConfirmationModal` component with `--critical: #dc2626` accents, displaying warning counts, target NAVAREAs, and explicit "Cancel" vs "Confirm & Commit" buttons.
 
-- **Top Navigation & Region Filter**:
-  - Floating region chip showing current NAVAREA and live count, with quick toggle for the top filter bar.
-  - NAVAREA selector (`Global View`, `NAVAREA I` through `XXI`, `BALTIC`) and scope filter (`All`, `NAVAREA`, `Coastal`).
-- **Top-Right Toolbar**:
-  - `Re-center` button for fitting viewport bounds.
-  - `Focus Mode` button to maximize the map canvas.
-  - `Layers & Chart Type` gear popover with base maps (OSM, CARTO Voyager, Dark Matter, Positron, ESRI Ocean) and overlay checkboxes (Points, Polygons, Circles, Lines, Seamarks, Soundings).
-  - `Coordinate Picker` button with floating DMM/DD live position readout.
-- **Full-Width Bottom Sheet Overlay**:
-  - Docked at the bottom of the map with a header showing active warning count, hidden layer indicator, and minimize/maximize buttons.
-  - Minimized state: 44px bar showing count and quick restore button.
-  - Expanded state: Responsive horizontal grid or compact scrollable list of active warnings with inline accordion expansion.
-  - Inside each expanded warning:
-    - Metadata chips and WWNWS raw text.
-    - **Admin Action Buttons**: `📍 View on map`, `🛡️ Quick Verify`, and `✏️ Edit Warning (Admin)` which triggers `onEditWarning`.
-    - Layer visibility toggle (`Eye` / `EyeOff`) to isolate or hide noisy polygons.
-- **Map Context Menu & Geometry Editor**:
-  - Right-click / tap context menu providing anchor coordinates (DMM & DD), `Copy Coordinates`, `Hide From View`, `Center on Area`, and `Edit Warning (Admin)`.
-  - `MapGeometryEditor` seamlessly overlaying when a warning is in geometry edit mode.
-
----
-
-## 3. Key Product Decisions & Trade-Offs
-
-- **Decision 1: Bottom Sheet vs. Side Drawer**
-  - *Chosen Approach*: Full-width bottom sheet overlay with minimize/maximize toggles.
-  - *Why*: User explicitly confirmed this layout; it maximizes horizontal chart visibility across ocean corridors while providing dense tabular/card layout space when expanded.
-  - *Alternatives Considered*: Right floating drawer (public desktop standard) or left sidebar (legacy).
-- **Decision 2: Control Consolidation in Top-Right Toolbar**
-  - *Chosen Approach*: Replace the custom 5-button retro box with the public map's clean top-right toolbar and popover.
-  - *Why*: Consistent with the public portal and provides a unified layer manager for both basemaps and overlays.
-- **Decision 3: Zero Feature Loss for Admin Capabilities**
-  - *Chosen Approach*: Retain `MapGeometryEditor`, `hiddenWarningIds`, audited edit hooks, and contextual coordinates.
-  - *Why*: These are safety-critical administrative functions required by hydrographic operators.
+### 1.4 Purge Fabricated Mock Telemetry in Pipeline Overview
+- **Problem**: `WorkspaceView.tsx` renders static `MOCK_LOGS` and fabricated accuracy/latency metrics ("412ms", "100%", "98.6%"), violating maritime safety rules against fabricated data.
+- **Solution**:
+  - Replace `MOCK_LOGS` with real pipeline status fetched from `fetchPipelineRuns()` or display an empty/standby message when no runs have occurred.
+  - Calculate real metrics from the `sources` and `warnings` props rather than static numbers.
 
 ---
 
-## 4. Technical Architecture & Data Strategy
+## 2. Phase 2: Layout Consistency, Max-Width Harmonization & Data Density
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                       console#/warnings/map (Admin)                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  [ Chip: NAVAREA XI · 14 live ]                [Re-center] [Max] [⚙] [⌖]    │
-│                                                                             │
-│                            LEAFLET MAP CANVAS                               │
-│                   (OSM / CARTO / Seamarks / Soundings)                      │
-│                                                                             │
-│         [ PolygonsLayer ]   [ CirclesLayer ]   [ PointsLayer ]              │
-│                                                                             │
-│    ┌───────────────────────────────────────────────────────────────────┐    │
-│    │ Context Menu: Anchor DMM/DD · Copy · Hide · Center · [Edit Admin] │    │
-│    └───────────────────────────────────────────────────────────────────┘    │
-│                                                                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ▼ FULL-WIDTH BOTTOM SHEET: Active Warnings (14)      [-] Minimize [^] Max  │
-│  ┌─────────────────────────┬─────────────────────────┬───────────────────┐  │
-│  │ NAVAREA XI 0451/26      │ NAVAREA I 0180/26       │ NAVAREA IV 0092/26│  │
-│  │ [View] [Verify] [Edit]  │ [View] [Verify] [Edit]  │ [View] [Verify]   │  │
-│  └─────────────────────────┴─────────────────────────┴───────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+### 2.1 Harmonize View Container Widths and Remove Double Padding
+- **Problem**: `GenerationInspectorView.tsx`, `EvidenceLockerView.tsx`, and `SourceRegistryView.tsx` wrap themselves in `max-w-7xl mx-auto p-4 md:p-6` inside `<main className="p-3 sm:p-6 md:p-8 max-w-[1600px]">`, causing 60px+ gutter waste and horizontal container snapping on tab switch.
+- **Solution**:
+  - Strip the redundant inner `max-w-7xl mx-auto p-4 md:p-6` wrappers from child view components.
+  - Let `<main>` govern the consistent `max-w-[1600px] w-full mx-auto` footprint across all tabs.
 
-- **Target Component**: `src/components/LeafletMap.tsx`.
-- **State & Hooks**:
-  - Shared `useMapLayers` for basemaps and overlay state.
-  - `useMapFocus` for focus mode.
-  - Bottom sheet collapse state (`'minimized' | 'normal' | 'maximized'`).
-  - Active coordinate picker mode state with crosshair cursor.
-  - Popover open/closed state for layer settings.
-- **Admin Callbacks & Props**:
-  - `isAdminMode`, `onEditWarning`, `onGeometrySaved`, `onSelectWarning`, `isolatedWarning`, `selectedWarning`.
+### 2.2 Responsive Grid Restructuring in Pipeline Actions
+- **Problem**: `xl:grid-cols-6` makes action cards in `WorkspaceView.tsx` excessively narrow on 1280px–1440px displays, clipping labels.
+- **Solution**:
+  - Adjust grid to `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6` with flex wrapping and minimum card widths (`min-w-[180px]`).
+
+### 2.3 Horizontal Overflow Protection for Data Bank Controls
+- **Problem**: Status filter chips and NAVAREA pills in `DataBankControls.tsx` wrap irregularly on tablet and zoomed viewports.
+- **Solution**:
+  - Group filters into logical semantic rows with clean dividers, scrollable pill strips (`overflow-x-auto touch-pan-x no-scrollbar`), and clear active border tokens.
+
+---
+
+## 3. Phase 3: Interactive States, Focus Rings & Routing
+
+### 3.1 Comprehensive Keyboard Accessibility (`focus-visible`)
+- **Problem**: Table rows, quick buttons, and filter toggles lack visible focus indicators.
+- **Solution**:
+  - Apply uniform `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2` to all interactive controls.
+
+### 3.2 Deep-Link Filter & Query Param Persistence
+- **Problem**: Refreshing `/console#/warnings/list` resets active filters (e.g. `statusFilter`, `searchQuery`, `navarea`).
+- **Solution**:
+  - Enhance `parseHashRoute` in `App.tsx` and history push to preserve `?status=`, `?navarea=`, and `?q=` in the hash router.
+
+---
+
+## Verification & Validation Plan
+1. **TypeScript & Compilation**:
+   - `npm run lint` (`tsc --noEmit`) and `compile_applet`.
+2. **Unit & Integration Suite**:
+   - `npm test` (verify 169+ tests continue to pass).
+3. **Manual UX Smoke**:
+   - Test modal opening and verify FAB disappears.
+   - Test "Ingestion Procedure" button in WorkspaceView to ensure modal opens without crashing.
+   - Test tab switching across all 4 sections to verify container width alignment and zero horizontal shift.
