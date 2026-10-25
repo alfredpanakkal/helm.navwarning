@@ -139,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <>
       {/* Top Main Navigation Bar */}
-      <header className="site-header sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
+      <header className="site-header sticky top-0 z-console-chrome bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 flex justify-between items-center py-2 md:py-0 min-h-[56px] gap-2 md:gap-4">
           
           {/* Logo & Console Title */}
@@ -270,7 +270,7 @@ export const Header: React.FC<HeaderProps> = ({
       </header>
 
       {/* Mobile Bottom Quick Navigation — the 4 sections */}
-      <nav className="bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1 flex items-center justify-around shadow-lg" aria-label="Primary quick navigation">
+      <nav className="bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-console-chrome bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1 flex items-center justify-around shadow-lg" aria-label="Primary quick navigation">
         {sectionMeta.map((section) => {
           const isActive = activeSection === section.id;
           return (
@@ -301,7 +301,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Admin Unlock Modal Overlay */}
       {showAdminModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-console-overlay bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border-2 border-gw-primary rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-gw-secondary pb-3">
               <div className="flex items-center gap-2 font-bold text-sm sm:text-base text-gw-primary uppercase tracking-wider">
