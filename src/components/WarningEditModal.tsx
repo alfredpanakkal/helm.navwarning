@@ -282,7 +282,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
             <span className="font-bold text-sm uppercase tracking-wider">Edit Warning</span>
             <span className="text-xs opacity-80 font-mono ml-2">{identity.canonical}</span>
           </div>
-          <button onClick={requestClose} className="p-1.5 rounded hover:bg-black/10 transition-colors" title="Close (Esc)">
+          <button onClick={requestClose} aria-label="Close edit modal" className="p-1.5 rounded hover:bg-black/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" title="Close (Esc)">
             <X className="w-4 h-4" />
           </button>
         </div>

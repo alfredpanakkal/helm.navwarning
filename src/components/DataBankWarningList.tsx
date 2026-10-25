@@ -22,6 +22,7 @@ import { DataBankModel, SortDirection, SortField } from '../hooks/useDataBankMod
 import { WarningHierarchyLines, WarningItemDetails } from './WarningItemV2';
 import { WarningStatusBadge } from './WarningStatusBadge';
 import { getWarningBulletinText, getWarningDate, getWarningPositionCount } from '../utils/warningHelpers';
+import { copyToClipboard } from '../utils/coordinateConversion';
 
 export interface DataBankWarningListProps {
   model: DataBankModel;
@@ -121,6 +122,14 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
   // write settles - the row repaints as verified on success, and the button
   // re-enables if the write failed.
   const [verifyingIds, setVerifyingIds] = useState<Set<string>>(new Set());
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const handleCopyFeedback = (key: string, text: string) => {
+    copyToClipboard(text).then((success) => {
+      if (!success) return;
+      setCopiedKey(key);
+      window.setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 2200);
+    });
+  };
   const handleVerify = (warningId: string) => {
     if (!onVerifyWarning || verifyingIds.has(warningId)) return;
     setVerifyingIds((prev) => new Set(prev).add(warningId));
@@ -357,7 +366,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={shiftPrevPage}
                 disabled={validPage === 1}
-                className="p-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary disabled:opacity-30"
+                aria-label="Previous page"
+                className="p-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                 title="Shift Previous Page"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
@@ -369,7 +379,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={shiftNextPage}
                 disabled={validPage === totalPages}
-                className="p-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary disabled:opacity-30"
+                aria-label="Next page"
+                className="p-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                 title="Shift Next Page"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -564,11 +575,13 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigator.clipboard.writeText(formatSpatialCoordinates(w.spatial));
+                              handleCopyFeedback(`${w.source_warning_id || w.warning_id}:coords`, formatSpatialCoordinates(w.spatial));
                             }}
-                            className="text-[10px] text-gw-primary hover:text-gw-accent font-bold uppercase underline"
+                            className={`text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
+                              copiedKey === `${w.source_warning_id || w.warning_id}:coords` ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
+                            }`}
                           >
-                            Copy Coords
+                            {copiedKey === `${w.source_warning_id || w.warning_id}:coords` ? 'Copied!' : 'Copy Coords'}
                           </button>
                         </div>
                         <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
@@ -593,11 +606,13 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigator.clipboard.writeText(getWarningBulletinText(w));
+                            handleCopyFeedback(`${w.source_warning_id || w.warning_id}:raw`, getWarningBulletinText(w));
                           }}
-                          className="text-[10px] text-gw-primary hover:text-gw-accent font-bold uppercase underline"
+                          className={`text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
+                            copiedKey === `${w.source_warning_id || w.warning_id}:raw` ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
+                          }`}
                         >
-                          Copy Raw Telemetry
+                          {copiedKey === `${w.source_warning_id || w.warning_id}:raw` ? 'Copied!' : 'Copy Raw Telemetry'}
                         </button>
                       </div>
                       <div className="p-2.5 bg-white border border-gw-secondary rounded text-[11px] text-gw-primary font-mono leading-relaxed max-h-36 overflow-y-auto no-scrollbar">
@@ -1058,7 +1073,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={shiftFirstPage}
                 disabled={validPage === 1}
-                className="p-1.5 rounded border border-gw-secondary bg-white text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                aria-label="First page"
+                className="p-1.5 rounded border border-gw-secondary bg-white text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                 title="Shift to First Page"
               >
                 <ChevronsLeft className="w-3.5 h-3.5" />
@@ -1115,7 +1131,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={shiftLastPage}
                 disabled={validPage === totalPages}
-                className="p-1.5 rounded border border-gw-secondary bg-white text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                aria-label="Last page"
+                className="p-1.5 rounded border border-gw-secondary bg-white text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                 title="Shift to Last Page"
               >
                 <ChevronsRight className="w-3.5 h-3.5" />

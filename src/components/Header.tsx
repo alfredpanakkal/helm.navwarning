@@ -313,7 +313,8 @@ export const Header: React.FC<HeaderProps> = ({
                   setShowAdminModal(false);
                   setAuthErrorMessage(null);
                 }}
-                className="p-1 rounded text-gw-accent hover:text-gw-primary"
+                aria-label="Close admin sign-in prompt"
+                className="p-1 rounded text-gw-accent hover:text-gw-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
               >
                 <X className="w-5 h-5" />
               </button>

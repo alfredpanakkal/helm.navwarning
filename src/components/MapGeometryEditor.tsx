@@ -587,7 +587,8 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                 <button
                   type="button"
                   onClick={exitMode}
-                  className="p-1.5 bg-white border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors"
+                  aria-label="Cancel geometry edits"
+                  className="p-1.5 bg-white border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                   title="Cancel"
                 >
                   <X className="w-3.5 h-3.5" />
