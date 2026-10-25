@@ -36,6 +36,8 @@ export interface DataBankProps {
   /** Ingestion run ledger (ingestion_generations) for the Summary panel. */
   generations?: IngestionGeneration[];
   isOfflineMode?: boolean;
+  /** True while the initial collection fetch is in flight (honest loading UI). */
+  isLoading?: boolean;
   onOpenConsole?: () => void;
   onNavigate?: (tab: any) => void;
 }

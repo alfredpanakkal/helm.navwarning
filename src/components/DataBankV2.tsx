@@ -26,7 +26,8 @@ export const DataBankV2: React.FC<DataBankProps> = ({
   initialStatusFilter,
   initialNavAreaFilter,
   routeState,
-  onRouteStateChange
+  onRouteStateChange,
+  isLoading
 }) => {
   const [showMissingDrawer, setShowMissingDrawer] = React.useState(false);
   const model = useDataBankModel({ warnings, archivedWarnings, initialStatusFilter, initialNavAreaFilter, routeState, onRouteStateChange });
@@ -38,7 +39,7 @@ export const DataBankV2: React.FC<DataBankProps> = ({
         <div className="flex items-baseline gap-2.5">
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Data Bank</h1>
           <span className="text-xs sm:text-sm font-medium text-slate-500">
-            {warnings.length} published warnings
+            {isLoading && warnings.length === 0 ? 'Syncing live warnings...' : `${warnings.length} published warnings`}
           </span>
         </div>
       </div>
@@ -49,6 +50,7 @@ export const DataBankV2: React.FC<DataBankProps> = ({
           sources={sources}
           onTriggerRefresh={onTriggerRefresh}
           isRefreshing={isRefreshing}
+          isLoading={isLoading}
         />
         <DataBankControls model={model} />
       </div>
@@ -64,7 +66,7 @@ export const DataBankV2: React.FC<DataBankProps> = ({
         />
       )}
 
-      <DataBankWarningList model={model} onLocate={onLocate} onVerifyWarning={onVerifyWarning} sources={sources} />
+      <DataBankWarningList model={model} onLocate={onLocate} onVerifyWarning={onVerifyWarning} sources={sources} isLoading={isLoading} />
 
       <DataBankSummary model={model} sources={sources} generations={generations} />
 

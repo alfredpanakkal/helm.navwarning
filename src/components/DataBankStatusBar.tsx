@@ -1,5 +1,5 @@
 import React from 'react';
-import { RotateCw, Activity, Globe, AlertTriangle, MapPin } from 'lucide-react';
+import { RotateCw, Activity, Globe, AlertTriangle, MapPin, Loader2 } from 'lucide-react';
 import { SourceRegistryItem } from '../types';
 import { ALL_NAVAREAS, DataBankModel } from '../hooks/useDataBankModel';
 
@@ -24,13 +24,18 @@ export const DataBankStatusBar: React.FC<{
   sources?: SourceRegistryItem[];
   onTriggerRefresh?: () => Promise<void>;
   isRefreshing?: boolean;
-}> = ({ model, sources = [], onTriggerRefresh, isRefreshing = false }) => {
+  /** True while the initial fetch is in flight: suppress false zero counts. */
+  isLoading?: boolean;
+}> = ({ model, sources = [], onTriggerRefresh, isRefreshing = false, isLoading = false }) => {
   const enabledFeeds = sources.filter((s) => s.enabled).length;
   const activeNavAreasCount = Object.keys(model.navareaCounts).length;
   const coveragePercent = Math.round((activeNavAreasCount / ALL_NAVAREAS.length) * 100);
+  // Truth over optimism: with zero warnings loaded there is no coverage
+  // ratio to state — render "—" instead of a false 100%.
   const geoPercent = model.warnings.length > 0
     ? Math.round((model.coordsCount / model.warnings.length) * 100)
-    : 100;
+    : null;
+  const loadingEmpty = isLoading && model.warnings.length === 0;
 
   return (
     <div className="flex flex-col gap-2">
@@ -44,7 +49,7 @@ export const DataBankStatusBar: React.FC<{
           <div className="stat-content">
             <div className="stat-label">Active</div>
             <div className="stat-value-row">
-              <span className="stat-value tabular-nums">{model.activeCount}</span>
+              <span className="stat-value tabular-nums">{loadingEmpty ? '—' : model.activeCount}</span>
               <span className="stat-sub">In-force</span>
             </div>
           </div>
@@ -58,8 +63,8 @@ export const DataBankStatusBar: React.FC<{
           <div className="stat-content">
             <div className="stat-label">Coverage</div>
             <div className="stat-value-row">
-              <span className="stat-value tabular-nums">{activeNavAreasCount}/{ALL_NAVAREAS.length}</span>
-              <span className="stat-sub">{coveragePercent}% global</span>
+              <span className="stat-value tabular-nums">{loadingEmpty ? '—' : `${activeNavAreasCount}/${ALL_NAVAREAS.length}`}</span>
+              <span className="stat-sub">{loadingEmpty ? 'loading' : `${coveragePercent}% global`}</span>
             </div>
           </div>
         </div>
@@ -72,7 +77,7 @@ export const DataBankStatusBar: React.FC<{
           <div className="stat-content">
             <div className="stat-label">Critical / High</div>
             <div className="stat-value-row">
-              <span className="stat-value tabular-nums">{model.criticalCount}</span>
+              <span className="stat-value tabular-nums">{loadingEmpty ? '—' : model.criticalCount}</span>
               <span className="stat-sub">warnings</span>
             </div>
           </div>
@@ -86,7 +91,7 @@ export const DataBankStatusBar: React.FC<{
           <div className="stat-content">
             <div className="stat-label">Georeferenced</div>
             <div className="stat-value-row">
-              <span className="stat-value tabular-nums">{geoPercent}%</span>
+              <span className="stat-value tabular-nums">{geoPercent === null ? '—' : `${geoPercent}%`}</span>
               <span className="stat-sub">GPS Coords</span>
             </div>
           </div>
@@ -98,23 +103,32 @@ export const DataBankStatusBar: React.FC<{
         data-databank-status-bar
         className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3.5 py-2 bg-slate-50/80 border-b border-slate-200 text-xs rounded-t-lg"
       >
-        <span className="font-bold text-slate-800 tabular-nums">
-          {model.warnings.length} Warnings
-        </span>
-        <span className="text-slate-400" aria-hidden="true">·</span>
-        <span className="font-bold text-slate-800 tabular-nums">
-          {model.activeCount} Active
-        </span>
-        <span className="text-slate-400" aria-hidden="true">·</span>
-        <span className="font-bold text-slate-800 tabular-nums">{model.criticalCount} High</span>
-        <span className="text-slate-400" aria-hidden="true">·</span>
-        <span className="font-bold text-slate-800 tabular-nums">
-          {activeNavAreasCount}/{ALL_NAVAREAS.length} NAVAREAs
-        </span>
-        <span className="text-slate-400" aria-hidden="true">·</span>
-        <span className="text-slate-500 tabular-nums">
-          Last checked {formatLastChecked(model.lastCheckedAt)}
-        </span>
+        {loadingEmpty ? (
+          <span className="font-bold text-slate-500 flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin text-slate-400" aria-hidden="true" />
+            Loading live data from Supabase — counts publish when the first fetch completes
+          </span>
+        ) : (
+          <>
+            <span className="font-bold text-slate-800 tabular-nums">
+              {model.warnings.length} Warnings
+            </span>
+            <span className="text-slate-400" aria-hidden="true">·</span>
+            <span className="font-bold text-slate-800 tabular-nums">
+              {model.activeCount} Active
+            </span>
+            <span className="text-slate-400" aria-hidden="true">·</span>
+            <span className="font-bold text-slate-800 tabular-nums">{model.criticalCount} High</span>
+            <span className="text-slate-400" aria-hidden="true">·</span>
+            <span className="font-bold text-slate-800 tabular-nums">
+              {activeNavAreasCount}/{ALL_NAVAREAS.length} NAVAREAs
+            </span>
+            <span className="text-slate-400" aria-hidden="true">·</span>
+            <span className="text-slate-500 tabular-nums">
+              Last checked {formatLastChecked(model.lastCheckedAt)}
+            </span>
+          </>
+        )}
 
         <span className="ml-auto flex flex-wrap items-center gap-2">
           <span className="badge-simple badge-active text-[10px] py-0.5">

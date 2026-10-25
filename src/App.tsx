@@ -508,6 +508,7 @@ export default function App() {
           <DataBankV2
             warnings={warnings}
             archivedWarnings={archivedWarnings}
+            isLoading={isLoadingData}
             initialStatusFilter={dataBankStatusFilter}
             initialNavAreaFilter={databankRouteState.navarea}
             routeState={databankRouteState}
