@@ -37,10 +37,11 @@
   superseded/unverified), mandatory audit on edits (refused if audit
   unreachable; AUDIT_FAILED on failed audit insert), optimistic locking
   (`expected_updated_at`, 409), rollback-safe NAVAREA move.
-- Known hygiene items: `/export/*` legacy snapshots publicly reachable
-  (recommend removal), GSC verification token placeholder in index.html,
-  raw Supabase error messages passed through in some 502 paths, CORS `*`
-  on admin endpoints (cosmetic for Bearer APIs).
+- Hygiene state (post PRs #35–#37, 2026-10-24): legacy `/export/*` snapshot
+  routes removed, GSC placeholder meta removed, raw 502 passthroughs
+  wrapped. Remaining minor: raw Supabase error detail in some admin-only
+  scrape paths (intentional operational detail), CORS `*` on Bearer-only
+  admin APIs (cosmetic).
 
 ## 3. Change history (merged PRs, with root causes)
 
@@ -126,6 +127,22 @@ deferred). Maintainer merged each himself after preview checks.
    path (statically `false`) and page-size options (route-state
    dependent) untouched.
 
+### Compact merged-PR ledger (#31–#61) — one line each; full root causes live in the PR bodies
+- **#31** console re-architected into 4 sections (Warnings/Ingest/Trace/System) with permanent legacy hash aliases (old `#/map`, `#/databank` etc. still resolve).
+- **#32** read-only Audit Trail tab in WarningDetailModal (lazy fetch).
+- **#33 / #34** map + ECDIS editor undo/redo, reset-to-original, diff banners, AMBIGUOUS confirm guard.
+- **#35–#38** roadmap-6 cleanup: `/export` snapshot removal, Supabase 502 wrapping, Mistral-reference removal, dead code + orphan components + retired uiFlags.
+- **#39–#42** JHOD db-sync silent catch surfaced; legacy authenticated RLS write policies dropped; 5 dead server.ts endpoints removed; parser confidence `VERIFIED`→`RULE_PARSED`.
+- **#43** Phase-4 docs tidy — root review reports archived to `docs/archive/`, README/AGENTS current-state rewrite.
+- **#45** Tier-1 admin fixes (audited Verify, unplotted_reason, manual supersede lineage, shared contract).
+- **#46** P0 safety-regression suite ported to vitest (clean rebuild; #44 was closed unmerged after a CI splice failure).
+- **#47** remaining milestone suites ported to vitest.
+- **#48–#50** SEO Phase 1: single H1, SOLAS disclaimers, meta/manifest/sitemap, About page + developer section, banner + nav follow-ups.
+- **#51** about.html moved into public/ (fixed `/about` 404 after #48).
+- **#52–#55** perf series: first-warning render cut; admin-gate CDN scripts deferred; Leaflet 1.9.4 vendored locally + supabase UMD pinned 2.117.3 with SRI; console list rendered before spatial hydration.
+- **#57–#59** 21 prerendered NAVAREA regional pages (`/navarea/I`…`/navarea/XXI`); `/sources` registry hub; prerendered warning detail pages + noindex shell fallback.
+- **#60 / #61** README public-surface section + sitemap with warning detail URLs; About "Learn more" CTA.
+
 ### PR #68 (merged 2026-10-25) — AGENTS.md + this file
 Standard-format agent guide at the repo root plus this knowledge appendix,
 so agents get conventions and history from the repository itself.
@@ -145,3 +162,8 @@ so agents get conventions and history from the repository itself.
 7. Vercel Hobby deploy budget: 100 deploys/day — exceeded 2026-10-25
    (`api-deployments-free-per-day`); batch pushes on busy days, treat a
    red Vercel PR status as possibly the rate limit
+8. Keep-decisions (maintainer, 2026-10-24): **Parser v3 files
+   (`triageEngine.ts`, `coordinateLexer.ts`, `parseTelemetry.ts` + its
+   scripts) are unfinished but KEPT — wire in later, never delete.**
+   Docs are Gemini-only (Mistral removed intentionally). Single-file
+   offline export confirmed gone, not wanted.
