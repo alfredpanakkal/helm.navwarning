@@ -2491,6 +2491,19 @@ async function loadWarnings() {
 
 document.addEventListener('DOMContentLoaded', async ()=>{
   detectDevice();
+  // Regional page deep link: /?navarea=NA+IV preselects the map region
+  // (linked from the prerendered /navarea/<RN> regional pages).
+  try {
+    const deepLinked = new URLSearchParams(window.location.search).get('navarea');
+    if (deepLinked) {
+      const mapSelect = document.getElementById('mapNavAreaSelect');
+      const isKnown = mapSelect && Array.prototype.some.call(mapSelect.options, function (o) { return o.value === deepLinked; });
+      if (isKnown) {
+        currentSelectedNavArea = deepLinked;
+        mapSelect.value = deepLinked;
+      }
+    }
+  } catch (deepLinkErr) { /* ignore malformed query strings */ }
   const isMap = document.getElementById('tab-map')?.classList.contains('active') ?? true;
   document.body.classList.toggle('tab-map-active', isMap);
   document.documentElement.classList.toggle('tab-map-active', isMap);

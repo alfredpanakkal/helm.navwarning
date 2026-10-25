@@ -1,0 +1,136 @@
+// public/assets/js/navarea-page.js
+// Client logic for the 21 prerendered NAVAREA regional pages
+// (/navarea/I ... /navarea/XXI). Static regional copy is baked into the HTML at
+// build time (scripts/navarea-pages/); this script only hydrates the live
+// warning list through the same public anon Supabase access the map uses
+// (see assets/js/supabase.js). Server-side filtering: the Supabase query
+// filters by the stored navarea code and status='active' — the full global
+// dataset is never fetched into the browser.
+(function () {
+  var cfgEl = document.getElementById('navareaPageConfig');
+  if (!cfgEl) return;
+  var cfg;
+  try { cfg = JSON.parse(cfgEl.textContent); } catch (e) { return; }
+  var listEl = document.getElementById('warningList');
+  var emptyEl = document.getElementById('emptyState');
+  var errorEl = document.getElementById('errorState');
+  var loadMoreBtn = document.getElementById('loadMore');
+  var countEl = document.getElementById('statCount');
+  var updatedEl = document.getElementById('statUpdated');
+  var PAGE_SIZE = 25;
+  var offset = 0;
+  var seen = {};
+  var busy = false;
+  var firstLoad = true;
+
+  function esc(s) {
+    return String(s === null || s === undefined ? '' : s)
+      .split('&').join('&amp;')
+      .split('<').join('&lt;')
+      .split('>').join('&gt;')
+      .split('"').join('&quot;');
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso).slice(0, 10);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return d.getUTCDate() + ' ' + months[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+  }
+
+  function warningRow(w) {
+    var id = w.canonical_id || w.id || 'Unknown';
+    if (seen[id]) return null; // dedupe by canonical id, never count duplicates twice
+    seen[id] = true;
+    var title = w.title || id;
+    var issued = fmtDate(w.issued_at);
+    var tier = w.triage_tier ? ('Tier ' + w.triage_tier) : '';
+    var mapHref = '/?navarea=' + encodeURIComponent(cfg.code);
+    return '<details class="warn-item">' +
+      '<summary>' +
+        '<span class="warn-id">' + esc(id) + '</span>' +
+        '<span class="warn-title">' + esc(title) + '</span>' +
+        (issued ? '<span class="warn-date">Issued ' + esc(issued) + '</span>' : '') +
+      '</summary>' +
+      '<div class="warn-body">' +
+        '<pre class="warn-text">' + esc(w.raw_text || w.area_text || 'Original bulletin text is not available for this record.') + '</pre>' +
+        (tier ? '<p class="warn-meta">Geometry tier: ' + esc(tier) + (w.data_quality ? ' &middot; ' + esc(w.data_quality) : '') + '</p>' : '') +
+        '<a class="warn-maplink" href="' + mapHref + '">View ' + esc(cfg.code) + ' region on the live map</a>' +
+      '</div>' +
+    '</details>';
+  }
+
+  function fetchPage() {
+    return window.hwSupabase
+      .from('nav_warnings')
+      .select('id, canonical_id, navarea, title, area_text, categories, status, triage_tier, data_quality, valid_from, valid_to, issued_at, raw_text, created_at, updated_at')
+      .eq('navarea', cfg.code)
+      .eq('status', 'active')
+      .order('issued_at', { ascending: false, nullsFirst: false })
+      .range(offset, offset + PAGE_SIZE - 1);
+  }
+
+  function showError() {
+    errorEl.hidden = false;
+    if (loadMoreBtn) loadMoreBtn.hidden = true;
+  }
+
+  function load() {
+    if (busy) return;
+    busy = true;
+    fetchPage().then(function (res) {
+      if (res.error) throw res.error;
+      var rows = res.data || [];
+      var html = [];
+      for (var i = 0; i < rows.length; i++) {
+        var piece = warningRow(rows[i]);
+        if (piece) html.push(piece);
+      }
+      listEl.insertAdjacentHTML('beforeend', html.join(''));
+      offset += PAGE_SIZE;
+      loadMoreBtn.hidden = rows.length < PAGE_SIZE;
+      if (firstLoad && Object.keys(seen).length === 0) emptyEl.hidden = false;
+      firstLoad = false;
+    }).catch(function () {
+      showError();
+    }).finally(function () {
+      busy = false;
+    });
+  }
+
+  function hydrate() {
+    if (!window.hwSupabase) {
+      showError();
+      return;
+    }
+    window.hwSupabase
+      .from('nav_warnings')
+      .select('id', { count: 'exact', head: true })
+      .eq('navarea', cfg.code)
+      .eq('status', 'active')
+      .then(function (c) {
+        if (!c.error && typeof c.count === 'number') {
+          countEl.textContent = c.count + (c.count === 1 ? ' in-force warning' : ' in-force warnings');
+        }
+      }).catch(function () { /* keep placeholder */ });
+    window.hwSupabase
+      .from('nav_warnings')
+      .select('updated_at')
+      .eq('navarea', cfg.code)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .then(function (u) {
+        var ts = u.data && u.data[0] && u.data[0].updated_at;
+        if (ts) updatedEl.textContent = fmtDate(ts);
+      }).catch(function () { /* keep placeholder */ });
+    load();
+  }
+
+  if (loadMoreBtn) loadMoreBtn.addEventListener('click', load);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hydrate);
+  } else {
+    hydrate();
+  }
+})();
