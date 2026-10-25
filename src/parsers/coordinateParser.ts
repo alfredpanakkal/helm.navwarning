@@ -20,7 +20,8 @@ export function parseCoordinatesFull(rawText: string): CoordinateParseResult {
   const deterministicResult = parseCoordinatesDeterministic(rawText);
 
   const coordinates: NavWarnCoordinate[] = [];
-  
+  const circleCenters: NavWarnCoordinate[] = [];
+
   if (deterministicResult.geometries && deterministicResult.geometries.length > 0) {
     deterministicResult.geometries.forEach(g => {
       const rawCoords: any = g.coordinates;
@@ -29,11 +30,7 @@ export function parseCoordinatesFull(rawText: string): CoordinateParseResult {
       // center of any circle-only notice (e.g. "WITHIN 500 METRES OF ...",
       // "SAFETY ZONE RADIUS 1 NM") and left the hazard unplotted.
       if (g.type === 'Circle' && Array.isArray(rawCoords) && typeof rawCoords[0] === 'number' && typeof rawCoords[1] === 'number') {
-        coordinates.push({
-          lat: rawCoords[1],
-          lng: rawCoords[0],
-          label: g.label,
-        });
+        circleCenters.push({ lat: rawCoords[1], lng: rawCoords[0], label: g.label });
         return;
       }
       if (g.type === 'Point' && Array.isArray(rawCoords) && typeof rawCoords[0] === 'number') {
@@ -59,14 +56,19 @@ export function parseCoordinatesFull(rawText: string): CoordinateParseResult {
     });
   }
 
-  // Deduplicate: the deterministic engine often emits both a Circle and a Point
-  // geometry for the same center (e.g. rig sub-blocks emit Circle + center Point).
-  // Without dedup the same position would be reported twice and upstream
-  // disambiguation (e.g. 2 coords -> polyline) would misread single-position notices.
-  const deduped: NavWarnCoordinate[] = [];
-  for (const c of coordinates) {
-    if (!deduped.some(d => d.lat === c.lat && d.lng === c.lng)) deduped.push(c);
+  // The deterministic engine often emits both a Circle and a Point geometry for
+  // the same center (e.g. rig sub-blocks emit Circle + center Point). Appending the
+  // circle center again would double-count the position and mislead upstream
+  // disambiguation (2 coords -> polyline). However, explicit polygon ring closure
+  // repeats the first vertex by design, so identical consecutive vertices from
+  // polygon geometry must be preserved. Only Circle-center duplicates are dropped,
+  // and only when the same position is already reported by another geometry.
+  for (const cc of circleCenters) {
+    const alreadyReported = coordinates.some(c => c.lat === cc.lat && c.lng === cc.lng);
+    const alreadyCentered = circleCenters.some(c => c !== cc && c.lat === cc.lat && c.lng === cc.lng);
+    if (!alreadyReported && !alreadyCentered) coordinates.push(cc);
   }
+  const deduped = coordinates;
 
   const ambiguousText = (deterministicResult.ambiguous_positions || []).map(p => p.raw_text);
 
