@@ -173,10 +173,16 @@ body.is-mobile .stat-sub{font-size:10.5px}
 .map-top-section.collapsed{max-height:0!important;opacity:0!important;margin-bottom:0!important;pointer-events:none}
 .map-meta-line{color:var(--text-light);font-size:12px;margin:2px 0 0}
 body.is-mobile.tab-map-active .map-top-section .map-meta-line{font-size:10.5px}
-.solas-banner{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 12px;font-size:12.5px;line-height:1.45;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-left:3px solid #f59e0b;border-radius:8px}
+.solas-banner{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:8px 12px;font-size:12.5px;line-height:1.45;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-left:3px solid #f59e0b;border-radius:8px;max-height:80px;transition:opacity .35s ease,max-height .35s ease,padding .35s ease,margin .35s ease}
 .solas-banner strong{color:var(--text)}
 .solas-banner a{color:inherit;font-weight:600}
 body.is-mobile .solas-banner{margin:0;padding:6px 10px;font-size:11px;border-radius:0}
+.solas-banner-actions{display:flex;align-items:center;gap:2px;margin-left:auto;flex-shrink:0}
+.solas-banner-btn{width:28px;height:28px;border-radius:6px;border:none;background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--text-muted);padding:0;transition:background .15s,color .15s}
+.solas-banner-btn:hover{color:var(--text);background:var(--bg)}
+.solas-banner-btn svg{width:14px;height:14px}
+body.is-mobile .solas-banner-btn{width:36px;height:36px}
+.solas-banner.is-hiding{opacity:0!important;max-height:0!important;padding-top:0!important;padding-bottom:0!important;margin-bottom:0!important;border-width:0!important;overflow:hidden!important;pointer-events:none!important}
 
 .map-container{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface-dark);height:calc(100vh - 145px);min-height:560px;transition:height .25s ease}
 
@@ -480,8 +486,12 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
       </div>
     </div>
   </div>
-  <p class="solas-banner" role="note">
-    <strong>Situational awareness only.</strong> Not a substitute for official Maritime Safety Information (SafetyNET, NAVTEX, coast guard broadcasts). Masters remain responsible for monitoring official channels in accordance with SOLAS. <a href="/about">About &amp; disclaimer</a>
+  <p class="solas-banner" id="solasBanner" role="note">
+    <strong>Situational awareness only.</strong>
+    <span class="solas-banner-actions">
+      <a class="solas-banner-btn" href="/about" aria-label="About and full safety disclaimer" title="About &amp; disclaimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></a>
+      <button type="button" class="solas-banner-btn solas-banner-close" aria-label="Dismiss situational awareness notice" title="Dismiss"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </span>
   </p>
   <div class="map-container">
     <div id="map"></div>
@@ -953,5 +963,19 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/assets/js/supabase.js"></script>
 <script src="/assets/js/public.js"></script>
+<script>
+/* SOLAS notice: auto-hide after 8s; close button hides immediately. Shows once per page load. */
+(function(){
+  var b=document.getElementById('solasBanner');
+  if(!b)return;
+  var hide=function(){
+    if(b.classList.contains('is-hiding'))return;
+    b.classList.add('is-hiding');
+    setTimeout(function(){b.style.display='none'},400);
+  };
+  b.querySelector('.solas-banner-close').addEventListener('click',hide);
+  setTimeout(hide,8000);
+})();
+</script>
 </body>
 </html>
