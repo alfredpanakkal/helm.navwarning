@@ -13,6 +13,7 @@ import {
   ChevronsRight,
   Layers,
   Locate,
+  Loader2,
   MapPin,
   Search,
 } from 'lucide-react';
@@ -27,6 +28,8 @@ export interface DataBankWarningListProps {
   onLocate: (warning: NavWarning) => void;
   onVerifyWarning?: (warningId: string) => void;
   sources?: SourceRegistryItem[];
+  /** True while the initial fetch is in flight: shows skeletons, not an empty state. */
+  isLoading?: boolean;
 }
 
 /** Sort columns kept reachable in the v2 header strip (coords moves into Details). */
@@ -41,6 +44,31 @@ const V2_SORT_BUTTONS: { field: SortField; label: string }[] = [
 ];
 
 /**
+ * Honest loading placeholder: pulsing skeleton rows instead of a misleading
+ * "No Navigational Warnings Found" empty state while the first fetch is in
+ * flight. Announced via role="status" for assistive technology.
+ */
+const LoadingSkeletonRows: React.FC = () => (
+  <div role="status" aria-live="polite" className="p-4 sm:p-6 space-y-2.5" aria-label="Loading navigational warnings">
+    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+      <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+      <span>Loading navigational warnings...</span>
+    </div>
+    {Array.from({ length: 6 }).map((_, i) => (
+      <div key={i} aria-hidden="true" className="p-3 border border-slate-200 rounded-lg bg-white space-y-2 animate-pulse">
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-28 rounded bg-slate-200" />
+          <div className="h-3 w-14 rounded bg-slate-100" />
+          <div className="h-3 w-16 rounded bg-slate-100" />
+        </div>
+        <div className="h-3 w-3/4 rounded bg-slate-100" />
+        <div className="h-3 w-1/2 rounded bg-slate-100" />
+      </div>
+    ))}
+  </div>
+);
+
+/**
  * Warning presentation shared by the classic and v2 Data Bank layouts:
  * grouped view, mobile cards and the desktop sortable table. The layout around
  * it differs per UI path; this markup does not. The classic path renders the
@@ -52,6 +80,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
   onLocate,
   onVerifyWarning,
   sources,
+  isLoading,
 }) => {
   const legacy = false; // legacy UI path retired (was: useUILegacy())
   const {
@@ -328,6 +357,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         </div>
 
         {paginatedWarnings.length === 0 ? (
+          isLoading ? (
+            <LoadingSkeletonRows />
+          ) : (
           <div className="p-8 text-center bg-secondary border-2 border-gw-primary rounded-xl space-y-3">
             <div className="w-12 h-12 rounded-full bg-gw-bg border-primary text-gw-primary flex items-center justify-center mx-auto">
               <Search className="w-6 h-6" />
@@ -343,6 +375,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
               Reset Filters
             </button>
           </div>
+          )
         ) : (
           paginatedWarnings.map((w, idx) => {
             const cardId = w.warning_id || w.source_warning_id || `card-${idx}`;
@@ -784,6 +817,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         {/* Table Body: Paginated Rows */}
         <div className={legacy ? 'min-w-[900px] max-h-[520px] overflow-y-auto no-scrollbar' : 'max-h-[600px] overflow-y-auto no-scrollbar'}>
           {paginatedWarnings.length === 0 ? (
+            isLoading ? (
+              <LoadingSkeletonRows />
+            ) : (
             <div className="p-10 text-center bg-white space-y-3">
               <div className="w-12 h-12 rounded-full bg-gw-bg border border-gw-primary text-gw-primary flex items-center justify-center mx-auto">
                 <Search className="w-6 h-6" />
@@ -800,6 +836,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 Reset All Filters
               </button>
             </div>
+            )
           ) : legacy ? (
             paginatedWarnings.map((w, idx) => (
               <div
