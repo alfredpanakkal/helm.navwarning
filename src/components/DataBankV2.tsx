@@ -24,10 +24,12 @@ export const DataBankV2: React.FC<DataBankProps> = ({
   sources = [],
   generations,
   initialStatusFilter,
-  initialNavAreaFilter
+  initialNavAreaFilter,
+  routeState,
+  onRouteStateChange
 }) => {
   const [showMissingDrawer, setShowMissingDrawer] = React.useState(false);
-  const model = useDataBankModel({ warnings, archivedWarnings, initialStatusFilter, initialNavAreaFilter });
+  const model = useDataBankModel({ warnings, archivedWarnings, initialStatusFilter, initialNavAreaFilter, routeState, onRouteStateChange });
 
   return (
     <div data-databank-v2 className="flex flex-col gap-3 font-ui max-w-[1600px] mx-auto p-3 sm:p-4 md:p-6 w-full">
