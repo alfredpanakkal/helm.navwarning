@@ -27,7 +27,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Run P0 Safety Regression Tests (vitest)
-        run: npx vitest run src/utils/__tests__/p0SafetyRegression.test.ts
+        run: npm test
 
       - name: Build Applet Bundle
         run: npx vite build
