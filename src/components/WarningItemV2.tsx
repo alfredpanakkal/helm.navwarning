@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Calendar, MapPin } from 'lucide-react';
 import { NavWarning, SourceRegistryItem } from '../types';
 import { formatSpatialCoordinates } from '../utils/coordinateParser';
+import { copyToClipboard } from '../utils/coordinateConversion';
 import { resolveIssuingAuthority } from '../utils/warningAnalyzer';
 import { WarningStatusBadge } from './WarningStatusBadge';
 import { getWarningBulletinText, getWarningDate, getWarningPositionCount } from '../utils/warningHelpers';
@@ -187,6 +188,14 @@ export interface WarningItemDetailsProps {
  */
 export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning: w }) => {
   const conf = w.extraction_confidence;
+  const [copiedKey, setCopiedKey] = useState<'coords' | 'raw' | null>(null);
+  const handleCopy = (key: 'coords' | 'raw', text: string) => {
+    copyToClipboard(text).then((success) => {
+      if (!success) return;
+      setCopiedKey(key);
+      window.setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 2200);
+    });
+  };
   const positionCount = getWarningPositionCount(w);
   return (
     <div className="mt-2 p-3 bg-gw-bg/60 border-t border-gw-secondary/60 space-y-2.5 text-[11px] animate-in fade-in duration-150">
@@ -204,11 +213,13 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                navigator.clipboard.writeText(formatSpatialCoordinates(w.spatial));
+                handleCopy('coords', formatSpatialCoordinates(w.spatial));
               }}
-              className="text-[10px] text-gw-primary hover:text-gw-accent font-bold uppercase underline"
+              className={`text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
+                copiedKey === 'coords' ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
+              }`}
             >
-              Copy Coords
+              {copiedKey === 'coords' ? 'Copied!' : 'Copy Coords'}
             </button>
           </div>
           <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
@@ -242,11 +253,13 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              navigator.clipboard.writeText(getWarningBulletinText(w));
+              handleCopy('raw', getWarningBulletinText(w));
             }}
-            className="text-[10px] text-gw-primary hover:text-gw-accent font-bold uppercase underline"
+            className={`text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
+              copiedKey === 'raw' ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
+            }`}
           >
-            Copy Raw Telemetry
+            {copiedKey === 'raw' ? 'Copied!' : 'Copy Raw Telemetry'}
           </button>
         </div>
         <div className="p-2.5 bg-white border border-gw-secondary rounded text-[11px] text-gw-primary font-mono leading-relaxed max-h-36 overflow-y-auto no-scrollbar">
