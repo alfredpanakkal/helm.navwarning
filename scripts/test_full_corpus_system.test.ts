@@ -1,3 +1,4 @@
+// scripts/test_full_corpus_system.test.ts — vitest port (assertions unchanged from the tsx script)
 // scripts/test_full_corpus_system.ts
 // Comprehensive full-corpus NAVAREA warning system test against Table A, Table B, and Invariants
 
@@ -10,6 +11,9 @@ import { processCorpusLifecycle } from '../src/parsers/lifecycle';
 import { extractGeometry } from '../src/parsers/geometryExtractor';
 import { classifyWarning } from '../src/parsers/warningClassifier';
 import { parseCoordinatesFull } from '../src/parsers/coordinateParser';
+import { it } from 'vitest';
+
+it('full-corpus system audit suite', () => {
 
 console.log('=== FULL-CORPUS NAVAREA WARNING SYSTEM AUDIT & TEST SUITE ===\n');
 
@@ -172,3 +176,5 @@ assert.ok(contradictionsLogged.length > 0, 'Contradiction conflict arbitration m
 console.log('\n====================================================');
 console.log('ALL FULL-CORPUS SYSTEM AUDIT ASSERTIONS GREEN! ✅');
 console.log('====================================================\n');
+
+});

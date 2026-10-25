@@ -1,3 +1,4 @@
+// scripts/test_m0_foundations.test.ts — vitest port (assertions unchanged from the tsx script)
 // scripts/test_m0_foundations.ts
 import assert from 'node:assert';
 import fs from 'node:fs';
@@ -5,6 +6,9 @@ import path from 'node:path';
 import { splitBroadcastFeed } from '../src/parsers/messageSplitter';
 import { parseHeader } from '../src/parsers/headerParser';
 import { parseInForceList } from '../src/parsers/inForceListParser';
+import { it } from 'vitest';
+
+it('M0 foundations acceptance suite', () => {
 
 console.log('=== RUNNING MILESTONE M0 FOUNDATIONS TEST SUITE ===\n');
 
@@ -82,3 +86,5 @@ for (const item of heldoutSlice) {
 console.log(`✓ Held-out slice contains ${heldoutSlice.length} frozen test specifications.\n`);
 
 console.log('=== ALL MILESTONE M0 ACCEPTANCE TESTS PASSED ===\n');
+
+});

@@ -1,3 +1,4 @@
+// scripts/test_m2_classification.test.ts — vitest port (assertions unchanged from the tsx script)
 // scripts/test_m2_classification.ts
 import assert from 'node:assert';
 import fs from 'node:fs';
@@ -5,6 +6,9 @@ import path from 'node:path';
 import { classifyWarning } from '../src/parsers/warningClassifier';
 import { evaluateAtoNStatus } from '../src/parsers/atonStatus';
 import { splitBroadcastFeed } from '../src/parsers/messageSplitter';
+import { it } from 'vitest';
+
+it('M2 classification acceptance suite', () => {
 
 console.log('=== RUNNING MILESTONE M2 CLASSIFICATION TEST SUITE ===\n');
 
@@ -102,3 +106,5 @@ assert.ok(catAccuracy >= 90, 'Held-out category accuracy must be >= 90%');
 console.log('✓ Held-out category classification passed!\n');
 
 console.log('=== ALL MILESTONE M2 ACCEPTANCE TESTS PASSED ===\n');
+
+});

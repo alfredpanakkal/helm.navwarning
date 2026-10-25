@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -5,6 +6,15 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    test: {
+      exclude: [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/.{idea,git,cache,output,temp}/**',
+        '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
+        'scripts/ux-audit/**',
+      ],
+    },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

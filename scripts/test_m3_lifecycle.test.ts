@@ -1,9 +1,13 @@
+// scripts/test_m3_lifecycle.test.ts — vitest port (assertions unchanged from the tsx script)
 // scripts/test_m3_lifecycle.ts
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import { splitBroadcastFeed } from '../src/parsers/messageSplitter';
 import { processCorpusLifecycle, extractNamedEntities } from '../src/parsers/lifecycle';
+import { it } from 'vitest';
+
+it('M3 lifecycle acceptance suite', () => {
 
 console.log('=== RUNNING MILESTONE M3 LIFECYCLE ENGINE TEST SUITE ===\n');
 
@@ -78,3 +82,5 @@ for (const w of warnings) {
 console.log(`✓ All ${warnings.length} messages pass the zero-silent-drop audit trail assertion.\n`);
 
 console.log('=== ALL MILESTONE M3 ACCEPTANCE TESTS PASSED ===\n');
+
+});
