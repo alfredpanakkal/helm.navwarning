@@ -32,6 +32,9 @@ p.muted{color:var(--text-muted)}
 .dev-links a:hover{color:var(--text-light)}
 .backlink{display:inline-flex;align-items:center;gap:8px;margin-top:32px;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);text-decoration:none;font-weight:500;min-height:var(--touch-min)}
 .backlink:hover{border-color:var(--text-light)}
+.cta-btn{display:inline-flex;align-items:center;gap:8px;margin-top:4px;padding:10px 18px;background:var(--verified);color:#fff;text-decoration:none;font-weight:600;border:1px solid transparent;border-radius:var(--radius);min-height:var(--touch-min);transition:filter .15s ease}
+.cta-btn:hover{filter:brightness(1.12)}
+.cta-btn:focus-visible{outline:2px solid var(--text-light);outline-offset:2px}
 footer.site{background:var(--surface);border-top:1px solid var(--border);padding:20px;text-align:center;font-size:12.5px;color:var(--text-light);padding-bottom:calc(20px + var(--safe-bottom))}
 footer.site p{margin:0 0 6px;color:var(--text-light)}
 footer.site p:last-child{margin:0}
@@ -51,6 +54,10 @@ footer.site a{color:var(--text-muted)}
   <section>
     <h2>What is Helm.Warning?</h2>
     <p>Helm.Warning is a free interactive map that displays live NAVAREA navigational warnings to support maritime situational awareness and passage planning. Active warnings are plotted on nautical charts with danger areas, safety zones, and hazard points — no login or account required.</p>
+    <a class="cta-btn" href="/sources" aria-label="Learn more: explore all 21 NAVAREA areas and their live warnings">
+      Learn more: NAVAREA areas &amp; warnings
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
   </section>
 
   <section>
