@@ -1,11 +1,14 @@
 // scripts/navarea-pages/navareaConfig.test.ts
-// Route matrix + regional page invariants for the 21 prerendered NAVAREA
-// regional pages and the source-registry hub (Step 1 + Source Registry).
+// Route matrix + page invariants for the 21 prerendered NAVAREA regional
+// pages, the source-registry hub and the warning detail pages
+// (Step 1 + Source Registry + Step 2).
 import { describe, expect, it } from 'vitest';
 import {
   NAVAREA_REGIONS, VALID_IDS, SITE_URL,
   isValidNavareaId, navareaCode, canonicalPath, navareaMapHref,
-  normalizeStoredNavarea, belongsToNavarea, buildPageHtml, buildSourcesPageHtml, buildSitemapXml,
+  normalizeStoredNavarea, belongsToNavarea, buildPageHtml, buildSourcesPageHtml,
+  warningSlug, warningDetailPath, buildWarningPageHtml, buildWarningShellHtml,
+  buildSitemapXml,
 } from './navareaConfig.mjs';
 
 const EXPECTED_IDS = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI'];
@@ -107,5 +110,66 @@ describe('NAVAREA regional routes and configuration', () => {
     for (const r of NAVAREA_REGIONS) {
       expect(xml).toContain(SITE_URL + '/navarea/' + r.id);
     }
+  });
+});
+
+describe('Warning detail pages', () => {
+  it('derives warning slugs from canonical_id regardless of prefix', () => {
+    expect(warningSlug('NAVAREA XI 0451/26')).toBe('0451-26');
+    expect(warningSlug('NA IV 123/26')).toBe('123-26');
+    expect(warningSlug('navarea xix 0648/26')).toBeNull(); // only exact <num>/<year> tails
+    expect(warningSlug('garbage')).toBeNull();
+    expect(warningSlug(null)).toBeNull();
+  });
+
+  it('builds stable detail paths under the regional route', () => {
+    expect(warningDetailPath('XI', 'NAVAREA XI 0451/26')).toBe('/navarea/XI/warning/0451-26');
+    expect(warningDetailPath('IV', 'NA IV 1157/21')).toBe('/navarea/IV/warning/1157-21');
+    expect(warningDetailPath('IV', 'no-slug-here')).toBeNull();
+    expect(() => warningDetailPath('XXII', 'NAVAREA XXII 1/26')).toThrow();
+  });
+
+  it('renders a fully static detail page with escaped original text', () => {
+    const w = {
+      canonical_id: 'NAVAREA IV 1157/21',
+      title: 'Test <light> & buoy',
+      raw_text: 'FULL <TEXT> & MORE\n1. LINE TWO',
+      status: 'active',
+      triage_tier: 'A',
+      data_quality: 'EXPLICIT',
+      categories: ['aton', 'ops'],
+      issued_at: null, valid_from: null, valid_to: null, area_text: 'Gulf of Mexico'
+    };
+    const html = buildWarningPageHtml(NAVAREA_REGIONS[3], w);
+    expect(html.split('<h1').length - 1).toBe(1);
+    expect(html).toContain('rel="canonical" href="' + SITE_URL + '/navarea/IV/warning/1157-21"');
+    expect(html).toContain('<meta name="robots" content="index, follow">');
+    // Complete original text present in the initial HTML, properly escaped.
+    expect(html).toContain('FULL &lt;TEXT&gt; &amp; MORE');
+    expect(html).not.toContain('FULL <TEXT>');
+    expect(html).toContain('href="/navarea/IV"');
+    expect(html).toContain('href="/?navarea=NA%20IV"');
+    expect(html).toContain('href="/sources"');
+    // No hydration scripts on prerendered detail pages.
+    expect(html).not.toContain('supabase');
+    expect(html).not.toContain('warning-detail.js');
+  });
+
+  it('renders the noindex hydration shell for non-prerendered warnings', () => {
+    const html = buildWarningShellHtml();
+    expect(html.split('<h1').length - 1).toBe(1);
+    expect(html).toContain('<meta name="robots" content="noindex, follow">');
+    expect(html).toContain('id="warningDetail"');
+    expect(html).toContain('id="emptyState"');
+    expect(html).toContain('id="errorState"');
+    expect(html).toContain('warning-detail.js');
+  });
+
+  it('includes detail URLs in the sitemap when provided', () => {
+    const xml = buildSitemapXml('2026-10-25', ['/navarea/XI/warning/0451-26', '/navarea/IV/warning/1157-21']);
+    const locs = (xml.match(/<loc>/g) || []).length;
+    expect(locs).toBe(26);
+    expect(xml).toContain(SITE_URL + '/navarea/XI/warning/0451-26');
+    expect(xml).toContain(SITE_URL + '/navarea/IV/warning/1157-21');
   });
 });
