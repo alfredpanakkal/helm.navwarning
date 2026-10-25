@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
 import { DisclaimerBanner } from './components/DisclaimerBanner';
 import { Footer } from './components/Footer';
@@ -40,116 +40,33 @@ import {
   subscribeToNavWarnings,
 } from './services/navWarningQueries';
 
-export type TabType =
-  | 'map'
-  | 'databank'
-  | 'sources'
-  | 'workspace'
-  | 'imports'
-  | 'manual'
-  | 'audit'
-  | 'evidence'
-  | 'supabase';
-
-const VALID_TABS: TabType[] = ['map', 'databank', 'sources', 'workspace', 'imports', 'manual', 'audit', 'evidence', 'supabase'];
-
-/**
- * 4-section information architecture (2026-10-24). Sections only regroup the
- * nine underlying views (TabType ids unchanged), so every activeTab condition
- * in App.tsx (view visibility, AdminDataBankTools, the Verify Next FAB) and
- * every programmatic cross-link (onLocate -> map, commit -> databank,
- * manual parse -> databank) keeps working without modification.
- */
-export type SectionType = 'warnings' | 'ingest' | 'trace' | 'system';
-
-export const SECTION_ORDER: SectionType[] = ['warnings', 'ingest', 'trace', 'system'];
-
-export const SECTION_OF: Record<TabType, SectionType> = {
-  map: 'warnings',
-  databank: 'warnings',
-  workspace: 'ingest',
-  sources: 'ingest',
-  imports: 'ingest',
-  manual: 'ingest',
-  audit: 'trace',
-  evidence: 'trace',
-  supabase: 'system',
-};
-
-export const SECTION_VIEWS: Record<SectionType, { id: TabType; label: string }[]> = {
-  warnings: [
-    { id: 'map', label: 'Map View' },
-    { id: 'databank', label: 'Data Bank' },
-  ],
-  ingest: [
-    { id: 'workspace', label: 'Pipeline' },
-    { id: 'sources', label: 'Sources' },
-    { id: 'imports', label: 'Bulk Import' },
-    { id: 'manual', label: 'Manual Parser' },
-  ],
-  trace: [
-    { id: 'audit', label: 'Audit Log' },
-    { id: 'evidence', label: 'Evidence' },
-  ],
-  system: [{ id: 'supabase', label: 'Supabase Server' }],
-};
-
-export const DEFAULT_SECTION_TAB: Record<SectionType, TabType> = {
-  warnings: 'map',
-  ingest: 'workspace',
-  trace: 'audit',
-  system: 'supabase',
-};
-
-/** Canonical second path segment per view (databank -> list, audit -> generations). */
-const ROUTE_NAME: Record<TabType, string> = {
-  map: 'map',
-  databank: 'list',
-  workspace: 'pipeline',
-  sources: 'sources',
-  imports: 'bulk',
-  manual: 'manual',
-  audit: 'generations',
-  evidence: 'evidence',
-  supabase: 'supabase',
-};
-
-export function tabHash(tab: TabType): string {
-  return '#/' + SECTION_OF[tab] + '/' + ROUTE_NAME[tab];
-}
-
-/**
- * Hash router. Two-segment "#/<section>/<view>" grammar plus PERMANENT legacy
- * aliases ("#/databank", "#sources", ...) so existing bookmarks, dashboards
- * and the /admin gateway keep resolving. "?status=" deep-links keep working
- * for the Data Bank and Sources views. Unknown segments fall back to Map.
- */
-function parseHashRoute(hashStr: string): { tab: TabType; statusFilter?: string } {
-  const cleanHash = hashStr.replace(/^#\/?/, '');
-  if (!cleanHash) return { tab: 'map' };
-
-  const [pathPart, queryPart] = cleanHash.split('?');
-  const segments = pathPart.toLowerCase().split('/').filter(Boolean);
-  const [first, second] = segments;
-
-  let tab: TabType | undefined;
-  if (first && (SECTION_ORDER as string[]).includes(first)) {
-    const section = first as SectionType;
-    const match = second
-      ? SECTION_VIEWS[section].find((v) => ROUTE_NAME[v.id] === second)
-      : undefined;
-    tab = match ? match.id : DEFAULT_SECTION_TAB[section];
-  } else if (first) {
-    // Legacy single-segment route — permanent alias.
-    const candidate = first as TabType;
-    tab = VALID_TABS.includes(candidate) ? candidate : undefined;
-  }
-
-  const params = new URLSearchParams(queryPart || '');
-  const statusFilter = params.get('status') || undefined;
-
-  return { tab: tab ?? 'map', statusFilter };
-}
+// Route grammar (sections, views, legacy aliases, Data Bank query params) lives
+// in ./lib/consoleRoute as pure, unit-testable functions. Re-exported here so
+// existing `import { ... } from './App'` sites (Header) keep resolving.
+export {
+  SECTION_ORDER,
+  SECTION_OF,
+  SECTION_VIEWS,
+  DEFAULT_SECTION_TAB,
+  tabHash,
+  parseHashRoute,
+  buildConsoleHash,
+  databankRouteFromRoute,
+  databankRouteEqual,
+  DEFAULT_DATABANK_ROUTE,
+  type TabType,
+  type SectionType,
+  type DataBankRouteState,
+  type ParsedRoute,
+} from './lib/consoleRoute';
+import {
+  parseHashRoute,
+  buildConsoleHash,
+  databankRouteFromRoute,
+  databankRouteEqual,
+  type TabType,
+  type DataBankRouteState,
+} from './lib/consoleRoute';
 
 export default function App() {
   const initialRoute = typeof window !== 'undefined' ? parseHashRoute(window.location.hash) : { tab: 'map' as TabType };
@@ -199,37 +116,58 @@ export default function App() {
   const [dataBankStatusFilter, setDataBankStatusFilter] = useState<string>(initialRoute.statusFilter || 'ALL');
   const [sourcesFilterStatus, setSourcesFilterStatus] = useState<string>('ALL');
 
-  // Sync hash routing on window.location.hash change (Back/Forward buttons)
+  // Deep-linkable Data Bank view state (search/sort/dir/page/NAVAREA), seeded
+  // from the entry hash and re-synced by the hashchange handler below.
+  const [databankRouteState, setDatabankRouteState] = useState<DataBankRouteState>(() =>
+    databankRouteFromRoute(initialRoute)
+  );
+
+  // Equality guard: identical view state must not create a new object, or the
+  // hash-writing effect would rewrite the URL on every unrelated render.
+  const handleDatabankStateChange = useCallback((next: DataBankRouteState) => {
+    setDatabankRouteState((prev) => (databankRouteEqual(prev, next) ? prev : next));
+  }, []);
+
+  // Sync hash routing on window.location.hash change (Back/Forward buttons).
+  // Symmetric with buildConsoleHash: absent keys reset to their defaults, and
+  // each view consumes only the filters it owns, so Back out of a filtered
+  // view clears the filter instead of leaving it stale.
   useEffect(() => {
     const handleHashChange = () => {
       const route = parseHashRoute(window.location.hash);
       setActiveTab(route.tab);
-      if (route.statusFilter) {
-        setDataBankStatusFilter(route.statusFilter);
+      if (route.tab === 'databank') {
+        setDataBankStatusFilter(route.statusFilter || 'ALL');
+        setDatabankRouteState(databankRouteFromRoute(route));
+      } else if (route.tab === 'sources') {
+        setSourcesFilterStatus(route.statusFilter || 'ALL');
       }
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Update window.location.hash when activeTab or filters change in React
+  // Write the canonical hash whenever route state changes. A genuine view
+  // switch pushes a real history entry so Back/Forward walk views; in-view
+  // edits (filter/search/sort/page) replace the current entry so they do not
+  // spam history. prevTabRef tells the two cases apart.
+  const prevTabRef = useRef<TabType>(initialRoute.tab);
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    let newHash = tabHash(activeTab);
-    const params = new URLSearchParams();
-    if (activeTab === 'databank' && dataBankStatusFilter !== 'ALL') {
-      params.set('status', dataBankStatusFilter);
-    }
-    if (activeTab === 'sources' && sourcesFilterStatus !== 'ALL') {
-      params.set('status', sourcesFilterStatus);
-    }
-    const queryString = params.toString();
-    if (queryString) newHash += `?${queryString}`;
+    const newHash = buildConsoleHash(activeTab, {
+      statusFilter:
+        activeTab === 'databank' ? dataBankStatusFilter
+        : activeTab === 'sources' ? sourcesFilterStatus
+        : undefined,
+      databank: databankRouteState,
+    });
 
     if (window.location.hash !== newHash) {
-      window.history.replaceState(null, '', newHash);
+      const pushed = prevTabRef.current !== activeTab;
+      window.history[pushed ? 'pushState' : 'replaceState'](null, '', newHash);
     }
-  }, [activeTab, dataBankStatusFilter, sourcesFilterStatus]);
+    prevTabRef.current = activeTab;
+  }, [activeTab, dataBankStatusFilter, sourcesFilterStatus, databankRouteState]);
 
   const loadData = async () => {
     setIsLoadingData(true);
@@ -571,6 +509,9 @@ export default function App() {
             warnings={warnings}
             archivedWarnings={archivedWarnings}
             initialStatusFilter={dataBankStatusFilter}
+            initialNavAreaFilter={databankRouteState.navarea}
+            routeState={databankRouteState}
+            onRouteStateChange={handleDatabankStateChange}
             onVerifyWarning={handleVerifyWarning}
             onLocate={(w) => {
               setSelectedWarning(w);

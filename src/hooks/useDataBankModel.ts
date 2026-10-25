@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect, useMemo, useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 import { NavWarning, SourceRegistryItem, IngestionGeneration } from '../types';
 import {
   analyzeDataset,
@@ -16,6 +16,7 @@ import {
   type InForceStatusResult,
 } from './useInForceStatus';
 import { FEATURE_FLAGS } from '../lib/featureFlags';
+import { type DataBankRouteState } from '../lib/consoleRoute';
 
 export interface DataBankProps {
   warnings: NavWarning[];
@@ -24,6 +25,10 @@ export interface DataBankProps {
   onVerifyWarning?: (warningId: string) => void;
   initialStatusFilter?: string;
   initialNavAreaFilter?: string;
+  /** Hash-synced Data Bank view state for deep links (search/sort/dir/page/NAVAREA). */
+  routeState?: DataBankRouteState;
+  /** Called whenever the view state changes so App can update the hash. */
+  onRouteStateChange?: (state: DataBankRouteState) => void;
   onTriggerRefresh?: (sourceId?: string) => Promise<void>;
   isRefreshing?: boolean;
   onCommitWarnings?: (newWarnings: NavWarning[]) => void;
@@ -61,6 +66,8 @@ export const ALL_NAVAREAS: { id: string; name: string }[] = [
 ];
 
 export type SortField = 'id' | 'area' | 'title' | 'severity' | 'coords' | 'issued' | 'status';
+const VALID_SORT_FIELDS: SortField[] = ['id', 'area', 'title', 'severity', 'coords', 'issued', 'status'];
+const isSortField = (v: string): v is SortField => (VALID_SORT_FIELDS as string[]).includes(v);
 export type SortDirection = 'asc' | 'desc';
 export type CoordFilterType = 'ALL' | 'with_coords' | 'without_coords';
 export type GroupByMode = 'none' | 'navarea' | 'category' | 'urgency' | 'authority';
@@ -188,11 +195,17 @@ export function useDataBankModel({
   archivedWarnings = [],
   initialStatusFilter = 'ALL',
   initialNavAreaFilter = 'ALL',
+  routeState,
+  onRouteStateChange,
 }: {
   warnings: NavWarning[];
   archivedWarnings?: NavWarning[];
   initialStatusFilter?: string;
   initialNavAreaFilter?: string;
+  /** Hash-synced Data Bank view state for deep links (search/sort/dir/page/NAVAREA). */
+  routeState?: DataBankRouteState;
+  /** Called whenever the view state changes so App can update the hash. */
+  onRouteStateChange?: (state: DataBankRouteState) => void;
 }): DataBankModel {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNavArea, setSelectedNavArea] = useState(initialNavAreaFilter);
@@ -237,6 +250,20 @@ export function useDataBankModel({
       setSelectedNavArea(initialNavAreaFilter);
     }
   }, [initialNavAreaFilter]);
+
+  // Consume hash-synced route state pushed down from App (deep link, Back /
+  // Forward). Absent keys arrive as defaults, so Back resets the view state
+  // symmetrically with the URL. sortField is only consulted in custom sort
+  // mode; setting it under smart-sort modes is harmless because they ignore it.
+  useEffect(() => {
+    if (!routeState) return;
+    setSearchTerm(routeState.q);
+    setCurrentPage(routeState.page);
+    if (isSortField(routeState.sort)) {
+      setSortField(routeState.sort);
+      setSortDirection(routeState.dir);
+    }
+  }, [routeState]);
 
   const navareaCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -482,6 +509,25 @@ export function useDataBankModel({
     }
     return [1, '...', validPage - 1, validPage, validPage + 1, '...', totalPages];
   }, [totalPages, validPage]);
+
+  // Mirror the view state up to App so it can write the hash. Skipped on the
+  // first run: mount already reflects the deep-linked route, and echoing
+  // render-time defaults upward would clobber routeState before it applies.
+  const emitReadyRef = useRef(false);
+  useEffect(() => {
+    if (!onRouteStateChange) return;
+    if (!emitReadyRef.current) {
+      emitReadyRef.current = true;
+      return;
+    }
+    onRouteStateChange({
+      q: searchTerm,
+      sort: sortField,
+      dir: sortDirection,
+      page: validPage,
+      navarea: selectedNavArea,
+    });
+  }, [searchTerm, sortField, sortDirection, validPage, selectedNavArea, onRouteStateChange]);
 
   // In-Force Status computation for the active NAVAREA filter and pure per-area lookup
   const inForceStatus = useInForceStatus(selectedNavArea, warnings);
