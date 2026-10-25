@@ -618,7 +618,7 @@ export default function App() {
 
       {/* Persistent Floating Action Button (FAB) for Data Bank verification (Admin Only) */}
       {isAdminMode && activeTab === 'databank' && unverifiedCandidates.length > 0 && !selectedWarning && !editingWarning && !isIngestionProcedureOpen && (
-        <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 flex items-center gap-2 bg-gw-primary/95 text-gw-bg p-1.5 rounded-full shadow-2xl border-2 border-gw-accent backdrop-blur-md">
+        <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-console-fab flex items-center gap-2 bg-gw-primary/95 text-gw-bg p-1.5 rounded-full shadow-2xl border-2 border-gw-accent backdrop-blur-md">
           <button
             onClick={() => setSelectedWarning(unverifiedCandidates[0])}
             className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
@@ -634,7 +634,7 @@ export default function App() {
           currently open in the detail modal. Writes go through the server-side
           admin-guarded /api/admin/warning-edit endpoint. */}
       {isAdminMode && selectedWarning && !editingWarning && !isIngestionProcedureOpen && (
-        <div className="fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-40">
+        <div className="fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-console-fab">
           <button
             onClick={() => setEditingWarning(selectedWarning)}
             className="flex items-center gap-2 px-4 py-2.5 bg-gw-primary hover:bg-gw-accent text-gw-bg rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-2xl border-2 border-gw-accent active:scale-95"

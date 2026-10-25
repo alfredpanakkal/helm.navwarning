@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------
+   CONSOLE STACKING TOKENS - single source of truth for layered
+   surfaces. Scale: sticky strips < page chrome < overlay scrims <
+   floating action buttons < raised overlays (the edit modal must
+   sit above the detail modal, which stays open underneath it).
+   --console-sticky-offset = sticky site header height (56px)
+   + 1px bottom border; update it if the header height changes. */
+:root {
+  --z-console-sticky: 10;
+  --z-console-chrome: 50;
+  --z-console-overlay: 60;
+  --z-console-fab: 65;
+  --z-console-overlay-raised: 70;
+  --console-sticky-offset: 57px;
+}
+.z-console-sticky { z-index: var(--z-console-sticky); }
+.z-console-chrome { z-index: var(--z-console-chrome); }
+.z-console-overlay { z-index: var(--z-console-overlay); }
+.z-console-fab { z-index: var(--z-console-fab); }
+.z-console-overlay-raised { z-index: var(--z-console-overlay-raised); }
+
 /* ═══════════════════════════════════════════════════════════════
    TOKEN RESTYLE — align the React console with the public site's
    design system (public/assets/css/tokens.css).

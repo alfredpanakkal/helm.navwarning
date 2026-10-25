@@ -81,7 +81,7 @@ export const MissingWarningsDrawer: React.FC<MissingWarningsDrawerProps> = ({
       aria-modal="true"
       aria-labelledby="missing-drawer-title"
       data-testid="missing-warnings-drawer"
-      className="fixed inset-0 z-50 flex justify-end"
+      className="fixed inset-0 z-console-overlay flex justify-end"
     >
       {/* Backdrop */}
       <div

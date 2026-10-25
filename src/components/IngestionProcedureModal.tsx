@@ -203,7 +203,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-gw-primary/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div className="fixed inset-0 z-console-overlay bg-gw-primary/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
       <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden font-mono">
         {/* Modal Header */}
         <div className="p-4 sm:p-5 border-b-2 border-gw-primary bg-gw-bg flex items-start justify-between gap-3">

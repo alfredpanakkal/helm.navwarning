@@ -273,7 +273,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
   );
 
   return (
-    <div className="fixed inset-0 z-[950] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-console-overlay-raised flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true">
       <div className="bg-gw-bg w-full max-w-3xl max-h-[92vh] rounded-xl shadow-2xl border-2 border-gw-primary overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-gw-primary text-gw-bg">
