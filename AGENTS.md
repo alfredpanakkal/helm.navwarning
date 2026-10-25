@@ -1,65 +1,120 @@
-# Helm.Warning Implementation Guide
+# AGENTS.md — Working Guide for AI Agents & Contributors
 
-## CONTEXT
-NAVAREA maritime warning pipeline site: a read-only public portal (`/`),
-an admin login gateway (`/admin`), and the React admin console at `/console`
-organized into 4 sections (Warnings / Ingest / Trace / System) with legacy
-hash aliases kept resolving.
+> **Read this file fully before making any change to this repository.**
+> It captures the platform architecture, hard conventions, and the verified
+> agent workflow used across the merged fix series (PRs #29, #30, #56,
+> #62–#67). Everything here was derived from live code, not assumptions.
 
-## CRITICAL: Supabase schema (read first)
-The backend (Helm.Warning.Backend) now writes the 20261019/20 schema. Read
-`docs/supabase-backend-contract.md` in this repo before touching any data
-layer. Non-negotiables:
-- Geometry lives in `nav_warning_geometries` / the
-  `nav_warnings_active_spatial` view (`geojson_blob`), NOT in
-  `latitude`/`longitude`/`spatial` columns on `nav_warnings` — those
-  columns do not exist.
-- Stable key is `canonical_id` (e.g. `NAVAREA XI 0451/26`); children join
-  on `nav_warnings.id` (uuid).
-- `categories` is a TEXT[] array (no `category`/`severity`/`risk_level`).
-- `navarea` stores full names (`NAVAREA XI`, `NAVAREA BALTIC`).
-- Map shows only the `nav_warnings_active_spatial` view (active + Tier A);
-  Tier B via `nav_warnings_review_queue`; Tier C is never rendered.
-- `sources_registry`, `ingestion_generations`, `raw_artifacts`,
-  `in_force_snapshots` are NOT populated by this backend; audit data is in
-  `raw_messages`. Don't hard-fail on their absence.
-- Browser reads use the anon key (RLS SELECT-only); writes go through the
-  `upsert_nav_warning` RPC or service-role only.
+## 1. Platform at a glance
 
-## REFERENCE FILES
-- `docs/supabase-backend-contract.md` - backend data contract (authoritative)
-- `index.html` - APPROVED public site design (Map/Data Bank/Sources)
-- `admin.html` - admin GATEWAY (login card only; redirects to /console#/warnings/list)
-- `console.html` - React admin console entry page (mounts src/main.tsx; noindex, frame-DENY)
+- **Maritime safety platform (NAVAREA navigational warnings).**
+  Production: https://helmwarning.vercel.app/ — public site at `/`,
+  admin console at `/console` (React 19 SPA, hash routes: `#/map`,
+  `#/databank`, `#/sources`, `#/workspace`, `#/imports`, `#/manual`,
+  `#/audit`, `#/evidence`, `#/supabase`), static login gate at `/admin`.
+- **Three entry points:** `index.html` (public, vanilla JS, tab-based),
+  `console.html` (React SPA), `admin.html` (Supabase login redirect).
+- **Auth:** Supabase Auth; admin = `app_metadata.role` in
+  {admin, superadmin} or `is_admin`. Server boundary:
+  `server/auth.ts` `verifyAdminRequest` (fail-closed, Bearer JWT).
+  All `api/admin/*` functions use it.
+- **Vercel runtime:** only `api/*.ts` become serverless functions. The
+  `server.ts` Express routes exist only in the self-hosted/dev runtime and
+  404 in production. The frontend reads Supabase directly via PostgREST.
+- `vercel.json`: cleanUrls, tile rewrites (carto/osm/openseamap),
+  noindex on `/admin` + `/console`, daily cron `/api/scrape-navwarn` 06:00.
 
-## ENTRY-POINT ARCHITECTURE (PR #24, 2026-10-24)
-- Three served entry points, all Vite build inputs (`vite.config.ts`):
-  `index.html` (public portal), `admin.html` (admin GATEWAY),
-  `console.html` (React admin console).
-- The gateway never mounts the React app; the console mounts only at
-  `/console` (redirect target: `/console#/warnings/list`).
-- Console topology (PR #31): 4 sections — Warnings (`#/warnings/*`), Ingest,
-  Trace, System. Old hash routes (`#/map`, `#/databank`, `#/sources`,
-  `#/imports`, `#/audit`, …) are permanent aliases that must keep resolving.
-- AI is Gemini-only (@google/genai Flash-Lite). Mistral was intentionally
-  removed (roadmap #6); do not reintroduce fallback chains.
-- Deployment parity: `vercel.json` gives `/console` the same security
-  headers as `/admin` (X-Frame-Options: DENY, noindex); `server.ts`
-  serves `/console` for self-hosted parity.
-- Admin authorization is server-side only (`server/auth.ts` requireAdmin /
-  verifyAdminRequest). The gateway writes NO client-side trust flags.
+## 2. Data lifecycle invariants (never break these)
 
+- The scraper is **upsert-only — it never deletes**; `raw_text` is immutable.
+- Status whitelist: active / cancelled / expired / superseded / unverified.
+- Every warning edit requires an **audit row** (`nav_warning_audits`,
+  append-only, RLS no_update/no_delete). Writes are refused if the audit
+  trail is unreachable; failed audit inserts persist an AUDIT_FAILED row.
+- Optimistic locking via `expected_updated_at` (409 on conflict);
+  NAVAREA moves supersede + recreate with rollback safety.
+- Single-fire guards: any UI control that triggers an audited or destructive
+  write must disable itself while the write is in flight (see
+  `verifyPending` in `WarningDetailModal.tsx`, `verifyingIds` in
+  `DataBankWarningList.tsx`, `committedId` in `IngestionProcedureModal.tsx`).
+  A double-click must never produce two audit rows.
 
-## RULES
-1. Never break the ingestion pipeline or atomic publishing
-2. Public page contains ZERO admin code
-3. All writes use authenticated Supabase client
-4. RLS enabled on all tables with proper policies
-5. No demo credentials in shipped code
-6. Design tokens ONLY (no hardcoded colors/fonts)
+## 3. Hard conventions
 
-## DESIGN TOKENS (from reference files)
-Colors: --critical:#dc2626; --high:#ea580c; --active:#059669; 
-        --verified:#0d9488; --neutral:#64748b
-Type: H1 600/28px; H2 600/20px; body 400/14px
-Spacing: 4/8/16/24/40/64px
+### Serverless imports (PR #29)
+`"type": "module"` means Vercel functions run as Node ESM: **every relative
+import in any file reachable from `api/` MUST use explicit `.js`
+specifiers** (e.g. `'../lib/supabaseClient.js'`). Extensionless imports
+throw ERR_MODULE_NOT_FOUND at module load and 500 every request — this
+silently killed the daily cron once.
+
+### z-index (PR #65)
+Never introduce magic z values. Use the CSS token scale in `index.css`:
+`--z-console-sticky: 10` < chrome `50` (header/bottom-nav) < overlay `60`
+(detail/ingestion/drawer/login scrims) < `fab: 65` < `overlay-raised: 70`
+(edit modal). Sticky strips use `top-[var(--console-sticky-offset)]` (57px).
+Leaflet's internal z-scale is untouched.
+
+### Routing & deep links (PR #62)
+Hash-route grammar + Data Bank query params live in `src/lib/consoleRoute.ts`
+(pure, unit-tested). App re-exports the grammar for legacy import sites.
+Known limitation: `sort`/`dir` deep-link params are only active in custom
+sort mode.
+
+### Loading truth (PR #63)
+Unknown/missing statuses render an amber NEEDS_REVIEW_CONFIG badge, never a
+green fallback. Empty-state copy only renders when data is actually loaded;
+skeletons (`LoadingSkeletonRows`, role="status") cover the initial fetch.
+
+### Console UX audit series (PRs #62–#67, all merged)
+16-issue audit fixed in 6 PRs: routing/deep-links, loading truth, dialog &
+destructive-action safety, sticky offsets/z-tokens, copy feedback & a11y
+naming, verify-queue workflow + Data Bank density. **Issue 13 is
+deliberately deferred** — check it is still open before re-planning it.
+
+## 4. Required agent workflow (for every change)
+
+1. **Verify against live code.** Fetch the current files via the GitHub API
+   (or check out the branch) and re-derive the root cause from what you read.
+   Notes, summaries, and prior analyses are context — live code wins.
+2. **Branch off merged `main`** (`console-ux-<nn>-<theme>`,
+   `docs-<theme>`, `fix-<area>-<theme>` — descriptive kebab-case).
+3. **Small themed commits**, one concern each, with file lists in the
+   message body.
+4. **Verify every push:** read the touched files back from the branch head
+   and check they are byte-equal to the pushed content; scan for mojibake
+   (`/[\u00C3\u00C2]/` — U+00C3/U+00C2 in sequence) if the toolchain
+   re-encodes text.
+5. **Open a PR** (draft, then ready) against `main` with this body shape:
+   Summary · Root cause (verified against live code) · Changes per commit ·
+   Maintainer checklist · Preview test plan · Out of scope · Evidence trail
+   (branch, base sha, head sha, commit shas).
+6. **Never merge your own PR** — the maintainer reviews, runs
+   `npm run lint` + `npm test` (agents cannot run them in this
+   environment), and merges. Confirm the new `main` sha after merge.
+7. **Never push binary files through text-based API pushes** — bytes ≥ 0x80
+   (any PNG, 0x89 signature) get UTF-8 double-encoded and corrupt. The
+   maintainer uploads binaries manually (see apple-touch-icon, PR #56).
+
+## 5. Project knowledge & change history
+
+Full durable knowledge — architecture facts, verified security/lifecycle
+state, per-PR root causes (PRs #29, #30, #56, #62–#67), and the active
+roadmap — lives in [`docs/PROJECT_KNOWLEDGE.md`](docs/PROJECT_KNOWLEDGE.md).
+Keep it updated when merging PRs that change conventions or fix root
+causes; keep this file lean.
+
+## 6. Open threads (as of 2026-10-25)
+
+- Console UX audit issue 13 — deliberately deferred.
+- `migrations/20261024_admin_lineage_and_audit_enforcement.sql` — present
+  in repo, **not yet confirmed applied to the live Supabase** (check
+  pg_policies).
+- `migrations/20261026_pipeline_runs.sql` (PR #30) — must be applied to
+  live Supabase after that PR merges.
+- Post-deploy check: `https://helmwarning.vercel.app/apple-touch-icon.png`
+  returned 404 shortly after PR #56 merge (deploy lag pattern; verify).
+- Hygiene: legacy `/export/*` snapshots publicly reachable (recommend
+  removal), GSC verification token placeholder in index.html.
+- Roadmap order is maintained in the maintainer's private notes; when in
+  doubt, ask in the issue/PR rather than re-prioritizing unilaterally.
