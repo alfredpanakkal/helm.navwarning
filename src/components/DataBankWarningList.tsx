@@ -621,12 +621,14 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
       </div>
 
       {/* Desktop / Tablet Grid Table (hidden on mobile < md) */}
-      <div className="hidden md:block bg-white border border-slate-200 rounded-xl overflow-hidden overflow-x-auto shadow-2xs">
-        {/* v2 header: compact sort strip (all 8 sort fields stay reachable; coords moves into Details) */}
-        {!legacy && (
+      {/* v2 sort strip hoisted ABOVE the horizontal scroller: an overflow-x-auto
+          ancestor traps position:sticky (so the strip never actually stuck on page
+          scroll), and top-0 would have slid it under the sticky site header anyway. */}
+      {!legacy && (
+        <div className="hidden md:block">
           <div
             id="databank-table-header"
-            className="flex flex-wrap items-center gap-1.5 p-2.5 bg-slate-900 text-white text-[11px] font-semibold tracking-wider uppercase select-none sticky top-0 z-10 shadow-xs"
+            className="z-console-sticky sticky top-[var(--console-sticky-offset)] flex flex-wrap items-center gap-1.5 p-2.5 bg-slate-900 text-white text-[11px] font-semibold tracking-wider uppercase select-none shadow-xs rounded-t-xl border border-slate-200 border-b-0 -mb-px"
           >
             <span className="px-1.5 text-slate-400 font-mono text-[10px]">SORT</span>
             {V2_SORT_BUTTONS.map(({ field, label }) => (
@@ -655,13 +657,16 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
               </button>
             ))}
           </div>
-        )}
+        </div>
+      )}
 
+      {/* Horizontal scroller: keeps the sticky right-hand action column working. */}
+      <div className="hidden md:block bg-white border border-slate-200 rounded-xl overflow-hidden overflow-x-auto shadow-2xs">
         {/* Table Header: Selected Element - Interactive Column Sorting (classic path) */}
         {legacy && (
         <div
           id="databank-table-header"
-          className="min-w-[900px] grid grid-cols-[140px_80px_1fr_90px_130px_110px_90px_60px] p-2.5 bg-gw-primary text-gw-bg text-[10px] font-bold tracking-wider uppercase gap-2.5 items-center border-b border-gw-primary/30 select-none sticky top-0 z-10 shadow-xs"
+          className="min-w-[900px] grid grid-cols-[140px_80px_1fr_90px_130px_110px_90px_60px] p-2.5 bg-gw-primary text-gw-bg text-[10px] font-bold tracking-wider uppercase gap-2.5 items-center border-b border-gw-primary/30 select-none sticky top-0 z-console-sticky shadow-xs"
         >
           {/* ID Column */}
           <button
