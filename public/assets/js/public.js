@@ -2455,6 +2455,28 @@ window.showToast = function(m){
 };
 
 // ═══════════ INIT ═══════════
+// Shows when the warning database was last updated (max nav_warnings.updated_at).
+async function updateDataFreshness() {
+  const el = document.getElementById('dataFreshness');
+  if (!el || !window.hwSupabase) return;
+  try {
+    const { data } = await window.hwSupabase
+      .from('nav_warnings')
+      .select('updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(1);
+    const ts = data && data[0] && data[0].updated_at;
+    if (!ts) return;
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const pad = (n) => String(n).padStart(2, '0');
+    el.textContent = `Data updated: ${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC · Source: Official NAVAREA coordinators (WWNWS)`;
+  } catch (err) {
+    /* keep placeholder freshness line */
+  }
+}
+
 async function loadWarnings() {
   if (window.hwDb) {
     const data = await window.hwDb.fetchActiveWarnings();
@@ -2463,6 +2485,7 @@ async function loadWarnings() {
     warnings = [];
   }
   updateStats(); populateTable(); populateCards();
+  updateDataFreshness();
   filterMapByNavArea(currentSelectedNavArea);
 }
 
