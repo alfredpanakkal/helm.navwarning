@@ -10,6 +10,7 @@
 <meta name="robots" content="index, follow, max-image-preview:large">
 
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link rel="manifest" href="/manifest.json">
 
@@ -508,7 +509,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
       <span class="chip-dot"></span>
       <span id="chipNavAreaText">Global View</span>
       <span class="chip-count" id="chipLiveCount">0 live</span>
-      <svg class="chip-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+      <svg class="chip-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
     </button>
 
     <div class="map-ctrl-topright" role="toolbar" aria-label="Map Navigation Controls">
@@ -517,10 +518,10 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
         <span>Re-center</span>
       </button>
       <button type="button" class="map-focus-btn" id="btnMapFocus" onclick="toggleMapFocusMode()" title="Maximize Map View (Focus Mode)" aria-label="Maximize map view full screen">
-        <svg id="iconMapFocusMax" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg id="iconMapFocusMax" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
         </svg>
-        <svg id="iconMapFocusMin" style="display:none" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg id="iconMapFocusMin" style="display:none" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
         </svg>
       </button>
@@ -597,7 +598,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
       </div>
       <div class="settings-footer">
         <button type="button" class="settings-reset-btn" onclick="resetMapSettingsToDefaults()">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
           <span>Reset to defaults</span>
         </button>
       </div>
@@ -672,7 +673,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
   <div class="stat-grid">
     <div class="stat-card">
       <div class="stat-icon active" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M4.93 4.93a10 10 0 0 1 14.14 0M7.76 7.76a6 6 0 0 1 8.48 0"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M4.93 4.93a10 10 0 0 1 14.14 0M7.76 7.76a6 6 0 0 1 8.48 0"/></svg>
       </div>
       <div class="stat-content">
         <div class="stat-label">Active</div>
@@ -684,7 +685,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
     </div>
     <div class="stat-card">
       <div class="stat-icon coverage" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </div>
       <div class="stat-content">
         <div class="stat-label">Coverage</div>
@@ -696,7 +697,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
     </div>
     <div class="stat-card">
       <div class="stat-icon high" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </div>
       <div class="stat-content">
         <div class="stat-label">Critical / High</div>
@@ -708,7 +709,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
     </div>
     <div class="stat-card">
       <div class="stat-icon geo" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
       </div>
       <div class="stat-content">
         <div class="stat-label">Georeferenced</div>
@@ -961,7 +962,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
   </div>
   <div class="settings-footer">
     <button type="button" class="settings-reset-btn" onclick="resetMapSettingsToDefaults()">
-      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
       <span>Reset to defaults</span>
     </button>
   </div>
