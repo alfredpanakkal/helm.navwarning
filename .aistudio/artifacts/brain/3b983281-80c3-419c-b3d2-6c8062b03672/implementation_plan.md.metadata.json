@@ -1,0 +1,6 @@
+{
+  "summary":  "Implementation plan to harmonize the console#/warnings/map admin map view with the public map experience, adopting the top-right toolbar with gear popover, coordinate picker, and a bottom sheet overlay while preserving all admin verification, geometry editing, and context menu tools.",
+  "updatedAt":  "2026-10-25T14:21:01.032240738Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

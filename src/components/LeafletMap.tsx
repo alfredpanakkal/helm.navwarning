@@ -8,6 +8,7 @@ import {
   Search,
   MapPin,
   Maximize2,
+  Minimize2,
   List,
   X,
   Copy,
@@ -24,6 +25,9 @@ import {
   Globe,
   Waves,
   Edit3,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
 } from 'lucide-react';
 import { getLeafletLatLng } from '../utils/coordinateParser';
 import { useMapNavigation } from '../hooks/useMapNavigation';
@@ -127,8 +131,15 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const [isLegendOpen, setIsLegendOpen] = useState<boolean>(false);
   const [isMobileSheetExpanded, setIsMobileSheetExpanded] = useState<boolean>(false);
 
-  // Sidebar & Filter States
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // Modern Navigation & Drawer States (harmonized with public map + bottom sheet)
+  const [bottomSheetState, setBottomSheetState] = useState<'minimized' | 'normal' | 'maximized'>('normal');
+  const [expandedWarningId, setExpandedWarningId] = useState<string | null>(null);
+  const [isLayerSettingsOpen, setIsLayerSettingsOpen] = useState<boolean>(false);
+  const [isCoordPickerActive, setIsCoordPickerActive] = useState<boolean>(false);
+  const [isTopFiltersOpen, setIsTopFiltersOpen] = useState<boolean>(false);
+  const [copiedCoordNotice, setCopiedCoordNotice] = useState<boolean>(false);
+
+  // Filter States
   const [scopeFilter, setScopeFilter] = useState<ScopeFilterType>('all');
   const [currentNavArea, setCurrentNavArea] = useState<string>(initialNavArea);
   const [filterSeverity, setFilterSeverity] = useState('all');
@@ -156,6 +167,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (isQuickJumpExpanded) setIsQuickJumpExpanded(false);
+        if (isLayerSettingsOpen) setIsLayerSettingsOpen(false);
+        if (isTopFiltersOpen) setIsTopFiltersOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -894,7 +907,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       leafletInstance.current?.invalidateSize();
     }, 150);
     return () => clearTimeout(timer);
-  }, [isSidebarOpen]);
+  }, [bottomSheetState]);
 
   // Robust container resize and visibility observer (handles tab switches & responsive layout)
   useEffect(() => {
@@ -1008,65 +1021,144 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         </div>
       )}
 
-      {/* TOP-LEFT TOOLBAR: Sidebar Toggle & Search */}
-      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 z-[420] flex items-center gap-2 pointer-events-auto max-w-[calc(100%-24px)] sm:max-w-md">
-        <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg text-xs font-bold uppercase shadow-hard hover:bg-gw-primary hover:text-gw-bg transition-all shrink-0 min-h-[40px]"
-          title={isSidebarOpen ? 'Collapse active warnings drawer' : 'Expand active warnings drawer'}
-        >
-          <List className="w-4 h-4" />
-          <span className="hidden sm:inline">
-            {isSidebarOpen ? 'Drawer' : `Warnings (${renderedWarnings.length})`}
-          </span>
-          <span className="sm:hidden">{renderedWarnings.length}</span>
-        </button>
+      {/* FLOATING MAP CONTROLS CHIP (Harmonized with Public Map) */}
+      <button
+        type="button"
+        className={`map-controls-chip ${isTopFiltersOpen ? 'is-expanded' : ''}`}
+        onClick={() => setIsTopFiltersOpen(!isTopFiltersOpen)}
+        aria-label="Toggle map filter controls"
+        title="Toggle navigation area filter and controls"
+        aria-expanded={isTopFiltersOpen}
+      >
+        <span className="chip-dot" />
+        <span id="chipNavAreaText">
+          {currentNavArea === 'ALL' ? 'Global View' : `NAVAREA ${currentNavArea}`}
+        </span>
+        <span className="chip-count" id="chipLiveCount">
+          {renderedWarnings.length} live
+        </span>
+        <ChevronDown
+          className={`chip-chevron w-3.5 h-3.5 transition-transform duration-200 ${
+            isTopFiltersOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
 
-        <div className="flex items-center gap-2 px-3 py-2 bg-white/95 border-2 border-gw-primary rounded-lg shadow-hard flex-1 min-w-[160px]">
-          <Search className="w-4 h-4 text-gw-accent shrink-0" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search active notices..."
-            className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-gw-primary placeholder:text-gw-accent font-mono"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="text-xs text-gw-accent hover:text-gw-primary font-bold px-1"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-{/* TOP-RIGHT COMPACT MAP CONTROLS */}
-<div
-          className={`absolute top-3 sm:top-4 right-3 sm:right-4 z-[440] pointer-events-auto ${
-            isFocused ? 'hidden' : 'flex'
-          } max-w-[360px] sm:max-w-[400px] w-full sm:w-auto`}
-          id="map-controls"
-        >
+      {/* TOP FILTERS POPDOWN PANEL */}
+      {isTopFiltersOpen && (
         <div
-          className="bg-white/95 border-2 border-gw-primary rounded-xl shadow-hard overflow-hidden backdrop-blur-xs flex flex-col"
+          className="absolute top-[60px] left-3.5 z-[530] w-[calc(100%-28px)] max-w-xl bg-white border-2 border-gw-primary rounded-xl shadow-2xl p-3.5 pointer-events-auto space-y-3"
+          onClick={(e) => e.stopPropagation()}
         >
-          {/* Compact control group with 5 entries */}
-          <div className="flex flex-col sm:flex-row gap-1.5 px-2 py-1.5">
-            {/* Layers entry - opens secondary panel */}
+          <div className="flex items-center justify-between border-b border-gw-secondary pb-2">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-gw-primary" />
+              <span className="text-xs font-bold uppercase tracking-wider text-gw-primary">
+                Region &amp; Scope Filters
+              </span>
+            </div>
             <button
-              type="button"
-              onClick={() => setFocused(true)}
-              className="flex-1 flex items-center justify-center py-1.5 px-2 rounded border text-[9px] font-bold uppercase transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
-              aria-label="Layer configuration"
-              title="Layer configuration"
+              onClick={() => setIsTopFiltersOpen(false)}
+              className="p-1 rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all"
+              title="Close filter menu"
             >
-              <Layers className="w-3.5 h-3.5 shrink-0" />{' '}
-              <span>Layers</span>
+              <X className="w-4 h-4" />
             </button>
+          </div>
 
-            {/* Warnings entry - reset filters or focus */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gw-accent mb-1">
+                NAVAREA Region
+              </label>
+              <select
+                value={currentNavArea}
+                onChange={(e) => handleSelectNavArea(e.target.value)}
+                className="w-full px-2.5 py-1.5 bg-white border border-gw-primary rounded-lg text-xs font-mono font-bold text-gw-primary outline-none focus:ring-1 focus:ring-gw-primary shadow-xs cursor-pointer"
+              >
+                <option value="ALL">All Regions (Global View)</option>
+                {NAVAREA_ZONE_LIST.map((zone) => (
+                  <option key={zone.id} value={zone.id}>
+                    {zone.name} — {zone.subTitle}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gw-accent mb-1">
+                Broadcast Scope
+              </label>
+              <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-lg border border-gw-primary shadow-xs">
+                {(['all', 'navarea', 'coastal'] as ScopeFilterType[]).map((scope) => (
+                  <button
+                    key={scope}
+                    type="button"
+                    onClick={() => setScopeFilter(scope)}
+                    className={`py-1 text-[10px] font-bold uppercase rounded text-center transition-all ${
+                      scopeFilter === scope
+                        ? 'bg-gw-primary text-gw-bg shadow-xs'
+                        : 'text-gw-accent hover:text-gw-primary hover:bg-gw-bg'
+                    }`}
+                  >
+                    {scope === 'all' ? 'All' : scope === 'navarea' ? 'Nav' : 'Coast'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-gw-secondary">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gw-accent mb-1">
+                Severity Level
+              </label>
+              <div className="grid grid-cols-4 gap-1 bg-gw-bg p-1 rounded-lg border border-gw-secondary">
+                {['all', 'critical', 'high', 'moderate'].map((sev) => (
+                  <button
+                    key={sev}
+                    onClick={() => setFilterSeverity(sev)}
+                    className={`py-1 text-[9px] uppercase font-bold rounded transition-all text-center ${
+                      filterSeverity === sev
+                        ? 'bg-gw-primary text-gw-bg'
+                        : 'text-gw-accent hover:text-gw-primary hover:bg-white'
+                    }`}
+                  >
+                    {sev === 'critical' ? 'Crit' : sev === 'moderate' ? 'Mod' : sev.slice(0, 4)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gw-accent mb-1">
+                Notice Search
+              </label>
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-gw-accent absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Keyword, series, or area..."
+                  className="w-full pl-8 pr-7 py-1.5 text-xs font-mono bg-white border border-gw-primary rounded-lg text-gw-primary placeholder:text-gw-accent outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gw-accent hover:text-gw-primary"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-gw-secondary text-[11px]">
+            <span className="font-mono text-gw-accent">
+              Showing {renderedWarnings.length} of {warnings.length} notices
+            </span>
             <button
               type="button"
               onClick={() => {
@@ -1075,140 +1167,217 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 setFilterSeverity('all');
                 setSearchQuery('');
               }}
-              className="flex-1 flex items-center justify-center py-1.5 px-2 rounded border text-[9px] font-bold uppercase transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
-              aria-label="Reset warnings filters"
-              title="Reset warnings filters"
+              className="flex items-center gap-1 text-[10px] font-bold uppercase text-gw-accent hover:text-gw-primary"
             >
-              <span className="text-[10px]">↺</span>
-              <span>Warnings</span>
-            </button>
-
-            {/* Seamarks entry - toggle overlay */}
-            <button
-              type="button"
-              onClick={() => toggleOverlay('openseamap')}
-              className="flex-1 flex items-center justify-center py-1.5 px-2 rounded border ${
-                isOverlayEnabled('openseamap')
-                  ? 'bg-gw-primary text-gw-bg shadow-xs'
-                  : 'text-gw-accent hover:text-gw-primary hover:bg-gw-bg'
-              } transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
-              aria-label="Toggle seamarks overlay"
-              title="Toggle seamarks overlay"
-            >
-              <span className="w-3.5 h-3.5 rounded border text-gw-primary" />
-              <span>Seamarks</span>
-            </button>
-
-            {/* Reset view entry - fit bounds */}
-            <button
-              type="button"
-              onClick={() => autoFrameMap(renderedWarnings)}
-              className="flex-1 flex items-center justify-center py-1.5 px-2 rounded border text-[9px] font-bold uppercase transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
-              aria-label="Fit viewport to warnings"
-              title="Fit viewport to all active warnings"
-            >
-              <Maximize2 className="w-3.5 h-3.5 shrink-0" />{' '}
-              <span>Reset view</span>
-            </button>
-
-            {/* Fullscreen entry */}
-            <button
-              type="button"
-              onClick={() => {
-                if (leafletInstance.current) {
-                  const map = leafletInstance.current as any;
-                  if (map._fullscreen) {
-                    map._fullscreen.stop();
-                  } else if (typeof map._fullscreen?.start === 'function') {
-                    map._fullscreen.start();
-                  }
-                }
-              }}
-              className="flex-1 flex items-center justify-center py-1.5 px-2 rounded border text-[9px] font-bold uppercase transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
-              aria-label="Fullscreen mode"
-              title="Fullscreen mode"
-            >
-              <span className="self-stretch w-3.5 h-3.5" />{' '}
-              <span>Fullscreen</span>
+              <RotateCcw className="w-3 h-3" />
+              <span>Reset Filters</span>
             </button>
           </div>
-
-          {/* Secondary panel: advanced layer config (not always visible) */}
-          {isQuickJumpExpanded && (
-            <div
-              className="p-3 space-y-2.5 text-xs bg-white absolute right-0 sm:right-auto top-full sm:top-full w-64 sm:w-80 border border-gw-secondary rounded-xl shadow-md bg-opacity-80"
-            >
-              <div className="text-[10px] font-bold uppercase tracking-wider text-gw-primary mb-2">Advanced Layer Config</div>
-
-              {/* Base Layer */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-gw-primary">
-                    <Waves className="w-3 h-3 text-sky-600" /> Base Cartography
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setFocused(false)}
-                    className="text-[10px] text-gw-accent hover:text-gw-primary"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                {/* Base Layer Switcher */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 bg-gw-bg p-1 rounded-lg border border-gw-secondary text-[10px] font-mono font-bold">
-                  {BASE_LAYERS.map((base) => (
-                    <button
-                      key={base.id}
-                      type="button"
-                      onClick={() => setBaseLayer(base.id)}
-                      className={`py-1 px-1 rounded text-center transition-all ${
-                        activeBaseLayerId === base.id
-                          ? 'bg-gw-primary text-gw-bg shadow-xs'
-                          : 'text-gw-accent hover:text-gw-primary hover:bg-white'
-                      }`}
-                      title={base.name}
-                    >
-                      {base.id === 'esri-ocean'
-                        ? 'ESRI Ocean'
-                        : base.id === 'carto-voyager'
-                        ? 'Voyager'
-                        : base.id === 'carto-dark'
-                        ? 'Dark Matter'
-                        : base.id === 'carto-positron'
-                        ? 'Positron'
-                        : 'OSM'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Overlay Toggles */}
-              <div className="pt-2 border-t border-gw-secondary space-y-2">
-                <div className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
-                  <input
-                    type="checkbox"
-                    checked={isOverlayEnabled('esri-labels')}
-                    onChange={() => toggleOverlay('esri-labels')}
-                    className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
-                  />
-                  <span>Ocean Soundings</span>
-                </div>
-
-                <div className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
-                  <input
-                    type="checkbox"
-                    checked={isOverlayEnabled('openseamap')}
-                    onChange={() => toggleOverlay('openseamap')}
-                    className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
-                  />
-                  <span>Seamarks</span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
+      )}
+
+      {/* TOP-RIGHT TOOLBAR: Re-center, Focus, Layers, Coordinate Picker (Public Harmonized) */}
+      <div className="map-ctrl-topright" role="toolbar" aria-label="Map Navigation Controls">
+        <button
+          type="button"
+          className="map-recenter-pill-btn"
+          onClick={() => autoFrameMap(renderedWarnings)}
+          title="Re-center / Locate all active warnings"
+          aria-label="Re-center navigation area on map"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+            <circle cx="12" cy="12" r="8" />
+          </svg>
+          <span>Re-center</span>
+        </button>
+
+        <button
+          type="button"
+          className={`map-focus-btn ${isFocused ? 'active' : ''}`}
+          onClick={toggleFocus}
+          title={isFocused ? 'Exit Focus Mode (Esc)' : 'Maximize Map View (Focus Mode)'}
+          aria-label={isFocused ? 'Exit focus mode' : 'Maximize map view full screen'}
+        >
+          {isFocused ? (
+            <Minimize2 className="w-4 h-4" />
+          ) : (
+            <Maximize2 className="w-4 h-4" />
+          )}
+        </button>
+
+        <button
+          type="button"
+          className={`map-gear-btn ${isLayerSettingsOpen ? 'active' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsLayerSettingsOpen(!isLayerSettingsOpen);
+          }}
+          title="Layers & Chart Type"
+          aria-label="Map layers and chart settings"
+          aria-expanded={isLayerSettingsOpen}
+        >
+          <Sliders className="w-4 h-4" />
+        </button>
+
+        <button
+          type="button"
+          className={`map-coord-btn ${isCoordPickerActive ? 'is-active' : ''}`}
+          onClick={() => setIsCoordPickerActive(!isCoordPickerActive)}
+          title="Coordinate Picker — click map for exact position"
+          aria-label="Toggle coordinate picker"
+          aria-pressed={isCoordPickerActive}
+        >
+          <Crosshair className="w-4 h-4" />
+        </button>
       </div>
+
+      {/* DESKTOP LAYERS & CHART SETTINGS POPOVER */}
+      {isLayerSettingsOpen && (
+        <div
+          className="map-settings-popover open"
+          role="dialog"
+          aria-labelledby="adminSettingsPopoverTitle"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="settings-header">
+            <span className="settings-title" id="adminSettingsPopoverTitle">
+              Layers &amp; Chart Type
+            </span>
+            <button
+              type="button"
+              className="settings-close-btn"
+              onClick={() => setIsLayerSettingsOpen(false)}
+              aria-label="Close settings"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="settings-body">
+            <div className="settings-section-title">Base Cartography</div>
+            {BASE_LAYERS.map((base) => (
+              <label key={base.id} className="settings-item">
+                <input
+                  type="radio"
+                  name="admin-basemap"
+                  value={base.id}
+                  checked={activeBaseLayerId === base.id}
+                  onChange={() => setBaseLayer(base.id)}
+                />
+                <span>{base.name}</span>
+              </label>
+            ))}
+
+            <div className="settings-divider"></div>
+
+            <div className="settings-section-title">
+              <span>Maritime Overlays</span>
+              <button
+                type="button"
+                className={`master-toggle-btn ${showPolygons && enableClusters ? '' : 'off'}`}
+                onClick={() => {
+                  const nextState = !(showPolygons && enableClusters);
+                  setShowPolygons(nextState);
+                  setEnableClusters(nextState);
+                  toggleOverlay('openseamap', nextState);
+                  toggleOverlay('esri-labels', nextState);
+                }}
+              >
+                {showPolygons && enableClusters ? '[ON]' : '[OFF]'}
+              </button>
+            </div>
+
+            <label className="settings-item">
+              <input
+                type="checkbox"
+                checked={enableClusters}
+                onChange={(e) => setEnableClusters(e.target.checked)}
+              />
+              <span>Hazard Points &amp; Clusters</span>
+            </label>
+
+            <label className="settings-item">
+              <input
+                type="checkbox"
+                checked={showPolygons}
+                onChange={(e) => setShowPolygons(e.target.checked)}
+              />
+              <span>Danger Areas &amp; Polygons</span>
+            </label>
+
+            <label className="settings-item">
+              <input
+                type="checkbox"
+                checked={isOverlayEnabled('openseamap')}
+                onChange={() => toggleOverlay('openseamap')}
+              />
+              <span>OpenSeaMap Seamarks</span>
+            </label>
+
+            <label className="settings-item">
+              <input
+                type="checkbox"
+                checked={isOverlayEnabled('esri-labels')}
+                onChange={() => toggleOverlay('esri-labels')}
+              />
+              <span>Ocean Soundings (ESRI)</span>
+            </label>
+          </div>
+          <div className="settings-footer">
+            <button
+              type="button"
+              className="settings-reset-btn"
+              onClick={() => {
+                setBaseLayer('osm-standard');
+                setShowPolygons(true);
+                setEnableClusters(true);
+                toggleOverlay('openseamap', true);
+                toggleOverlay('esri-labels', false);
+              }}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset to defaults</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* COORDINATE PICKER STATUS PANEL */}
+      {isCoordPickerActive && cursorState && cursorState.rawDecimal && (
+        <div
+          className="coord-panel open"
+          role="status"
+          aria-live="polite"
+          style={{
+            display: 'flex',
+            bottom: bottomSheetState === 'minimized' ? '54px' : bottomSheetState === 'normal' ? '290px' : 'calc(75vh + 10px)',
+            transition: 'bottom 0.3s ease',
+          }}
+        >
+          <span className="coord-label">Cursor</span>
+          <span className="font-mono text-xs font-bold text-gw-primary">{cursorState.nauticalString}</span>
+          <span className="text-[10px] text-gw-accent font-mono">
+            ({formatDecimalCoordinates(cursorState.rawDecimal[0], cursorState.rawDecimal[1])})
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              copyCursorPosition();
+              setCopiedCoordNotice(true);
+              setTimeout(() => setCopiedCoordNotice(false), 2000);
+            }}
+            className="p-1 hover:bg-slate-200 rounded text-gw-primary transition-colors ml-1"
+            title="Copy coordinate"
+          >
+            {copiedCoordNotice ? (
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+            ) : (
+              <Copy className="w-3.5 h-3.5 text-gw-accent" />
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Layer Context Menu */}
       {contextMenu && contextMenu.isOpen && (
@@ -1320,301 +1489,272 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         </div>
       )}
 
-      {/* COLLAPSIBLE SIDEBAR: Active Warnings & Filter Drawer */}
-      {isSidebarOpen && (
-        <aside className="absolute top-[64px] sm:top-[72px] left-3 sm:left-4 bottom-3 sm:bottom-4 w-[calc(100%-24px)] sm:w-[320px] md:w-[350px] bg-white border-2 border-gw-primary rounded-xl shadow-2xl pointer-events-auto z-[410] flex flex-col overflow-hidden">
-          <div className="flex justify-between items-center p-3 border-b border-gw-secondary bg-gw-bg">
-            <div className="font-bold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2 text-gw-primary">
-              <Layers className="w-4 h-4 text-gw-primary" />
+      {/* FULL-WIDTH BOTTOM SHEET OVERLAY: Active Warnings & Admin Triage (Harmonized) */}
+      <div
+        className={`absolute bottom-0 left-0 right-0 z-[500] pointer-events-auto bg-white/95 backdrop-blur-md border-t-2 border-gw-primary shadow-[0_-8px_30px_rgba(0,0,0,0.18)] transition-all duration-300 ease-in-out flex flex-col ${
+          bottomSheetState === 'minimized'
+            ? 'h-[46px]'
+            : bottomSheetState === 'maximized'
+            ? 'h-[75vh] max-h-[calc(100%-80px)]'
+            : 'h-[280px] sm:h-[300px]'
+        }`}
+      >
+        {/* Bottom Sheet Header */}
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-gw-secondary bg-gw-bg/90 select-none shrink-0 min-h-[44px]">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center gap-1.5 font-bold text-xs uppercase tracking-wider text-gw-primary">
+              <Layers className="w-4 h-4 text-gw-primary shrink-0" />
               <span>Active Warnings</span>
               <span className="text-[10px] px-2 py-0.5 bg-gw-primary text-gw-bg rounded-full font-mono font-bold">
                 {renderedWarnings.length}
               </span>
-              {hiddenWarningIds.size > 0 && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-amber-200 text-amber-900 rounded font-mono font-bold">
-                  {hiddenWarningIds.size} hidden
-                </span>
-              )}
             </div>
-            <button
-              onClick={() => setIsSidebarOpen(false)}
-              className="p-1 rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all"
-              title="Close drawer"
-            >
-              <X className="w-4 h-4" />
-            </button>
+
+            {hiddenWarningIds.size > 0 && (
+              <button
+                onClick={unhideAllWarnings}
+                className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-400 rounded text-[10px] font-bold uppercase transition-all"
+                title="Restore all hidden layers"
+              >
+                <Eye className="w-3 h-3 text-amber-700" />
+                <span>{hiddenWarningIds.size} hidden</span>
+              </button>
+            )}
+
+            {currentNavArea !== 'ALL' && (
+              <span className="text-[10px] font-mono font-bold text-gw-accent bg-white px-1.5 py-0.5 border border-gw-secondary rounded hidden sm:inline">
+                NAVAREA {currentNavArea}
+              </span>
+            )}
           </div>
 
-          {/* Filters & Pane Toggles */}
-          <div className="p-3 border-b border-gw-secondary bg-gw-bg/40 space-y-3">
-            {/* Scope Switcher */}
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-gw-accent flex items-center justify-between">
-                <span>Scope Switcher</span>
-                <span className="font-mono text-gw-primary font-bold">
-                  {scopeFilter.toUpperCase()}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-lg border border-gw-primary shadow-xs">
+          {/* Quick Filter Switchers in Bottom Sheet Header (when expanded) */}
+          {bottomSheetState !== 'minimized' && (
+            <div className="hidden md:flex items-center gap-2">
+              <div className="flex items-center bg-white border border-gw-secondary rounded-lg p-0.5 text-[10px] font-bold uppercase">
                 {(['all', 'navarea', 'coastal'] as ScopeFilterType[]).map((scope) => (
                   <button
                     key={scope}
-                    type="button"
                     onClick={() => setScopeFilter(scope)}
-                    className={`py-1 text-[10px] font-bold uppercase rounded text-center transition-all ${
+                    className={`px-2 py-0.5 rounded transition-all ${
                       scopeFilter === scope
                         ? 'bg-gw-primary text-gw-bg shadow-xs'
-                        : 'text-gw-accent hover:text-gw-primary hover:bg-gw-bg'
+                        : 'text-gw-accent hover:text-gw-primary'
                     }`}
                   >
                     {scope === 'all' ? 'All' : scope === 'navarea' ? 'NAVAREA' : 'Coastal'}
                   </button>
                 ))}
               </div>
-            </div>
 
-            {/* NAVAREA Selector */}
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-gw-accent flex items-center justify-between">
-                <span>NAVAREA Selector</span>
-                <Globe className="w-3 h-3 text-gw-accent" />
-              </div>
-              <select
-                value={currentNavArea}
-                onChange={(e) => handleSelectNavArea(e.target.value)}
-                className="w-full px-2.5 py-1.5 bg-white border border-gw-primary rounded-lg text-xs font-mono font-bold text-gw-primary outline-none focus:ring-1 focus:ring-gw-primary shadow-xs cursor-pointer"
-              >
-                <option value="ALL">All Regions (Global View)</option>
-                {NAVAREA_ZONE_LIST.map((zone) => (
-                  <option key={zone.id} value={zone.id}>
-                    {zone.name} — {zone.subTitle}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Strict Pane Layer Toggles */}
-            <div className="space-y-1.5 pt-1 border-t border-gw-secondary sidebar-layer-toggles">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-gw-accent">
-                Layer Visibility & Panes
-              </div>
-              <div className="space-y-1 text-xs">
-                <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
-                  <input
-                    type="checkbox"
-                    checked={showPolygons}
-                    onChange={(e) => setShowPolygons(e.target.checked)}
-                    className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
-                  />
-                  <span>Warning Polygons (navWarnVectorPane)</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
-                  <input
-                    type="checkbox"
-                    checked={enableClusters}
-                    onChange={(e) => setEnableClusters(e.target.checked)}
-                    className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
-                  />
-                  <span>Marker Clusters (navWarnMarkerPane)</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
-                  <input
-                    type="checkbox"
-                    checked={isOverlayEnabled('esri-labels')}
-                    onChange={() => toggleOverlay('esri-labels')}
-                    className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
-                  />
-                  <span>Ocean Soundings</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] font-medium text-gw-primary hover:text-gw-tertiary">
-                  <input
-                    type="checkbox"
-                    checked={isOverlayEnabled('openseamap')}
-                    onChange={() => toggleOverlay('openseamap')}
-                    className="rounded border-gw-primary text-gw-primary focus:ring-0 w-3.5 h-3.5"
-                  />
-                  <span>Seamarks</span>
-                </label>
+              <div className="relative">
+                <Search className="w-3 h-3 text-gw-accent absolute left-2 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Filter active notices..."
+                  className="pl-6 pr-2 py-0.5 bg-white border border-gw-secondary rounded text-[11px] font-mono text-gw-primary placeholder:text-gw-accent outline-none w-36 lg:w-48 focus:border-gw-primary"
+                />
               </div>
             </div>
+          )}
 
-            {hiddenWarningIds.size > 0 && (
-              <button
-                onClick={unhideAllWarnings}
-                className="w-full py-1.5 px-2 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-500 rounded text-[10px] font-bold uppercase transition-all flex items-center justify-center gap-1.5"
-              >
-                <Eye className="w-3.5 h-3.5 text-amber-700" />
-                <span>Restore {hiddenWarningIds.size} Hidden Layers</span>
-              </button>
-            )}
+          {/* Window Resize Controls */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() =>
+                setBottomSheetState(bottomSheetState === 'minimized' ? 'normal' : 'minimized')
+              }
+              className="p-1 rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all"
+              title={bottomSheetState === 'minimized' ? 'Expand drawer' : 'Minimize drawer'}
+              aria-label="Toggle drawer minimize"
+            >
+              {bottomSheetState === 'minimized' ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+            <button
+              onClick={() =>
+                setBottomSheetState(bottomSheetState === 'maximized' ? 'normal' : 'maximized')
+              }
+              className="p-1 rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all hidden sm:inline-flex"
+              title={bottomSheetState === 'maximized' ? 'Restore drawer height' : 'Maximize drawer height'}
+              aria-label="Toggle drawer maximize"
+            >
+              {bottomSheetState === 'maximized' ? (
+                <Minimize2 className="w-3.5 h-3.5" />
+              ) : (
+                <Maximize2 className="w-3.5 h-3.5" />
+              )}
+            </button>
           </div>
+        </div>
 
-          {/* Quick Severity Filters */}
-          <div className="flex items-center gap-1 p-2 border-b border-gw-secondary bg-white overflow-x-auto no-scrollbar">
-            {['all', 'critical', 'high', 'moderate'].map((sev) => (
-              <button
-                key={sev}
-                onClick={() => setFilterSeverity(sev)}
-                className={`px-2 py-0.5 rounded text-[9px] uppercase font-bold border transition-all shrink-0 ${
-                  filterSeverity === sev
-                    ? 'bg-gw-primary text-gw-bg border-gw-primary'
-                    : 'bg-gw-bg text-gw-primary border-gw-secondary hover:border-gw-primary'
-                }`}
-              >
-                {sev}
-              </button>
-            ))}
-          </div>
-
-          {/* Warning List Items */}
-          <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
+        {/* Bottom Sheet Cards Body */}
+        {bottomSheetState !== 'minimized' && (
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-gw-bg/40">
             {filteredWarnings.length === 0 ? (
-              <div className="text-center py-8 text-xs text-gw-accent font-mono">
+              <div className="text-center py-10 text-xs text-gw-accent font-mono">
                 No active warnings match filter criteria.
               </div>
             ) : (
-              filteredWarnings.map((w) => {
-                const isHidden = hiddenWarningIds.has(w.warning_id);
-                const coastal = isCoastalWarning(w);
-                const drawerItemClass = `p-2.5 border-2 rounded-lg cursor-pointer transition-all shadow-xs group ${
-                  isHidden
-                    ? 'bg-amber-50/50 border-amber-300 opacity-60'
-                    : 'bg-gw-bg hover:bg-white border-gw-secondary hover:border-gw-primary'
-                }`;
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {filteredWarnings.map((w) => {
+                  const isHidden = hiddenWarningIds.has(w.warning_id);
+                  const isExpanded = expandedWarningId === w.warning_id;
+                  const coastal = isCoastalWarning(w);
+                  const classification = classifyWarning(w.raw_text || w.area_text || '');
+                  const sevColor =
+                    classification.displayStyle === 'critical'
+                      ? '#dc2626'
+                      : classification.displayStyle === 'high'
+                      ? '#ea580c'
+                      : '#059669';
 
-                if (legacyUI) {
                   return (
                     <div
                       key={w.warning_id}
-                      onClick={() => onSelectWarning(w)}
-                      className={drawerItemClass}
+                      className={`bg-white border rounded-xl p-3 transition-all shadow-xs ${
+                        isHidden
+                          ? 'border-amber-300 bg-amber-50/40 opacity-70'
+                          : isExpanded
+                          ? 'border-gw-primary shadow-md ring-1 ring-gw-primary'
+                          : 'border-gw-secondary hover:border-gw-primary'
+                      }`}
                     >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] font-mono font-bold text-gw-accent group-hover:text-gw-primary">
-                          {w.source_warning_id} · NA {w.navarea}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {coastal && (
-                            <span className="text-[8px] font-mono font-bold px-1 rounded bg-sky-100 text-sky-800 border border-sky-300">
-                              COASTAL
+                      {/* Card Summary Header */}
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => setExpandedWarningId(isExpanded ? null : w.warning_id)}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: sevColor }}
+                            />
+                            <span className="font-mono font-bold text-xs text-gw-primary truncate">
+                              {w.source_warning_id || w.warning_id}
                             </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleWarningVisibility(w.warning_id);
-                            }}
-                            className={`p-0.5 rounded transition-all ${
-                              isHidden
-                                ? 'text-amber-700 hover:bg-amber-200'
-                                : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
-                            }`}
-                            title={isHidden ? 'Unhide this layer' : 'Hide this layer from map'}
-                          >
-                            {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </button>
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase bg-gw-primary text-gw-bg">
-                            {w.extraction_confidence === 1 ? 'CRIT' : 'HIGH'}
+                            <span className="text-[10px] font-mono text-gw-accent shrink-0">
+                              · NA {w.navarea}
+                            </span>
+                            {coastal && (
+                              <span className="text-[9px] font-mono font-bold px-1 rounded bg-sky-50 text-sky-700 border border-sky-200">
+                                COASTAL
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleWarningVisibility(w.warning_id);
+                              }}
+                              className={`p-1 rounded transition-colors ${
+                                isHidden
+                                  ? 'text-amber-700 hover:bg-amber-100'
+                                  : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
+                              }`}
+                              title={isHidden ? 'Unhide layer on map' : 'Hide layer from map'}
+                            >
+                              {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                            <ChevronDown
+                              className={`w-3.5 h-3.5 text-gw-accent transition-transform duration-200 ${
+                                isExpanded ? 'rotate-180 text-gw-primary' : ''
+                              }`}
+                            />
+                          </div>
+                        </div>
+
+                        <p className="text-xs font-semibold text-gw-primary line-clamp-2 leading-relaxed mb-2">
+                          {w.area_text || w.title || w.issued_text || 'Navigational Notice'}
+                        </p>
+
+                        <div className="flex items-center justify-between text-[11px] text-gw-accent font-mono pt-1 border-t border-gw-secondary">
+                          <span>{w.issued_date || 'In-force'}</span>
+                          <span className="text-gw-primary font-bold hover:underline">
+                            {isExpanded ? 'Collapse ▲' : 'Inspect ▼'}
                           </span>
                         </div>
                       </div>
-                      <div className="text-xs font-bold text-gw-primary line-clamp-2 mb-1.5">
-                        {w.issued_text || w.area_text}
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-gw-accent font-mono">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-gw-primary" />
-                          {w.issued_date}
-                        </span>
-                        <span className="text-gw-primary font-bold group-hover:underline">
-                          Details →
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
 
-                return (
-                  <div
-                    key={w.warning_id}
-                    onClick={() => onSelectWarning(w)}
-                    className={`p-2.5 border rounded-lg cursor-pointer transition-all shadow-xs group ${
-                      isHidden
-                        ? 'bg-amber-50/50 border-amber-300 opacity-60'
-                        : 'bg-gw-bg hover:bg-white border-gw-secondary hover:border-gw-primary'
-                    }`}
-                  >
-                    <WarningHierarchyLines
-                      warning={w}
-                      sources={sources}
-                      showStatus={false}
-                      line1Right={
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleWarningVisibility(w.warning_id);
-                          }}
-                          className={`p-0.5 rounded transition-all ${
-                            isHidden
-                              ? 'text-amber-700 hover:bg-amber-200'
-                              : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
-                          }`}
-                          title={isHidden ? 'Unhide this layer' : 'Hide this layer from map'}
-                        >
-                          {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
-                      }
-                    />
-                    <div className="mt-2 flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          centerOnWarningArea(w);
-                        }}
-                        title="View this warning on the map"
-                        className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
-                      >
-                        <MapPin className="w-3 h-3" />
-                        <span>View on map</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectWarning(w);
-                        }}
-                        className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:border-gw-primary hover:text-gw-primary transition-colors"
-                      >
-                        <span>Details</span>
-                      </button>
-                      {isAdminMode && onEditWarning && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditWarning(w);
-                          }}
-                          className="flex items-center gap-1 px-2 py-1 bg-gw-primary border border-gw-primary text-gw-bg rounded text-[10px] font-bold uppercase hover:bg-gw-accent hover:text-gw-primary transition-colors"
-                          title="Edit this warning (admin)"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                          <span>Edit</span>
-                        </button>
+                      {/* Inline Accordion Expanded Body */}
+                      {isExpanded && (
+                        <div className="mt-3 pt-3 border-t border-dashed border-gw-secondary space-y-2.5">
+                          {/* Metadata Badges */}
+                          <div className="flex flex-wrap items-center gap-1 text-[10px]">
+                            <span className="px-1.5 py-0.5 bg-gw-bg border border-gw-secondary rounded font-mono">
+                              Tier {w.triage_tier || 'A'}
+                            </span>
+                            <span className="px-1.5 py-0.5 bg-gw-bg border border-gw-secondary rounded font-mono">
+                              {w.data_quality || 'EXPLICIT'}
+                            </span>
+                            {w.categories && (
+                              <span className="px-1.5 py-0.5 bg-sky-50 text-sky-800 border border-sky-200 rounded font-mono">
+                                {Array.isArray(w.categories) ? w.categories.join(', ') : String(w.categories)}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Raw Bulletin Text */}
+                          {w.raw_text && (
+                            <div className="bg-gw-bg border border-gw-secondary rounded p-2 text-[10px] font-mono leading-relaxed max-h-36 overflow-y-auto whitespace-pre-wrap select-all">
+                              {w.raw_text}
+                            </div>
+                          )}
+
+                          {/* Action Buttons Row */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => centerOnWarningArea(w)}
+                              className="flex items-center gap-1 px-2.5 py-1 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-white transition-colors"
+                              title="Center map on hazard coordinates"
+                            >
+                              <MapPin className="w-3 h-3" />
+                              <span>View on map</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => onSelectWarning(w)}
+                              className="flex items-center gap-1 px-2.5 py-1 bg-white border border-gw-secondary text-gw-accent hover:border-gw-primary hover:text-gw-primary rounded text-[10px] font-bold uppercase transition-colors"
+                              title="Open full provenance and audit modal"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span>Details</span>
+                            </button>
+
+                            {/* Admin Edit Trigger */}
+                            {isAdminMode && onEditWarning && (
+                              <button
+                                type="button"
+                                onClick={() => onEditWarning(w)}
+                                className="flex items-center gap-1 px-2.5 py-1 bg-gw-primary text-gw-bg rounded text-[10px] font-bold uppercase hover:bg-gw-tertiary transition-colors shadow-xs"
+                                title="Open admin warning editor"
+                              >
+                                <Edit3 className="w-3 h-3 text-sky-300" />
+                                <span>Edit Warning</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
           </div>
-        </aside>
-      )}
+        )}
+      </div>
 
       {/* E2: map-native admin geometry editor overlay */}
       <MapGeometryEditor
