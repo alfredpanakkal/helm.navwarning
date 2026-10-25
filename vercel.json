@@ -2,6 +2,10 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/navarea/:rn/warning/:slug",
+      "destination": "/warning-shell"
+    },
+    {
       "source": "/api/tiles/carto/:style/:z/:x/:y",
       "destination": "/api/tiles?provider=carto&style=:style&z=:z&x=:x&y=:y"
     },

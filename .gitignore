@@ -10,3 +10,6 @@ coverage/
 test-results/
 playwright-report/
 .superpowers/
+
+# Generated per deploy from the live database (scripts/navarea-pages/)
+public/navarea/*/warning/

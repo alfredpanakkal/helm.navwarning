@@ -41,6 +41,8 @@
 
   function warningRow(w) {
     var id = w.canonical_id || w.id || 'Unknown';
+  var tail = String(id).split(' ').pop();
+  var detailHref = /^\d+\/\d+$/.test(tail) ? ('/navarea/' + cfg.id + '/warning/' + tail.replace(/\//g, '-')) : '';
     if (seen[id]) return null; // dedupe by canonical id, never count duplicates twice
     seen[id] = true;
     var title = w.title || id;
@@ -57,6 +59,7 @@
         '<pre class="warn-text">' + esc(w.raw_text || w.area_text || 'Original bulletin text is not available for this record.') + '</pre>' +
         (tier ? '<p class="warn-meta">Geometry tier: ' + esc(tier) + (w.data_quality ? ' &middot; ' + esc(w.data_quality) : '') + '</p>' : '') +
         '<a class="warn-maplink" href="' + mapHref + '">View ' + esc(cfg.code) + ' region on the live map</a>' +
+        (detailHref ? '<a class="warn-maplink" href="' + detailHref + '">Warning detail page</a>' : '') +
       '</div>' +
     '</details>';
   }

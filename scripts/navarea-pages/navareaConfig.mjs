@@ -216,6 +216,205 @@ export function buildPageHtml(r) {
   return lines.join('\n');
 }
 
+// ── Warning detail pages (Step 2) ──────────────────────────────
+// Permalink slugs derive from canonical_id's trailing '<number>/<year>'
+// token ('NAVAREA XI 0451/26' -> '0451-26'), so both 'NA XI' and
+// 'NAVAREA XI' canonical prefixes produce the same URL. Prerendered for
+// active warnings at build time; warnings ingested since the last deploy
+// fall back to the /warning-shell rewrite + client hydration (noindex).
+export function warningSlug(canonicalId) {
+  const tail = String(canonicalId === null || canonicalId === undefined ? '' : canonicalId).trim().split(/\s+/).pop();
+  return /^\d+\/\d+$/.test(tail) ? tail.replace(/\//g, '-') : null;
+}
+
+export function warningDetailPath(regionId, canonicalId) {
+  if (!isValidNavareaId(regionId)) throw new Error('Invalid NAVAREA id: ' + String(regionId));
+  const slug = warningSlug(canonicalId);
+  return slug ? canonicalPath(regionId) + '/warning/' + slug : null;
+}
+
+function escapeHtml(v) {
+  return String(v === null || v === undefined ? '' : v)
+    .split('&').join('&amp;')
+    .split('<').join('&lt;')
+    .split('>').join('&gt;')
+    .split('"').join('&quot;');
+}
+
+function fmtDate(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso).slice(0, 10);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return d.getUTCDate() + ' ' + months[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+}
+
+export const DETAIL_CSS = [
+  '.meta-rows{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--text-muted);margin:0 0 14px}',
+  '.meta-row{display:inline-flex;gap:6px}',
+  '.meta-label{color:var(--text-light)}',
+  '.meta-value{color:var(--text-muted);font-weight:600}',
+  '.backlinks{margin:14px 0 0;font-size:13.5px}',
+  '.backlinks a{margin-right:14px}',
+  '#warningDetail{margin:0 0 14px}'
+].join('');
+
+function metaRow(label, value) {
+  return value ? '<span class="meta-row"><span class="meta-label">' + label + '</span><span class="meta-value">' + value + '</span></span>' : '';
+}
+
+// Fully static detail page: the complete original warning text is in the
+// initial HTML (crawlable without JS). No hydration scripts included.
+export function buildWarningPageHtml(r, w) {
+  const slug = warningSlug(w.canonical_id);
+  if (!slug) throw new Error('Cannot build warning page for canonical_id: ' + String(w.canonical_id));
+  const path = canonicalPath(r.id) + '/warning/' + slug;
+  const url = SITE_URL + path;
+  const idText = String(w.canonical_id);
+  const title = idText + ' | Helm.Warning';
+  const descTitle = String(w.title || idText);
+  const description = descTitle + ' — NAVAREA ' + r.id + ' navigational warning (' + r.shortLabel + '). Full original bulletin text, status and validity as held by Helm.Warning.';
+  const jsonLd = '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[' +
+    '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/"},' +
+    '{"@type":"ListItem","position":2,"name":"NAVAREA ' + r.id + '","item":"' + SITE_URL + canonicalPath(r.id) + '"},' +
+    '{"@type":"ListItem","position":3,"name":"' + idText + '","item":"' + url + '"}]}';
+  const issued = fmtDate(w.issued_at);
+  const validFrom = fmtDate(w.valid_from);
+  const validTo = fmtDate(w.valid_to);
+  const validText = (validFrom || validTo) ? (validFrom || 'unknown') + ' to ' + (validTo || 'until cancelled') : '';
+  const cats = Array.isArray(w.categories) ? w.categories.join(', ') : '';
+  const metaRows = '<div class="meta-rows">' +
+    metaRow('Region:', '<a href="' + canonicalPath(r.id) + '">NAVAREA ' + r.id + '</a>') +
+    metaRow('Status:', escapeHtml(String(w.status || 'active'))) +
+    (issued ? metaRow('Issued:', escapeHtml(issued)) : '') +
+    (validText ? metaRow('Valid:', escapeHtml(validText)) : '') +
+    (cats ? metaRow('Categories:', escapeHtml(cats)) : '') +
+    (w.triage_tier ? metaRow('Geometry tier:', escapeHtml(String(w.triage_tier)) + (w.data_quality ? ' &middot; ' + escapeHtml(String(w.data_quality)) : '')) : '') +
+    '</div>';
+  const lines = [
+    '<!DOCTYPE html>',
+    '<html lang="en">',
+    '<head>',
+    '<meta charset="UTF-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">',
+    '<meta name="theme-color" content="#0f172a">',
+    '<title>' + title + '</title>',
+    '<meta name="description" content="' + escapeHtml(description) + '">',
+    '<link rel="canonical" href="' + url + '">',
+    '<meta name="robots" content="index, follow">',
+    '<link rel="icon" type="image/svg+xml" href="/favicon.svg">',
+    '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">',
+    '<meta property="og:type" content="website">',
+    '<meta property="og:site_name" content="Helm.Warning">',
+    '<meta property="og:title" content="' + title + '">',
+    '<meta property="og:description" content="' + escapeHtml(description) + '">',
+    '<meta property="og:url" content="' + url + '">',
+    '<meta property="og:image" content="' + SITE_URL + '/og-preview.png">',
+    '<meta name="twitter:card" content="summary_large_image">',
+    '<meta name="twitter:title" content="' + title + '">',
+    '<meta name="twitter:description" content="' + escapeHtml(description) + '">',
+    '<script type="application/ld+json">' + jsonLd + '</' + 'script>',
+    '<link rel="stylesheet" href="/assets/css/tokens.css">',
+    '<style>' + PAGE_CSS + DETAIL_CSS + '</style>',
+    '</head>',
+    '<body>',
+    '<header class="site-header">',
+    '  <div class="inner">',
+    '    <a href="/" class="logo"><span class="logo-badge" aria-hidden="true">HW</span><span>Helm.Warning</span></a>',
+    '  </div>',
+    '</header>',
+    '',
+    '<main class="page">',
+    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <a href="' + canonicalPath(r.id) + '">NAVAREA ' + r.id + '</a> &rsaquo; <span>' + escapeHtml(idText) + '</span></nav>',
+    '  <h1>' + escapeHtml(idText) + '</h1>',
+    '  <p class="lead">' + escapeHtml(descTitle) + (w.area_text ? ' &mdash; ' + escapeHtml(String(w.area_text)) : '') + '</p>',
+    metaRows,
+    '',
+    '  <section>',
+    '    <h2>Original bulletin text</h2>',
+    '    <pre class="warn-text">' + escapeHtml(String(w.raw_text || 'Original bulletin text is not available for this record.')) + '</pre>',
+    '    <p class="lead-note">Verbatim as ingested by Helm.Warning from ' + r.authority + ', the NAVAREA ' + r.id + ' area coordinator. Warnings whose coordinates could not be plotted on the map are still published here in full.</p>',
+    '  </section>',
+    '',
+    '  <section>',
+    '    <h2>About this warning</h2>',
+    '    <p>' + escapeHtml(idText) + ' is a navigational warning for NAVAREA ' + r.id + ' (' + r.shortLabel + '), broadcast by ' + r.authority + ' under the World-Wide Navigational Warning Service (WWNWS). Helm.Warning aggregates these broadcasts daily and plots warnings with resolved geometry on the <a href="' + navareaMapHref(r.id) + '">live map</a>.</p>',
+    '    <p>Helm.Warning is a convenience copy of these broadcasts, not an official source of Maritime Safety Information. Always verify against official channels (NAVTEX, Inmarsat SafetyNET) as required by SOLAS &mdash; see the <a href="/about">about and disclaimer</a> page for the full safety notice.</p>',
+    '    <p class="backlinks"><a href="' + canonicalPath(r.id) + '">All NAVAREA ' + r.id + ' warnings</a><a href="' + navareaMapHref(r.id) + '">View on the live map</a><a href="/sources">Source registry</a></p>',
+    '  </section>',
+    '',
+    '  <p class="disclaimer-box">Situational awareness only. Not a substitute for GMDSS, NAVTEX or SafetyNET broadcasts. Official broadcasts and the Master&rsquo;s judgment always take priority.</p>',
+    '</main>',
+    '',
+    '<footer class="site">',
+    '  <p>Helm.Warning &mdash; NAVAREA Maritime Safety Information Pipeline</p>',
+    '  <p><a href="/">Live warnings map</a> &middot; <a href="/about">About &amp; Disclaimer</a></p>',
+    '</footer>',
+    '',
+    '</body>',
+    '</html>'
+  ];
+  return lines.join('\n');
+}
+
+// Generic client-hydrated shell for detail URLs that are not prerendered
+// (warnings ingested after the last deploy). Served through the
+// /navarea/:rn/warning/:slug -> /warning-shell rewrite. Intentionally
+// noindex: crawlers pick the page up once the next deploy prerenders it.
+export function buildWarningShellHtml() {
+  const url = SITE_URL + '/warning-shell';
+  const title = 'Navigational warning | Helm.Warning';
+  const description = 'NAVAREA navigational warning detail — original bulletin text, status and validity.';
+  const jsonLd = '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[' +
+    '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/"},' +
+    '{"@type":"ListItem","position":2,"name":"Warning","item":"' + url + '"}]}';
+  const lines = [
+    '<!DOCTYPE html>',
+    '<html lang="en">',
+    '<head>',
+    '<meta charset="UTF-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">',
+    '<meta name="theme-color" content="#0f172a">',
+    '<title>' + title + '</title>',
+    '<meta name="description" content="' + description + '">',
+    '<link rel="canonical" href="' + url + '">',
+    '<meta name="robots" content="noindex, follow">',
+    '<link rel="icon" type="image/svg+xml" href="/favicon.svg">',
+    '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">',
+    '<script type="application/ld+json">' + jsonLd + '</' + 'script>',
+    '<link rel="stylesheet" href="/assets/css/tokens.css">',
+    '<style>' + PAGE_CSS + DETAIL_CSS + '</style>',
+    '</head>',
+    '<body>',
+    '<header class="site-header">',
+    '  <div class="inner">',
+    '    <a href="/" class="logo"><span class="logo-badge" aria-hidden="true">HW</span><span>Helm.Warning</span></a>',
+    '  </div>',
+    '</header>',
+    '',
+    '<main class="page">',
+    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <span>Warning</span></nav>',
+    '  <h1 id="warningTitle">Navigational warning</h1>',
+    '  <div id="warningDetail" aria-live="polite"></div>',
+    '  <p id="emptyState" class="empty" hidden>No warning matches this address. It may have been cancelled, expired or removed. Browse the <a href="/sources">source registry</a> or return to the <a href="/">live map</a>.</p>',
+    '  <p id="errorState" class="error" hidden role="alert">This warning could not be loaded right now. Retry later, browse the <a href="/sources">source registry</a>, or use the <a href="/">live map</a>.</p>',
+    '  <noscript><p class="muted">Enable JavaScript to load this warning. Static warning pages are rebuilt on every deployment &mdash; the <a href="/sources">source registry</a> lists all regions.</p></noscript>',
+    '</main>',
+    '',
+    '<footer class="site">',
+    '  <p>Helm.Warning &mdash; NAVAREA Maritime Safety Information Pipeline</p>',
+    '  <p><a href="/">Live warnings map</a> &middot; <a href="/about">About &amp; Disclaimer</a></p>',
+    '</footer>',
+    '',
+    '<script defer src="https://unpkg.com/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" integrity="sha256-1qXEQUpdTOZG2cHeIjqnBn0/9mTBU5T/63/P/HYzVKM=" crossorigin="anonymous"></' + 'script>',
+    '<script defer src="/assets/js/supabase.js"></' + 'script>',
+    '<script defer src="/assets/js/warning-detail.js"></' + 'script>',
+    '</body>',
+    '</html>'
+  ];
+  return lines.join('\n');
+}
+
 // Regenerates public/sitemap.xml: homepage + about + the source registry +
 // the 21 regional pages.
 // Prerendered public source-registry hub (/sources): one clickable card per
@@ -313,7 +512,7 @@ export function buildSourcesPageHtml() {
 }
 
 
-export function buildSitemapXml(todayIso) {
+export function buildSitemapXml(todayIso, detailUrls) {
   const entries = [
     { loc: SITE_URL + '/', freq: 'daily', priority: '1.0' },
     { loc: SITE_URL + '/about', freq: 'monthly', priority: '0.6' },
@@ -321,6 +520,9 @@ export function buildSitemapXml(todayIso) {
   ];
   for (const r of NAVAREA_REGIONS) {
     entries.push({ loc: SITE_URL + canonicalPath(r.id), freq: 'daily', priority: '0.8' });
+  }
+  for (const d of (detailUrls || [])) {
+    entries.push({ loc: SITE_URL + d, freq: 'daily', priority: '0.6' });
   }
   const urls = entries.map(function (e) {
     return '  <url>\n    <loc>' + e.loc + '</loc>\n    <lastmod>' + todayIso + '</lastmod>\n    <changefreq>' + e.freq + '</changefreq>\n    <priority>' + e.priority + '</priority>\n  </url>';
