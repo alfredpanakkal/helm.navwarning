@@ -107,11 +107,15 @@ causes; keep this file lean.
 ## 6. Open threads (as of 2026-10-25)
 
 - Console UX audit issue 13 — deliberately deferred.
-- `migrations/20261024_admin_lineage_and_audit_enforcement.sql` — present
-  in repo, **not yet confirmed applied to the live Supabase** (check
-  pg_policies).
-- `migrations/20261026_pipeline_runs.sql` (PR #30) — must be applied to
-  live Supabase after that PR merges.
+- Live DB state (maintainer-verified 2026-10-24): the `20261024` RLS
+  migration **and** `20261026_pipeline_runs.sql` (PR #30, merged) are both
+  applied to live Supabase; zero authenticated write policies remain.
+  Re-check pg_policies before any migration work.
+- Vercel Hobby deploy budget: **100 deploys/day** — once exceeded,
+  deployments fail with `api-deployments-free-per-day` until the next day
+  (hit 2026-10-25 after the 6-PR UX series). A red Vercel status on a PR
+  can be this rate limit, not a build failure; GitHub Actions are the
+  build gate.
 - Post-deploy check: `https://helmwarning.vercel.app/apple-touch-icon.png`
   returned 404 shortly after PR #56 merge (deploy lag pattern; verify).
 - Hygiene: legacy `/export/*` snapshots publicly reachable (recommend

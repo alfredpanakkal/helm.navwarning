@@ -26,10 +26,12 @@
 ## 2. Verified security/lifecycle state (2026-10-24 audit)
 
 - Admin auth strong (fail-closed, app_metadata only, 401/403). RLS
-  migration `20261024_admin_lineage_and_audit_enforcement.sql` exists in
-  repo with append-only audit policies (`nav_warning_audits`
-  no_update/no_delete) and `superseded_by` lineage — **not yet confirmed
-  applied to live DB (outstanding)**.
+  migration `20261024_admin_lineage_and_audit_enforcement.sql` — append-only
+  audit policies (`nav_warning_audits` no_update/no_delete) and
+  `superseded_by` lineage — **confirmed applied to the live DB on
+  2026-10-24** (maintainer pg_policies check; legacy authenticated write
+  policies dropped, `is_admin()` search_path hardened, RLS enabled on all
+  public tables).
 - Warning lifecycle solid: scraper never deletes (upsert-only),
   `raw_text` immutable, status whitelist (active/cancelled/expired/
   superseded/unverified), mandatory audit on edits (refused if audit
@@ -52,14 +54,16 @@ tile rewrites. Confirmed on preview: `/api/admin/verify` returns 401 JSON.
 **Convention: always use explicit `.js` specifiers in any file reachable
 from `api/` functions.**
 
-### PR #30 (open, ready) — pipeline_runs ledger
+### PR #30 (merged 2026-10-24) — pipeline_runs ledger
 Adds `migrations/20261026_pipeline_runs.sql` (parent row per run + child
 per source, `parent_run_id`/`retry_of`, status running/succeeded/failed/
 partial, counts + stage_errors JSONB, RLS admin-only, no deletes), fail-open
 `src/lib/pipelineRunLedger.ts`, instrumentation in
 `api/scrape-navwarn.ts`, admin-guarded `GET /api/pipeline/runs`, and a
 Pipeline Run Ledger panel in `#/audit` (GenerationInspectorView.tsx).
-**Requires applying the 20261026 migration to live Supabase after merge.**
+**`20261026_pipeline_runs.sql` applied to live Supabase (maintainer
+confirmed 2026-10-24).** Next: trigger a scraper run and check the
+Pipeline Run Ledger panel in `#/audit`.
 
 ### PR #56 (merged) — Phase 1 SEO/a11y
 Public pages have zero `<img>` tags; the audit's "36 images" = 30 inline
@@ -122,17 +126,22 @@ deferred). Maintainer merged each himself after preview checks.
    path (statically `false`) and page-size options (route-state
    dependent) untouched.
 
-### PR #68 (this PR) — AGENTS.md + this file
+### PR #68 (merged 2026-10-25) — AGENTS.md + this file
 Standard-format agent guide at the repo root plus this knowledge appendix,
 so agents get conventions and history from the repository itself.
 
 ## 4. Roadmap & open threads (as of 2026-10-25)
 
 1. ~~Fix the two Vercel 500s~~ (done, PR #29)
-2. Confirm live DB protections: check `20261024` RLS migration applied
-   (pg_policies) — **still outstanding**
-3. PR #30 pipeline_runs ledger — **apply `20261026` migration after merge**
+2. ~~Confirm live DB protections~~ — `20261024` RLS migration **confirmed
+   applied** 2026-10-24 (pg_policies; zero authenticated write policies)
+3. ~~PR #30 pipeline_runs ledger~~ — merged 2026-10-24; `20261026`
+   migration applied. **Next: trigger a scraper run, check the run ledger
+   panel in `#/audit`.**
 4. Console UX audit issue 13 — deliberately deferred
 5. Post-deploy check: `/apple-touch-icon.png` 404 (deploy lag pattern)
-6. Hygiene: remove `/export/*` snapshots, fill GSC token, tame raw 502
-   error passthrough
+6. Hygiene: legacy `/export/*` snapshot routes removed (PR #35); GSC
+   placeholder + raw 502 passthrough wrapped (PR #37)
+7. Vercel Hobby deploy budget: 100 deploys/day — exceeded 2026-10-25
+   (`api-deployments-free-per-day`); batch pushes on busy days, treat a
+   red Vercel PR status as possibly the rate limit
