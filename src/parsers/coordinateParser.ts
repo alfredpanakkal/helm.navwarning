@@ -59,10 +59,19 @@ export function parseCoordinatesFull(rawText: string): CoordinateParseResult {
     });
   }
 
+  // Deduplicate: the deterministic engine often emits both a Circle and a Point
+  // geometry for the same center (e.g. rig sub-blocks emit Circle + center Point).
+  // Without dedup the same position would be reported twice and upstream
+  // disambiguation (e.g. 2 coords -> polyline) would misread single-position notices.
+  const deduped: NavWarnCoordinate[] = [];
+  for (const c of coordinates) {
+    if (!deduped.some(d => d.lat === c.lat && d.lng === c.lng)) deduped.push(c);
+  }
+
   const ambiguousText = (deterministicResult.ambiguous_positions || []).map(p => p.raw_text);
 
   return {
-    coordinates,
+    coordinates: deduped,
     repairsApplied: [],
     coordinateFormat: deterministicResult.data_quality || 'EXPLICIT',
     confidence: deterministicResult.data_quality === 'EXPLICIT' ? 'high' : deterministicResult.data_quality === 'INFERRED' ? 'medium' : 'low',
