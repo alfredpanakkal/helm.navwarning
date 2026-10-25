@@ -22,7 +22,8 @@ h2{font:var(--font-h2);margin:32px 0 12px}
 p{margin:0 0 14px;color:var(--text)}
 p.muted{color:var(--text-muted)}
 .disclaimer-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid #f59e0b;border-radius:var(--radius);padding:16px 18px;margin:12px 0 0}
-.disclaimer-box p{margin:0}
+.disclaimer-box p{margin:0 0 10px}
+.disclaimer-box p:last-child{margin:0}
 .page ul{margin:0 0 14px;padding-left:20px;color:var(--text)}
 .page li{margin:0 0 6px}
 .dev-links{margin-top:16px}
@@ -59,7 +60,9 @@ footer.site a{color:var(--text-muted)}
   <section>
     <h2>Important Safety Disclaimer</h2>
     <div class="disclaimer-box">
-      <p>This service is provided for situational awareness only. It is <strong>not</strong> a substitute for official Maritime Safety Information (MSI) broadcasts such as SafetyNET, NAVTEX, or national coast guard broadcasts. Vessel masters and navigators remain fully responsible for monitoring official sources as required by SOLAS.</p>
+      <p>Helm.Warning is a situational-awareness tool. It shows a convenience copy of NAVAREA and other maritime safety warnings gathered from public sources. It is not an official source of Maritime Safety Information.</p>
+      <p>The map can lag behind the original broadcasts, miss warnings, or show them incorrectly. Always check the official broadcast (NAVTEX, SafetyNET, or the issuing authority) before relying on any warning.</p>
+      <p>Official broadcasts and the Master's judgment take priority over anything shown here. Under SOLAS, responsibility for the safe navigation of the vessel stays with the Master. Helm.Warning must not be used as the sole or primary source for passage planning or navigation decisions.</p>
     </div>
   </section>
 
