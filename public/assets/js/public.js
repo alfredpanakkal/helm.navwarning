@@ -1488,7 +1488,7 @@ function plotWarning(w) {
           // Special offshore platform icon
           const rigIcon = L.divIcon({
             className: 'nw-rig-wrap',
-            html: `<div class="nw-rig-pin" title="${label}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2.2"><path d="M12 2L4 22h16L12 2z"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="6" y1="17" x2="18" y2="17"/></svg></div>`,
+            html: `<div class="nw-rig-pin" role="img" aria-label="${label}" title="${label}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2.2" aria-hidden="true" focusable="false"><path d="M12 2L4 22h16L12 2z"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="6" y1="17" x2="18" y2="17"/></svg></div>`,
             iconSize: [22, 22],
             iconAnchor: [11, 11]
           });
@@ -1765,7 +1765,7 @@ function rebuildMapList(items = null){
           <div class="warning-meta">${w.title}</div>
           <div class="warning-meta">${formatWarningDate(w)}</div>
         </div>
-        <svg class="warning-item-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        <svg class="warning-item-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"/></svg>
       </div>`;
     list.appendChild(item);
 
@@ -1864,14 +1864,14 @@ window.toggleMinimizeWarningList = function(){
     minBtn.title = !isMin ? 'Restore' : 'Minimize';
     minBtn.setAttribute('aria-label', !isMin ? 'Restore active warnings list' : 'Minimize active warnings list');
     minBtn.innerHTML = !isMin
-      ? '<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>'
-      : '<svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
   }
   const maxBtn = document.getElementById('btnMaxWarningList');
   if(maxBtn) {
     maxBtn.title = 'Maximize';
     maxBtn.setAttribute('aria-label', 'Maximize active warnings list');
-    maxBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+    maxBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
   }
 };
 
@@ -1885,15 +1885,15 @@ window.toggleMaximizeWarningList = function(){
   if(minBtn) {
     minBtn.title = 'Minimize';
     minBtn.setAttribute('aria-label', 'Minimize active warnings list');
-    minBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    minBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
   }
   const maxBtn = document.getElementById('btnMaxWarningList');
   if(maxBtn) {
     maxBtn.title = !isMax ? 'Restore' : 'Maximize';
     maxBtn.setAttribute('aria-label', !isMax ? 'Restore active warnings list size' : 'Maximize active warnings list');
     maxBtn.innerHTML = !isMax
-      ? '<svg viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
-      : '<svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
   }
 };
 
@@ -2162,7 +2162,7 @@ window.locateOnMapById = function(rawId){
     if (minBtn) {
       minBtn.title = 'Minimize';
       minBtn.setAttribute('aria-label', 'Minimize active warnings list');
-      minBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+      minBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
     }
   }
 
