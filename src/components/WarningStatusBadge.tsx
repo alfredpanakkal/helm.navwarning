@@ -2,7 +2,7 @@
 // Phase 6: Color-coded badge displaying a warning's in-force coverage state with tooltip
 
 import React from 'react';
-import { MapPin, FileText, AlertTriangle, XCircle } from 'lucide-react';
+import { MapPin, FileText, AlertTriangle, XCircle, HelpCircle } from 'lucide-react';
 import type { NavWarning } from '../types';
 import { computeWarningStatus, type InForceWarningStatus } from '../hooks/useInForceStatus';
 import { FEATURE_FLAGS } from '../lib/featureFlags';
@@ -54,6 +54,18 @@ const BADGE_CONFIGS: Record<InForceWarningStatus['status'], BadgeConfig> = {
   },
 };
 
+/**
+ * Safe fallback for undetermined or unknown statuses. Never render an unknown
+ * state in the most-trusted green — unknown means "review", not "in-force".
+ */
+const NEEDS_REVIEW_CONFIG: BadgeConfig = {
+  label: 'Needs Review',
+  shortLabel: 'Review',
+  tooltip: 'In-force status not determined - treat as unverified until reviewed',
+  containerClass: 'bg-amber-50 text-amber-800 border-amber-300 ring-amber-500/20',
+  icon: HelpCircle,
+};
+
 export const WarningStatusBadge: React.FC<WarningStatusBadgeProps> = ({
   status,
   warningStatus,
@@ -65,21 +77,25 @@ export const WarningStatusBadge: React.FC<WarningStatusBadgeProps> = ({
     return null;
   }
 
-  let effectiveStatus: InForceWarningStatus['status'] = 'held_with_geometry';
+  let effectiveStatus: InForceWarningStatus['status'] | string | null = null;
   if (warningStatus?.status) {
     effectiveStatus = warningStatus.status;
   } else if (status) {
-    effectiveStatus = status as InForceWarningStatus['status'];
+    effectiveStatus = status;
   } else if (warning) {
     effectiveStatus = computeWarningStatus(warning);
   }
-  const config = BADGE_CONFIGS[effectiveStatus] || BADGE_CONFIGS.held_with_geometry;
+  // Unknown or undetermined statuses fall back to the amber Needs Review pill
+  // instead of the green in-force config (safety: unknown is not "mapped").
+  const config =
+    (effectiveStatus && BADGE_CONFIGS[effectiveStatus as InForceWarningStatus['status']]) ||
+    NEEDS_REVIEW_CONFIG;
   const Icon = config.icon;
 
   return (
     <span
       data-testid="warning-status-badge"
-      data-status={effectiveStatus}
+      data-status={effectiveStatus || 'needs_review'}
       title={config.tooltip}
       className={`inline-flex items-center gap-1 font-mono font-bold uppercase rounded border transition-all cursor-help select-none ${
         compact ? 'px-1.5 py-0.5 text-[9px]' : 'px-2 py-0.5 text-[10px]'

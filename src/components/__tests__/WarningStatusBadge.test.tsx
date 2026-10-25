@@ -135,4 +135,30 @@ describe('WarningStatusBadge Component', () => {
     );
     expect(htmlVerified).toContain('Verified');
   });
+
+  it('renders the amber Needs Review fallback for unknown status strings, never green', () => {
+    const html = renderToString(
+      React.createElement(WarningStatusBadge, { status: 'some_future_status' })
+    );
+    expect(html).toContain('Needs Review');
+    expect(html).toContain('bg-amber-50');
+    expect(html).toContain('data-status="some_future_status"');
+    expect(html).not.toContain('In-Force: Mapped');
+    expect(html).not.toContain('bg-emerald-50');
+  });
+
+  it('renders Needs Review when no status can be derived at all', () => {
+    const html = renderToString(React.createElement(WarningStatusBadge, {}));
+    expect(html).toContain('Needs Review');
+    expect(html).toContain('data-status="needs_review"');
+    expect(html).not.toContain('bg-emerald-50');
+  });
+
+  it('keeps the compact short label for the Needs Review fallback', () => {
+    const html = renderToString(
+      React.createElement(WarningStatusBadge, { status: 'mystery', compact: true })
+    );
+    expect(html).toContain('>Review<');
+    expect(html).not.toContain('Needs Review');
+  });
 });
