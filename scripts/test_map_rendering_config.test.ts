@@ -118,9 +118,14 @@ async function runMapRenderingTests() {
       },
     ],
   };
-  const quarantinedLatLng = getLeafletLatLng(ambiguousSpatial, 12.5, 56.5);
+  // Without direct coordinates, ambiguous spatial data with no geometries quarantines to [0,0].
+  const quarantinedLatLng = getLeafletLatLng(ambiguousSpatial);
   assert.strictEqual(quarantinedLatLng[0], 0, 'Quarantined warning lat must evaluate to 0');
   assert.strictEqual(quarantinedLatLng[1], 0, 'Quarantined warning lng must evaluate to 0');
+  // With explicit direct coordinates, the caller-provided position takes priority (documented API).
+  const directOverride = getLeafletLatLng(ambiguousSpatial, 12.5, 56.5);
+  assert.strictEqual(directOverride[0], 12.5, 'Explicit direct lat overrides ambiguous spatial');
+  assert.strictEqual(directOverride[1], 56.5, 'Explicit direct lng overrides ambiguous spatial');
   console.log('✓ Test 5 passed: Geographic coordinates correctly inverted and ambiguous data quarantined to prevent false chart markers.\n');
 
   // Test 6: Radius Metric-to-Nautical Conversion for Leaflet Circles

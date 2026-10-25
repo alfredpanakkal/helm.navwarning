@@ -483,7 +483,12 @@ export function parseCoordinatesDeterministic(
 
   // Also check if text is a RIGLIST or offshore rig warning with multiple rigs
   const isRigWarning = /\b(?:RIGLIST|RIG\s+LIST|DRILLING\s+RIGS?|MOBILE\s+OIL\s+RIGS?|MODU|DRILLSHIP)\b/i.test(upperText);
-  if (isRigWarning && blockMatches.length < 2) {
+  // P0 safety: a rig under tow moving ALONG a track/route is NOT a stationary RIGLIST entry.
+  // Treating it as one collapses the track to its first vertex plus a default 500m circle
+  // and silently drops the remaining vertices (e.g. NAVAREA IV 877/24 tow track).
+  const isTowTrack = /\b(?:TOWING|UNDER\s+TOW|TOW\s+CONVOY)\b/i.test(upperText)
+    && /\b(?:ALONG\s+(?:TRACK|ROUTE|LINE)|TRACK\s+JOINING)\b/i.test(upperText);
+  if (isRigWarning && !isTowTrack && blockMatches.length < 2) {
     const rigLineRegex = /(?:^|\n)\s*(?:([A-Z0-9]+)\.\s+|NEW\s+)?([A-Z0-9 .&'-]+?)\s+(\d{1,3}[-°\s]+\d{1,2}(?:\.\d+)?[NS][\s,]+\d{1,3}[-°\s]+\d{1,2}(?:\.\d+)?[EW])/gi;
     let rigMatch: RegExpExecArray | null;
     while ((rigMatch = rigLineRegex.exec(sanitizedText)) !== null) {

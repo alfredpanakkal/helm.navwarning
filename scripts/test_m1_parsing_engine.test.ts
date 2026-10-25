@@ -73,7 +73,10 @@ MILITARY FIRING PRACTICE IN AREA BOUNDED BY:
 23-45.00N 058-40.00E`;
 const ix365Geom = extractGeometry(ix365Text);
 assert.strictEqual(ix365Geom.geometry.archetype, 'polygon');
-assert.strictEqual(ix365Geom.geometry.coordinates.length, 4);
+// 5 coordinates: 4 stated vertices + GeoJSON ring closure (first vertex repeated at the end).
+assert.strictEqual(ix365Geom.geometry.coordinates.length, 5);
+assert.strictEqual(ix365Geom.geometry.coordinates[4].lat, ix365Geom.geometry.coordinates[0].lat, 'Ring closure repeats the first vertex (lat)');
+assert.strictEqual(ix365Geom.geometry.coordinates[4].lng, ix365Geom.geometry.coordinates[0].lng, 'Ring closure repeats the first vertex (lng)');
 console.log('✓ IX 365 4-vertex polygon extracted.');
 
 // 6. Test Corridor archetype (IV 649, IV 877)
