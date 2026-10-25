@@ -139,6 +139,6 @@ causes; keep this file lean.
 - Keep-decisions (maintainer, 2026-10-24): Parser v3 files are unfinished
   but KEPT — wire in later, never delete; docs are Gemini-only (Mistral
   removed intentionally); single-file offline export intentionally gone.
-  Details in `docs/PROJECT_KNOWLEDGE.md` §5.
+  Details in `docs/PROJECT_KNOWLEDGE.md` §4 item 8.
 - Roadmap order is maintained in the maintainer's private notes; when in
   doubt, ask in the issue/PR rather than re-prioritizing unilaterally.
