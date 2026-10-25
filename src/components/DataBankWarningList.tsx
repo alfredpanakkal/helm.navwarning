@@ -366,7 +366,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={shiftPrevPage}
                 disabled={validPage === 1}
-                className="p-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary disabled:opacity-30"
+                aria-label="Previous page"
+                className="p-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                 title="Shift Previous Page"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
@@ -378,7 +379,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={shiftNextPage}
                 disabled={validPage === totalPages}
-                className="p-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary disabled:opacity-30"
+                aria-label="Next page"
+                className="p-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                 title="Shift Next Page"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -1071,7 +1073,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={shiftFirstPage}
                 disabled={validPage === 1}
-                className="p-1.5 rounded border border-gw-secondary bg-white text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                aria-label="First page"
+                className="p-1.5 rounded border border-gw-secondary bg-white text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                 title="Shift to First Page"
               >
                 <ChevronsLeft className="w-3.5 h-3.5" />
@@ -1128,7 +1131,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={shiftLastPage}
                 disabled={validPage === totalPages}
-                className="p-1.5 rounded border border-gw-secondary bg-white text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                aria-label="Last page"
+                className="p-1.5 rounded border border-gw-secondary bg-white text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                 title="Shift to Last Page"
               >
                 <ChevronsRight className="w-3.5 h-3.5" />

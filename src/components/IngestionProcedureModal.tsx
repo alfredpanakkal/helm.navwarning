@@ -227,7 +227,8 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-gw-accent hover:text-gw-primary rounded border border-transparent hover:border-gw-secondary transition-all"
+            aria-label="Close procedure modal"
+            className="p-1.5 text-gw-accent hover:text-gw-primary rounded border border-transparent hover:border-gw-secondary transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
             title="Close modal (Esc)"
           >
             <X className="w-5 h-5" />
@@ -621,7 +622,8 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                         <button
                           onClick={() => onTriggerRefresh(src.source_id)}
                           disabled={isRefreshing}
-                          className="p-1.5 bg-gw-bg text-gw-primary rounded border border-gw-secondary hover:border-gw-primary text-[10px] font-bold uppercase transition-all"
+                          className="p-1.5 bg-gw-bg text-gw-primary rounded border border-gw-secondary hover:border-gw-primary text-[10px] font-bold uppercase transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+                          aria-label={`Trigger fetch for ${src.source_id}`}
                           title={`Trigger fetch for ${src.source_id}`}
                         >
                           <RotateCw className="w-3.5 h-3.5" />

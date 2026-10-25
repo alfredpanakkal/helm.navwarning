@@ -104,7 +104,8 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 setSearchTerm('');
                 setCurrentPage(1);
               }}
-              className="text-xs text-slate-400 hover:text-slate-800 font-bold p-0.5"
+              aria-label="Clear search text"
+              className="text-xs text-slate-400 hover:text-slate-800 font-bold p-0.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
               title="Clear search text"
             >
               <X className="w-3.5 h-3.5" />

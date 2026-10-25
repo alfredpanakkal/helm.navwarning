@@ -341,7 +341,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
               <button type="button" onClick={() => applyView(v)} className="text-[10px] font-bold uppercase hover:text-gw-primary" title={`Apply view: NAVAREA=${v.navarea} status=${v.status} tier=${v.tier}`}>
                 {v.name}
               </button>
-              <button type="button" onClick={() => deleteView(v.name)} className="text-gw-accent hover:text-red-600" title="Delete saved view">
+              <button type="button" onClick={() => deleteView(v.name)} aria-label={`Delete saved view ${v.name}`} className="text-gw-accent hover:text-red-600 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary" title="Delete saved view">
                 <X className="w-3 h-3" />
               </button>
             </span>
@@ -472,7 +472,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
               <History className="w-4 h-4" />
               Audit history: {String((auditWarning as any).source_warning_id || auditWarning.warning_id)}
             </div>
-            <button type="button" onClick={() => setAuditWarning(null)} className="text-gw-accent hover:text-gw-primary">
+            <button type="button" onClick={() => setAuditWarning(null)} aria-label="Close audit history" className="text-gw-accent hover:text-gw-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary">
               <X className="w-4 h-4" />
             </button>
           </div>
