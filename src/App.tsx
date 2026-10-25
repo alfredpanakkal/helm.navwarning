@@ -651,6 +651,28 @@ export default function App() {
         <WarningDetailModal
           warning={selectedWarning}
           onClose={() => setSelectedWarning(null)}
+          onVerify={handleVerifyWarning}
+          onIsolateWarning={setIsolatedWarning}
+          isIsolated={
+            !!isolatedWarning && isolatedWarning.warning_id === selectedWarning.warning_id
+          }
+          onClearIsolation={() => setIsolatedWarning(null)}
+          hasPrevious={currentUnverifiedIndex > 0}
+          onPrevious={
+            currentUnverifiedIndex > 0
+              ? () => setSelectedWarning(unverifiedCandidates[currentUnverifiedIndex - 1])
+              : undefined
+          }
+          hasNext={
+            currentUnverifiedIndex >= 0 &&
+            currentUnverifiedIndex < unverifiedCandidates.length - 1
+          }
+          onNext={
+            currentUnverifiedIndex >= 0 &&
+            currentUnverifiedIndex < unverifiedCandidates.length - 1
+              ? () => setSelectedWarning(unverifiedCandidates[currentUnverifiedIndex + 1])
+              : undefined
+          }
         />
       )}
 
