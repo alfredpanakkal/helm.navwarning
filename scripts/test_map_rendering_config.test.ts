@@ -21,8 +21,9 @@ async function runMapRenderingTests() {
 
   // Test 2: Verify Base Layer Definitions & Endpoints
   console.log('Test 2: Base Tile Layers & Tile Server Configuration...');
-  assert.strictEqual(BASE_LAYERS.length, 5, 'Must have 5 configured base layers');
+  assert.strictEqual(BASE_LAYERS.length, 6, 'Must have 6 configured base layers (incl. openseamap-base)');
   const baseIds = BASE_LAYERS.map((b) => b.id);
+  assert.ok(baseIds.includes('openseamap-base'), 'OpenSeaMap base present');
   assert.ok(baseIds.includes('carto-voyager'), 'CARTO Voyager present');
   assert.ok(baseIds.includes('carto-dark'), 'CARTO Dark Matter present');
   assert.ok(baseIds.includes('carto-positron'), 'CARTO Positron present');
