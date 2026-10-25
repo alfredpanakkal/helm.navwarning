@@ -83,7 +83,8 @@ deliberately deferred** — check it is still open before re-planning it.
    message body.
 4. **Verify every push:** read the touched files back from the branch head
    and check they are byte-equal to the pushed content; scan for mojibake
-   (`/[ÃÂ]/`) if the toolchain re-encodes text.
+   (`/[\u00C3\u00C2]/` — U+00C3/U+00C2 in sequence) if the toolchain
+   re-encodes text.
 5. **Open a PR** (draft, then ready) against `main` with this body shape:
    Summary · Root cause (verified against live code) · Changes per commit ·
    Maintainer checklist · Preview test plan · Out of scope · Evidence trail
