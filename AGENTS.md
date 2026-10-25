@@ -38,6 +38,12 @@
   `verifyPending` in `WarningDetailModal.tsx`, `verifyingIds` in
   `DataBankWarningList.tsx`, `committedId` in `IngestionProcedureModal.tsx`).
   A double-click must never produce two audit rows.
+- **Never guess a coordinate hemisphere.** Ambiguous coordinates stay
+  flagged `AMBIGUOUS` for human review — the parser stamps rule-parsed
+  points `RULE_PARSED` (PR #42), never `VERIFIED`; only a human verifies.
+- **Never re-run migrations blindly.** Check pg_policies / migration
+  history first; do not migrate the backend wholesale — build on the
+  existing architecture.
 
 ## 3. Hard conventions
 
@@ -65,6 +71,13 @@ sort mode.
 Unknown/missing statuses render an amber NEEDS_REVIEW_CONFIG badge, never a
 green fallback. Empty-state copy only renders when data is actually loaded;
 skeletons (`LoadingSkeletonRows`, role="status") cover the initial fetch.
+
+### Serverless function budget (Vercel Hobby)
+The Hobby plan caps serverless functions at **12**; only `api/*.ts` files
+count. The three tile proxies (carto/osm/openseamap) were consolidated into
+one `/api/tiles` function when a 13th function broke deployment
+(PR #29-era fix). **Do not add a new `api/*.ts` file without consolidating
+an existing one or upgrading the plan.**
 
 ### Console UX audit series (PRs #62–#67, all merged)
 16-issue audit fixed in 6 PRs: routing/deep-links, loading truth, dialog &
@@ -118,7 +131,14 @@ causes; keep this file lean.
   build gate.
 - Post-deploy check: `https://helmwarning.vercel.app/apple-touch-icon.png`
   returned 404 shortly after PR #56 merge (deploy lag pattern; verify).
-- Hygiene: legacy `/export/*` snapshots publicly reachable (recommend
-  removal), GSC verification token placeholder in index.html.
+- Hygiene: legacy `/export/*` snapshot routes and GSC placeholder meta
+  were removed and raw 502 passthroughs wrapped (PRs #35–#37, 2026-10-24).
+  Remaining minor: raw Supabase error detail in some admin-only scrape
+  paths (intentional operational detail), CORS `*` on Bearer-only admin
+  APIs (cosmetic).
+- Keep-decisions (maintainer, 2026-10-24): Parser v3 files are unfinished
+  but KEPT — wire in later, never delete; docs are Gemini-only (Mistral
+  removed intentionally); single-file offline export intentionally gone.
+  Details in `docs/PROJECT_KNOWLEDGE.md` §5.
 - Roadmap order is maintained in the maintainer's private notes; when in
   doubt, ask in the issue/PR rather than re-prioritizing unilaterally.
