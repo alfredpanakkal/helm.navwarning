@@ -40,6 +40,7 @@ Helm.Warning is an automated pipeline, spatial geometry visualizer, and navigati
 - [Key Features](#-key-features)
   - [Public Portal (`/`)](#-public-portal-)
   - [Admin Console (`/admin`)](#-admin-console-admin)
+  - [Static Public Pages & SEO](#-static-public-pages--seo)
 - [Technology Stack](#-built-with-)
 - [Database Contract & Security](#-database-contract--security)
 - [Documentation Grid](#-documentation-grid)
@@ -105,6 +106,7 @@ flowchart TD
     subgraph PRESENTATION["5. Presentation Layer"]
         K & L --> M[View: nav_warnings_active_spatial<br/>Pre-computed GeoJSON Blob]
         M --> N[Public Portal: Leaflet Map & Data Bank<br/>Read-only anon client]
+        K --> P["Static SEO pages: /navarea/<RN>, /sources,<br/>warning details (prerendered per deploy)"]
         K & H --> O[Admin Console: Verification & Orchestrator<br/>Role-gated JWT authenticated]
     end
 
@@ -113,7 +115,7 @@ flowchart TD
     classDef warning fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#fff;
     classDef danger fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#fff;
 
-    class G,M,N success;
+    class G,M,N,P success;
     class H,O warning;
     class I danger;
     class J,K,L primary;
@@ -151,6 +153,17 @@ flowchart TD
 - **Legacy hash aliases keep resolving**: old deep links (`#/map`, `#/databank`, `#/sources`, `#/imports`, `#/audit`, …) redirect to their canonical sections.
 - **Role-Gated Supabase Authentication**: validates unalterable administrative JWT roles (`app_metadata.role`), verified server-side (`server/auth.ts`, fail-closed Bearer).
 - **Hardened Defense-in-Depth**: `X-Frame-Options: DENY`, `noindex, nofollow, noarchive` robots directives, and CSP policies on both `/admin` and `/console`.
+
+### 🧭 Static Public Pages & SEO
+
+Beyond the interactive map, Helm.Warning publishes a fully static, crawlable public surface — all generated from one config module (`scripts/navarea-pages/navareaConfig.mjs`) with no SSR framework and no new serverless functions:
+
+- **21 NAVAREA regional pages** (`/navarea/I` … `/navarea/XXI`): prerendered landing pages per region with region overview, official WWNWS coordinator details and a hydrated live in-force warning list (the existing anon Supabase read path). Invalid region IDs are genuine 404s.
+- **Source Registry** (`/sources`): one clickable card per NAVAREA region with its waters and area coordinator, linking to every regional page. Fully static — no hydration scripts, the whole registry is in the initial HTML.
+- **Warning detail pages** (`/navarea/<RN>/warning/<num>-<year>`): one static page per active warning carrying the **complete original bulletin text in the initial HTML**, plus region, status, validity, geometry tier and coordinator metadata. The slug derives from the warning's `canonical_id`, so `NA`/`NAVAREA` prefix variants resolve to the same URL.
+- **Per-deploy prerendering**: `npm run build` runs the generator (`scripts/navarea-pages/`) as its first step — it reads active warnings through the public anon Supabase REST endpoint (fail-open: a database error never breaks a deploy) and rewrites fresh detail pages on every deploy, deleting stale ones.
+- **No-404 shell fallback**: warnings ingested after the last deploy are served through the `/warning-shell` rewrite + client-side hydration (`noindex` until the next deploy prerenders them). The Vercel 12-function cap is respected — no new `api/**` functions.
+- **SEO plumbing**: `sitemap.xml` regenerated on every build (static routes + every active warning detail URL), robots and `X-Robots-Tag: noindex` hardening on `/admin` and `/console`, and canonical URL + OpenGraph + `BreadcrumbList` JSON-LD on all public pages.
 
 ## 🔧 Built With
 
@@ -286,6 +299,10 @@ CARTO_API_KEY=your-optional-carto-key
 <details>
 <summary><b>Click to expand recent milestones and engine updates</b></summary>
 <br/>
+
+### Phase 2 — Search-Friendly Public Surface (2026-10-25)
+- **Static public pages shipped**: 21 prerendered NAVAREA regional pages (`/navarea/I`…`/navarea/XXI`), the Source Registry hub (`/sources`), and one static page per active warning (`/navarea/<RN>/warning/<num>-<year>`) whose **complete original bulletin text ships in the initial HTML** — individual warnings are now crawlable, not just the region indexes.
+- **Crawl-safe freshness**: detail pages are prerendered on every deploy from the public anon Supabase read (fail-open; stale pages removed); warnings newer than the last deploy fall back to the `noindex` `/warning-shell` rewrite instead of 404ing, and `sitemap.xml` is regenerated per build with every active warning URL.
 
 ### Multi-Area, Multi-Sector & Offshore Rig Spatial Plotting Engine
 - **Polymorphic Spatial Layers**: Isolated Leaflet `LayerGroup` instances (`pointsLayer`, `polygonsLayer`, `circlesLayer`, `linesLayer`) with granular toggle checkboxes in the maritime overlays panel. Full support for `Polygon`, `MultiPolygon`, `LineString`, `MultiLineString`, and `Circle` geometries with auto-calculated geographic bounding boxes.
