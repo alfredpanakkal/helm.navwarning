@@ -27,6 +27,12 @@ export interface WarningEditPatch {
   valid_to?: string | null;
   /** Short NAVAREA id ('XI') — server performs supersede + recreate. */
   move_to_navarea?: string;
+  /** Optional lineage link (uuid or canonical_id) when superseding manually. */
+  superseded_by?: string;
+  /** Triaged-out reason (Tier C annotation); null clears it. */
+  unplotted_reason?: string | null;
+  /** Audited verification: writes a VERIFY row via the E1 endpoint. */
+  verify?: boolean;
   geometry?: WarningGeometryPatch[];
   /** Free-text reason stored on the audit row. */
   note?: string;

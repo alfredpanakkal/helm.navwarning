@@ -32,6 +32,7 @@ import {
   parseManualWarning,
   fetchArchivedWarnings,
 } from './services/api';
+import { saveWarningEdit } from './services/warningEditApi';
 import { parseCoordinatesDeterministic } from './utils/coordinateParser';
 import {
   fetchActiveSpatialRows,
@@ -313,19 +314,42 @@ export default function App() {
     setActiveTab(tab);
   };
 
-  const handleVerifyWarning = (warningId: string) => {
-    setWarnings((prev) =>
-      prev.map((w) =>
-        w.warning_id === warningId || w.source_warning_id === warningId
-          ? {
-              ...w,
-              status: 'active',
-              extraction_confidence: 1.0,
-              validation: { ...w.validation, geometry: 'passed' },
-            }
-          : w
-      )
-    );
+  const handleVerifyWarning = async (warningId: string) => {
+    const applyLocalVerified = () =>
+      setWarnings((prev) =>
+        prev.map((w) =>
+          w.warning_id === warningId || w.source_warning_id === warningId
+            ? {
+                ...w,
+                status: 'active',
+                extraction_confidence: 1.0,
+                validation: { ...w.validation, geometry: 'passed' },
+              }
+            : w
+        )
+      );
+
+    // Audited verification: Quick Verify goes through the admin-guarded E1
+    // endpoint (VERIFY audit row) whenever the warning exists server-side.
+    // Local-only warnings (offline / manual session) keep local-state behaviour.
+    const target = warnings.find((w) => w.warning_id === warningId || w.source_warning_id === warningId);
+    const uuid = target ? (target as any).db_uuid : undefined;
+    const canonical = target?.warning_id;
+    if (!uuid && !canonical) {
+      applyLocalVerified();
+      return;
+    }
+    try {
+      const res = await saveWarningEdit({
+        warningId: uuid || undefined,
+        canonicalId: canonical,
+        patch: { verify: true, note: 'Quick verify from Data Bank' },
+      });
+      if (res.ok) applyLocalVerified();
+      else console.warn('Audited verify failed - local state left unchanged:', res.error);
+    } catch (e) {
+      console.warn('Audited verify unreachable - local state left unchanged:', e);
+    }
   };
 
   const unverifiedCandidates = warnings.filter(

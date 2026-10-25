@@ -8,25 +8,11 @@ import {
   WarningEditResult,
 } from '../services/warningEditApi';
 import {
+  CATEGORY_OPTIONS, STATUS_OPTIONS, TIER_OPTIONS, QUALITY_OPTIONS, NAVAREA_OPTIONS,
+} from '../lib/adminContract';
+import {
   X, Save, Clock, Tag, LifeBuoy, Globe, AlertTriangle, CheckCircle2, History, Loader2,
 } from 'lucide-react';
-
-const CATEGORY_OPTIONS = [
-  { id: 'military', label: 'Military' },
-  { id: 'aton', label: 'AtoN' },
-  { id: 'subsea', label: 'Subsea' },
-  { id: 'drifting', label: 'Drifting' },
-  { id: 'offshore', label: 'Offshore' },
-  { id: 'electronic', label: 'Electronic' },
-  { id: 'general', label: 'General' },
-];
-const STATUS_OPTIONS = ['active', 'cancelled', 'expired', 'superseded', 'unverified'];
-const TIER_OPTIONS = ['A', 'B', 'C'];
-const QUALITY_OPTIONS = ['EXPLICIT', 'INFERRED', 'AMBIGUOUS', 'INVALID'];
-const NAVAREA_OPTIONS = [
-  'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII',
-  'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'Baltic',
-];
 
 type EditTab = 'classification' | 'time' | 'lifecycle' | 'geometry';
 
@@ -132,6 +118,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
   const [moveTarget, setMoveTarget] = useState('');
   const [geometryLayer, setGeometryLayer] = useState<EcdisIntermediateLayer | null>(null);
   const [includeGeometry, setIncludeGeometry] = useState(false);
+  const [unplottedReason, setUnplottedReason] = useState('');
 
   useEffect(() => {
     if (!warning) return;
@@ -145,6 +132,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
     setStatus(String(w.status || 'active').toLowerCase());
     setTier(String(w.triage_tier || 'B').toUpperCase());
     setQuality(String(w.data_quality || 'EXPLICIT').toUpperCase());
+    setUnplottedReason(String(w.unplotted_reason || ''));
     setNote('');
     setMoveTarget('');
     setTab('classification');
@@ -196,10 +184,32 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
     if (String(quality).toUpperCase() !== String(w.data_quality || '').toUpperCase() && patch.triage_tier === undefined) {
       patch.data_quality = quality;
     }
+    const currentUnplotted = ((w as any).unplotted_reason as string | null) || null;
+    const nextUnplotted = unplottedReason.trim() ? unplottedReason.trim().slice(0, 500) : null;
+    if (nextUnplotted !== currentUnplotted) patch.unplotted_reason = nextUnplotted;
     if (moveTarget) patch.move_to_navarea = moveTarget;
     if (includeGeometry && geometryLayer) patch.geometry = layerToGeometryPatches(geometryLayer);
     if (note.trim()) patch.note = note.trim();
     return patch;
+  };
+
+  const handleVerify = async () => {
+    setSaving(true);
+    setResult(null);
+    setConflict(null);
+    const res = await saveWarningEdit({
+      warningId: identity.uuid || undefined,
+      canonicalId: identity.canonical !== '—' ? identity.canonical : undefined,
+      expectedUpdatedAt: identity.updatedAt,
+      patch: { verify: true, ...(note.trim() ? { note: note.trim() } : {}) },
+    });
+    setSaving(false);
+    if (res.ok) {
+      onSaved(res, warning);
+      return;
+    }
+    setResult(res);
+    if (res.status === 409 && res.conflict) setConflict(res.conflict);
   };
 
   const handleSave = async () => {
@@ -368,6 +378,16 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
               <div className="text-[11px] text-gray-500 bg-amber-50 border border-amber-300 rounded p-2">
                 Tier A invariants: geometry required, EXPLICIT quality, not superseded. The server enforces them and rejects the edit otherwise.
               </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-1">Unplotted reason (Tier C annotation)</label>
+                <textarea
+                  className={inputCls + ' min-h-[60px]'}
+                  value={unplottedReason}
+                  onChange={(e) => setUnplottedReason(e.target.value)}
+                  maxLength={500}
+                  placeholder="Why this warning cannot be plotted. Kept on the record for Tier C; must be cleared (with geometry supplied) for Tier A."
+                />
+              </div>
               <div className="border-t border-gw-secondary pt-3">
                 <label className="block text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
                   <History className="w-3.5 h-3.5" /> Move to another NAVAREA (supersede + recreate)
@@ -450,6 +470,16 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
             onChange={(e) => setNote(e.target.value)}
             maxLength={500}
           />
+          <button
+            type="button"
+            onClick={handleVerify}
+            disabled={saving}
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Record an audited VERIFY action (writes a nav_warning_audits row)"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Verify</span>
+          </button>
           <button
             type="button"
             onClick={handleSave}

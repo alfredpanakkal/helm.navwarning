@@ -21,11 +21,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseClient } from '../../src/lib/supabaseServer.js';
 import { verifyAdminRequest } from '../../server/auth.js';
+import { ALLOWED_STATUS, ALLOWED_QUALITY, ALLOWED_TIERS, ALLOWED_CATEGORIES } from '../../src/lib/adminContract.js';
 
-const ALLOWED_STATUS = ['active', 'cancelled', 'expired', 'superseded', 'unverified'];
-const ALLOWED_QUALITY = ['EXPLICIT', 'INFERRED', 'AMBIGUOUS', 'INVALID'];
-const ALLOWED_TIERS = ['A', 'B', 'C'];
-const ALLOWED_CATEGORIES = ['military', 'aton', 'subsea', 'drifting', 'offshore', 'electronic', 'general'];
+
 
 interface GeometryPatch {
   feature_type?: string;
@@ -45,6 +43,12 @@ interface WarningEditPatch {
   valid_from?: string | null;
   valid_to?: string | null;
   move_to_navarea?: string;
+  /** Optional lineage link (uuid or canonical_id) when an operator supersedes manually. */
+  superseded_by?: string;
+  /** Triaged-out reason (Tier C annotation); null or "" clears it. */
+  unplotted_reason?: string | null;
+  /** Record an audited VERIFY action (no field changes required). */
+  verify?: boolean;
   geometry?: GeometryPatch[];
   note?: string;
 }
@@ -220,6 +224,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const q = String(patch.data_quality).toUpperCase();
       if (!ALLOWED_QUALITY.includes(q)) errors.push('data_quality must be one of ' + ALLOWED_QUALITY.join('|'));
       else update.data_quality = q;
+    }
+    if (patch.unplotted_reason !== undefined) {
+      update.unplotted_reason =
+        patch.unplotted_reason === null || String(patch.unplotted_reason).trim() === ''
+          ? null
+          : String(patch.unplotted_reason).trim().slice(0, 500);
+    }
+    if (patch.superseded_by !== undefined) {
+      const resultingStatus = String(update.status !== undefined ? update.status : current.status || '').toLowerCase();
+      if (resultingStatus !== 'superseded') {
+        errors.push('superseded_by can only be set together with status = superseded');
+      } else {
+        const targetId = String(patch.superseded_by).trim();
+        const isTargetUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
+        const { data: target }: any = await client
+          .from('nav_warnings')
+          .select('id')
+          .eq(isTargetUuid ? 'id' : 'canonical_id', targetId)
+          .maybeSingle();
+        if (!target) errors.push('superseded_by does not match any warning (uuid or canonical_id).');
+        else if (target.id === current.id) errors.push('superseded_by cannot point at the warning itself.');
+        else update.superseded_by = target.id;
+      }
     }
     for (const field of ['issued_at', 'valid_from', 'valid_to'] as const) {
       const v = (patch as any)[field];
@@ -401,7 +428,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ── 7. Apply the field-level update ──
-    update.qa_flags = Array.from(new Set([...(current.qa_flags || []), 'edited_by_admin']));
+    update.qa_flags = Array.from(new Set([
+      ...(current.qa_flags || []),
+      patch.verify ? 'verified_by_admin' : 'edited_by_admin',
+    ]));
     if (geometryRows !== null && geometryRows.length > 0 && resultingTier === 'A') {
       update.unplotted_reason = null;
     }
@@ -440,8 +470,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── 9. Audit (mandatory) ──
     const auditStatus = await writeAuditRow(
-      client, current.id, operatorEmail, 'EDIT',
-      patch.note || 'Admin edit (geometry ' + geometryStatus + ')',
+      client, current.id, operatorEmail, patch.verify ? 'VERIFY' : 'EDIT',
+      patch.note || (patch.verify ? 'Admin verification (audited Verify action)' : 'Admin edit (geometry ' + geometryStatus + ')'),
       String(current.triage_tier || 'B'), String(updated.triage_tier || 'B'),
       { ...update, geometry: geometryStatus }
     );
