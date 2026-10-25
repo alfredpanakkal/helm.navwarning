@@ -49,8 +49,8 @@ input:focus{outline:none;border-color:var(--text-muted)}
   </div>
 </div>
 
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/assets/js/supabase.js"></script>
+<script defer src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script defer src="/assets/js/supabase.js"></script>
 <script>
 'use strict';
 
@@ -115,7 +115,7 @@ async function handleLogin(event) {
   }
 }
 
-checkExistingSession();
+window.addEventListener('DOMContentLoaded', checkExistingSession);
 </script>
 </body>
 </html>
