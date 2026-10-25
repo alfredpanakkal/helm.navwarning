@@ -10,6 +10,7 @@
 <meta name="robots" content="index, follow, max-image-preview:large">
 
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link rel="manifest" href="/manifest.json">
 
 <!-- OpenGraph Social Metadata -->
@@ -85,7 +86,7 @@
 }
 </script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="/assets/css/tokens.css">
 <link rel="stylesheet" href="/assets/css/components.css">
 <style>
@@ -967,9 +968,9 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 </div>
 
 <!-- Data & Logic Scripts -->
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/assets/js/supabase.js"></script>
-<script src="/assets/js/public.js"></script>
+<script defer src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script defer src="/assets/js/supabase.js"></script>
+<script defer src="/assets/js/public.js"></script>
 <script>
 /* SOLAS notice: auto-hide after 8s; close button hides immediately. Shows once per page load. */
 (function(){

@@ -311,9 +311,23 @@ async function fetchActiveWarnings() {
   if (window.hwSupabase) {
     // 1. Prioritize pre-calculated PostGIS dynamic spatial view (active + Tier A)
     try {
-      const { data: spatialData, error: spatialErr } = await window.hwSupabase
+      // Performance: both queries run in parallel. The spatial view is read with
+      // an explicit light column list (the browser only consumes geojson_blob —
+      // geom_postgis EWKB blobs and altitude fields were pure transfer waste),
+      // and the master-table raw_text/issued_at hydration no longer waits for
+      // the view's ids first — previously this was a second sequential
+      // round-trip that delayed the first map render.
+      const spatialQuery = window.hwSupabase
         .from('nav_warnings_active_spatial')
-        .select('*');
+        .select('warning_id, canonical_id, navarea, title, area_text, categories, status, triage_tier, data_quality, valid_from, valid_to, radio_frequencies, space_launch_mission, geom_id, zone_label, feature_type, buffer_nm, corridor_half_width_nm, geojson_blob');
+      const textQuery = window.hwSupabase
+        .from('nav_warnings')
+        .select('id, raw_text, issued_at')
+        .eq('status', 'active');
+      const [spatialRes, textRes] = await Promise.all([spatialQuery, textQuery]);
+      const spatialData = spatialRes.data;
+      const spatialErr = spatialRes.error;
+      const textRows = (textRes && Array.isArray(textRes.data)) ? textRes.data : [];
 
       if (!spatialErr && Array.isArray(spatialData) && spatialData.length > 0) {
         // Group geometries by canonical_id to prevent multi-row fragmentation
@@ -366,27 +380,20 @@ async function fetchActiveWarnings() {
           }
         }
 
-        // Secondary lookup for full original raw_text from nav_warnings master
-        const idsToFetch = Array.from(new Set(Array.from(warningMap.values()).map(w => w.id).filter(Boolean)));
-        if (idsToFetch.length > 0) {
+        // Merge raw_text / issued_at from the parallel master-table query
+        // (keyed by uuid). Non-fatal on failure — entries simply stay lighter.
+        if (textRows.length > 0) {
           try {
-            const { data: textRows } = await window.hwSupabase
-              .from('nav_warnings')
-              .select('id, raw_text, issued_at')
-              .in('id', idsToFetch.slice(0, 200));
-
-            if (textRows && Array.isArray(textRows)) {
-              const textMap = new Map(textRows.map(t => [t.id, t]));
-              for (const entry of warningMap.values()) {
-                const tr = textMap.get(entry.id);
-                if (tr) {
-                  entry.raw_text = tr.raw_text || '';
-                  entry.bulletin = tr.raw_text || '';
-                  entry.text = tr.raw_text || '';
-                  entry.issued_at = tr.issued_at || null;
-                  entry.issued_date = tr.issued_at ? String(tr.issued_at).slice(0, 10) : null;
-                  entry.issued_text = tr.issued_at || null;
-                }
+            const textMap = new Map(textRows.map(t => [t.id, t]));
+            for (const entry of warningMap.values()) {
+              const tr = textMap.get(entry.id);
+              if (tr) {
+                entry.raw_text = tr.raw_text || '';
+                entry.bulletin = tr.raw_text || '';
+                entry.text = tr.raw_text || '';
+                entry.issued_at = tr.issued_at || null;
+                entry.issued_date = tr.issued_at ? String(tr.issued_at).slice(0, 10) : null;
+                entry.issued_text = tr.issued_at || null;
               }
             }
           } catch (textEx) {
