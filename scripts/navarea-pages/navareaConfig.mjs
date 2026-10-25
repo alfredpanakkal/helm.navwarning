@@ -216,11 +216,108 @@ export function buildPageHtml(r) {
   return lines.join('\n');
 }
 
-// Regenerates public/sitemap.xml: homepage + about + the 21 regional pages.
+// Regenerates public/sitemap.xml: homepage + about + the source registry +
+// the 21 regional pages.
+// Prerendered public source-registry hub (/sources): one clickable card per
+// NAVAREA region linking to its regional page, with the region's waters and
+// official WWNWS area coordinator. Fully static - no client-side hydration,
+// so the whole registry is crawlable in the initial HTML.
+export function buildSourcesPageHtml() {
+  const url = SITE_URL + '/sources';
+  const title = 'NAVAREA Source Registry | Helm.Warning';
+  const description = 'The 21 NAVAREA regions of the World-Wide Navigational Warning Service (WWNWS) and their official area coordinators. Open any region for its live in-force navigational warnings and original bulletins.';
+  const jsonLd = '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[' +
+    '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/"},' +
+    '{"@type":"ListItem","position":2,"name":"Source Registry","item":"' + url + '"}]}';
+  const cards = NAVAREA_REGIONS.map(function (x) {
+    return '      <li><a class="source-card" href="' + canonicalPath(x.id) + '">' +
+      '<span class="source-id">NAVAREA ' + x.id + '</span>' +
+      '<span class="source-label">' + x.shortLabel + '</span>' +
+      '<span class="source-waters">Covers ' + x.waters + '.</span>' +
+      '<span class="source-authority">Coordinator: ' + x.authority + '</span>' +
+      '</a></li>';
+  }).join('\n');
+  const sourceCss = [
+    '.source-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;padding:0;list-style:none;margin:0 0 14px}',
+    '.source-card{display:block;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;text-decoration:none;min-height:var(--touch-min)}',
+    '.source-card:hover{border-color:var(--text-light)}',
+    '.source-id{display:block;font-weight:700;color:var(--text)}',
+    '.source-label{display:block;font-weight:600;font-size:13.5px;color:var(--text)}',
+    '.source-waters{display:block;font-size:12.5px;color:var(--text-muted);margin-top:6px}',
+    '.source-authority{display:block;font-size:12.5px;color:var(--text-light);margin-top:4px}'
+  ].join('');
+  const lines = [
+    '<!DOCTYPE html>',
+    '<html lang="en">',
+    '<head>',
+    '<meta charset="UTF-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">',
+    '<meta name="theme-color" content="#0f172a">',
+    '<title>' + title + '</title>',
+    '<meta name="description" content="' + description + '">',
+    '<link rel="canonical" href="' + url + '">',
+    '<meta name="robots" content="index, follow">',
+    '<link rel="icon" type="image/svg+xml" href="/favicon.svg">',
+    '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">',
+    '<meta property="og:type" content="website">',
+    '<meta property="og:site_name" content="Helm.Warning">',
+    '<meta property="og:title" content="' + title + '">',
+    '<meta property="og:description" content="' + description + '">',
+    '<meta property="og:url" content="' + url + '">',
+    '<meta property="og:image" content="' + SITE_URL + '/og-preview.png">',
+    '<meta name="twitter:card" content="summary_large_image">',
+    '<meta name="twitter:title" content="' + title + '">',
+    '<meta name="twitter:description" content="' + description + '">',
+    '<script type="application/ld+json">' + jsonLd + '</' + 'script>',
+    '<link rel="stylesheet" href="/assets/css/tokens.css">',
+    '<style>' + PAGE_CSS + sourceCss + '</style>',
+    '</head>',
+    '<body>',
+    '<header class="site-header">',
+    '  <div class="inner">',
+    '    <a href="/" class="logo"><span class="logo-badge" aria-hidden="true">HW</span><span>Helm.Warning</span></a>',
+    '  </div>',
+    '</header>',
+    '',
+    '<main class="page">',
+    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <span>Source Registry</span></nav>',
+    '  <h1>NAVAREA Source Registry</h1>',
+    '  <p class="lead">Helm.Warning tracks navigational warnings for the 21 NAVAREA ocean regions of the World-Wide Navigational Warning Service (WWNWS), run jointly by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO). Every region has one designated area coordinator &mdash; a national hydrographic office or maritime authority &mdash; responsible for issuing, updating and cancelling its warnings. Select any region below to open its regional page with the live in-force warnings and the original bulletins.</p>',
+    '  <p class="overview">Regions: <strong>21</strong> &middot; Coverage: global, including the Arctic &middot; Feeds: verified official coordinator broadcasts</p>',
+    '',
+    '  <section>',
+    '    <h2>The 21 NAVAREA regions</h2>',
+    '    <ul class="source-grid">',
+    cards,
+    '    </ul>',
+    '  </section>',
+    '',
+    '  <section>',
+    '    <h2>About this registry</h2>',
+    '    <p>Helm.Warning ingests each region from verified official coordinator feeds and plots the parsed warnings on the <a href="/">live map</a>. Where no plain-text feed is available for a region, its warnings are entered through the reviewed admin pipeline rather than an unofficial source &mdash; coverage for a region therefore reflects what the coordinator actually broadcasts.</p>',
+    '    <p>Helm.Warning is a convenience copy of these broadcasts, not an official source of Maritime Safety Information. Always verify against official channels (NAVTEX, Inmarsat SafetyNET) as required by SOLAS &mdash; see the <a href="/about">about and disclaimer</a> page for the full safety notice.</p>',
+    '  </section>',
+    '',
+    '  <p class="disclaimer-box">Situational awareness only. Not a substitute for GMDSS, NAVTEX or SafetyNET broadcasts. Official broadcasts and the Master&rsquo;s judgment always take priority.</p>',
+    '</main>',
+    '',
+    '<footer class="site">',
+    '  <p>Helm.Warning &mdash; NAVAREA Maritime Safety Information Pipeline</p>',
+    '  <p><a href="/">Live warnings map</a> &middot; <a href="/about">About &amp; Disclaimer</a></p>',
+    '</footer>',
+    '',
+    '</body>',
+    '</html>'
+  ];
+  return lines.join('\n');
+}
+
+
 export function buildSitemapXml(todayIso) {
   const entries = [
     { loc: SITE_URL + '/', freq: 'daily', priority: '1.0' },
-    { loc: SITE_URL + '/about', freq: 'monthly', priority: '0.6' }
+    { loc: SITE_URL + '/about', freq: 'monthly', priority: '0.6' },
+    { loc: SITE_URL + '/sources', freq: 'monthly', priority: '0.7' }
   ];
   for (const r of NAVAREA_REGIONS) {
     entries.push({ loc: SITE_URL + canonicalPath(r.id), freq: 'daily', priority: '0.8' });
