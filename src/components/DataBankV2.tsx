@@ -33,7 +33,7 @@ export const DataBankV2: React.FC<DataBankProps> = ({
   const model = useDataBankModel({ warnings, archivedWarnings, initialStatusFilter, initialNavAreaFilter, routeState, onRouteStateChange });
 
   return (
-    <div data-databank-v2 className="flex flex-col gap-3 font-ui max-w-[1600px] mx-auto p-3 sm:p-4 md:p-6 w-full">
+    <div data-databank-v2 className="flex flex-col gap-3 font-ui max-w-[1600px] mx-auto p-2 sm:p-2 md:p-3 w-full">
       {/* Page Header matching index.html */}
       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
         <div className="flex items-baseline gap-2.5">
