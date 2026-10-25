@@ -117,7 +117,7 @@ describe('Warning detail pages', () => {
   it('derives warning slugs from canonical_id regardless of prefix', () => {
     expect(warningSlug('NAVAREA XI 0451/26')).toBe('0451-26');
     expect(warningSlug('NA IV 123/26')).toBe('123-26');
-    expect(warningSlug('navarea xix 0648/26')).toBeNull(); // only exact <num>/<year> tails
+    expect(warningSlug('navarea xix 0648/26')).toBe('0648-26'); // prefix case does not matter
     expect(warningSlug('garbage')).toBeNull();
     expect(warningSlug(null)).toBeNull();
   });
