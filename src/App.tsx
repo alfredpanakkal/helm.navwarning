@@ -244,42 +244,49 @@ export default function App() {
       ]);
 
       if (apiSources && apiSources.length > 0) setSources(apiSources);
-      let hydrated: NavWarning[] = apiWarnings || [];
 
-      // Hydrate real geometry from the nav_warnings_active_spatial view (Tier A + active).
-      // Falls back silently to the raw-text regex geometry if the view is unreachable/empty.
-      try {
-        const spatialRows = await fetchActiveSpatialRows();
-        if (spatialRows.length > 0) {
-          const grouped = groupSpatialRowsByCanonicalId(spatialRows);
-          const groupedByCanonical = new Map(grouped.map((g) => [g.canonical_id, g]));
-          hydrated = hydrated.map((w) => {
-            const g = groupedByCanonical.get(w.warning_id);
-            if (!g || !g._geometries || g._geometries.length === 0) return w;
-            // geojsonBlobToGeometry guarantees { type, coordinates } GeoJSON shapes;
-            // cast to the NavWarning SpatialGeometry contract.
-            const geometries = g._geometries as unknown as NavWarning['spatial']['geometries'];
-            return {
-              ...w,
-              spatial: {
-                geometries,
-                circles: [],
-                raw_coordinate_text: [],
-                validation_status: 'passed' as const,
-              },
-            };
-          });
-        }
-      } catch (e) {
-        console.warn('Spatial view hydration unavailable:', e);
-      }
-
-      setWarnings(hydrated);
+      // First paint: publish the light nav_warnings list immediately so the
+      // Data Bank renders before the (heaviest) spatial view query resolves.
+      setWarnings(apiWarnings || []);
       setArchivedWarnings(apiArchived || []);
       setGenerations(apiGens || []);
       setArtifacts(apiArts || []);
-
       setIsOfflineMode(false);
+
+      // Hydrate real geometry from the nav_warnings_active_spatial view (Tier A + active).
+      // Falls back silently to the raw-text regex geometry if the view is unreachable/empty.
+      // Fired without await so it never blocks the list render above; the
+      // functional setWarnings patch only touches rows still present in
+      // current state, so it cannot clobber a newer realtime reload.
+      void (async () => {
+        try {
+          const spatialRows = await fetchActiveSpatialRows();
+          if (spatialRows.length > 0) {
+            const grouped = groupSpatialRowsByCanonicalId(spatialRows);
+            const groupedByCanonical = new Map(grouped.map((g) => [g.canonical_id, g]));
+            setWarnings((prev) =>
+              prev.map((w) => {
+                const g = groupedByCanonical.get(w.warning_id);
+                if (!g || !g._geometries || g._geometries.length === 0) return w;
+                // geojsonBlobToGeometry guarantees { type, coordinates } GeoJSON shapes;
+                // cast to the NavWarning SpatialGeometry contract.
+                const geometries = g._geometries as unknown as NavWarning['spatial']['geometries'];
+                return {
+                  ...w,
+                  spatial: {
+                    geometries,
+                    circles: [],
+                    raw_coordinate_text: [],
+                    validation_status: 'passed' as const,
+                  },
+                };
+              })
+            );
+          }
+        } catch (e) {
+          console.warn('Spatial view hydration unavailable:', e);
+        }
+      })();
     } catch (err: any) {
       console.warn('Backend API offline, using local state:', err);
       setIsOfflineMode(true);
