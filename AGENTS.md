@@ -96,6 +96,14 @@ deliberately deferred** — check it is still open before re-planning it.
    (any PNG, 0x89 signature) get UTF-8 double-encoded and corrupt. The
    maintainer uploads binaries manually (see apple-touch-icon, PR #56).
 
+## 6. Project knowledge & change history
+
+Full durable knowledge — architecture facts, verified security/lifecycle
+state, per-PR root causes (PRs #29, #30, #56, #62–#67), and the active
+roadmap — lives in [`docs/PROJECT_KNOWLEDGE.md`](docs/PROJECT_KNOWLEDGE.md).
+Keep it updated when merging PRs that change conventions or fix root
+causes; keep this file lean.
+
 ## 5. Open threads (as of 2026-10-25)
 
 - Console UX audit issue 13 — deliberately deferred.
