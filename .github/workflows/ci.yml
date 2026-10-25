@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   verify-applet:
     name: Verify Node & TypeScript Build
@@ -24,13 +28,30 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Typecheck TypeScript
-        run: npx tsc --noEmit
+        run: |
+          set -o pipefail
+          npx tsc --noEmit 2>&1 | tee /tmp/tsc.log
 
       - name: Run P0 Safety Regression Tests (vitest)
-        run: npm test
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee /tmp/vitest.log
 
       - name: Build Applet Bundle
         run: npx vite build
+
+      - name: Report failure logs to PR
+        if: failure()
+        run: |
+          LOG=$(cat /tmp/tsc.log /tmp/vitest.log 2>/dev/null | tail -c 12000)
+          PAYLOAD=$(jq -Rs "{body: (\"CI failure output (last 12KB)\\n\\n~~~\\n\" + . + \"\\n~~~\n")}" <<< "$LOG")
+          curl -s -f -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/alfredpanakkal/helm.navwarning/issues/47/comments" \
+            -d "$PAYLOAD"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   verify-scrapling:
     name: Verify Scrapling Ingestion Engine
