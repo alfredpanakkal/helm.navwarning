@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>About Helm.Warning | Live NAVAREA Warnings Map &amp; Maritime Safety Information</title>
+<meta name="description" content="What Helm.Warning is, where its NAVAREA warning data comes from, and the safety disclaimer: for situational awareness only — not a substitute for official Maritime Safety Information (MSI).">
+<link rel="canonical" href="https://helmwarning.vercel.app/about">
+<meta name="robots" content="index, follow">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<style>
+body{margin:0;background:var(--bg);color:var(--text);font:400 15px/1.65 system-ui,-apple-system,sans-serif}
+.site-header{background:var(--surface-dark);border-bottom:1px solid var(--border)}
+.site-header .inner{max-width:760px;margin:0 auto;padding:14px 20px}
+.logo{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-weight:600;font-size:16px}
+.logo-badge{width:28px;height:28px;border-radius:7px;background:var(--verified);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.page{max-width:760px;margin:0 auto;padding:32px 20px 48px}
+h1{font:var(--font-h1);margin:0 0 20px}
+h2{font:var(--font-h2);margin:32px 0 12px}
+p{margin:0 0 14px;color:var(--text)}
+p.muted{color:var(--text-muted)}
+.disclaimer-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid #f59e0b;border-radius:var(--radius);padding:16px 18px;margin:12px 0 0}
+.disclaimer-box p{margin:0}
+.backlink{display:inline-flex;align-items:center;gap:8px;margin-top:32px;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);text-decoration:none;font-weight:500;min-height:var(--touch-min)}
+.backlink:hover{border-color:var(--text-light)}
+footer.site{background:var(--surface);border-top:1px solid var(--border);padding:20px;text-align:center;font-size:12.5px;color:var(--text-light);padding-bottom:calc(20px + var(--safe-bottom))}
+footer.site p{margin:0 0 6px;color:var(--text-light)}
+footer.site p:last-child{margin:0}
+footer.site a{color:var(--text-muted)}
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="inner">
+    <a href="/" class="logo"><span class="logo-badge" aria-hidden="true">HW</span><span>Helm.Warning</span></a>
+  </div>
+</header>
+
+<main class="page">
+  <h1>About Helm.Warning</h1>
+
+  <section>
+    <h2>What is Helm.Warning?</h2>
+    <p>Helm.Warning is a free interactive map that displays live NAVAREA navigational warnings to support maritime situational awareness and passage planning. Active warnings are plotted on nautical charts with danger areas, safety zones, and hazard points — no login or account required.</p>
+  </section>
+
+  <section>
+    <h2>Data Sources</h2>
+    <p>Warnings are aggregated from official NAVAREA coordinators operating under the World-Wide Navigational Warning Service (WWNWS), jointly coordinated by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO). Coverage spans all 21 NAVAREA regions worldwide, including the five Arctic areas (XVII–XXI). Data is refreshed daily from verified hydrographic authority feeds such as the UKHO, NGA, SHOM, AMSA, and the Japan Coast Guard.</p>
+  </section>
+
+  <section>
+    <h2>Important Safety Disclaimer</h2>
+    <div class="disclaimer-box">
+      <p>This service is provided for situational awareness only. It is <strong>not</strong> a substitute for official Maritime Safety Information (MSI) broadcasts such as SafetyNET, NAVTEX, or national coast guard broadcasts. Vessel masters and navigators remain fully responsible for monitoring official sources as required by SOLAS.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Contact</h2>
+    <p class="muted">For feedback, corrections, or issues with this service, contact the Helm.Warning project team.</p>
+  </section>
+
+  <a class="backlink" href="/" aria-label="Back to the live NAVAREA warnings map">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Back to the live map
+  </a>
+</main>
+
+<footer class="site">
+  <p>Helm.Warning — NAVAREA Maritime Safety Information Pipeline</p>
+  <p>For situational awareness only. Not a substitute for official MSI (SafetyNET, NAVTEX). Always verify with official channels as required by SOLAS. <a href="/">Live warnings map</a></p>
+</footer>
+</body>
+</html>
