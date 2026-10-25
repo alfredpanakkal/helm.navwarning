@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { NavWarning, EcdisIntermediateLayer, EcdisPointFeature, GeometryIntent } from '../types';
 import { EcdisFeatureEditor } from './EcdisFeatureEditor';
 import {
@@ -143,13 +143,26 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
     setIncludeGeometry(false);
   }, [warning]);
 
+  // Safe dismissal: Escape/X/Cancel must never discard a filled form or
+  // tear the modal down while an audited write is in flight. requestClose
+  // reads live state through a ref so the keydown listener never holds a
+  // stale closure over the form fields.
+  const requestCloseRef = useRef<() => void>(() => {});
+  const requestClose = () => {
+    if (saving) return;
+    const dirty = Object.keys(buildPatch()).length > 0;
+    if (dirty && !window.confirm('Discard unsaved changes to this warning?')) return;
+    onClose();
+  };
+  requestCloseRef.current = requestClose;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') requestCloseRef.current();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, []);
 
   const identity = useMemo(() => {
     const w = (warning || {}) as any;
@@ -269,7 +282,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
             <span className="font-bold text-sm uppercase tracking-wider">Edit Warning</span>
             <span className="text-xs opacity-80 font-mono ml-2">{identity.canonical}</span>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded hover:bg-black/10 transition-colors" title="Close (Esc)">
+          <button onClick={requestClose} className="p-1.5 rounded hover:bg-black/10 transition-colors" title="Close (Esc)">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -491,7 +504,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
           </button>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             className="px-4 py-2 bg-white border border-gw-secondary text-gw-primary font-bold text-xs uppercase tracking-wider rounded hover:bg-gw-bg transition-colors"
           >
             Cancel

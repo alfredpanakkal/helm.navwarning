@@ -92,13 +92,15 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      // Escape stays inert while a pipeline fetch is in flight: closing would
+      // hide the run's error surface mid-write. Close button stays deliberate.
+      if (e.key === 'Escape' && !isRefreshing) onClose();
     };
     if (isOpen) {
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, isRefreshing]);
 
   // Initial simulation run
   useEffect(() => {
@@ -183,8 +185,15 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
     }
   };
 
+  // One commit per parsed notice: every click re-ingests through
+  // handleCommitWarnings (prepend + background Supabase persist), so repeat
+  // clicks would create duplicate live-bank rows. Each simulator run
+  // generates a fresh warning_id, so re-parsing naturally re-arms the guard.
+  const [committedId, setCommittedId] = useState<string | null>(null);
   const handleCommitParsed = () => {
     if (parsedResult?.warning && onCommitWarning) {
+      if (committedId === parsedResult.warning.warning_id) return;
+      setCommittedId(parsedResult.warning.warning_id);
       onCommitWarning(parsedResult.warning);
       setCommitSuccess(true);
       setTimeout(() => setCommitSuccess(false), 4000);
@@ -546,10 +555,11 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                       {onCommitWarning && (
                         <button
                           onClick={handleCommitParsed}
-                          className="px-4 py-2 bg-gw-primary text-white text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all shadow-xs flex items-center gap-1.5"
+                          disabled={!!(parsedResult?.warning && committedId === parsedResult.warning.warning_id)}
+                          className="px-4 py-2 bg-gw-primary text-white text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Download className="w-3.5 h-3.5" />
-                          Commit Notice to Live Bank
+                          {parsedResult?.warning && committedId === parsedResult.warning.warning_id ? 'Notice Committed' : 'Commit Notice to Live Bank'}
                         </button>
                       )}
                     </div>

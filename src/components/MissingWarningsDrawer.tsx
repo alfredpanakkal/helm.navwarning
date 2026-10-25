@@ -41,13 +41,15 @@ export const MissingWarningsDrawer: React.FC<MissingWarningsDrawerProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      // Escape stays inert while a targeted fetch is in flight so the operator
+      // cannot lose the run's error surface by accident.
+      if (e.key === 'Escape' && !isFetching) {
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, isFetching]);
 
   // Group missing warnings by year/series
   const groupedMissing = useMemo(() => {
