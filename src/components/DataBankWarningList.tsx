@@ -425,10 +425,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                   key={cardId}
                   className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs hover:border-slate-300 transition-all"
                 >
-                  <div className="p-3">
+                  <div className="p-2.5">
                     <WarningHierarchyLines warning={w} sources={sources} />
                   </div>
-                  <div className="px-3 pb-3 flex items-center gap-2 flex-wrap">
+                  <div className="px-2.5 pb-2.5 flex items-center gap-2 flex-wrap">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -859,7 +859,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         )}
 
         {/* Table Body: Paginated Rows */}
-        <div className={legacy ? 'min-w-[900px] max-h-[520px] overflow-y-auto no-scrollbar' : 'max-h-[600px] overflow-y-auto no-scrollbar'}>
+        <div className={legacy ? 'min-w-[900px] max-h-[520px] overflow-y-auto no-scrollbar' : 'max-h-[70vh] min-h-[300px] overflow-y-auto no-scrollbar'}>
           {paginatedWarnings.length === 0 ? (
             isLoading ? (
               <LoadingSkeletonRows />
@@ -977,12 +977,12 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 <div
                   key={cardId}
                   onClick={() => onLocate(w)}
-                  className={`p-3 border-b border-slate-200 bg-white hover:bg-slate-50/80 transition-colors cursor-pointer group ${
+                  className={`py-2 px-3 border-b border-slate-200 bg-white hover:bg-slate-50/80 transition-colors cursor-pointer group ${
                     isExpanded ? 'bg-slate-50/60' : ''
                   }`}
                 >
                   <WarningHierarchyLines warning={w} sources={sources} />
-                  <div className="mt-2.5 flex items-center gap-2">
+                  <div className="mt-1.5 flex items-center gap-2">
                     <button
                       aria-label={`Locate warning ${w.source_warning_id} on map`}
                       title={`Locate warning ${w.source_warning_id} on map`}

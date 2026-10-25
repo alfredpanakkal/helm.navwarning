@@ -32,6 +32,8 @@ import {
   Download,
   Layers,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Navigation,
   Compass,
   Check,
@@ -67,6 +69,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
   const [activeTab, setActiveTab] = useState<'message' | 'geometry' | 'ecdis' | 'audit'>('message');
   const [copiedType, setCopiedType] = useState<string | null>(null);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [verifyPending, setVerifyPending] = useState(false);
 
   // Audit trail (read-only) state — lazily fetched only when the Audit tab opens.
   const [auditRows, setAuditRows] = useState<WarningAuditRow[] | null>(null);
@@ -128,6 +131,21 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
       setCopiedType(type);
       setTimeout(() => setCopiedType(null), 2200);
     }
+  };
+
+  // Single-fire Verify: Quick Verify goes through the admin-guarded,
+  // audited warning-edit endpoint, so a double-click must not fire two
+  // VERIFY writes. The lock releases when the write settles; the modal only
+  // auto-advances to the next queue candidate on a settled attempt.
+  const handleVerifyClick = () => {
+    if (!onVerify || verifyPending) return;
+    setVerifyPending(true);
+    Promise.resolve(onVerify(warning.warning_id))
+      .catch(() => { /* App logs; modal stays open, row stays unverified */ })
+      .finally(() => {
+        setVerifyPending(false);
+        if (hasNext && onNext) onNext();
+      });
   };
 
   const handleExportGeoJSON = () => {
@@ -731,18 +749,40 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             )}
 
             {/* Verification Button for Candidate Reviews */}
+            {onPrevious && (
+              <button
+                type="button"
+                onClick={onPrevious}
+                disabled={!hasPrevious}
+                title="Previous unverified candidate in queue"
+                className="flex items-center gap-1 px-2.5 py-2 bg-white border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Prev</span>
+              </button>
+            )}
+            {onNext && (
+              <button
+                type="button"
+                onClick={onNext}
+                disabled={!hasNext}
+                title="Next unverified candidate in queue"
+                className="flex items-center gap-1 px-2.5 py-2 bg-white border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            )}
             {onVerify && (
               <button
-                onClick={() => {
-                  onVerify(warning.warning_id);
-                  if (hasNext && onNext) {
-                    onNext();
-                  }
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider px-3 py-2 rounded-lg transition-all shadow-xs flex items-center gap-1.5"
+                type="button"
+                onClick={handleVerifyClick}
+                disabled={verifyPending}
+                title="Mark this warning verified (audited VERIFY write)"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider px-3 py-2 rounded-lg transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Verify</span>
+                <span>{verifyPending ? 'Verifying…' : 'Verify'}</span>
               </button>
             )}
 
