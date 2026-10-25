@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavWarning, SourceRegistryItem } from '../types';
 import {
   Calendar,
@@ -115,6 +115,26 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
     handleResetFilters,
   } = model;
 
+  // One audited VERIFY write per warning: Quick Verify goes through the
+  // admin-guarded warning-edit endpoint (VERIFY audit row), so rapid repeat
+  // clicks on the same row must not fire twice. The lock releases when the
+  // write settles - the row repaints as verified on success, and the button
+  // re-enables if the write failed.
+  const [verifyingIds, setVerifyingIds] = useState<Set<string>>(new Set());
+  const handleVerify = (warningId: string) => {
+    if (!onVerifyWarning || verifyingIds.has(warningId)) return;
+    setVerifyingIds((prev) => new Set(prev).add(warningId));
+    Promise.resolve(onVerifyWarning(warningId) as void | Promise<void>)
+      .catch(() => { /* App already logs; local state stays unverified */ })
+      .finally(() =>
+        setVerifyingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(warningId);
+          return next;
+        })
+      );
+  };
+
   if (groupByMode !== 'none' && groupedAnalyzed) {
     return (
       <div className="space-y-4">
@@ -211,9 +231,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onVerifyWarning!(w.warning_id);
+                                  handleVerify(w.warning_id);
                                 }}
-                                className="ml-auto px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase hover:bg-emerald-700 transition-colors"
+                                disabled={verifyingIds.has(w.warning_id)}
+                                className="ml-auto px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 ✓ Verify
                               </button>
@@ -271,9 +292,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onVerifyWarning(w.warning_id);
+                                handleVerify(w.warning_id);
                               }}
-                              className="px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-emerald-700 transition-colors"
+                              disabled={verifyingIds.has(w.warning_id)}
+                              className="px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               ✓ Verify
                             </button>
@@ -420,9 +442,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onVerifyWarning!(w.warning_id);
+                          handleVerify(w.warning_id);
                         }}
-                        className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1 text-white shadow-xs"
+                        disabled={verifyingIds.has(w.warning_id)}
+                        className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Quick Verify"
                       >
                         ✓ Verify
@@ -460,9 +483,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onVerifyWarning(w.warning_id);
+                          handleVerify(w.warning_id);
                         }}
-                        className="flex items-center gap-1 px-2 py-1.5 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase transition-colors hover:bg-emerald-700"
+                        disabled={verifyingIds.has(w.warning_id)}
+                        className="flex items-center gap-1 px-2 py-1.5 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase transition-colors hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Quick Verify"
                       >
                         ✓ Verify
@@ -898,9 +922,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       title="Quick Verify candidate"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onVerifyWarning(w.warning_id);
+                        handleVerify(w.warning_id);
                       }}
-                      className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold uppercase transition-colors flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                      disabled={verifyingIds.has(w.warning_id)}
+                      className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold uppercase transition-colors flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       ✓ Verify
                     </button>
@@ -968,9 +993,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onVerifyWarning!(w.warning_id);
+                          handleVerify(w.warning_id);
                         }}
-                        className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1 text-white shadow-xs"
+                        disabled={verifyingIds.has(w.warning_id)}
+                        className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         ✓ Verify
                       </button>
