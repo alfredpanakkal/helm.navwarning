@@ -44,7 +44,7 @@ jobs:
         if: failure()
         run: |
           LOG=$(cat /tmp/tsc.log /tmp/vitest.log 2>/dev/null | tail -c 12000)
-          PAYLOAD=$(jq -Rs "{body: (\"CI failure output (last 12KB)\\n\\n~~~\\n\" + . + \"\\n~~~\n")}" <<< "$LOG")
+          PAYLOAD=$(python3 -c 'import json,sys; print(json.dumps({"body": "### CI failure output (last 12KB)\n\n~~~\n" + sys.stdin.read() + "\n~~~\n"}))' <<< "$LOG")
           curl -s -f -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github+json" \
