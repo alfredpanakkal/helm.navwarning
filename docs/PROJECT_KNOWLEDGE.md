@@ -20,8 +20,10 @@
 - `vercel.json`: cleanUrls, tile rewrites (carto + osm + openseamap),
   noindex headers on `/admin` and `/console`, cron
   `/api/scrape-navwarn` daily 06:00.
-- Sitemap: only `/` is indexable; existing sitemap.xml (single URL) is
-  correct.
+- Sitemap: `public/sitemap.xml` is regenerated on every build (Vercel)
+  with every public route — `/`, `/about`, `/sources`, the 21 regional
+  pages (`/navarea/I`…`/navarea/XXI`) and one URL per active warning
+  detail page (PRs #57–#60); `/admin` and `/console` are `noindex`.
 
 ## 2. Verified security/lifecycle state (2026-10-24 audit)
 
