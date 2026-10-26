@@ -16,6 +16,7 @@ import {
   Loader2,
   MapPin,
   Search,
+  ShieldCheck,
 } from 'lucide-react';
 import { formatSpatialCoordinates } from '../utils/coordinateParser';
 import { DataBankModel, SortDirection, SortField } from '../hooks/useDataBankModel';
@@ -27,7 +28,7 @@ import { copyToClipboard } from '../utils/coordinateConversion';
 export interface DataBankWarningListProps {
   model: DataBankModel;
   onLocate: (warning: NavWarning) => void;
-  onVerifyWarning?: (warningId: string) => void;
+  onVerifyWarning?: (warningId: string) => void | Promise<{ ok: boolean; error?: string }>;
   sources?: SourceRegistryItem[];
   /** True while the initial fetch is in flight: shows skeletons, not an empty state. */
   isLoading?: boolean;
@@ -122,6 +123,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
   // write settles - the row repaints as verified on success, and the button
   // re-enables if the write failed.
   const [verifyingIds, setVerifyingIds] = useState<Set<string>>(new Set());
+  // Verify outcomes surfaced to the operator: a failed audited VERIFY is
+  // shown inline next to the button; success is announced (role=status).
+  const [verifyErrors, setVerifyErrors] = useState<Record<string, string | null>>({});
+  const [verifyAnnouncement, setVerifyAnnouncement] = useState('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const handleCopyFeedback = (key: string, text: string) => {
     copyToClipboard(text).then((success) => {
@@ -133,8 +138,24 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
   const handleVerify = (warningId: string) => {
     if (!onVerifyWarning || verifyingIds.has(warningId)) return;
     setVerifyingIds((prev) => new Set(prev).add(warningId));
-    Promise.resolve(onVerifyWarning(warningId) as void | Promise<void>)
-      .catch(() => { /* App already logs; local state stays unverified */ })
+    setVerifyErrors((prev) => ({ ...prev, [warningId]: null }));
+    setVerifyAnnouncement('');
+    Promise.resolve(onVerifyWarning(warningId))
+      .then((result) => {
+        if (result && result.ok === false) {
+          // Failure must be visible: the row stays unverified and the
+          // operator sees why, instead of a silent console.warn.
+          setVerifyErrors((prev) => ({
+            ...prev,
+            [warningId]: result.error ? `Verify failed — not saved. ${result.error}` : 'Verify failed — not saved.',
+          }));
+        } else {
+          setVerifyAnnouncement('Verified');
+        }
+      })
+      .catch(() => {
+        setVerifyErrors((prev) => ({ ...prev, [warningId]: 'Verify failed — not saved.' }));
+      })
       .finally(() =>
         setVerifyingIds((prev) => {
           const next = new Set(prev);
@@ -147,6 +168,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
   if (groupByMode !== 'none' && groupedAnalyzed) {
     return (
       <div className="space-y-4">
+        <span role="status" aria-live="polite" className="sr-only">{verifyAnnouncement}</span>
         <div className="flex items-center justify-between p-3.5 bg-white border-2 border-gw-primary rounded-xl text-xs shadow-xs">
           <span className="font-bold text-gw-primary uppercase tracking-wider flex items-center gap-2">
             <Layers className="w-4 h-4 text-gw-primary" />
@@ -245,8 +267,14 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                                 disabled={verifyingIds.has(w.warning_id)}
                                 className="ml-auto px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                ✓ Verify
+                                <ShieldCheck className="w-3 h-3" />
+                                <span>Verify</span>
                               </button>
+                            )}
+                            {verifyErrors[w.warning_id] && (
+                              <span role="alert" className="text-rose-700 text-[10px] font-bold">
+                                {verifyErrors[w.warning_id]}
+                              </span>
                             )}
                           </div>
                           {isExpanded && <WarningItemDetails warning={w} />}
@@ -334,6 +362,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
 
   return (
     <>
+      {/* Screen-reader announcement for a successful verify (the row repaint
+          alone is not announced by assistive tech). */}
+      <span role="status" aria-live="polite" className="sr-only">{verifyAnnouncement}</span>
       {/* Mobile Card List (visible on mobile < md) */}
       <div className="block md:hidden space-y-3">
         {/* Mobile Shifter & Sorting Header */}
@@ -459,8 +490,14 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs flex items-center gap-1 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Quick Verify"
                       >
-                        ✓ Verify
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>Verify</span>
                       </button>
+                    )}
+                    {verifyErrors[w.warning_id] && (
+                      <span role="alert" className="text-rose-700 text-xs font-bold">
+                        {verifyErrors[w.warning_id]}
+                      </span>
                     )}
                   </div>
                   {isExpanded && <WarningItemDetails warning={w} />}
@@ -1018,8 +1055,14 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         disabled={verifyingIds.has(w.warning_id)}
                         className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs flex items-center gap-1 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        ✓ Verify
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>Verify</span>
                       </button>
+                    )}
+                    {verifyErrors[w.warning_id] && (
+                      <span role="alert" className="text-rose-700 text-xs font-bold">
+                        {verifyErrors[w.warning_id]}
+                      </span>
                     )}
                   </div>
                   {isExpanded && <WarningItemDetails warning={w} />}
