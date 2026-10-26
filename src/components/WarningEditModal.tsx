@@ -105,6 +105,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<WarningEditResult | null>(null);
   const [conflict, setConflict] = useState<{ updated_at: string } | null>(null);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
 
   const [title, setTitle] = useState('');
   const [areaText, setAreaText] = useState('');
@@ -138,6 +139,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
     setTab('classification');
     setResult(null);
     setConflict(null);
+    setSavedAt(null);
     const layer = layerFromWarning(warning);
     setGeometryLayer(layer);
     setIncludeGeometry(false);
@@ -218,6 +220,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
     });
     setSaving(false);
     if (res.ok) {
+      setSavedAt(new Date());
       onSaved(res, warning);
       return;
     }
@@ -252,6 +255,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
     });
     setSaving(false);
     if (res.ok) {
+      setSavedAt(new Date());
       onSaved(res, warning);
       return;
     }
@@ -470,7 +474,10 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
         {result && result.ok && (
           <div className="px-4 py-2 bg-emerald-50 border-t border-emerald-300 text-xs text-emerald-800 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4" />
-            <span>Saved. Geometry {result.geometry || 'unchanged'}; audit row {result.audit || 'skipped'}.</span>
+            <span>
+              Saved to Supabase {savedAt ? savedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+              · audit {result.audit || 'written'} · geometry {result.geometry || 'unchanged'}
+            </span>
           </div>
         )}
 
@@ -500,7 +507,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
             className="flex items-center gap-1.5 px-4 py-2 bg-gw-primary hover:bg-gw-accent text-gw-bg font-bold text-xs uppercase tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            <span>{moveTarget ? 'Move + Save' : 'Save'}</span>
+            <span>{saving ? 'Saving…' : moveTarget ? 'Move + Save' : 'Save'}</span>
           </button>
           <button
             type="button"

@@ -163,6 +163,41 @@ export async function fetchNavWarningsList(params?: NavWarningListFilters & { se
   return rows;
 }
 
+/**
+ * Single-warning refetch: the master row (LIST_COLUMNS, incl. raw_text) plus
+ * its geometries from the active_spatial view, converted with
+ * geojsonBlobToGeometry (buffer_nm carried along for buffered points).
+ * Used by the edit-save repaint and the debounced realtime handler so one
+ * admin edit never triggers a full-dataset reload.
+ */
+export async function fetchSingleWarning(canonicalId: string): Promise<{
+  row: Record<string, unknown> | null;
+  geometries: Record<string, unknown>[];
+}> {
+  if (!anonClient) return { row: null, geometries: [] };
+  const { data: row, error } = await anonClient
+    .from('nav_warnings')
+    .select(LIST_COLUMNS)
+    .eq('canonical_id', canonicalId)
+    .maybeSingle();
+  if (error || !row) {
+    console.warn('[navWarningQueries] single warning query notice:', error?.message);
+    return { row: null, geometries: [] };
+  }
+  const { data: spatial }: any = await anonClient
+    .from('nav_warnings_active_spatial')
+    .select(VIEW_COLUMNS)
+    .eq('canonical_id', canonicalId);
+  const geometries: Record<string, unknown>[] = [];
+  for (const r of (spatial || []) as ActiveSpatialRow[]) {
+    const g = geojsonBlobToGeometry(r.geojson_blob, r.zone_label);
+    if (g) geometries.push({ ...g, buffer_nm: Number(r.buffer_nm) || 0 });
+  }
+  // LIST_COLUMNS is a plain string (not a literal type), so the typed client
+  // resolves data as GenericStringError — double-cast like fetchNavWarningsList.
+  return { row: row as unknown as Record<string, unknown>, geometries };
+}
+
 const ARCHIVE_COLUMNS =
   'id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, ' +
   'status, status_basis, status_changed_at, triage_tier, data_quality, parsing_method, ' +
@@ -256,19 +291,45 @@ export async function fetchReviewQueueRows(opts?: { serverClient?: boolean }): P
   return (data ?? []) as unknown as Record<string, unknown>[];
 }
 
+export interface RealtimeChangeInfo {
+  table: 'nav_warnings' | 'nav_warning_geometries';
+  canonicalId?: string;
+  warningId?: string;
+}
+
 /**
  * Realtime subscription covering both tables in the supabase_realtime
  * publication. Geometry changes without master changes must also refresh.
+ * Events are coalesced with a trailing 1.5s debounce (a geometry save is a
+ * delete+insert burst) and the changed row's identity is passed through so
+ * the caller can refetch a single warning instead of the whole dataset.
  */
-export function subscribeToNavWarnings(onChange: () => void): { unsubscribe: () => void } | null {
+export function subscribeToNavWarnings(
+  onChange: (info: RealtimeChangeInfo) => void
+): { unsubscribe: () => void } | null {
   if (!anonClient) return null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const pending = new Map<string, RealtimeChangeInfo>();
+  const fire = () => {
+    timer = null;
+    for (const info of pending.values()) onChange(info);
+    pending.clear();
+  };
+  const queue = (info: RealtimeChangeInfo) => {
+    pending.set(info.table + ':' + (info.canonicalId || info.warningId), info);
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(fire, 1500);
+  };
   const channel = anonClient
     .channel('nav-warnings-v2')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'nav_warnings' }, () => onChange())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'nav_warning_geometries' }, () => onChange());
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'nav_warnings' },
+      (payload: any) => queue({ table: 'nav_warnings', canonicalId: payload?.new?.canonical_id || payload?.old?.canonical_id }))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'nav_warning_geometries' },
+      (payload: any) => queue({ table: 'nav_warning_geometries', warningId: payload?.new?.warning_id || payload?.old?.warning_id }));
   channel.subscribe();
   return {
     unsubscribe: () => {
+      if (timer) clearTimeout(timer);
       anonClient.removeChannel(channel);
     },
   };

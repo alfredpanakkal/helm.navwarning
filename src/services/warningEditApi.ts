@@ -48,6 +48,13 @@ export interface WarningEditResult {
   superseded?: { id: string; canonical_id: string };
   geometry?: string;
   audit?: string;
+  /** Saved geometry rows read back from nav_warnings_active_spatial (server truth). */
+  saved_geometries?: Array<{
+    zone_label: string | null;
+    feature_type: string;
+    buffer_nm: number;
+    geojson_blob: Record<string, unknown> | null;
+  }> | null;
   conflict?: { updated_at: string; canonical_id: string };
 }
 
@@ -97,6 +104,7 @@ export async function saveWarningEdit(args: {
     moved: !!data?.moved,
     superseded: data?.superseded,
     geometry: data?.geometry,
+    saved_geometries: data?.saved_geometries ?? null,
     audit: data?.audit,
   };
 }

@@ -464,7 +464,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .from('nav_warnings')
       .update(update)
       .eq('id', current.id)
-      .select('id, canonical_id, title, status, triage_tier, data_quality, qa_flags, valid_from, valid_to, updated_at')
+      .select('id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, status, triage_tier, '
+        + ' data_quality, qa_flags, unplotted_reason, issued_at, valid_from, valid_to, created_at, updated_at')
       .single();
     if (updateErr || !updated) {
       console.error('[warning-edit] master row update failed:', updateErr?.message);
@@ -473,6 +474,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── 8. Geometry replace (only when a geometry patch was supplied) ──
     let geometryStatus = 'unchanged';
+    // Geometry rows read back from the active_spatial view after the replace,
+    // so the client can repaint the map from server truth (geojson_blob).
+    let savedGeometries: any[] | null = null;
     if (geometryRows !== null) {
       const { error: delErr } = await client.from('nav_warning_geometries').delete().eq('warning_id', current.id);
       if (delErr) {
@@ -487,6 +491,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
       geometryStatus = geometryRows.length > 0 ? 'replaced' : 'removed';
+      // Read the geometry back through the view AFTER delete+insert both ran
+      // (single-warning repaint: the client maps geojson_blob onto the map).
+      const { data: savedGeoms }: any = await client
+        .from('nav_warnings_active_spatial')
+        .select('zone_label, feature_type, buffer_nm, geojson_blob')
+        .eq('warning_id', current.id);
+      savedGeometries = Array.isArray(savedGeoms) ? savedGeoms : [];
     }
 
     // ── 9. Audit (mandatory) ──
@@ -508,6 +519,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       success: true,
       warning: updated,
+      saved_geometries: savedGeometries,
       geometry: geometryStatus,
       audit: 'written',
     });
