@@ -76,6 +76,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>(initialRoute.tab);
   const [selectedWarning, setSelectedWarning] = useState<NavWarning | null>(null);
   const [editingWarning, setEditingWarning] = useState<NavWarning | null>(null);
+  /** Edited warning to pulse on the map for ~3s after Supabase confirms the save. */
+  const [recentlySaved, setRecentlySaved] = useState<{ id: string; at: number } | null>(null);
   const [isolatedWarning, setIsolatedWarning] = useState<NavWarning | null>(null);
 
   // Admin Access Gate State — never trust client-stored flags:
@@ -566,8 +568,12 @@ export default function App() {
             isAdminMode={isAdminMode}
             selectedWarning={selectedWarning}
             onGeometrySaved={() => {
-              if (selectedWarning) void refreshSingleWarning(selectedWarning.warning_id);
+              if (selectedWarning) {
+                void refreshSingleWarning(selectedWarning.warning_id);
+                setRecentlySaved({ id: selectedWarning.warning_id, at: Date.now() });
+              }
             }}
+            recentlySaved={recentlySaved}
             onEditWarning={(w) => setEditingWarning(w)}
             isVisible={isMapView}
           />
@@ -801,6 +807,7 @@ export default function App() {
                 : w;
             setWarnings((prev) => prev.map(replace));
             setSelectedWarning((prev) => (prev ? replace(prev) : prev));
+            setRecentlySaved({ id: repainted.warning_id, at: Date.now() });
             setEditingWarning(null);
           }}
         />
