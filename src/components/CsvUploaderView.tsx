@@ -1416,7 +1416,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               </div>
               <button
                 onClick={() => setSupabaseSaveStatus(null)}
-                className="text-xs uppercase hover:underline shrink-0"
+                className="touch-hit text-xs uppercase hover:underline shrink-0"
               >
                 Dismiss
               </button>
@@ -1490,7 +1490,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 <button
                   type="button"
                   onClick={() => setRejectedItems([])}
-                  className="text-xs font-bold text-red-800 hover:underline uppercase self-end sm:self-auto"
+                  className="touch-hit text-xs font-bold text-red-800 hover:underline uppercase self-end sm:self-auto"
                 >
                   Clear Rejected List
                 </button>

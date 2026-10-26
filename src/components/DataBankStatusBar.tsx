@@ -144,7 +144,7 @@ export const DataBankStatusBar: React.FC<{
               onClick={() => onTriggerRefresh()}
               disabled={isRefreshing}
               title="Refresh live feeds now"
-              className="btn btn-sm btn-primary text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1.5"
+              className="btn btn-sm btn-primary text-xs flex items-center gap-1.5"
             >
               <RotateCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span>{isRefreshing ? 'Syncing...' : 'Sync Live Feeds'}</span>

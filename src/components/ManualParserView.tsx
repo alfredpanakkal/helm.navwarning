@@ -314,7 +314,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     `NAVAREA III 0102/26 WESTERN MEDITERRANEAN SEA. GUNNERY EXERCISES 150000 UTC TO 182359 UTC SEP IN AREA BOUNDED BY 37-12N 009-45E, 37-25N 010-10E, 37-05N 010-20E. SHIPS TO KEEP SAFE DISTANCE.\n---\nNAVAREA III 0103/26 EASTERN MEDITERRANEAN. CABLE LAYING OPERATIONS BY C/S DEPENDABLE FROM 20 SEP TO 30 SEP ALONG TRACK: 34-10N 032-15E TO 33-50N 033-05E. 1NM BERTH REQUESTED.`
                   )
                 }
-                className="text-xs text-gw-accent hover:text-gw-primary transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-gw-accent hover:text-gw-primary transition-colors underline font-mono font-bold uppercase text-left"
               >
                 Sample Bulk Text
               </button>
@@ -327,7 +327,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setNavarea('XI');
                   setParseMode('jhod_structured');
                 }}
-                className="text-xs text-indigo-700 hover:text-indigo-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-indigo-700 hover:text-indigo-900 transition-colors underline font-mono font-bold uppercase text-left"
               >
                 🇯🇵 Sample JHOD NAVAREA XI Telex
               </button>
@@ -339,7 +339,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setParseMode('jhod_structured');
                   setViewMode('table');
                 }}
-                className="text-xs text-emerald-700 hover:text-emerald-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-emerald-700 hover:text-emerald-900 transition-colors underline font-mono font-bold uppercase text-left"
               >
                 🇯🇵 Load Complete 19-Notice NAVAREA XI Feed
               </button>
@@ -352,7 +352,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setNavarea('XI');
                   setParseMode('regex');
                 }}
-                className="text-xs text-rose-700 hover:text-rose-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-rose-700 hover:text-rose-900 transition-colors underline font-mono font-bold uppercase text-left"
                 title="Tests strict quarantine when coordinate is missing both hemisphere letters"
               >
                 🛡️ Test Missing Hemisphere (Quarantine)
@@ -366,7 +366,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setNavarea('XI');
                   setParseMode('regex');
                 }}
-                className="text-xs text-amber-700 hover:text-amber-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-amber-700 hover:text-amber-900 transition-colors underline font-mono font-bold uppercase text-left"
                 title="Tests strict quarantine when coordinate has latitude hemisphere but lacks longitude hemisphere"
               >
                 🛡️ Test Partial Hemisphere (Quarantine)
@@ -380,7 +380,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setNavarea('XI');
                   setParseMode('regex');
                 }}
-                className="text-xs text-blue-700 hover:text-blue-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-blue-700 hover:text-blue-900 transition-colors underline font-mono font-bold uppercase text-left"
                 title="Tests broadened radius regex converting 500 metres to 0.270 NM"
               >
                 📏 Test Metric Radius (500m → 0.270 NM)
@@ -411,7 +411,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
               <span>{supabaseSaveMsg.text}</span>
               <button
                 onClick={() => setSupabaseSaveMsg(null)}
-                className="text-[11px] uppercase hover:underline ml-2"
+                className="touch-hit text-[11px] uppercase hover:underline ml-2"
               >
                 Dismiss
               </button>

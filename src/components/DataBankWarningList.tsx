@@ -434,7 +434,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         e.stopPropagation();
                         onLocate(w);
                       }}
-                      className="btn btn-sm btn-secondary text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1.5 text-slate-700"
+                      className="btn btn-sm btn-secondary text-xs flex items-center gap-1.5 text-slate-700"
                       title="Locate on Map"
                     >
                       <Locate className="w-3.5 h-3.5" />
@@ -444,7 +444,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       onClick={(e) => toggleExpand(cardId, e)}
                       aria-expanded={isExpanded}
                       aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
-                      className="btn btn-sm btn-ghost text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1 text-slate-600 hover:text-slate-900"
+                      className="btn btn-sm btn-ghost text-xs flex items-center gap-1 text-slate-600 hover:text-slate-900"
                     >
                       <span>Details</span>
                       {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -456,7 +456,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                           handleVerify(w.warning_id);
                         }}
                         disabled={verifyingIds.has(w.warning_id)}
-                        className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs flex items-center gap-1 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Quick Verify"
                       >
                         ✓ Verify
@@ -577,7 +577,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                               e.stopPropagation();
                               handleCopyFeedback(`${w.source_warning_id || w.warning_id}:coords`, formatSpatialCoordinates(w.spatial));
                             }}
-                            className={`text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
+                            className={`touch-hit text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
                               copiedKey === `${w.source_warning_id || w.warning_id}:coords` ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
                             }`}
                           >
@@ -608,7 +608,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                             e.stopPropagation();
                             handleCopyFeedback(`${w.source_warning_id || w.warning_id}:raw`, getWarningBulletinText(w));
                           }}
-                          className={`text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
+                          className={`touch-hit text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
                             copiedKey === `${w.source_warning_id || w.warning_id}:raw` ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
                           }`}
                         >
@@ -990,7 +990,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         e.stopPropagation();
                         onLocate(w);
                       }}
-                      className="btn btn-sm btn-secondary text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1.5 text-slate-700"
+                      className="btn btn-sm btn-secondary text-xs flex items-center gap-1.5 text-slate-700"
                     >
                       <Locate className="w-3.5 h-3.5 text-slate-600" />
                       <span>View on map</span>
@@ -1003,7 +1003,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       }}
                       aria-expanded={isExpanded}
                       aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
-                      className="btn btn-sm btn-ghost text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1 text-slate-600 hover:text-slate-900"
+                      className="btn btn-sm btn-ghost text-xs flex items-center gap-1 text-slate-600 hover:text-slate-900"
                     >
                       <span>Details</span>
                       {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -1016,7 +1016,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                           handleVerify(w.warning_id);
                         }}
                         disabled={verifyingIds.has(w.warning_id)}
-                        className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs py-1 px-2.5 h-auto min-h-0 flex items-center gap-1 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs flex items-center gap-1 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         ✓ Verify
                       </button>

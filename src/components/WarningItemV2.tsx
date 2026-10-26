@@ -215,7 +215,7 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
                 e.stopPropagation();
                 handleCopy('coords', formatSpatialCoordinates(w.spatial));
               }}
-              className={`text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
+              className={`touch-hit text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
                 copiedKey === 'coords' ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
               }`}
             >
@@ -255,7 +255,7 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
               e.stopPropagation();
               handleCopy('raw', getWarningBulletinText(w));
             }}
-            className={`text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
+            className={`touch-hit text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
               copiedKey === 'raw' ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
             }`}
           >
