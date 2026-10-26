@@ -79,6 +79,8 @@ interface LeafletMapProps {
   onClearIsolation?: () => void;
   isAdminMode?: boolean;
   selectedWarning?: NavWarning | null;
+  /** Brief pulse beacon at the edited warning after an admin save confirms (edit-repaint feedback, PR #77 follow-up). */
+  recentlySaved?: { id: string; at: number } | null;
   onGeometrySaved?: () => void;
   onEditWarning?: (warning: NavWarning) => void;
   isVisible?: boolean;
@@ -93,6 +95,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   onClearIsolation,
   isAdminMode = false,
   selectedWarning,
+  recentlySaved,
   onGeometrySaved,
   onEditWarning,
   isVisible = true,
@@ -111,6 +114,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const unclusteredGroupRef = useRef<L.LayerGroup | null>(null);
   const vectorLayersGroupRef = useRef<L.LayerGroup | null>(null);
   const jumpBeaconRef = useRef<L.Marker | null>(null);
+  const savedPulseRef = useRef<L.Marker | null>(null);
   const hoverHaloLayerRef = useRef<L.Circle | null>(null);
 
   // Layer configuration and dynamic styling state
@@ -931,6 +935,42 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     onSelectWarning,
     isolatedWarning,
   ]);
+
+  // Save-confirmation pulse: a 3-second beacon at the edited warning's
+  // anchor the moment Supabase confirms an admin edit (reuses the quick-jump
+  // beacon's CSS so no new stylesheet is needed). Non-interactive: it never
+  // swallows marker clicks underneath it.
+  useEffect(() => {
+    const map = leafletInstance.current;
+    if (!recentlySaved || !map) return;
+    if (savedPulseRef.current) {
+      map.removeLayer(savedPulseRef.current);
+      savedPulseRef.current = null;
+    }
+    const w = warnings.find((x) => x.warning_id === recentlySaved.id);
+    if (!w) return;
+    const coords = getLeafletLatLng(w.spatial, w.latitude, w.longitude);
+    if (coords[0] === 0 && coords[1] === 0) return; // Null Island / ungrounded
+    const pulse = L.marker(coords, {
+      icon: L.divIcon({
+        className: 'saved-pulse-wrap',
+        html: '<div class="jump-beacon-pulse"><div class="beacon-center"></div></div>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      }),
+      pane: 'navWarnMarkerPane',
+      interactive: false,
+    }).addTo(map);
+    savedPulseRef.current = pulse;
+    const timer = setTimeout(() => {
+      if (savedPulseRef.current === pulse && leafletInstance.current) {
+        leafletInstance.current.removeLayer(pulse);
+        savedPulseRef.current = null;
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recentlySaved, mapReady]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
