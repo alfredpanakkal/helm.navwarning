@@ -31,6 +31,7 @@ import {
   triggerPipelineRefresh,
   parseManualWarning,
   fetchArchivedWarnings,
+  deriveExtractionConfidence,
 } from './services/api';
 import { saveWarningEdit } from './services/warningEditApi';
 import { parseCoordinatesDeterministic } from './utils/coordinateParser';
@@ -260,6 +261,34 @@ export default function App() {
   };
 
   const handleVerifyWarning = async (warningId: string): Promise<{ ok: boolean; error?: string }> => {
+    // Server-truth repaint (console-ux-68 follow-up): the E1 verify endpoint
+    // appends the 'verified_by_admin' qa_flag and returns the stored row
+    // (status, triage_tier, data_quality, qa_flags) - it never changes status,
+    // confidence or geometry. Mirror exactly those fields here and re-derive
+    // extraction_confidence with the same rules fetchWarnings uses, instead of
+    // fabricating status 'active' / confidence 1.0 / geometry 'passed', which
+    // could contradict the server and would be reverted by the next realtime
+    // reload anyway. A verified row may therefore still look like a review
+    // candidate under the confidence heuristic (e.g. Tier B -> 0.6); that is
+    // deliberate until verify's effect on tier/quality is decided server-side.
+    const applyServerTruth = (serverRow: any) =>
+      setWarnings((prev) =>
+        prev.map((w) =>
+          w.warning_id === warningId || w.source_warning_id === warningId
+            ? {
+                ...w,
+                status: serverRow?.status ?? w.status,
+                triage_tier: serverRow?.triage_tier ?? w.triage_tier,
+                data_quality: serverRow?.data_quality ?? w.data_quality,
+                qa_flags: Array.isArray(serverRow?.qa_flags) ? serverRow.qa_flags : w.qa_flags,
+                extraction_confidence: serverRow?.triage_tier
+                  ? deriveExtractionConfidence(serverRow, serverRow.status || w.status)
+                  : w.extraction_confidence,
+              }
+            : w
+        )
+      );
+
     const applyLocalVerified = () =>
       setWarnings((prev) =>
         prev.map((w) =>
@@ -291,7 +320,7 @@ export default function App() {
         patch: { verify: true, note: 'Quick verify from Data Bank' },
       });
       if (res.ok) {
-        applyLocalVerified();
+        applyServerTruth(res.warning);
         return { ok: true };
       }
       console.warn('Audited verify failed - local state left unchanged:', res.error);
