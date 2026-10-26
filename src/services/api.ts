@@ -36,7 +36,8 @@ export function normalizeNavarea(name: unknown): string {
  * signals (triage_tier / data_quality / qa_flags) instead of the removed
  * risk_level column:
  *   Tier A + EXPLICIT + no flags + active  -> 1.0 (matches the Critical filter)
- *   Tier A with inferred data or qa_flags -> 0.9  (matches the High filter)
+ *   Tier A with inferred data or qa_flags -> 0.9  (matches the High filter;
+ *   'verified_by_admin' is exempt - a human VERIFY clears the review queue)
  *   Tier B (review queue)                 -> 0.6  (below the 0.8 verify threshold)
  *   Tier C (blocked)                      -> 0.3
  * The legacy confidence-threshold UI (>= 0.8, >= 1.0 bands) keeps working
@@ -45,7 +46,12 @@ export function normalizeNavarea(name: unknown): string {
 export function deriveExtractionConfidence(row: any, status: string): number {
   const tier = row.triage_tier || 'C';
   const quality = row.data_quality || 'EXPLICIT';
-  const flags = Array.isArray(row.qa_flags) ? row.qa_flags : [];
+  // A human VERIFY (qa flag 'verified_by_admin') is an operator confirmation,
+  // not a data-quality caveat: it must not cap Tier A confidence at 0.9,
+  // otherwise a verified warning can never leave the review queue.
+  const flags = Array.isArray(row.qa_flags)
+    ? row.qa_flags.filter((f: string) => f !== 'verified_by_admin')
+    : [];
   if (tier === 'A') {
     if (quality === 'EXPLICIT' && flags.length === 0 && status === 'active') return 1.0;
     return 0.9;
