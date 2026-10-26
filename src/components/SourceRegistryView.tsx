@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { SourceRegistryItem, NavAreaId } from '../types';
 import {
   Radio,
@@ -12,7 +12,9 @@ import {
   Info,
   Lock,
   RefreshCw,
+  X,
 } from 'lucide-react';
+import { useModalBehavior } from '../hooks/useModalBehavior';
 
 interface SourceRegistryViewProps {
   sources: SourceRegistryItem[];
@@ -30,6 +32,8 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
   initialFilter,
 }) => {
   const [selectedSourceForChecklist, setSelectedSourceForChecklist] = useState<SourceRegistryItem | null>(null);
+  const checklistRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(checklistRef, !!selectedSourceForChecklist);
   const [filterStatus, setFilterStatus] = useState<string>(initialFilter === 'unverified' ? 'unverified' : 'ALL');
 
   React.useEffect(() => {
@@ -232,21 +236,22 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
 
       {/* Onboarding Checklist Modal */}
       {selectedSourceForChecklist && (
-        <div className="fixed inset-0 z-50 bg-gw-primary/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-console-overlay bg-gw-primary/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div ref={checklistRef} role="dialog" aria-modal="true" aria-labelledby="source-checklist-title" className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-start justify-between gap-2 border-b-2 border-gw-primary pb-3">
               <div>
                 <span className="bg-gw-primary text-gw-secondary font-mono text-xs font-bold px-2.5 py-0.5 rounded uppercase">
                   NAVAREA {selectedSourceForChecklist.navareas.join(', ')}
                 </span>
-                <h3 className="text-base font-bold text-gw-primary mt-2 uppercase tracking-wider">Source Onboarding Checklist</h3>
+                <h3 id="source-checklist-title" className="text-base font-bold text-gw-primary mt-2 uppercase tracking-wider">Source Onboarding Checklist</h3>
                 <p className="text-xs text-gw-accent mt-0.5 font-bold">{selectedSourceForChecklist.publisher_name}</p>
               </div>
               <button
                 onClick={() => setSelectedSourceForChecklist(null)}
+                aria-label="Close source checklist"
                 className="text-gw-accent hover:text-gw-primary font-bold text-lg p-1"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 

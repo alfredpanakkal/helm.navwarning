@@ -1091,6 +1091,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               onClick={() => setIsTopFiltersOpen(false)}
               className="p-1 rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all"
               title="Close filter menu"
+              aria-label="Close filter menu"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1428,6 +1429,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
             <button
               onClick={closeContextMenu}
+              aria-label="Close context menu"
               className="text-gw-secondary hover:text-white p-0.5 rounded transition-all"
             >
               <X className="w-3.5 h-3.5" />
@@ -1692,6 +1694,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                                   : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
                               }`}
                               title={isHidden ? 'Unhide layer on map' : 'Hide layer from map'}
+                              aria-label={isHidden ? 'Unhide layer on map' : 'Hide layer from map'}
                             >
                               {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>

@@ -563,6 +563,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                   disabled={histLen.undo === 0}
                   className="p-1.5 bg-white border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Undo (Ctrl+Z)"
+                  aria-label="Undo"
                 >
                   <Undo2 className="w-3.5 h-3.5" />
                 </button>
@@ -572,6 +573,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                   disabled={histLen.redo === 0}
                   className="p-1.5 bg-white border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Redo (Ctrl+Y)"
+                  aria-label="Redo"
                 >
                   <Redo2 className="w-3.5 h-3.5" />
                 </button>

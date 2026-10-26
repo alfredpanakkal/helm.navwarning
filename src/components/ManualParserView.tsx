@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavWarning } from '../types';
 import { EcdisFeatureEditor } from './EcdisFeatureEditor';
 import {
@@ -23,6 +23,7 @@ import {
   Calendar,
   Layers,
 } from 'lucide-react';
+import { useModalBehavior } from '../hooks/useModalBehavior';
 import { saveImportedWarningsToSupabase, parseJhodBatch } from '../services/api';
 import { splitJhodTelexStream } from '../schemas/jhodAiContract';
 import { JHOD_19_NOTICES_CORPUS } from '../data/jhod19NoticesCorpus';
@@ -43,6 +44,22 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
   onParseManual,
   onSelectWarning,
 }) => {
+  const aiFallbackRef = useRef<HTMLDivElement>(null);
+  const inspectRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(aiFallbackRef, !!aiFallbackModal?.active);
+  useModalBehavior(inspectRef, !!inspectedWarning);
+
+  // Escape closes whichever parser modal is open (WarningDetailModal pattern).
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (aiFallbackModal?.active) setAiFallbackModal((prev) => (prev ? { ...prev, active: false } : prev));
+      else if (inspectedWarning) setInspectedWarning(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [aiFallbackModal, inspectedWarning]);
+
   const [rawText, setRawText] = useState(
     `NAVAREA I 0145/26 NORTH SEA, FORTIES. DRILLING RIG 'VALARIS 122' ESTABLISHED IN POSITION 57-45.8N 001-12.4E. SAFETY ZONE 500 METRES RADIUS ESTABLISHED. ALL SHIPS KEEP CLEAR.`
   );
@@ -173,14 +190,14 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
       {/* AI Parsing Failed Pop-up Modal */}
       {aiFallbackModal?.active && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-amber-600 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-black/50 z-console-overlay flex items-center justify-center p-4">
+          <div ref={aiFallbackRef} role="dialog" aria-modal="true" aria-labelledby="ai-fallback-title" className="bg-white border-2 border-amber-600 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl animate-in fade-in zoom-in duration-200">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gw-primary uppercase tracking-wider">
+                <h3 id="ai-fallback-title" className="text-sm font-bold text-gw-primary uppercase tracking-wider">
                   AI Parsing Failed — Switched to Hybrid
                 </h3>
                 <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
@@ -906,11 +923,11 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
           {/* Dedicated Single Warning Inspection Modal */}
           {inspectedWarning && (
-            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-              <div className="bg-white border-2 border-gw-primary rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-200 custom-scrollbar">
+            <div className="fixed inset-0 bg-black/60 z-console-overlay flex items-center justify-center p-4">
+              <div ref={inspectRef} role="dialog" aria-modal="true" aria-labelledby="inspect-warning-title" className="bg-white border-2 border-gw-primary rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-200 custom-scrollbar">
                 <div className="flex items-center justify-between border-b-2 border-gw-primary pb-3">
                   <div>
-                    <h3 className="text-base font-bold text-gw-primary font-mono flex items-center gap-2">
+                    <h3 id="inspect-warning-title" className="text-base font-bold text-gw-primary font-mono flex items-center gap-2">
                       <span>{inspectedWarning.source_warning_id}</span>
                       <span className="text-xs px-2 py-0.5 rounded bg-gw-bg border border-gw-primary uppercase">
                         {inspectedWarning.series}
@@ -922,6 +939,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     type="button"
                     onClick={() => setInspectedWarning(null)}
                     className="p-1 rounded-lg hover:bg-gw-bg text-gw-primary transition-colors"
+                    aria-label="Close"
                   >
                     <X className="w-5 h-5" />
                   </button>

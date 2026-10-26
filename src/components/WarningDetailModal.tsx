@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavWarning } from '../types';
 import { fetchWarningAudit, WarningAuditRow } from '../services/warningAuditApi';
 import { EcdisFeatureEditor } from './EcdisFeatureEditor';
@@ -40,6 +40,7 @@ import {
   Filter,
   History,
 } from 'lucide-react';
+import { useModalBehavior } from '../hooks/useModalBehavior';
 
 interface WarningDetailModalProps {
   warning: NavWarning | null;
@@ -78,6 +79,8 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
   // announced by assistive tech on its own).
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [verifyAnnouncement, setVerifyAnnouncement] = useState('');
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, !!warning);
 
   // Audit trail (read-only) state — lazily fetched only when the Audit tab opens.
   const [auditRows, setAuditRows] = useState<WarningAuditRow[] | null>(null);
@@ -193,7 +196,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
   return (
     <div className="fixed inset-0 z-console-overlay bg-gw-primary/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <span role="status" aria-live="polite" className="sr-only">{verifyAnnouncement}</span>
-      <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="warning-detail-title" className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto">
         {/* Header Metadata */}
         <div className="p-4 sm:p-5 border-b-2 border-gw-primary bg-gw-bg">
           <div className="flex items-start justify-between gap-3">
@@ -233,7 +236,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
 
               {/* Title & Warning Code */}
               <div className="flex items-baseline gap-3 flex-wrap">
-                <h2 className="text-xl sm:text-2xl font-bold text-gw-primary font-mono tracking-tight">
+                <h2 id="warning-detail-title" className="text-xl sm:text-2xl font-bold text-gw-primary font-mono tracking-tight">
                   {warningIdCode}
                 </h2>
                 {warning.publisher_id && (

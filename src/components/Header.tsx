@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { TabType, SectionType, SECTION_OF, SECTION_VIEWS, DEFAULT_SECTION_TAB } from '../App';
 import { Map, Database, Upload, FileText, X, Lock, Unlock, Key, Mail, Loader2 } from 'lucide-react';
 import { adminLogin, adminLogout } from '../services/api';
+import { useModalBehavior } from '../hooks/useModalBehavior';
 
 interface HeaderProps {
   activeTab: TabType;
@@ -27,6 +28,8 @@ export const Header: React.FC<HeaderProps> = ({
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
   // Two-tap sign-out confirmation: first tap arms, second tap confirms.
   const [signOutConfirm, setSignOutConfirm] = useState(false);
+  const adminModalRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(adminModalRef, showAdminModal);
   useEffect(() => {
     if (!signOutConfirm) return;
     const t = window.setTimeout(() => setSignOutConfirm(false), 4000);
@@ -322,7 +325,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Admin Unlock Modal Overlay */}
       {showAdminModal && (
         <div className="fixed inset-0 z-console-overlay bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div role="dialog" aria-modal="true" aria-labelledby="admin-gate-title" className="bg-white border-2 border-gw-primary rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div ref={adminModalRef} role="dialog" aria-modal="true" aria-labelledby="admin-gate-title" className="bg-white border-2 border-gw-primary rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-gw-secondary pb-3">
               <div className="flex items-center gap-2 font-bold text-sm sm:text-base text-gw-primary uppercase tracking-wider">
                 <Lock className="w-5 h-5 text-gw-primary" />

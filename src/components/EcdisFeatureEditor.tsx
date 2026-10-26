@@ -368,6 +368,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                       onClick={() => handleMovePoint(idx, 'up')}
                       className="p-1 text-gw-primary hover:bg-white rounded disabled:opacity-30"
                       title="Move Point Up"
+                      aria-label="Move point up"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
                     </button>
@@ -376,6 +377,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                       onClick={() => handleMovePoint(idx, 'down')}
                       className="p-1 text-gw-primary hover:bg-white rounded disabled:opacity-30"
                       title="Move Point Down"
+                      aria-label="Move point down"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
                     </button>
@@ -383,6 +385,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                       onClick={() => handleDeletePoint(feat.id)}
                       className="p-1 text-red-600 hover:bg-red-100 rounded"
                       title="Delete Point"
+                      aria-label="Delete point"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
