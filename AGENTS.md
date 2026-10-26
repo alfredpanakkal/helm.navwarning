@@ -41,6 +41,14 @@
 - **Never guess a coordinate hemisphere.** Ambiguous coordinates stay
   flagged `AMBIGUOUS` for human review — the parser stamps rule-parsed
   points `RULE_PARSED` (PR #42), never `VERIFIED`; only a human verifies.
+- **Verify semantics (decided 2026-10-26, PRs #73–#75).** An audited
+  VERIFY appends the 'verified_by_admin' qa_flag and promotes Tier B → Tier A
+  only when every Tier A invariant already holds (EXPLICIT quality, ≥ 1
+  geometry, no unplotted_reason, not superseded); otherwise it stays
+  flag-only and the row remains a review candidate. The 'verified_by_admin'
+  flag is exempt from the derived-confidence penalty, and the client
+  repaints verified rows with the server-returned values only — never
+  fabricated status, confidence or geometry validation.
 - **Never re-run migrations blindly.** Check pg_policies / migration
   history first; do not migrate the backend wholesale — build on the
   existing architecture.
@@ -117,8 +125,12 @@ roadmap — lives in [`docs/PROJECT_KNOWLEDGE.md`](docs/PROJECT_KNOWLEDGE.md).
 Keep it updated when merging PRs that change conventions or fix root
 causes; keep this file lean.
 
-## 6. Open threads (as of 2026-10-25)
+## 6. Open threads (as of 2026-10-26)
 
+- Verify series #73–#75 (merged 2026-10-26): the agent never ran lint,
+  vitest or `npm run ux:smoke` — run the ux:smoke verify-safety suite
+  (E2E_ admin env vars) and a preview Quick Verify on a Tier B row with and
+  without geometry before relying on the promotion path.
 - Console UX audit issue 13 — deliberately deferred.
 - Live DB state (maintainer-verified 2026-10-24): the `20261024` RLS
   migration **and** `20261026_pipeline_runs.sql` (PR #30, merged) are both

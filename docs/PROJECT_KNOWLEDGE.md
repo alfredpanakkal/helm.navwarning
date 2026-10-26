@@ -150,6 +150,35 @@ deferred). Maintainer merged each himself after preview checks.
 Standard-format agent guide at the repo root plus this knowledge appendix,
 so agents get conventions and history from the repository itself.
 
+### Verify semantics series (PRs #73–#75, merged 2026-10-26)
+
+- **#73 — mobile touch targets, safe verify flow, modal a11y
+  (console-ux-68).** Coarse-pointer 44px touch layer, 2-tap sign-out
+  confirm, {ok,error} verify contract (a failed VERIFY is shown inline and
+  the modal no longer auto-advances), useModalBehavior + dialog semantics
+  on 7 modals, 9–10px interactive text raised to 12px, and a 390×844
+  touch-target/verify-safety Playwright suite. TS2448
+  use-before-declaration fixed in cd88c53.
+- **#74 — server-truth verify repaint.** Root cause:
+  `applyLocalVerified` fabricated status 'active' / confidence 1.0 /
+  geometry 'passed' — none of which the E1 verify endpoint stores (it only
+  appends 'verified_by_admin' and returns the stored row). Now
+  `App.applyServerTruth` mirrors the server-returned status / triage_tier /
+  data_quality / qa_flags and re-derives confidence via the newly exported
+  `deriveExtractionConfidence`. Local-only (offline/manual) warnings keep
+  the optimistic path — there is no server row to mirror.
+- **#75 — VERIFY promotes Tier B → A when the Tier A invariants hold
+  (decided 2026-10-26).** Step 4b in `api/admin/warning-edit.ts`: on
+  `patch.verify`, with no explicit `patch.triage_tier`, a Tier B row is
+  promoted to A only when data_quality is EXPLICIT, ≥ 1 geometry exists,
+  there is no unplotted_reason and status is not superseded; otherwise the
+  verify stays flag-only and the row remains a candidate. The audit row
+  records previous_tier → new_tier. `deriveExtractionConfidence` exempts
+  'verified_by_admin' from the 0.9 cap (verified Tier A → 1.0), so
+  verified rows leave both the review queue (< 0.8) and the card candidate
+  check (< 1). Maintainer to run the ux:smoke verify-safety suite and a
+  preview Quick Verify on Tier B rows with and without geometry.
+
 ## 4. Roadmap & open threads (as of 2026-10-25)
 
 1. ~~Fix the two Vercel 500s~~ (done, PR #29)
