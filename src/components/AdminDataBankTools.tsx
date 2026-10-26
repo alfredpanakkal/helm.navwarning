@@ -338,7 +338,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
         <div className="flex items-center gap-1 flex-wrap">
           {savedViews.map((v) => (
             <span key={v.name} className="inline-flex items-center gap-1 bg-white border border-gw-secondary rounded-full pl-2 pr-1 py-0.5">
-              <button type="button" onClick={() => applyView(v)} className="text-[10px] font-bold uppercase hover:text-gw-primary" title={`Apply view: NAVAREA=${v.navarea} status=${v.status} tier=${v.tier}`}>
+              <button type="button" onClick={() => applyView(v)} className="text-xs font-bold uppercase hover:text-gw-primary" title={`Apply view: NAVAREA=${v.navarea} status=${v.status} tier=${v.tier}`}>
                 {v.name}
               </button>
               <button type="button" onClick={() => deleteView(v.name)} aria-label={`Delete saved view ${v.name}`} className="text-gw-accent hover:text-red-600 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary" title="Delete saved view">
@@ -353,7 +353,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
             placeholder="view name"
             className="px-2 py-0.5 border border-gw-secondary rounded text-[10px] font-mono w-20 bg-white"
           />
-          <button type="button" onClick={saveCurrentView} className="flex items-center gap-1 px-2 py-0.5 bg-gw-bg border border-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
+          <button type="button" onClick={saveCurrentView} className="flex items-center gap-1 px-2 py-0.5 bg-gw-bg border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
             <Save className="w-3 h-3" />
             <span>Save view</span>
           </button>
@@ -386,7 +386,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
           type="button"
           onClick={runBulkEdit}
           disabled={bulkRunning}
-          className="px-3 py-1 bg-gw-primary text-gw-bg rounded text-[10px] font-bold uppercase hover:bg-gw-tertiary disabled:opacity-50"
+          className="px-3 py-1 bg-gw-primary text-gw-bg rounded text-xs font-bold uppercase hover:bg-gw-tertiary disabled:opacity-50"
         >
           {bulkRunning ? 'Applying…' : 'Apply to selected'}
         </button>
@@ -398,13 +398,13 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
         <span className="text-[10px] font-bold uppercase text-gw-accent">
           Export {selectedWarnings.length > 0 ? `${selectedWarnings.length} selected` : `${filtered.length} filtered`}:
         </span>
-        <button type="button" onClick={exportAsCsv} className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
+        <button type="button" onClick={exportAsCsv} className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
           <Download className="w-3 h-3" /> CSV
         </button>
-        <button type="button" onClick={exportAsGeoJson} className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
+        <button type="button" onClick={exportAsGeoJson} className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
           <Download className="w-3 h-3" /> GeoJSON
         </button>
-        <button type="button" onClick={exportAsKml} className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
+        <button type="button" onClick={exportAsKml} className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
           <Download className="w-3 h-3" /> KML
         </button>
       </div>
@@ -453,7 +453,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
                 <td className="px-2 py-1.5">{w.triage_tier ? 'Tier ' + String(w.triage_tier).toUpperCase() : '—'}</td>
                 <td className="px-2 py-1.5">{w.valid_to ? String(w.valid_to).slice(0, 10) : '—'}</td>
                 <td className="px-2 py-1.5">
-                  <button type="button" onClick={() => openAudit(w)} className="flex items-center gap-1 text-[10px] font-bold uppercase text-gw-accent hover:text-gw-primary">
+                  <button type="button" onClick={() => openAudit(w)} className="flex items-center gap-1 text-xs font-bold uppercase text-gw-accent hover:text-gw-primary">
                     <History className="w-3 h-3" />
                     <span>History</span>
                   </button>

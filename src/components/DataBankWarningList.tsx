@@ -265,7 +265,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                                   handleVerify(w.warning_id);
                                 }}
                                 disabled={verifyingIds.has(w.warning_id)}
-                                className="ml-auto px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold uppercase hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="ml-auto px-2 py-1 bg-emerald-600 text-white rounded text-xs font-bold uppercase hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 <ShieldCheck className="w-3 h-3" />
                                 <span>Verify</span>

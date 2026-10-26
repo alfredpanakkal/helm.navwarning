@@ -466,7 +466,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                 <div className="flex justify-end pt-1">
                   <button
                     onClick={() => handleInsertPoint(idx)}
-                    className="flex items-center gap-1 text-[10px] text-gw-primary hover:text-gw-accent font-bold uppercase"
+                    className="flex items-center gap-1 text-xs text-gw-primary hover:text-gw-accent font-bold uppercase"
                   >
                     <Plus className="w-3 h-3" /> Insert Point Below
                   </button>

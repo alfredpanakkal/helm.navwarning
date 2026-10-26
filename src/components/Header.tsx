@@ -311,12 +311,12 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="relative">
                 {section.icon}
                 {section.id === 'warnings' && typeof activeCount === 'number' && (
-                  <span className="bottom-badge absolute -top-1 -right-2 text-[9px] bg-emerald-600 text-white font-bold px-1 rounded-full min-w-[14px] text-center tabular-nums">
+                  <span className="bottom-badge absolute -top-1 -right-2 text-xs bg-emerald-600 text-white font-bold px-1 rounded-full min-w-[14px] text-center tabular-nums">
                     {activeCount.toLocaleString()}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] mt-0.5 uppercase tracking-tight">{section.label}</span>
+              <span className="text-xs mt-0.5 uppercase tracking-tight">{section.label}</span>
             </button>
           );
         })}
