@@ -568,6 +568,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       const isIsolated = isolatedWarning?.warning_id === w.warning_id;
       const classification = classifyWarning(w.raw_text || w.area_text || '');
       const statedBerth = parseBerthAndRadius(w.raw_text || '');
+      // 2026-10-26: Tier B / INFERRED warnings render dashed amber "Unverified"
+      // — their geometry is provisional (AI escalation or a NAVAREA move copy).
+      const isUnverified = String(w.triage_tier || 'A').toUpperCase() === 'B';
 
       // Determine geometry presence
       const hasPolygons = Boolean(
@@ -652,8 +655,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 const areaSqNm = computePolygonAreaSqNm(latLngs);
                 const centroid = computeCentroid(latLngs);
 
-                const polyColor = isIsolated ? '#dc2626' : classification.displayStyle === 'critical' ? '#dc2626' : '#2563eb';
-                const polyFill = isIsolated ? '#ef4444' : classification.displayStyle === 'critical' ? '#f87171' : '#3b82f6';
+                const polyColor = isUnverified ? '#d97706' : isIsolated ? '#dc2626' : classification.displayStyle === 'critical' ? '#dc2626' : '#2563eb';
+                const polyFill = isUnverified ? '#fbbf24' : isIsolated ? '#ef4444' : classification.displayStyle === 'critical' ? '#f87171' : '#3b82f6';
 
                 const poly = L.polygon(latLngs, {
                   color: polyColor,
@@ -670,13 +673,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   <div style="font-family: monospace; padding: 4px; max-width: 240px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                       <span style="font-weight: 700; font-size: 13px; color: #1e293b;">${w.source_warning_id || w.warning_id}</span>
-                      <span style="background: #059669; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">ACTIVE</span>
+                      ${isUnverified ? '<span style="background: #d97706; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">UNVERIFIED</span>' : '<span style="background: #059669; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">ACTIVE</span>'}
                     </div>
                     <div style="font-size: 11px; color: #475569; margin-bottom: 8px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${w.title || w.area_text || w.raw_text}</div>
                     <div style="font-size: 10px; color: #0284c7; font-weight: 600;">Area: ${areaSqNm} sq NM</div>
                   </div>
                 `);
 
+                if (isUnverified) poly.bindTooltip('Unverified (Tier B) — needs review', { direction: 'center' });
                 poly.on('click', () => onSelectWarning(w));
                 poly.on('contextmenu', (e: L.LeafletMouseEvent) => {
                   handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
@@ -756,11 +760,12 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
                 // Pass 2: Primary Core Track Line On Top
                 const coreLine = L.polyline(latLngs, {
-                  color: classification.displayStyle === 'critical' ? '#dc2626' : '#0284c7',
+                  color: isUnverified ? '#d97706' : classification.displayStyle === 'critical' ? '#dc2626' : '#0284c7',
                   weight: 3,
                   dashArray: '8, 6',
                   pane: 'navWarnVectorPane',
                 }).addTo(vectorGroup);
+                if (isUnverified) coreLine.bindTooltip('Unverified (Tier B) — needs review', { direction: 'top' });
 
                 coreLine.on('click', () => onSelectWarning(w));
                 casingLine.on('click', () => onSelectWarning(w));
@@ -835,7 +840,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
         // 2. Circular hazard exclusion buffers
         if (w.spatial?.circles) {
-          const circleStyle = getCircleStyle(isIsolated);
+          const circleStyle = {
+            ...getCircleStyle(isIsolated),
+            ...(isUnverified ? { color: '#d97706', fillColor: '#fbbf24' } : {}),
+          };
           w.spatial.circles.forEach((circ) => {
             if (circ.center && Array.isArray(circ.center) && circ.radius_nm) {
               try {
@@ -847,10 +855,13 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   radius: radiusM,
                 }).addTo(vectorGroup);
 
-                circleLayer.bindTooltip(`Radius: ${circ.radius_nm} NM`, {
-                  direction: 'center',
-                  permanent: false
-                });
+                circleLayer.bindTooltip(
+                  isUnverified ? `Radius: ${circ.radius_nm} NM · Unverified (Tier B)` : `Radius: ${circ.radius_nm} NM`,
+                  {
+                    direction: 'center',
+                    permanent: false
+                  }
+                );
 
                 const centerMarker = L.circleMarker(center, {
                   radius: 5,

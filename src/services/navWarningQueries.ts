@@ -90,6 +90,39 @@ export async function fetchActiveSpatialRows(opts?: { serverClient?: boolean }):
   return rows;
 }
 
+/**
+ * Fetches all rows of the Tier B map view (active + Tier B / INFERRED),
+ * paginated. One row PER GEOMETRY — group by canonical_id before rendering.
+ * The console map renders these dashed amber "Unverified" (2026-10-26);
+ * the public site stays on the Tier A view only.
+ */
+export async function fetchUnverifiedSpatialRows(opts?: { serverClient?: boolean }): Promise<ActiveSpatialRow[]> {
+  const client = resolveClient(opts?.serverClient);
+  if (!client) return [];
+  const rows: ActiveSpatialRow[] = [];
+  let from = 0;
+  let hasMore = true;
+  while (hasMore) {
+    const to = from + PAGE_SIZE - 1;
+    const { data, error } = await client
+      .from('nav_warnings_unverified_spatial')
+      .select(VIEW_COLUMNS)
+      .range(from, to);
+    if (error) {
+      console.warn('[navWarningQueries] unverified_spatial query notice:', error.message);
+      break;
+    }
+    if (data && data.length > 0) {
+      rows.push(...(data as unknown as ActiveSpatialRow[]));
+      hasMore = data.length === PAGE_SIZE;
+      from += PAGE_SIZE;
+    } else {
+      hasMore = false;
+    }
+  }
+  return rows;
+}
+
 /** Converts a view geojson_blob into a frontend SpatialGeometry-like entry. */
 export function geojsonBlobToGeometry(blob: unknown, label?: string | null): Record<string, unknown> | null {
   if (!blob || typeof blob !== 'object') return null;
@@ -165,7 +198,7 @@ export async function fetchNavWarningsList(params?: NavWarningListFilters & { se
 
 /**
  * Single-warning refetch: the master row (LIST_COLUMNS, incl. raw_text) plus
- * its geometries from the active_spatial view, converted with
+ * its geometries from the Tier A/Tier B spatial views, converted with
  * geojsonBlobToGeometry (buffer_nm carried along for buffered points).
  * Used by the edit-save repaint and the debounced realtime handler so one
  * admin edit never triggers a full-dataset reload.
@@ -184,12 +217,19 @@ export async function fetchSingleWarning(canonicalId: string): Promise<{
     console.warn('[navWarningQueries] single warning query notice:', error?.message);
     return { row: null, geometries: [] };
   }
-  const { data: spatial }: any = await anonClient
-    .from('nav_warnings_active_spatial')
-    .select(VIEW_COLUMNS)
-    .eq('canonical_id', canonicalId);
+  // Tier A rows hydrate from the active_spatial view; Tier B rows from the
+  // unverified_spatial view — a single-warning refetch must return the real
+  // geometry for BOTH tiers (the post-save and realtime repaints depend on it).
+  const [activeRes, unverifiedRes]: any = await Promise.all([
+    anonClient.from('nav_warnings_active_spatial').select(VIEW_COLUMNS).eq('canonical_id', canonicalId),
+    anonClient.from('nav_warnings_unverified_spatial').select(VIEW_COLUMNS).eq('canonical_id', canonicalId),
+  ]);
+  const spatial = [
+    ...((activeRes?.data || []) as ActiveSpatialRow[]),
+    ...((unverifiedRes?.data || []) as ActiveSpatialRow[]),
+  ];
   const geometries: Record<string, unknown>[] = [];
-  for (const r of (spatial || []) as ActiveSpatialRow[]) {
+  for (const r of spatial) {
     const g = geojsonBlobToGeometry(r.geojson_blob, r.zone_label);
     if (g) geometries.push({ ...g, buffer_nm: Number(r.buffer_nm) || 0 });
   }

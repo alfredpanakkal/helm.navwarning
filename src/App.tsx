@@ -38,6 +38,7 @@ import { saveWarningEdit } from './services/warningEditApi';
 import { parseCoordinatesDeterministic } from './utils/coordinateParser';
 import {
   fetchActiveSpatialRows,
+  fetchUnverifiedSpatialRows,
   groupSpatialRowsByCanonicalId,
   subscribeToNavWarnings,
   fetchSingleWarning,
@@ -196,16 +197,19 @@ export default function App() {
       setArtifacts(apiArts || []);
       setIsOfflineMode(false);
 
-      // Hydrate real geometry from the nav_warnings_active_spatial view (Tier A + active).
+      // Hydrate real geometry from the Tier A active_spatial view and the Tier B
       // Falls back silently to the raw-text regex geometry if the view is unreachable/empty.
       // Fired without await so it never blocks the list render above; the
       // functional setWarnings patch only touches rows still present in
       // current state, so it cannot clobber a newer realtime reload.
       void (async () => {
         try {
-          const spatialRows = await fetchActiveSpatialRows();
-          if (spatialRows.length > 0) {
-            const grouped = groupSpatialRowsByCanonicalId(spatialRows);
+          const [spatialRows, unverifiedRows] = await Promise.all([
+            fetchActiveSpatialRows(),
+            fetchUnverifiedSpatialRows(),
+          ]);
+          if (spatialRows.length + unverifiedRows.length > 0) {
+            const grouped = groupSpatialRowsByCanonicalId([...spatialRows, ...unverifiedRows]);
             const groupedByCanonical = new Map(grouped.map((g) => [g.canonical_id, g]));
             setWarnings((prev) =>
               prev.map((w) => {
