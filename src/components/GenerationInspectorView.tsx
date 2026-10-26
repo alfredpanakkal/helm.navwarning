@@ -174,7 +174,7 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
           </h3>
           <button
             onClick={loadRuns}
-            className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider bg-gw-primary text-gw-bg rounded border border-gw-primary hover:bg-gw-accent transition-colors"
+            className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-gw-primary text-gw-bg rounded border border-gw-primary hover:bg-gw-accent transition-colors"
           >
             Refresh Runs
           </button>

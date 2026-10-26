@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavWarning } from '../types';
 import { EcdisFeatureEditor } from './EcdisFeatureEditor';
 import {
@@ -23,6 +23,7 @@ import {
   Calendar,
   Layers,
 } from 'lucide-react';
+import { useModalBehavior } from '../hooks/useModalBehavior';
 import { saveImportedWarningsToSupabase, parseJhodBatch } from '../services/api';
 import { splitJhodTelexStream } from '../schemas/jhodAiContract';
 import { JHOD_19_NOTICES_CORPUS } from '../data/jhod19NoticesCorpus';
@@ -58,6 +59,22 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [manifestSummary, setManifestSummary] = useState<any | null>(null);
   const [inspectedWarning, setInspectedWarning] = useState<NavWarning | null>(null);
+
+  const aiFallbackRef = useRef<HTMLDivElement>(null);
+  const inspectRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(aiFallbackRef, !!aiFallbackModal?.active);
+  useModalBehavior(inspectRef, !!inspectedWarning);
+
+  // Escape closes whichever parser modal is open (WarningDetailModal pattern).
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (aiFallbackModal?.active) setAiFallbackModal((prev) => (prev ? { ...prev, active: false } : prev));
+      else if (inspectedWarning) setInspectedWarning(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [aiFallbackModal, inspectedWarning]);
 
   const handleSaveToSupabase = async (warnings: NavWarning[]) => {
     if (!warnings.length) return;
@@ -173,14 +190,14 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
       {/* AI Parsing Failed Pop-up Modal */}
       {aiFallbackModal?.active && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-amber-600 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-black/50 z-console-overlay flex items-center justify-center p-4">
+          <div ref={aiFallbackRef} role="dialog" aria-modal="true" aria-labelledby="ai-fallback-title" className="bg-white border-2 border-amber-600 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl animate-in fade-in zoom-in duration-200">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gw-primary uppercase tracking-wider">
+                <h3 id="ai-fallback-title" className="text-sm font-bold text-gw-primary uppercase tracking-wider">
                   AI Parsing Failed — Switched to Hybrid
                 </h3>
                 <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
@@ -314,7 +331,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     `NAVAREA III 0102/26 WESTERN MEDITERRANEAN SEA. GUNNERY EXERCISES 150000 UTC TO 182359 UTC SEP IN AREA BOUNDED BY 37-12N 009-45E, 37-25N 010-10E, 37-05N 010-20E. SHIPS TO KEEP SAFE DISTANCE.\n---\nNAVAREA III 0103/26 EASTERN MEDITERRANEAN. CABLE LAYING OPERATIONS BY C/S DEPENDABLE FROM 20 SEP TO 30 SEP ALONG TRACK: 34-10N 032-15E TO 33-50N 033-05E. 1NM BERTH REQUESTED.`
                   )
                 }
-                className="text-xs text-gw-accent hover:text-gw-primary transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-gw-accent hover:text-gw-primary transition-colors underline font-mono font-bold uppercase text-left"
               >
                 Sample Bulk Text
               </button>
@@ -327,7 +344,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setNavarea('XI');
                   setParseMode('jhod_structured');
                 }}
-                className="text-xs text-indigo-700 hover:text-indigo-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-indigo-700 hover:text-indigo-900 transition-colors underline font-mono font-bold uppercase text-left"
               >
                 🇯🇵 Sample JHOD NAVAREA XI Telex
               </button>
@@ -339,7 +356,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setParseMode('jhod_structured');
                   setViewMode('table');
                 }}
-                className="text-xs text-emerald-700 hover:text-emerald-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-emerald-700 hover:text-emerald-900 transition-colors underline font-mono font-bold uppercase text-left"
               >
                 🇯🇵 Load Complete 19-Notice NAVAREA XI Feed
               </button>
@@ -352,7 +369,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setNavarea('XI');
                   setParseMode('regex');
                 }}
-                className="text-xs text-rose-700 hover:text-rose-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-rose-700 hover:text-rose-900 transition-colors underline font-mono font-bold uppercase text-left"
                 title="Tests strict quarantine when coordinate is missing both hemisphere letters"
               >
                 🛡️ Test Missing Hemisphere (Quarantine)
@@ -366,7 +383,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setNavarea('XI');
                   setParseMode('regex');
                 }}
-                className="text-xs text-amber-700 hover:text-amber-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-amber-700 hover:text-amber-900 transition-colors underline font-mono font-bold uppercase text-left"
                 title="Tests strict quarantine when coordinate has latitude hemisphere but lacks longitude hemisphere"
               >
                 🛡️ Test Partial Hemisphere (Quarantine)
@@ -380,7 +397,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setNavarea('XI');
                   setParseMode('regex');
                 }}
-                className="text-xs text-blue-700 hover:text-blue-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-blue-700 hover:text-blue-900 transition-colors underline font-mono font-bold uppercase text-left"
                 title="Tests broadened radius regex converting 500 metres to 0.270 NM"
               >
                 📏 Test Metric Radius (500m → 0.270 NM)
@@ -411,7 +428,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
               <span>{supabaseSaveMsg.text}</span>
               <button
                 onClick={() => setSupabaseSaveMsg(null)}
-                className="text-[11px] uppercase hover:underline ml-2"
+                className="touch-hit text-[11px] uppercase hover:underline ml-2"
               >
                 Dismiss
               </button>
@@ -906,11 +923,11 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
           {/* Dedicated Single Warning Inspection Modal */}
           {inspectedWarning && (
-            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-              <div className="bg-white border-2 border-gw-primary rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-200 custom-scrollbar">
+            <div className="fixed inset-0 bg-black/60 z-console-overlay flex items-center justify-center p-4">
+              <div ref={inspectRef} role="dialog" aria-modal="true" aria-labelledby="inspect-warning-title" className="bg-white border-2 border-gw-primary rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-200 custom-scrollbar">
                 <div className="flex items-center justify-between border-b-2 border-gw-primary pb-3">
                   <div>
-                    <h3 className="text-base font-bold text-gw-primary font-mono flex items-center gap-2">
+                    <h3 id="inspect-warning-title" className="text-base font-bold text-gw-primary font-mono flex items-center gap-2">
                       <span>{inspectedWarning.source_warning_id}</span>
                       <span className="text-xs px-2 py-0.5 rounded bg-gw-bg border border-gw-primary uppercase">
                         {inspectedWarning.series}
@@ -922,6 +939,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     type="button"
                     onClick={() => setInspectedWarning(null)}
                     className="p-1 rounded-lg hover:bg-gw-bg text-gw-primary transition-colors"
+                    aria-label="Close"
                   >
                     <X className="w-5 h-5" />
                   </button>

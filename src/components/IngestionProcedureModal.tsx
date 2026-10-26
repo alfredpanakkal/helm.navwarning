@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
   Server,
@@ -22,6 +22,7 @@ import {
   X
 } from 'lucide-react';
 import { NavWarning, SourceRegistryItem, NavAreaId } from '../types';
+import { useModalBehavior } from '../hooks/useModalBehavior';
 import { parseCoordinatesDeterministic } from '../utils/coordinateParser';
 
 interface IngestionProcedureModalProps {
@@ -200,11 +201,14 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
     }
   };
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, isOpen);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-console-overlay bg-gw-primary/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-      <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden font-mono">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="ingestion-procedure-title" className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden font-mono">
         {/* Modal Header */}
         <div className="p-4 sm:p-5 border-b-2 border-gw-primary bg-gw-bg flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -213,7 +217,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-bold text-gw-primary uppercase tracking-wider">
+                <h2 id="ingestion-procedure-title" className="text-base sm:text-lg font-bold text-gw-primary uppercase tracking-wider">
                   Navigational Warning Ingestion Procedure
                 </h2>
                 <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">

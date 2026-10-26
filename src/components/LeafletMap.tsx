@@ -1033,7 +1033,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectWarning(isolatedWarning)}
-                className="px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-500 rounded text-amber-950 font-bold uppercase text-[10px] transition-all"
+                className="px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-500 rounded text-amber-950 font-bold uppercase text-xs transition-all"
               >
                 Details
               </button>
@@ -1041,7 +1041,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 <button
                   type="button"
                   onClick={onClearIsolation}
-                  className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold uppercase text-[10px] transition-all shadow-xs"
+                  className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold uppercase text-xs transition-all shadow-xs"
                 >
                   Show All Warnings
                 </button>
@@ -1091,6 +1091,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               onClick={() => setIsTopFiltersOpen(false)}
               className="p-1 rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all"
               title="Close filter menu"
+              aria-label="Close filter menu"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1125,7 +1126,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     key={scope}
                     type="button"
                     onClick={() => setScopeFilter(scope)}
-                    className={`py-1 text-[10px] font-bold uppercase rounded text-center transition-all ${
+                    className={`py-1 text-xs font-bold uppercase rounded text-center transition-all ${
                       scopeFilter === scope
                         ? 'bg-gw-primary text-gw-bg shadow-xs'
                         : 'text-gw-accent hover:text-gw-primary hover:bg-gw-bg'
@@ -1148,7 +1149,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   <button
                     key={sev}
                     onClick={() => setFilterSeverity(sev)}
-                    className={`py-1 text-[9px] uppercase font-bold rounded transition-all text-center ${
+                    className={`py-1 text-xs uppercase font-bold rounded transition-all text-center ${
                       filterSeverity === sev
                         ? 'bg-gw-primary text-gw-bg'
                         : 'text-gw-accent hover:text-gw-primary hover:bg-white'
@@ -1197,7 +1198,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 setFilterSeverity('all');
                 setSearchQuery('');
               }}
-              className="flex items-center gap-1 text-[10px] font-bold uppercase text-gw-accent hover:text-gw-primary"
+              className="flex items-center gap-1 text-xs font-bold uppercase text-gw-accent hover:text-gw-primary"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Reset Filters</span>
@@ -1428,6 +1429,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
             <button
               onClick={closeContextMenu}
+              aria-label="Close context menu"
               className="text-gw-secondary hover:text-white p-0.5 rounded transition-all"
             >
               <X className="w-3.5 h-3.5" />
@@ -1692,6 +1694,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                                   : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
                               }`}
                               title={isHidden ? 'Unhide layer on map' : 'Hide layer from map'}
+                              aria-label={isHidden ? 'Unhide layer on map' : 'Hide layer from map'}
                             >
                               {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>

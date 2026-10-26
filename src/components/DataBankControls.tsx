@@ -472,7 +472,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 <button
                   type="button"
                   onClick={() => applyCategory('ALL')}
-                  className="text-xs text-gw-primary hover:underline font-bold cursor-pointer"
+                  className="touch-hit text-xs text-gw-primary hover:underline font-bold cursor-pointer"
                 >
                   Clear Category Filter
                 </button>

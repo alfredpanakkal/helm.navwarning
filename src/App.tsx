@@ -259,7 +259,7 @@ export default function App() {
     setActiveTab(tab);
   };
 
-  const handleVerifyWarning = async (warningId: string) => {
+  const handleVerifyWarning = async (warningId: string): Promise<{ ok: boolean; error?: string }> => {
     const applyLocalVerified = () =>
       setWarnings((prev) =>
         prev.map((w) =>
@@ -282,7 +282,7 @@ export default function App() {
     const canonical = target?.warning_id;
     if (!uuid && !canonical) {
       applyLocalVerified();
-      return;
+      return { ok: true };
     }
     try {
       const res = await saveWarningEdit({
@@ -290,10 +290,15 @@ export default function App() {
         canonicalId: canonical,
         patch: { verify: true, note: 'Quick verify from Data Bank' },
       });
-      if (res.ok) applyLocalVerified();
-      else console.warn('Audited verify failed - local state left unchanged:', res.error);
-    } catch (e) {
+      if (res.ok) {
+        applyLocalVerified();
+        return { ok: true };
+      }
+      console.warn('Audited verify failed - local state left unchanged:', res.error);
+      return { ok: false, error: res.error };
+    } catch (e: any) {
       console.warn('Audited verify unreachable - local state left unchanged:', e);
+      return { ok: false, error: e?.message || 'Verify request failed' };
     }
   };
 
@@ -422,7 +427,7 @@ export default function App() {
   return (
     <div
       className={`min-h-screen bg-gw-bg text-gw-primary font-mono selection:bg-gw-primary selection:text-gw-bg relative ${
-        isMapView ? 'h-[100dvh] flex flex-col overflow-hidden pb-0' : 'pb-20 md:pb-6'
+        isMapView ? 'h-[100dvh] flex flex-col overflow-hidden pb-0' : 'pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-6'
       }`}
     >
       <a href="#main-content" className="gw-skip-link">
@@ -622,10 +627,10 @@ export default function App() {
           <button
             onClick={() => setSelectedWarning(unverifiedCandidates[0])}
             className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-            title="Verify next candidate in queue directly"
+            title="Open next unverified warning for review"
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>Verify Next ({unverifiedCandidates.length})</span>
+            <span>Review Next ({unverifiedCandidates.length})</span>
           </button>
         </div>
       )}
@@ -634,7 +639,7 @@ export default function App() {
           currently open in the detail modal. Writes go through the server-side
           admin-guarded /api/admin/warning-edit endpoint. */}
       {isAdminMode && selectedWarning && !editingWarning && !isIngestionProcedureOpen && (
-        <div className="fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-console-fab">
+        <div className="hidden md:block fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-console-fab">
           <button
             onClick={() => setEditingWarning(selectedWarning)}
             className="flex items-center gap-2 px-4 py-2.5 bg-gw-primary hover:bg-gw-accent text-gw-bg rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-2xl border-2 border-gw-accent active:scale-95"
@@ -652,6 +657,7 @@ export default function App() {
           warning={selectedWarning}
           onClose={() => setSelectedWarning(null)}
           onVerify={handleVerifyWarning}
+          onEditWarning={(w) => setEditingWarning(w)}
           onIsolateWarning={setIsolatedWarning}
           isIsolated={
             !!isolatedWarning && isolatedWarning.warning_id === selectedWarning.warning_id

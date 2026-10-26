@@ -432,6 +432,39 @@
   transform: scale(0.92);
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   SHARED TOUCH-TARGET LAYER (console UX audit: touch targets)
+   The design system already defines --touch-min: 44px
+   (public/assets/css/tokens.css) but the console's ad-hoc Tailwind
+   buttons (px-2 py-1 text-xs, p-1) ignore it. Fixed once here at the
+   shared layer, coarse pointers only — the mouse layout is untouched.
+   :where() keeps specificity 0 so any explicit min-h-*/h-* utility
+   still wins. Map controls (map-*-btn, .settings-*) keep their own
+   components.css sizing and are not restyled. */
+@media (pointer: coarse) {
+  @layer base {
+    :where(button:not(.touch-hit), [role="tab"], summary) {
+      min-height: var(--touch-min, 44px);
+      min-width: var(--touch-min, 44px);
+    }
+    :where(select, input:not([type="checkbox"]):not([type="radio"]), textarea) {
+      min-height: var(--touch-min, 44px);
+      font-size: 16px; /* 16px stops iOS focus-zoom on text-xs/text-sm inputs */
+    }
+  }
+  @layer utilities {
+    /* Link-style text actions keep their compact visual size; the hit
+       area expands around them instead (.vertex-pin::after pattern). */
+    .touch-hit { position: relative; }
+    .touch-hit::after {
+      content: '';
+      position: absolute;
+      inset: -12px -8px;
+    }
+  }
+}
+
 /* Responsive NAVAREA Select Full Width on mobile */
 @media (max-width: 768px) {
   .navarea-select-wrapper {

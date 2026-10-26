@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Papa from 'papaparse';
 import JSZip from 'jszip';
 import {
@@ -47,6 +47,7 @@ import {
   RejectedTriageItem,
   BulkIngestAiResponse,
 } from '../services/api';
+import { useModalBehavior } from '../hooks/useModalBehavior';
 
 interface CsvUploaderViewProps {
   onCommitWarnings: (warnings: NavWarning[]) => void;
@@ -124,6 +125,17 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
   const [isSavingToSupabase, setIsSavingToSupabase] = useState(false);
   const [supabaseSaveStatus, setSupabaseSaveStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [isConfirmCommitOpen, setIsConfirmCommitOpen] = useState(false);
+  const confirmRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(confirmRef, isConfirmCommitOpen);
+
+  // Escape closes the pre-commit confirmation barrier (WarningDetailModal pattern).
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsConfirmCommitOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Paste Text state
   const [pasteContent, setPasteContent] = useState<string>('');
@@ -1416,7 +1428,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               </div>
               <button
                 onClick={() => setSupabaseSaveStatus(null)}
-                className="text-xs uppercase hover:underline shrink-0"
+                className="touch-hit text-xs uppercase hover:underline shrink-0"
               >
                 Dismiss
               </button>
@@ -1490,7 +1502,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 <button
                   type="button"
                   onClick={() => setRejectedItems([])}
-                  className="text-xs font-bold text-red-800 hover:underline uppercase self-end sm:self-auto"
+                  className="touch-hit text-xs font-bold text-red-800 hover:underline uppercase self-end sm:self-auto"
                 >
                   Clear Rejected List
                 </button>
@@ -1784,14 +1796,14 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
       )}
       {/* Pre-Commit Confirmation Barrier Modal */}
       {isConfirmCommitOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs">
-          <div className="bg-white border-2 border-emerald-600 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-console-overlay flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs">
+          <div ref={confirmRef} role="dialog" aria-modal="true" aria-labelledby="confirm-commit-title" className="bg-white border-2 border-emerald-600 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-700 flex items-center justify-center shrink-0">
                 <Database className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider">
+                <h3 id="confirm-commit-title" className="text-base font-bold text-slate-900 uppercase tracking-wider">
                   Confirm Supabase Live Commit
                 </h3>
                 <p className="text-xs text-slate-500">

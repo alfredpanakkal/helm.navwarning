@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavWarning } from '../types';
 import { fetchWarningAudit, WarningAuditRow } from '../services/warningAuditApi';
 import { EcdisFeatureEditor } from './EcdisFeatureEditor';
@@ -40,11 +40,14 @@ import {
   Filter,
   History,
 } from 'lucide-react';
+import { useModalBehavior } from '../hooks/useModalBehavior';
 
 interface WarningDetailModalProps {
   warning: NavWarning | null;
   onClose: () => void;
-  onVerify?: (warningId: string) => void;
+  onVerify?: (warningId: string) => void | Promise<{ ok: boolean; error?: string }>;
+  /** Opens the admin edit modal for this warning (phone replacement for the desktop-only Edit FAB). */
+  onEditWarning?: (warning: NavWarning) => void;
   onNext?: () => void;
   onPrevious?: () => void;
   hasNext?: boolean;
@@ -58,6 +61,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
   warning,
   onClose,
   onVerify,
+  onEditWarning,
   onNext,
   onPrevious,
   hasNext,
@@ -70,6 +74,13 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
   const [copiedType, setCopiedType] = useState<string | null>(null);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [verifyPending, setVerifyPending] = useState(false);
+  // Verify outcome surfaced to the operator: a failed audited VERIFY is shown
+  // inline; success is announced via role=status (the row repaint is not
+  // announced by assistive tech on its own).
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifyAnnouncement, setVerifyAnnouncement] = useState('');
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, !!warning);
 
   // Audit trail (read-only) state — lazily fetched only when the Audit tab opens.
   const [auditRows, setAuditRows] = useState<WarningAuditRow[] | null>(null);
@@ -136,15 +147,28 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
   // Single-fire Verify: Quick Verify goes through the admin-guarded,
   // audited warning-edit endpoint, so a double-click must not fire two
   // VERIFY writes. The lock releases when the write settles; the modal only
-  // auto-advances to the next queue candidate on a settled attempt.
+  // auto-advances to the next queue candidate when the verify succeeded.
   const handleVerifyClick = () => {
     if (!onVerify || verifyPending) return;
     setVerifyPending(true);
+    setVerifyError(null);
+    setVerifyAnnouncement('');
     Promise.resolve(onVerify(warning.warning_id))
-      .catch(() => { /* App logs; modal stays open, row stays unverified */ })
+      .then((result) => {
+        if (result && result.ok === false) {
+          // Failure must be visible and the modal must stay on this warning:
+          // the operator must never mistake a failed verify for a saved one.
+          setVerifyError(result.error ? `Verify failed — not saved. ${result.error}` : 'Verify failed — not saved.');
+        } else {
+          setVerifyAnnouncement('Verified');
+          if (hasNext && onNext) onNext();
+        }
+      })
+      .catch(() => {
+        setVerifyError('Verify failed — not saved.');
+      })
       .finally(() => {
         setVerifyPending(false);
-        if (hasNext && onNext) onNext();
       });
   };
 
@@ -171,7 +195,8 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-console-overlay bg-gw-primary/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+      <span role="status" aria-live="polite" className="sr-only">{verifyAnnouncement}</span>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="warning-detail-title" className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto">
         {/* Header Metadata */}
         <div className="p-4 sm:p-5 border-b-2 border-gw-primary bg-gw-bg">
           <div className="flex items-start justify-between gap-3">
@@ -211,7 +236,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
 
               {/* Title & Warning Code */}
               <div className="flex items-baseline gap-3 flex-wrap">
-                <h2 className="text-xl sm:text-2xl font-bold text-gw-primary font-mono tracking-tight">
+                <h2 id="warning-detail-title" className="text-xl sm:text-2xl font-bold text-gw-primary font-mono tracking-tight">
                   {warningIdCode}
                 </h2>
                 {warning.publisher_id && (
@@ -717,8 +742,9 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             )}
           </div>
 
-          {/* Right Actions: Isolation Mode & Navigation */}
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Right Actions: Isolation Mode & Navigation (2-col grid on <sm so
+              Prev/Next, Verify and Close keep deterministic rows on phones) */}
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:flex-wrap">
             {/* Show Only This Message (Isolation Mode) */}
             {isIsolated ? (
               <button
@@ -784,6 +810,23 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>{verifyPending ? 'Verifying…' : 'Verify'}</span>
               </button>
+            )}
+
+            {onEditWarning && (
+              <button
+                type="button"
+                onClick={() => onEditWarning(warning)}
+                title="Edit this warning (admin) — type, time/expiry, status, tier, geometry, NAVAREA move"
+                className="flex items-center gap-1.5 px-3 py-2 bg-white border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg transition-all shadow-xs"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Edit</span>
+              </button>
+            )}
+            {verifyError && (
+              <span role="alert" className="text-rose-700 text-xs font-bold col-span-2 sm:col-span-1">
+                {verifyError}
+              </span>
             )}
 
             {/* Close Button */}

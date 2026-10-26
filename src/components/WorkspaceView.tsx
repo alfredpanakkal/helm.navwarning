@@ -85,7 +85,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 ) : item.actionTab ? (
                   <button
                     onClick={() => onNavigate?.(item.actionTab as TabType)}
-                    className="shrink-0 text-xs font-bold text-gw-primary hover:text-gw-accent underline"
+                    className="shrink-0 touch-hit text-xs font-bold text-gw-primary hover:text-gw-accent underline"
                   >
                     {item.actionLabel || 'View'}
                   </button>
@@ -143,7 +143,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             <span className="text-xs text-gw-accent font-bold">Primary Actions</span>
             <button
               onClick={() => setIsIngestionProcedureOpen?.(true)}
-              className="text-xs text-gw-accent font-bold hover:text-gw-primary underline cursor-pointer"
+              className="touch-hit text-xs text-gw-accent font-bold hover:text-gw-primary underline cursor-pointer"
             >
               Ingestion Procedure
             </button>
@@ -374,7 +374,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               {generations.length > 0 && (
                 <button
                   onClick={() => onNavigate?.('audit')}
-                  className="text-xs text-gw-accent hover:text-gw-primary font-bold underline uppercase"
+                  className="touch-hit text-xs text-gw-accent hover:text-gw-primary font-bold underline uppercase"
                 >
                   View All ({generations.length})
                 </button>
@@ -429,7 +429,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               </div>
               <button
                 onClick={() => onNavigate?.('sources')}
-                className="text-xs text-gw-accent hover:text-gw-primary font-bold underline uppercase"
+                className="touch-hit text-xs text-gw-accent hover:text-gw-primary font-bold underline uppercase"
               >
                 Manage All
               </button>
