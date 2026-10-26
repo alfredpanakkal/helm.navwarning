@@ -422,7 +422,7 @@ export default function App() {
   return (
     <div
       className={`min-h-screen bg-gw-bg text-gw-primary font-mono selection:bg-gw-primary selection:text-gw-bg relative ${
-        isMapView ? 'h-[100dvh] flex flex-col overflow-hidden pb-0' : 'pb-20 md:pb-6'
+        isMapView ? 'h-[100dvh] flex flex-col overflow-hidden pb-0' : 'pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-6'
       }`}
     >
       <a href="#main-content" className="gw-skip-link">

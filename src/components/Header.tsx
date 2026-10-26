@@ -25,6 +25,13 @@ export const Header: React.FC<HeaderProps> = ({
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
+  // Two-tap sign-out confirmation: first tap arms, second tap confirms.
+  const [signOutConfirm, setSignOutConfirm] = useState(false);
+  useEffect(() => {
+    if (!signOutConfirm) return;
+    const t = window.setTimeout(() => setSignOutConfirm(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [signOutConfirm]);
 
   // Handle Escape key dismissal for Admin Modal
   useEffect(() => {
@@ -103,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
     setAuthErrorMessage(null);
 
     const email = adminEmail.trim();
-    const password = adminPassword.trim();
+    const password = adminPassword;
 
     if (!email || !password) {
       setAuthErrorMessage('Please enter both administrator email and password.');
@@ -130,6 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const handleLockAdmin = async () => {
+    setSignOutConfirm(false);
     await adminLogout();
     setIsAdminMode(false);
     // The whole console is admin-gated (PR #27 policy): fall back to Warnings - Map.
@@ -216,12 +224,24 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Admin Lock / Sign In Status */}
             {isAdminMode ? (
               <button
-                onClick={handleLockAdmin}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border border-emerald-200 transition-all cursor-pointer"
-                title="Admin session active (app_metadata.role === 'admin'). Click to lock/sign out."
+                onClick={() => {
+                  if (signOutConfirm) {
+                    handleLockAdmin();
+                  } else {
+                    setSignOutConfirm(true);
+                  }
+                }}
+                aria-label="Sign out of admin session"
+                className={
+                  'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ' +
+                  (signOutConfirm
+                    ? 'text-rose-700 bg-rose-50 border-rose-300'
+                    : 'text-emerald-800 bg-emerald-50 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border-emerald-200')
+                }
+                title="Admin session active (app_metadata.role === 'admin'). Click to sign out."
               >
                 <Lock className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Admin</span>
+                <span>{signOutConfirm ? 'Confirm sign out?' : 'Sign out'}</span>
               </button>
             ) : (
               <button
@@ -270,7 +290,7 @@ export const Header: React.FC<HeaderProps> = ({
       </header>
 
       {/* Mobile Bottom Quick Navigation — the 4 sections */}
-      <nav className="bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-console-chrome bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1 flex items-center justify-around shadow-lg" aria-label="Primary quick navigation">
+      <nav role="tablist" className="bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-console-chrome bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1 pb-[env(safe-area-inset-bottom)] flex items-center justify-around shadow-lg" aria-label="Primary quick navigation">
         {sectionMeta.map((section) => {
           const isActive = activeSection === section.id;
           return (
@@ -302,11 +322,11 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Admin Unlock Modal Overlay */}
       {showAdminModal && (
         <div className="fixed inset-0 z-console-overlay bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-gw-primary rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="admin-gate-title" className="bg-white border-2 border-gw-primary rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-gw-secondary pb-3">
               <div className="flex items-center gap-2 font-bold text-sm sm:text-base text-gw-primary uppercase tracking-wider">
                 <Lock className="w-5 h-5 text-gw-primary" />
-                <span>Admin Access Gate</span>
+                <span id="admin-gate-title">Admin Access Gate</span>
               </div>
               <button
                 onClick={() => {
@@ -326,13 +346,15 @@ export const Header: React.FC<HeaderProps> = ({
 
             <form onSubmit={handleUnlockAdmin} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gw-accent uppercase tracking-wider block">
+                <label htmlFor="admin-gate-email" className="text-[10px] font-bold text-gw-accent uppercase tracking-wider block">
                   Admin Email Address
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-gw-accent absolute left-3 top-2.5" />
                   <input
                     type="email"
+                    id="admin-gate-email"
+                    autoComplete="email"
                     value={adminEmail}
                     onChange={(e) => {
                       setAdminEmail(e.target.value);
@@ -347,13 +369,15 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gw-accent uppercase tracking-wider block">
+                <label htmlFor="admin-gate-password" className="text-[10px] font-bold text-gw-accent uppercase tracking-wider block">
                   Password
                 </label>
                 <div className="relative">
                   <Key className="w-4 h-4 text-gw-accent absolute left-3 top-2.5" />
                   <input
                     type="password"
+                    id="admin-gate-password"
+                    autoComplete="current-password"
                     value={adminPassword}
                     onChange={(e) => {
                       setAdminPassword(e.target.value);
@@ -367,7 +391,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               {authErrorMessage && (
-                <div className="p-2.5 rounded bg-red-50 border border-red-200 text-red-700 text-xs leading-relaxed font-mono">
+                <div role="alert" className="p-2.5 rounded bg-red-50 border border-red-200 text-red-700 text-xs leading-relaxed font-mono">
                   {authErrorMessage}
                 </div>
               )}
@@ -375,7 +399,10 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowAdminModal(false)}
+                  onClick={() => {
+                    setShowAdminModal(false);
+                    setAuthErrorMessage(null);
+                  }}
                   className="px-4 py-2 border border-gw-secondary text-gw-accent hover:text-gw-primary rounded text-xs font-bold uppercase"
                 >
                   Cancel
