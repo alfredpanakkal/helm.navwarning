@@ -32,6 +32,7 @@ import {
   parseManualWarning,
   fetchArchivedWarnings,
   deriveExtractionConfidence,
+  mapSupabaseRowToNavWarning,
 } from './services/api';
 import { saveWarningEdit } from './services/warningEditApi';
 import { parseCoordinatesDeterministic } from './utils/coordinateParser';
@@ -39,6 +40,7 @@ import {
   fetchActiveSpatialRows,
   groupSpatialRowsByCanonicalId,
   subscribeToNavWarnings,
+  fetchSingleWarning,
 } from './services/navWarningQueries';
 
 // Route grammar (sections, views, legacy aliases, Data Bank query params) lives
@@ -240,15 +242,52 @@ export default function App() {
     loadData();
   }, []);
 
-  // Realtime: refresh whenever the backend writes nav_warnings or geometries
+  // Realtime: refresh the CHANGED warning when the backend writes
+  // nav_warnings or geometries. The subscription coalesces event bursts (a
+  // geometry save is a delete+insert pair) with a trailing debounce and passes
+  // the changed row's identity, so an admin edit repaints from a single-
+  // warning refetch instead of a full-dataset reload. Unknown identities
+  // (scraper bulk writes) fall back to the full reload.
+  const warningsRef = useRef<NavWarning[]>([]);
+  warningsRef.current = warnings;
   useEffect(() => {
-    const sub = subscribeToNavWarnings(() => {
-      loadData();
+    const sub = subscribeToNavWarnings((info) => {
+      const canonical =
+        info.canonicalId ||
+        (info.warningId
+          ? warningsRef.current.find((w) => (w as any).db_uuid === info.warningId)?.warning_id
+          : undefined);
+      if (canonical) {
+        void refreshSingleWarning(canonical);
+      } else {
+        loadData();
+      }
     });
     return () => {
       sub?.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * Refetches one warning (master row + geometries) and repaints it in place
+   * through the same mapper the initial load uses, so the result matches a
+   * full reload for that row. Patching selectedWarning keeps an open detail
+   * modal in sync; editingWarning is deliberately untouched so a save-induced
+   * repaint never resets the admin's in-progress edit form.
+   */
+  const refreshSingleWarning = async (canonicalId: string) => {
+    const { row, geometries } = await fetchSingleWarning(canonicalId);
+    if (!row) return;
+    const mapped = mapSupabaseRowToNavWarning(
+      geometries.length > 0 ? { ...row, _geometries: geometries } : row,
+      'active'
+    );
+    const replace = (w: NavWarning) =>
+      w.warning_id === canonicalId || w.source_warning_id === canonicalId ? mapped : w;
+    setWarnings((prev) => prev.map(replace));
+    setSelectedWarning((prev) => (prev ? replace(prev) : prev));
+  };
 
   const handleNavigateWithFilter = (tab: TabType, filterStatus?: string) => {
     if (tab === 'databank' && filterStatus) {
@@ -526,7 +565,9 @@ export default function App() {
             onClearIsolation={() => setIsolatedWarning(null)}
             isAdminMode={isAdminMode}
             selectedWarning={selectedWarning}
-            onGeometrySaved={() => loadData()}
+            onGeometrySaved={() => {
+              if (selectedWarning) void refreshSingleWarning(selectedWarning.warning_id);
+            }}
             onEditWarning={(w) => setEditingWarning(w)}
             isVisible={isMapView}
           />
@@ -724,15 +765,42 @@ export default function App() {
               loadData();
               return;
             }
-            // Field-level edit: patch the local row so the UI updates in place.
-            const updated = result.warning || {};
-            setWarnings((prev) =>
-              prev.map((w) =>
-                w.warning_id === original.warning_id || w.source_warning_id === original.warning_id
-                  ? { ...w, ...updated }
-                  : w
+            // Field-level edit: repaint the row from server truth through the
+            // same mapper the initial load uses. Geometry is taken from the
+            // rows the server just read back (saved_geometries); when geometry
+            // was not part of the edit, the existing map shape is kept so a
+            // title/status edit can never blank the pin.
+            if (!result.warning) {
+              setEditingWarning(null);
+              loadData();
+              return;
+            }
+            const savedGeoms = (result.saved_geometries || [])
+              .map((g: any) =>
+                g?.geojson_blob?.type
+                  ? {
+                      type: g.geojson_blob.type,
+                      coordinates: g.geojson_blob.coordinates,
+                      label: g.zone_label,
+                      buffer_nm: Number(g.buffer_nm) || 0,
+                    }
+                  : null
               )
+              .filter(Boolean);
+            const mapped = mapSupabaseRowToNavWarning(
+              savedGeoms.length > 0 ? { ...result.warning, _geometries: savedGeoms } : result.warning,
+              'active'
             );
+            const repainted =
+              result.geometry === 'unchanged'
+                ? { ...(mapped as any), spatial: original.spatial }
+                : mapped;
+            const replace = (w: NavWarning) =>
+              w.warning_id === original.warning_id || w.source_warning_id === original.warning_id
+                ? repainted
+                : w;
+            setWarnings((prev) => prev.map(replace));
+            setSelectedWarning((prev) => (prev ? replace(prev) : prev));
             setEditingWarning(null);
           }}
         />
