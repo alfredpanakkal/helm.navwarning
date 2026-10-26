@@ -530,3 +530,215 @@ test.describe('tablet 768', () => {
     expect(errors, 'no uncaught page errors').toEqual([]);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Touch-target audit (console-ux-68): guards the coarse-pointer layer in
+// src/index.css. Runs the console at 390x844 with mobile + touch emulation —
+// Chromium reports (pointer: coarse) under this emulation, which is the media
+// feature that applies the 44px control / 16px input rules. Authenticated
+// tests sign in through the same signInAdmin() UI path as the other suites;
+// no auth stub, nothing weakened.
+//
+// Documented exceptions (see the console-ux-68 PR and docs/ux-audit):
+//  - .touch-hit link buttons pass via the expanded ::after hit area, so their
+//    44px check measures the inflated rect (+12px vertical / +8px horizontal,
+//    mirroring the .touch-hit utility in src/index.css).
+//  - The map toolbar buttons styled in public/assets/css/components.css
+//    (class prefixes "map-"/"settings-", 34-48px by design) are intentionally
+//    not restyled and are excluded here; Leaflet's zoom/attribution <a>
+//    controls are out of scope (not button/tab/select/input).
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TOUCH_ROUTES = [
+  '#/warnings/map',
+  '#/warnings/list',
+  '#/ingest/pipeline',
+  '#/ingest/sources',
+  '#/ingest/bulk',
+  '#/ingest/manual',
+  '#/trace/generations',
+  '#/trace/evidence',
+  '#/system/supabase',
+] as const;
+
+/**
+ * One in-page pass per route: measures every visible interactive control and
+ * every input font size. Kept as a string payload (see the file header note
+ * about page.evaluate and the tsx/esbuild toolchain).
+ */
+const TOUCH_AUDIT_JS = `(() => {
+  const sel = 'button, [role="tab"], summary, select, input:not([type="checkbox"]):not([type="radio"]), textarea';
+  const offenders = [];
+  const smallFonts = [];
+  for (const el of document.querySelectorAll(sel)) {
+    if (el.getClientRects().length === 0) continue;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) continue;
+    const style = getComputedStyle(el);
+    if (style.visibility === 'hidden' || style.display === 'none') continue;
+    const cls = String(el.className || '');
+    if (/(^|\\s)(map-|settings-)/.test(cls)) continue;
+    const label = (el.getAttribute('aria-label') || el.innerText || el.tagName).trim().replace(/\\s+/g, ' ').slice(0, 40);
+    let width = rect.width;
+    let height = rect.height;
+    if (el.classList.contains('touch-hit')) {
+      width = Math.max(width, rect.width + 16);
+      height = Math.max(height, rect.height + 24);
+    }
+    if (Math.min(width, height) < 44) {
+      offenders.push({ label: label, w: Math.round(width), h: Math.round(height) });
+    }
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && parseFloat(style.fontSize) < 16) {
+      smallFonts.push({ label: label, fs: style.fontSize });
+    }
+  }
+  return JSON.stringify({ offenders, smallFonts, scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth });
+})()`;
+
+/**
+ * Card-level "Verify" buttons in the Data Bank list. The review modal is
+ * rendered outside #main-content, so its own Verify button never matches.
+ */
+function visibleVerifyButtons(page: Page) {
+  return page.locator('#main-content button', { hasText: /^Verify$/ });
+}
+
+async function openReviewModal(page: Page) {
+  const reviewFab = page.getByRole('button', { name: /Review Next \(\d+\)/ });
+  test.skip(!(await reviewFab.count()), 'seed data has no unverified review queue');
+  return reviewFab;
+}
+
+test.describe('touch targets (390x844, hasTouch, authenticated)', () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    deviceScaleFactor: 3,
+  });
+  test.skip(!hasAdminCredentials, 'requires E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD');
+
+  test('no horizontal page scroll on the nine console routes', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await openApp(page);
+    await signInAdmin(page);
+    for (const hash of TOUCH_ROUTES) {
+      await openApp(page, hash);
+      await page.waitForTimeout(300);
+      const measured = JSON.parse((await page.evaluate(TOUCH_AUDIT_JS)) as string);
+      expect(measured.scrollWidth, 'no horizontal overflow on ' + hash).toBeLessThanOrEqual(measured.clientWidth);
+    }
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+
+  test('interactive controls meet the 44px touch minimum and inputs render at 16px+', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await openApp(page);
+    await signInAdmin(page);
+    const offenders: string[] = [];
+    const smallFonts: string[] = [];
+    for (const hash of TOUCH_ROUTES) {
+      await openApp(page, hash);
+      await page.waitForTimeout(300);
+      const measured = JSON.parse((await page.evaluate(TOUCH_AUDIT_JS)) as string);
+      for (const o of measured.offenders) offenders.push(hash + ': "' + o.label + '" ' + o.w + 'x' + o.h);
+      for (const f of measured.smallFonts) smallFonts.push(hash + ': "' + f.label + '" ' + f.fs);
+    }
+    expect(offenders, 'controls below the 44px touch minimum').toEqual([]);
+    expect(smallFonts, 'inputs below the 16px iOS no-zoom minimum').toEqual([]);
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+
+  test('a failed verify keeps the row unverified, shows an alert and does not advance the modal', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    let verifyRequests = 0;
+    await page.route('**/api/admin/warning-edit', async (route) => {
+      verifyRequests += 1;
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'simulated verify failure' }),
+      });
+    });
+
+    await openApp(page);
+    await signInAdmin(page);
+    await goTab(page, 'Data Bank');
+    await expect(page.locator('#databank-table-header')).toBeVisible();
+
+    const candidatesBefore = await visibleVerifyButtons(page).count();
+    const reviewFab = await openReviewModal(page);
+    await reviewFab.click();
+
+    const dialog = page.locator('[role="dialog"][aria-labelledby="warning-detail-title"]');
+    await expect(dialog).toBeVisible();
+    const headingBefore = (await dialog.locator('#warning-detail-title').innerText()).trim();
+
+    await dialog.getByRole('button', { name: /^Verify$/ }).click();
+
+    // The failure is announced inline and the modal stays on this warning —
+    // the operator must never mistake a failed verify for a saved one.
+    await expect(dialog.getByText('Verify failed — not saved.')).toBeVisible();
+    expect(verifyRequests).toBeGreaterThanOrEqual(1);
+    await expect.poll(() => dialog.locator('#warning-detail-title').innerText()).toBe(headingBefore);
+
+    await dialog.getByRole('button', { name: /^Close$/ }).click();
+    await expect(dialog).toBeHidden();
+    expect(
+      await visibleVerifyButtons(page).count(),
+      'row stays unverified (still a verify candidate)'
+    ).toBe(candidatesBefore);
+
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+
+  test('a successful verify fires exactly one request, marks the row verified and advances the modal', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    let verifyRequests = 0;
+    await page.route('**/api/admin/warning-edit', async (route) => {
+      verifyRequests += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ warning: {}, audit: 'VERIFY' }),
+      });
+    });
+
+    await openApp(page);
+    await signInAdmin(page);
+    await goTab(page, 'Data Bank');
+    await expect(page.locator('#databank-table-header')).toBeVisible();
+
+    const candidatesBefore = await visibleVerifyButtons(page).count();
+    expect(candidatesBefore).toBeGreaterThan(0);
+
+    const reviewFab = await openReviewModal(page);
+    const fabText = await reviewFab.innerText();
+    const queueLength = Number((fabText.match(/\((\d+)\)/) || ['', '0'])[1]);
+    test.skip(queueLength < 2, 'modal advance needs at least 2 unverified candidates in the seed data');
+    await reviewFab.click();
+
+    const dialog = page.locator('[role="dialog"][aria-labelledby="warning-detail-title"]');
+    await expect(dialog).toBeVisible();
+    const headingBefore = (await dialog.locator('#warning-detail-title').innerText()).trim();
+
+    await dialog.getByRole('button', { name: /^Verify$/ }).click();
+
+    // One operator action = exactly one audited VERIFY write (single-fire
+    // guard); a stray second request from a double tap fails this poll.
+    await expect.poll(() => verifyRequests).toBe(1);
+    // Success is announced (role=status live region), not just repainted.
+    await expect(page.getByText('Verified').first()).toBeVisible();
+    // The modal advances to the next queue candidate only on success.
+    await expect.poll(() => dialog.locator('#warning-detail-title').innerText()).not.toBe(headingBefore);
+
+    await dialog.getByRole('button', { name: /^Close$/ }).click();
+    await expect(dialog).toBeHidden();
+    expect(
+      await visibleVerifyButtons(page).count(),
+      'verified row is no longer a candidate'
+    ).toBe(candidatesBefore - 1);
+
+    expect(errors, 'no uncaught page errors').toEqual([]);
+  });
+});
