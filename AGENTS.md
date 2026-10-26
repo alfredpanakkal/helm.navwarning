@@ -140,5 +140,12 @@ causes; keep this file lean.
   but KEPT — wire in later, never delete; docs are Gemini-only (Mistral
   removed intentionally); single-file offline export intentionally gone.
   Details in `docs/PROJECT_KNOWLEDGE.md` §4 item 8.
+- SSRF guard (`server/ssrfGuard.ts`) has no dedicated test — add one before
+  touching it.
+- Undecided UX from the early era: on map update, pulse the marker vs
+  auto-zoom to the new warning (auto-zoom can yank a watchkeeper’s view;
+  a pulse is gentler but can be missed). No decision recorded.
+- Domain purchase undecided — site remains on `helmwarning.vercel.app`
+  (early-history context: PROJECT_KNOWLEDGE §5).
 - Roadmap order is maintained in the maintainer's private notes; when in
   doubt, ask in the issue/PR rather than re-prioritizing unilaterally.

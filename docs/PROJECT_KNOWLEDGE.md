@@ -144,6 +144,7 @@ deferred). Maintainer merged each himself after preview checks.
 - **#52–#55** perf series: first-warning render cut; admin-gate CDN scripts deferred; Leaflet 1.9.4 vendored locally + supabase UMD pinned 2.117.3 with SRI; console list rendered before spatial hydration.
 - **#57–#59** 21 prerendered NAVAREA regional pages (`/navarea/I`…`/navarea/XXI`); `/sources` registry hub; prerendered warning detail pages + noindex shell fallback.
 - **#60 / #61** README public-surface section + sitemap with warning detail URLs; About "Learn more" CTA.
+- **#71** stale sitemap line in this file corrected (single-URL claim → per-build regeneration including warning detail URLs).
 
 ### PR #68 (merged 2026-10-25) — AGENTS.md + this file
 Standard-format agent guide at the repo root plus this knowledge appendix,
@@ -169,3 +170,43 @@ so agents get conventions and history from the repository itself.
    scripts) are unfinished but KEPT — wire in later, never delete.**
    Docs are Gemini-only (Mistral removed intentionally). Single-file
    offline export confirmed gone, not wanted.
+
+## 5. Early history (pre-repo era) — reconciled 2026-10-25
+
+Context recovered from the maintainer’s earlier Claude-agent notes
+(Sept–Oct 2026, before this GitHub repo existed), cross-checked against
+live code and the live Supabase DB on 2026-10-25. Kept as history — not a
+description of the current system; live code wins.
+
+- **Origin:** a single-file app generated in Google AI Studio, initially
+  served from a Cloud Run URL: Leaflet/OpenSeaMap map, Claude API parsing,
+  bulk paste mode, localStorage + CSV export, 21 NAVAREAs. Defects noted
+  then: hardcoded calls to a backend that did not exist, leftover Gemini
+  references. None of that code survives in this repo; the Vercel + React
+  console architecture predates PR #1.
+- **First scraping target: HydroBharat (NAVAREA VIII)**, with F12-observed
+  endpoints `/o/oauth2/token` and `/o/nho-headless/map/combined`. Verified
+  2026-10-25: **no HydroBharat script exists in `scripts/`** (only
+  `scrapling_ingest.py`, `navarea-pages/`, test suites, `ux-audit/`). Any
+  future direct call to those endpoints must go through the SSRF guard and
+  the approved-source registry. The early table `nav_warning_vii_india`
+  (“vii” was a typo for NAVAREA VIII) no longer exists.
+- **2026-09-30 security hardening** (admin = Supabase Auth
+  `app_metadata.role`, admin middleware, SSRF guard, express-rate-limit,
+  protected AI/write routes) was done via an AI Studio agent with no
+  independent review at the time; current state was independently audited
+  2026-10-24 (§2). Still open: the SSRF guard has no dedicated test.
+- **Resolved stale claims (verified 2026-10-25):** the
+  `public.nav_warnings_map` SECURITY DEFINER view no longer exists (anon
+  PostgREST returns PGRST205); the early failed RLS SQL’s
+  `public.source_registry` was a naming error — the real table is
+  `sources_registry`, which exists and is anon-readable; the deployment
+  target is Vercel.
+- **Parser lineage:** the 105-rule Parsing & AI-Labeling spec
+  (v2.1 → v3.0; JHOD NAVAREA XI rule review 2026-10-11; 11-file parser
+  review 2026-10-18) predates the implemented universal parser (#32) and
+  the vitest port (#46/#47). The unfinished Parser v3 files are the ones
+  covered by the keep-decision (§4 item 8).
+- **Still undecided from that era:** domain purchase (none recorded — the
+  site remains on `helmwarning.vercel.app`); map-update UX (pulse the
+  marker vs auto-zoom to a new warning — no decision recorded).
