@@ -286,6 +286,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // ── 4b. Audited verify: promote Tier B -> Tier A only when every Tier A
+    // invariant already holds (EXPLICIT quality, no unplotted reason, at
+    // least one geometry, not superseded). Otherwise the verify stays
+    // flag-only and the row remains a review candidate - an operator's
+    // VERIFY must never produce a Tier A row that violates
+    // chk_tier_a_invariants. An explicit patch.triage_tier always wins.
+    // Decided 2026-10-26 (console-ux-68 follow-up). ──
+    if (patch.verify && patch.triage_tier === undefined && String(current.triage_tier || 'B').toUpperCase() === 'B') {
+      const promote =
+        String(current.data_quality || '').toUpperCase() === 'EXPLICIT' &&
+        !current.unplotted_reason &&
+        String(current.status || '').toLowerCase() !== 'superseded';
+      if (promote) {
+        const { count: geomCount } = await client
+          .from('nav_warning_geometries')
+          .select('geom_id', { count: 'exact', head: true })
+          .eq('warning_id', current.id);
+        if (geomCount) update.triage_tier = 'A';
+      }
+    }
+
     // ── 5. Tier A invariant (chk_tier_a_invariants) ──
     const resultingTier = String(update.triage_tier !== undefined ? update.triage_tier : current.triage_tier || 'B').toUpperCase();
     if (resultingTier === 'A' && !errors.length) {
