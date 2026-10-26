@@ -44,22 +44,6 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
   onParseManual,
   onSelectWarning,
 }) => {
-  const aiFallbackRef = useRef<HTMLDivElement>(null);
-  const inspectRef = useRef<HTMLDivElement>(null);
-  useModalBehavior(aiFallbackRef, !!aiFallbackModal?.active);
-  useModalBehavior(inspectRef, !!inspectedWarning);
-
-  // Escape closes whichever parser modal is open (WarningDetailModal pattern).
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      if (aiFallbackModal?.active) setAiFallbackModal((prev) => (prev ? { ...prev, active: false } : prev));
-      else if (inspectedWarning) setInspectedWarning(null);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [aiFallbackModal, inspectedWarning]);
-
   const [rawText, setRawText] = useState(
     `NAVAREA I 0145/26 NORTH SEA, FORTIES. DRILLING RIG 'VALARIS 122' ESTABLISHED IN POSITION 57-45.8N 001-12.4E. SAFETY ZONE 500 METRES RADIUS ESTABLISHED. ALL SHIPS KEEP CLEAR.`
   );
@@ -75,6 +59,22 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [manifestSummary, setManifestSummary] = useState<any | null>(null);
   const [inspectedWarning, setInspectedWarning] = useState<NavWarning | null>(null);
+
+  const aiFallbackRef = useRef<HTMLDivElement>(null);
+  const inspectRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(aiFallbackRef, !!aiFallbackModal?.active);
+  useModalBehavior(inspectRef, !!inspectedWarning);
+
+  // Escape closes whichever parser modal is open (WarningDetailModal pattern).
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (aiFallbackModal?.active) setAiFallbackModal((prev) => (prev ? { ...prev, active: false } : prev));
+      else if (inspectedWarning) setInspectedWarning(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [aiFallbackModal, inspectedWarning]);
 
   const handleSaveToSupabase = async (warnings: NavWarning[]) => {
     if (!warnings.length) return;
