@@ -448,7 +448,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // ── 7. Apply the field-level update ──
+    // ── 7. Atomic save RPC: row update + geometry replace + audit insert in one transaction ──
     update.qa_flags = Array.from(new Set([
       ...(current.qa_flags || []),
       patch.verify ? 'verified_by_admin' : 'edited_by_admin',
@@ -460,67 +460,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Empty patch — nothing to update.' });
     }
 
-    const { data: updated, error: updateErr }: any = await client
-      .from('nav_warnings')
-      .update(update)
-      .eq('id', current.id)
-      .select('id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, status, triage_tier, '
-        + ' data_quality, qa_flags, unplotted_reason, issued_at, valid_from, valid_to, created_at, updated_at')
-      .single();
-    if (updateErr || !updated) {
-      console.error('[warning-edit] master row update failed:', updateErr?.message);
+    // One transaction: the master-row update, the geometry replace and the
+    // audit insert all commit or roll back together — the PARTIAL error
+    // paths are structurally impossible. The RPC re-checks the optimistic
+    // lock under FOR UPDATE, closing the read/write race the old two-
+    // statement path had (lock checked at step 2, write at step 7).
+    // saved_geometries is read back from the BASE geometry table (via
+    // st_asgeojson), not the Tier A view — a Tier B geometry edit now
+    // repaints its real shape instead of an empty readback.
+    const geometryStatus = geometryRows === null ? 'unchanged' : geometryRows.length > 0 ? 'replaced' : 'removed';
+    const { data: rpcResult, error: rpcErr }: any = await client.rpc('admin_save_nav_warning', {
+      p_warning_id: current.id,
+      p_update: update,
+      p_geometries: geometryRows === null ? null : geometryRows.map((r: any) => ({
+        zone_label: r.zone_label,
+        feature_type: r.feature_type,
+        buffer_nm: r.buffer_nm,
+        ewkt: r.geom_postgis,
+      })),
+      p_expected_updated_at: expectedUpdatedAt ?? null,
+      p_operator: operatorEmail,
+      p_action: patch.verify ? 'VERIFY' : 'EDIT',
+      p_reason: patch.note || (patch.verify ? 'Admin verification (audited Verify action)' : 'Admin edit (geometry ' + geometryStatus + ')'),
+      p_previous_tier: String(current.triage_tier || 'B'),
+      p_new_tier: resultingTier,
+      p_diff_patch: { ...update, geometry: geometryStatus },
+    });
+    if (rpcErr || !rpcResult) {
+      const msg = String(rpcErr?.message || '');
+      if (msg.includes('STALE_UPDATED_AT')) {
+        const { data: fresh }: any = await client
+          .from('nav_warnings')
+          .select('updated_at')
+          .eq('id', current.id)
+          .maybeSingle();
+        return res.status(409).json({
+          error: 'Conflict: this warning was changed by someone else while you were editing.',
+          code: 'CONFLICT',
+          current: { updated_at: fresh?.updated_at ?? null, canonical_id: current.canonical_id },
+        });
+      }
+      if (msg.includes('WARNING_NOT_FOUND')) {
+        return res.status(404).json({ error: 'Warning not found. It may have been deleted or the id is wrong.' });
+      }
+      console.error('[warning-edit] admin_save_nav_warning failed:', msg);
       return res.status(502).json({ error: 'Update failed.', code: 'UPDATE_FAILED' });
-    }
-
-    // ── 8. Geometry replace (only when a geometry patch was supplied) ──
-    let geometryStatus = 'unchanged';
-    // Geometry rows read back from the active_spatial view after the replace,
-    // so the client can repaint the map from server truth (geojson_blob).
-    let savedGeometries: any[] | null = null;
-    if (geometryRows !== null) {
-      const { error: delErr } = await client.from('nav_warning_geometries').delete().eq('warning_id', current.id);
-      if (delErr) {
-        console.error('[warning-edit] geometry delete failed:', delErr.message);
-        return res.status(502).json({ error: 'Master row updated but geometry delete failed.', code: 'PARTIAL' });
-      }
-      if (geometryRows.length > 0) {
-        const { error: insErr } = await client.from('nav_warning_geometries').insert(geometryRows);
-        if (insErr) {
-          console.error('[warning-edit] geometry insert failed:', insErr.message);
-          return res.status(502).json({ error: 'Master row updated but geometry insert failed.', code: 'PARTIAL' });
-        }
-      }
-      geometryStatus = geometryRows.length > 0 ? 'replaced' : 'removed';
-      // Read the geometry back through the view AFTER delete+insert both ran
-      // (single-warning repaint: the client maps geojson_blob onto the map).
-      const { data: savedGeoms }: any = await client
-        .from('nav_warnings_active_spatial')
-        .select('zone_label, feature_type, buffer_nm, geojson_blob')
-        .eq('warning_id', current.id);
-      savedGeometries = Array.isArray(savedGeoms) ? savedGeoms : [];
-    }
-
-    // ── 9. Audit (mandatory) ──
-    const auditStatus = await writeAuditRow(
-      client, current.id, operatorEmail, patch.verify ? 'VERIFY' : 'EDIT',
-      patch.note || (patch.verify ? 'Admin verification (audited Verify action)' : 'Admin edit (geometry ' + geometryStatus + ')'),
-      String(current.triage_tier || 'B'), String(updated.triage_tier || 'B'),
-      { ...update, geometry: geometryStatus }
-    );
-    if (auditStatus !== 'written') {
-      return res.status(500).json({
-        error: 'Edit applied but the audit row could not be written — check the audit log.',
-        code: 'AUDIT_FAILED',
-        warning: updated,
-        geometry: geometryStatus,
-      });
     }
 
     return res.status(200).json({
       success: true,
-      warning: updated,
-      saved_geometries: savedGeometries,
-      geometry: geometryStatus,
+      warning: rpcResult.warning,
+      saved_geometries: rpcResult.saved_geometries,
+      geometry: rpcResult.geometry,
       audit: 'written',
     });
   } catch (err: any) {
