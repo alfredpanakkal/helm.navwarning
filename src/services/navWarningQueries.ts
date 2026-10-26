@@ -289,10 +289,6 @@ export async function fetchReviewQueueRows(opts?: { serverClient?: boolean }): P
   return (data ?? []) as unknown as Record<string, unknown>[];
 }
 
-/**
- * Realtime subscription covering both tables in the supabase_realtime
- * publication. Geometry changes without master changes must also refresh.
- */
 export interface RealtimeChangeInfo {
   table: 'nav_warnings' | 'nav_warning_geometries';
   canonicalId?: string;
