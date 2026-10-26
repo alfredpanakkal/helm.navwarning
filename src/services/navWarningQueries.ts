@@ -184,7 +184,7 @@ export async function fetchSingleWarning(canonicalId: string): Promise<{
     console.warn('[navWarningQueries] single warning query notice:', error?.message);
     return { row: null, geometries: [] };
   }
-  const { data: spatial } = await anonClient
+  const { data: spatial }: any = await anonClient
     .from('nav_warnings_active_spatial')
     .select(VIEW_COLUMNS)
     .eq('canonical_id', canonicalId);
