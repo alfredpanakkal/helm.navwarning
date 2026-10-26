@@ -42,7 +42,7 @@ export function normalizeNavarea(name: unknown): string {
  * The legacy confidence-threshold UI (>= 0.8, >= 1.0 bands) keeps working
  * and now reflects actual backend data quality.
  */
-function deriveExtractionConfidence(row: any, status: string): number {
+export function deriveExtractionConfidence(row: any, status: string): number {
   const tier = row.triage_tier || 'C';
   const quality = row.data_quality || 'EXPLICIT';
   const flags = Array.isArray(row.qa_flags) ? row.qa_flags : [];
