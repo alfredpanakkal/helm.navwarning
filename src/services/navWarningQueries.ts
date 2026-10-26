@@ -193,7 +193,9 @@ export async function fetchSingleWarning(canonicalId: string): Promise<{
     const g = geojsonBlobToGeometry(r.geojson_blob, r.zone_label);
     if (g) geometries.push({ ...g, buffer_nm: Number(r.buffer_nm) || 0 });
   }
-  return { row, geometries };
+  // LIST_COLUMNS is a plain string (not a literal type), so the typed client
+  // resolves data as GenericStringError — double-cast like fetchNavWarningsList.
+  return { row: row as unknown as Record<string, unknown>, geometries };
 }
 
 const ARCHIVE_COLUMNS =
