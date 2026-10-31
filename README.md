@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/og-preview.svg" alt="Helm.Warning logo" width="128"/>
+<img src="public/logo.svg" alt="Helm.Warning logo" width="420"/>
 
 # ⚓ Helm.Warning
 
