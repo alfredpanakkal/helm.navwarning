@@ -14,27 +14,27 @@
 export const SITE_URL = 'https://helmwarning.vercel.app';
 
 export const NAVAREA_REGIONS = [
-  { id: 'I',     shortLabel: 'North Atlantic / UK',           waters: 'the Northeast Atlantic, North Sea and waters around the United Kingdom and Ireland', authority: 'the United Kingdom Hydrographic Office (UKHO)' },
-  { id: 'II',    shortLabel: 'East Atlantic',                waters: 'the Northeast Atlantic and Bay of Biscay', authority: 'the Service Hydrographique et Oceanographique de la Marine (SHOM, France)' },
-  { id: 'III',   shortLabel: 'Mediterranean',                waters: 'the Mediterranean and Black Seas', authority: 'the Instituto Hidrografico de la Marina (IHM, Spain)' },
-  { id: 'IV',    shortLabel: 'West Atlantic',                waters: 'the Western North Atlantic and Gulf of Mexico', authority: 'the National Geospatial-Intelligence Agency (NGA, United States)' },
-  { id: 'V',     shortLabel: 'Brazil / SW Atlantic',         waters: 'the Southwest Atlantic off Brazil', authority: 'the Diretoria de Hidrografia e Navegacao (DHN, Brazil)' },
-  { id: 'VI',    shortLabel: 'Argentina / SE Atlantic',      waters: 'the Southeast Atlantic off Argentina', authority: 'the Servicio de Hidrografia Naval (SHN, Argentina)' },
-  { id: 'VII',   shortLabel: 'South Africa',                 waters: 'the waters off South Africa and the Southern Ocean', authority: 'the South African Navy Hydrographic Office' },
-  { id: 'VIII',  shortLabel: 'Indian Ocean',                 waters: 'the North Indian Ocean', authority: 'the Indian Navy Hydrographic Department (INHD)' },
-  { id: 'IX',    shortLabel: 'Red Sea / Persian Gulf',        waters: 'the Red Sea, Persian Gulf and Arabian Sea', authority: 'the Pakistan Navy Hydrographic Department (PNHD)' },
-  { id: 'X',     shortLabel: 'Australia',                    waters: 'the waters off Australia and the Coral Sea', authority: 'the Australian Maritime Safety Authority (AMSA)' },
-  { id: 'XI',    shortLabel: 'East Asia / Japan',            waters: 'the waters off East Asia, the South China Sea and Japan', authority: 'the Japan Coast Guard (JCG)' },
-  { id: 'XII',   shortLabel: 'East Pacific',                waters: 'the Eastern Pacific and waters off the United States West Coast', authority: 'the National Geospatial-Intelligence Agency (NGA, United States)' },
-  { id: 'XIII',  shortLabel: 'NW Pacific / Okhotsk',         waters: 'the Northwest Pacific and Sea of Okhotsk', authority: 'the Federal Agency for Maritime and River Transport of Russia (Rosmorrechflot)' },
-  { id: 'XIV',   shortLabel: 'New Zealand / S. Pacific',     waters: 'the waters off New Zealand and the South Pacific', authority: 'Land Information New Zealand (LINZ)' },
-  { id: 'XV',    shortLabel: 'Chile / SE Pacific',            waters: 'the Southeast Pacific off Chile', authority: 'the Servicio Hidrografico y Oceanografico de la Armada de Chile (SHOA)' },
-  { id: 'XVI',   shortLabel: 'Peru / E. South Pacific',      waters: 'the Southeast Pacific off Peru', authority: 'the Direccion de Hidrografia y Navegacion (DHN, Peru)' },
-  { id: 'XVII',  shortLabel: 'Arctic Canada (West)',         waters: 'the Arctic waters of Western Canada', authority: 'the Canadian Coast Guard (CCG)' },
-  { id: 'XVIII', shortLabel: 'Arctic Canada (East)',         waters: 'the Arctic waters of Eastern Canada', authority: 'the Canadian Coast Guard (CCG)' },
-  { id: 'XIX',   shortLabel: 'Arctic Norway',                waters: 'the Arctic waters off Norway', authority: 'the Norwegian Coastal Administration' },
-  { id: 'XX',    shortLabel: 'Arctic Russia (Kara/Laptev)',  waters: 'the Arctic waters of Russia including the Kara and Laptev Seas', authority: 'the Federal Agency for Maritime and River Transport of Russia (Rosmorrechflot)' },
-  { id: 'XXI',   shortLabel: 'Arctic Russia (East Siberian)', waters: 'the Arctic waters of Russia including the East Siberian Sea', authority: 'the Federal Agency for Maritime and River Transport of Russia (Rosmorrechflot)' }
+  { id: 'I',     shortLabel: 'North Atlantic / UK',           waters: 'the Northeast Atlantic, North Sea and waters around the United Kingdom and Ireland', authority: 'the United Kingdom Hydrographic Office (UKHO)', ingest: 'automated', sourceUrl: 'https://msi.admiralty.co.uk/RadioNavigationalWarnings', sourceLabel: 'UKHO Admiralty radio navigational warnings' },
+  { id: 'II',    shortLabel: 'East Atlantic',                waters: 'the Northeast Atlantic and Bay of Biscay', authority: 'the Service Hydrographique et Oceanographique de la Marine (SHOM, France)', ingest: 'manual' },
+  { id: 'III',   shortLabel: 'Mediterranean',                waters: 'the Mediterranean and Black Seas', authority: 'the Instituto Hidrografico de la Marina (IHM, Spain)', ingest: 'automated', sourceUrl: 'https://armada.defensa.gob.es/ihm/XML/navareas_crudo.xml', sourceLabel: 'IHM Armada (Spain) NAVAREA XML snapshot' },
+  { id: 'IV',    shortLabel: 'West Atlantic',                waters: 'the Western North Atlantic and Gulf of Mexico', authority: 'the National Geospatial-Intelligence Agency (NGA, United States)', ingest: 'automated', sourceUrl: 'https://msi.nga.mil/apology_objects/DailyMemIV.txt', sourceLabel: 'NGA (US) Daily Memo IV' },
+  { id: 'V',     shortLabel: 'Brazil / SW Atlantic',         waters: 'the Southwest Atlantic off Brazil', authority: 'the Diretoria de Hidrografia e Navegacao (DHN, Brazil)', ingest: 'restricted', sourceUrl: 'https://www.marinha.mil.br/chm/dados-do-segnav-aviso-radio-nautico-tela/avisos-radio-nauticos-e-sar', sourceLabel: 'CHM Marinha (Brazil) portal' },
+  { id: 'VI',    shortLabel: 'Argentina / SE Atlantic',      waters: 'the Southeast Atlantic off Argentina', authority: 'the Servicio de Hidrografia Naval (SHN, Argentina)', ingest: 'manual' },
+  { id: 'VII',   shortLabel: 'South Africa',                 waters: 'the waters off South Africa and the Southern Ocean', authority: 'the South African Navy Hydrographic Office', ingest: 'automated', sourceUrl: 'https://www.sanho.co.za/notices_mariners/navarea_v11_messages.htm?b2=NAVAREA+VII', sourceLabel: 'SANHO (South Africa) notices to mariners' },
+  { id: 'VIII',  shortLabel: 'Indian Ocean',                 waters: 'the North Indian Ocean', authority: 'the Indian Navy Hydrographic Department (INHD)', ingest: 'automated', sourceUrl: 'https://hydrobharat.gov.in/navarea-warnings', sourceLabel: 'NHO India — HydroBharat portal' },
+  { id: 'IX',    shortLabel: 'Red Sea / Persian Gulf',        waters: 'the Red Sea, Persian Gulf and Arabian Sea', authority: 'the Pakistan Navy Hydrographic Department (PNHD)', ingest: 'automated', sourceUrl: 'https://hydrography.paknavy.gov.pk/navarea-ix-warnings/', sourceLabel: 'Pakistan Navy Hydrographic Department' },
+  { id: 'X',     shortLabel: 'Australia',                    waters: 'the waters off Australia and the Coral Sea', authority: 'the Australian Maritime Safety Authority (AMSA)', ingest: 'automated', sourceUrl: 'https://www.operations.amsa.gov.au/AMSA.Web.MSIPublication/Home', sourceLabel: 'AMSA / RCC Australia MSI publication' },
+  { id: 'XI',    shortLabel: 'East Asia / Japan',            waters: 'the waters off East Asia, the South China Sea and Japan', authority: 'the Japan Coast Guard (JCG)', ingest: 'automated', sourceUrl: 'https://www1.kaiho.mlit.go.jp/TUHO/keiho/navarea11_en.html', sourceLabel: 'Japan Coast Guard (Kaiho)' },
+  { id: 'XII',   shortLabel: 'East Pacific',                waters: 'the Eastern Pacific and waters off the United States West Coast', authority: 'the National Geospatial-Intelligence Agency (NGA, United States)', ingest: 'automated', sourceUrl: 'https://msi.nga.mil/apology_objects/DailyMemXII.txt', sourceLabel: 'NGA (US) Daily Memo XII' },
+  { id: 'XIII',  shortLabel: 'NW Pacific / Okhotsk',         waters: 'the Northwest Pacific and Sea of Okhotsk', authority: 'the Federal Agency for Maritime and River Transport of Russia (Rosmorrechflot)', ingest: 'restricted' },
+  { id: 'XIV',   shortLabel: 'New Zealand / S. Pacific',     waters: 'the waters off New Zealand and the South Pacific', authority: 'Land Information New Zealand (LINZ)', ingest: 'manual' },
+  { id: 'XV',    shortLabel: 'Chile / SE Pacific',            waters: 'the Southeast Pacific off Chile', authority: 'the Servicio Hidrografico y Oceanografico de la Armada de Chile (SHOA)', ingest: 'manual' },
+  { id: 'XVI',   shortLabel: 'Peru / E. South Pacific',      waters: 'the Southeast Pacific off Peru', authority: 'the Direccion de Hidrografia y Navegacion (DHN, Peru)', ingest: 'manual' },
+  { id: 'XVII',  shortLabel: 'Arctic Canada (West)',         waters: 'the Arctic waters of Western Canada', authority: 'the Canadian Coast Guard (CCG)', ingest: 'manual' },
+  { id: 'XVIII', shortLabel: 'Arctic Canada (East)',         waters: 'the Arctic waters of Eastern Canada', authority: 'the Canadian Coast Guard (CCG)', ingest: 'manual' },
+  { id: 'XIX',   shortLabel: 'Arctic Norway',                waters: 'the Arctic waters off Norway', authority: 'the Norwegian Coastal Administration', ingest: 'automated', sourceUrl: 'https://kyvreports.kystverket.no/NavcoReport/navareaxixvarsler.aspx', sourceLabel: 'Kystverket NavcoReport' },
+  { id: 'XX',    shortLabel: 'Arctic Russia (Kara/Laptev)',  waters: 'the Arctic waters of Russia including the Kara and Laptev Seas', authority: 'the Federal Agency for Maritime and River Transport of Russia (Rosmorrechflot)', ingest: 'restricted' },
+  { id: 'XXI',   shortLabel: 'Arctic Russia (East Siberian)', waters: 'the Arctic waters of Russia including the East Siberian Sea', authority: 'the Federal Agency for Maritime and River Transport of Russia (Rosmorrechflot)', ingest: 'restricted' }
 ];
 
 export const VALID_IDS = NAVAREA_REGIONS.map(function (r) { return r.id; });
@@ -74,6 +74,26 @@ export function belongsToNavarea(warning, requested) {
   if (!isValidNavareaId(requested)) return false;
   const stored = warning && typeof warning.navarea === 'string' ? warning.navarea : null;
   return normalizeStoredNavarea(stored) === requested;
+}
+
+// ── Ingestion reliability (per region) ──────────────────────────────
+// 'automated'  = dedicated scraper runs against a verified official feed.
+// 'restricted' = the source does not reliably permit automatic crawling
+//                (bot-protected portal or no accessible publication endpoint),
+//                so data may be stale — NOT RELIABLE (NAVAREA V, Russian areas).
+// 'manual'     = no automated feed yet — reviewed manual entry only.
+export const FEED_STATUS = {
+  automated: { badge: 'feed-ok',    label: 'Automated ingestion — verified official feed' },
+  restricted: { badge: 'feed-warn', label: 'Not reliable — automatic crawling not permitted; data may be stale' },
+  manual: { badge: 'feed-none',    label: 'No automated feed — reviewed manual entry only' }
+};
+
+export function feedStatus(id) {
+  if (!isValidNavareaId(id)) throw new Error('Invalid NAVAREA id: ' + String(id));
+  const region = NAVAREA_REGIONS.filter(function (x) { return x.id === id; })[0];
+  const status = FEED_STATUS[region.ingest];
+  if (!status) throw new Error('Unknown ingest status for NAVAREA ' + id);
+  return status;
 }
 
 const PAGE_CSS = [
@@ -187,7 +207,10 @@ export function buildPageHtml(r) {
     '',
     '  <section>',
     '    <h2>About NAVAREA ' + r.id + '</h2>',
-    '    <p>NAVAREA ' + r.id + ' is one of the 21 ocean regions of the World-Wide Navigational Warning Service (WWNWS), coordinated jointly by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO). The designated area coordinator is ' + r.authority + ', which issues and cancels the region&rsquo;s navigational warnings. Helm.Warning aggregates these broadcasts daily from verified official feeds and plots them on the live map.</p>',
+    '    <p>NAVAREA ' + r.id + ' is one of the 21 ocean regions of the World-Wide Navigational Warning Service (WWNWS), coordinated jointly by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO). The designated area coordinator is ' + r.authority + ', which issues and cancels the region&rsquo;s navigational warnings. ' + (r.ingest === 'automated'
+      ? 'Helm.Warning aggregates these broadcasts daily from its verified official feed and plots them on the live map.'
+      : 'Helm.Warning collects these broadcasts through its ingestion pipeline and plots them on the live map.') + '</p>',
+    '    <p class="lead-note">Ingestion status: <strong>' + feedStatus(r.id).label + '</strong>' + (r.sourceUrl ? ' &middot; Official source: <a href="' + r.sourceUrl + '" target="_blank" rel="noopener noreferrer">' + r.sourceLabel + '</a>' : '') + '</p>',
     '    <p>Helm.Warning is a convenience copy of these broadcasts, not an official source of Maritime Safety Information. Always verify against official channels (NAVTEX, Inmarsat SafetyNET) as required by SOLAS &mdash; see the <a href="/about">about and disclaimer</a> page for the full safety notice.</p>',
     '  </section>',
     '',
@@ -428,13 +451,22 @@ export function buildSourcesPageHtml() {
   const jsonLd = '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[' +
     '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/"},' +
     '{"@type":"ListItem","position":2,"name":"Source Registry","item":"' + url + '"}]}';
+  const nAutomated = NAVAREA_REGIONS.filter(function (x) { return x.ingest === 'automated'; }).length;
+  const nRestricted = NAVAREA_REGIONS.filter(function (x) { return x.ingest === 'restricted'; }).length;
+  const nManual = NAVAREA_REGIONS.filter(function (x) { return x.ingest === 'manual'; }).length;
   const cards = NAVAREA_REGIONS.map(function (x) {
+    const feed = feedStatus(x.id);
     return '      <li><a class="source-card" href="' + canonicalPath(x.id) + '">' +
       '<span class="source-id">NAVAREA ' + x.id + '</span>' +
       '<span class="source-label">' + x.shortLabel + '</span>' +
       '<span class="source-waters">Covers ' + x.waters + '.</span>' +
       '<span class="source-authority">Coordinator: ' + x.authority + '</span>' +
-      '</a></li>';
+      '<span class="feed-badge ' + feed.badge + '">' + feed.label + '</span>' +
+      '</a>' +
+      (x.sourceUrl
+        ? '<p class="source-portal">Source: <a href="' + x.sourceUrl + '" target="_blank" rel="noopener noreferrer">' + x.sourceLabel + '</a></p>'
+        : '') +
+      '</li>';
   }).join('\n');
   const sourceCss = [
     '.source-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;padding:0;list-style:none;margin:0 0 14px}',
@@ -443,7 +475,12 @@ export function buildSourcesPageHtml() {
     '.source-id{display:block;font-weight:700;color:var(--text)}',
     '.source-label{display:block;font-weight:600;font-size:13.5px;color:var(--text)}',
     '.source-waters{display:block;font-size:12.5px;color:var(--text-muted);margin-top:6px}',
-    '.source-authority{display:block;font-size:12.5px;color:var(--text-light);margin-top:4px}'
+    '.source-authority{display:block;font-size:12.5px;color:var(--text-light);margin-top:4px}',
+    '.feed-badge{display:inline-block;margin-top:10px;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid var(--border)}',
+    '.feed-ok{color:#16a34a;border-color:#16a34a;background:rgba(22,163,74,0.08)}',
+    '.feed-warn{color:#b45309;border-color:#f59e0b;background:rgba(245,158,11,0.10)}',
+    '.feed-none{color:var(--text-light)}',
+    '.source-portal{font-size:12.5px;color:var(--text-muted);margin:4px 0 12px}'
   ].join('');
   const lines = [
     '<!DOCTYPE html>',
@@ -482,7 +519,7 @@ export function buildSourcesPageHtml() {
     '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <span>Source Registry</span></nav>',
     '  <h1>NAVAREA Source Registry</h1>',
     '  <p class="lead">Helm.Warning tracks navigational warnings for the 21 NAVAREA ocean regions of the World-Wide Navigational Warning Service (WWNWS), run jointly by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO). Every region has one designated area coordinator &mdash; a national hydrographic office or maritime authority &mdash; responsible for issuing, updating and cancelling its warnings. Select any region below to open its regional page with the live in-force warnings and the original bulletins.</p>',
-    '  <p class="overview">Regions: <strong>21</strong> &middot; Coverage: global, including the Arctic &middot; Feeds: verified official coordinator broadcasts</p>',
+    '  <p class="overview">Regions: <strong>21</strong> &middot; Automated feeds: <strong>' + nAutomated + '</strong> &middot; Not reliable / restricted: <strong>' + nRestricted + '</strong> &middot; Manual entry only: <strong>' + nManual + '</strong> &middot; Coverage: global, including the Arctic</p>',
     '',
     '  <section>',
     '    <h2>The 21 NAVAREA regions</h2>',
@@ -493,7 +530,7 @@ export function buildSourcesPageHtml() {
     '',
     '  <section>',
     '    <h2>About this registry</h2>',
-    '    <p>Helm.Warning ingests each region from verified official coordinator feeds and plots the parsed warnings on the <a href="/">live map</a>. Where no plain-text feed is available for a region, its warnings are entered through the reviewed admin pipeline rather than an unofficial source &mdash; coverage for a region therefore reflects what the coordinator actually broadcasts.</p>',
+    '    <p>Helm.Warning ingests each region and plots the parsed warnings on the <a href="/">live map</a>. Every card carries an ingestion status: <span class="feed-badge feed-ok">green</span> = automated ingestion from a verified official feed; <span class="feed-badge feed-warn">amber</span> = not reliable, the source does not permit automatic crawling (bot-protected portal or no accessible publication endpoint), so data may be stale; <span class="feed-badge feed-none">grey</span> = no automated feed yet, warnings entered through the reviewed admin pipeline rather than an unofficial source. Regions with a verified source portal also link to it directly below the card.</p>',
     '    <p>Helm.Warning is a convenience copy of these broadcasts, not an official source of Maritime Safety Information. Always verify against official channels (NAVTEX, Inmarsat SafetyNET) as required by SOLAS &mdash; see the <a href="/about">about and disclaimer</a> page for the full safety notice.</p>',
     '  </section>',
     '',

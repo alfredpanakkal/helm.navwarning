@@ -7,6 +7,7 @@ import {
   NAVAREA_REGIONS, VALID_IDS, SITE_URL,
   isValidNavareaId, navareaCode, canonicalPath, navareaMapHref,
   normalizeStoredNavarea, belongsToNavarea, buildPageHtml, buildSourcesPageHtml,
+  feedStatus, FEED_STATUS,
   warningSlug, warningDetailPath, buildWarningPageHtml, buildWarningShellHtml,
   buildSitemapXml,
 } from './navareaConfig.mjs';
@@ -22,7 +23,25 @@ describe('NAVAREA regional routes and configuration', () => {
       expect(r.shortLabel.length).toBeGreaterThan(0);
       expect(r.waters.length).toBeGreaterThan(0);
       expect(r.authority.length).toBeGreaterThan(0);
+      expect(['automated', 'restricted', 'manual']).toContain(r.ingest);
+      if (r.ingest === 'automated') {
+        expect(typeof r.sourceUrl).toBe('string');
+        expect(r.sourceUrl.indexOf('https://')).toBe(0);
+        expect(r.sourceLabel.length).toBeGreaterThan(0);
+      } else if (r.ingest === 'manual') {
+        expect(r.sourceUrl).toBeUndefined();
+      }
     }
+  });
+
+  it('classifies ingestion reliability per region', () => {
+    const byId = Object.fromEntries(NAVAREA_REGIONS.map((r) => [r.id, r.ingest]));
+    expect(byId).toEqual({
+      I: 'automated', II: 'manual', III: 'automated', IV: 'automated', V: 'restricted',
+      VI: 'manual', VII: 'automated', VIII: 'automated', IX: 'automated', X: 'automated',
+      XI: 'automated', XII: 'automated', XIII: 'restricted', XIV: 'manual', XV: 'manual',
+      XVI: 'manual', XVII: 'manual', XVIII: 'manual', XIX: 'automated', XX: 'restricted', XXI: 'restricted'
+    });
   });
 
   it('builds the canonical /navarea/:id route inventory', () => {
@@ -76,6 +95,10 @@ describe('NAVAREA regional routes and configuration', () => {
       expect(html).toContain('href="/?navarea=NA%20' + r.id + '"');
       expect(html).toContain('aria-label="Breadcrumb"');
       expect(html).toContain('{"id":"' + r.id + '","code":"NA ' + r.id + '"}');
+      expect(html).toContain('Ingestion status: <strong>' + feedStatus(r.id).label + '</strong>');
+      if (r.sourceUrl) {
+        expect(html).toContain('Official source: <a href="' + r.sourceUrl + '" target="_blank" rel="noopener noreferrer">' + r.sourceLabel + '</a>');
+      }
       for (const o of NAVAREA_REGIONS) {
         expect(html).toContain('href="/navarea/' + o.id + '"');
       }
@@ -93,11 +116,19 @@ describe('NAVAREA regional routes and configuration', () => {
       expect(html).toContain('<span class="source-id">NAVAREA ' + r.id + '</span>');
       expect(html).toContain('<span class="source-label">' + r.shortLabel + '</span>');
       expect(html).toContain('<span class="source-authority">Coordinator: ' + r.authority + '</span>');
+      expect(html).toContain('<span class="feed-badge ' + feedStatus(r.id).badge + '">' + feedStatus(r.id).label + '</span>');
+      if (r.sourceUrl) {
+        expect(html).toContain('<p class="source-portal">Source: <a href="' + r.sourceUrl + '" target="_blank" rel="noopener noreferrer">' + r.sourceLabel + '</a></p>');
+      }
     }
     // The hub is fully static: no client-side hydration hooks.
     expect(html).not.toContain('id="warningList"');
     expect(html).not.toContain('navarea-page.js');
     expect(html).not.toContain('id="navareaPageConfig"');
+    expect((html.match(/class="source-portal"/g) || []).length).toBe(11);
+    expect(html).toContain('Automated feeds: <strong>10</strong>');
+    expect(html).toContain('Not reliable / restricted: <strong>4</strong>');
+    expect(html).toContain('Manual entry only: <strong>7</strong>');
   });
 
   it('builds a sitemap covering homepage, about, the registry and all 21 regional pages', () => {
