@@ -32,8 +32,6 @@ import {
 } from './src/schemas/jhodAiContract.js';
 import { getNavareaPlugin } from './src/schemas/plugins/registry.js';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact, NavAreaId, PipelineEvent, PipelineRunRecord } from './src/types.js';
-import scrapeNavwarnHandler from './api/scrape-navwarn.js';
-import scrapeScraplingHandler from './api/scrape-scrapling.js';
 import { securityHeadersMiddleware } from './server/securityHeaders.js';
 import {
   checkSupabaseHealth,
@@ -2578,11 +2576,6 @@ Instructions:
       res.status(204).end();
     }
   });
-
-  // Vercel Cron Scraper Route Integration
-  app.all('/api/scrape-navwarn', scrapeNavwarnHandler);
-  app.all('/api/scrape-scrapling', scrapeScraplingHandler);
-  app.all('/api/scraper/scrapling', scrapeScraplingHandler);
 
   // Serve static files from public directory (robots.txt, sitemap.xml, og-preview.png, etc.)
   app.use(express.static(path.join(process.cwd(), 'public')));
