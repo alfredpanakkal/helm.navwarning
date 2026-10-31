@@ -1,4 +1,4 @@
-<!-- Helm.Warning dark logo: white letters + teal arrow, for dark surfaces. -->
+<!-- Helm.Warning dark logo: white letters + teal arrow on a baked dark background (matches site theme-color #0f172a). -->
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1024" viewBox="0 0 1024 672" enable-background="new 0 0 1024 672" xml:space="preserve" height="672">
 <defs>
   <linearGradient id="helmTeal" x1="0" y1="0" x2="1" y2="1">
@@ -6,6 +6,7 @@
     <stop offset="1" stop-color="#007A66"/>
   </linearGradient>
 </defs>
+<rect x="0" y="0" width="1024" height="672" fill="#0f172a"/>
 <!-- M -->
 <path fill="#FFFFFF" opacity="1.000000" stroke="none" d="
 M921.301941,395.779114 
