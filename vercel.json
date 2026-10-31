@@ -33,11 +33,5 @@
         { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
       ]
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/scrape-navwarn",
-      "schedule": "0 6 * * *"
-    }
   ]
 }
