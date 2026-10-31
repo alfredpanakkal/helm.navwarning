@@ -1,17 +1,14 @@
-<!-- Helm.Warning logo: HELM wordmark + teal arrow. Dark-mode aware: letters switch to white via prefers-color-scheme. -->
+<!-- Helm.Warning logo: HELM wordmark + teal arrow on a baked light background (always visible, any surface). -->
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1024" viewBox="0 0 1024 672" enable-background="new 0 0 1024 672" xml:space="preserve" height="672">
 <defs>
-  <style>
-    .helm-letter { fill: #000000; }
-    @media (prefers-color-scheme: dark) { .helm-letter { fill: #FFFFFF; } }
-  </style>
   <linearGradient id="helmTeal" x1="0" y1="0" x2="1" y2="1">
     <stop offset="0" stop-color="#00A88A"/>
     <stop offset="1" stop-color="#007A66"/>
   </linearGradient>
 </defs>
+<rect x="0" y="0" width="1024" height="672" fill="#FDFDFD"/>
 <!-- M -->
-<path fill="#000000" class="helm-letter" opacity="1.000000" stroke="none" d="
+<path fill="#000000" opacity="1.000000" stroke="none" d="
 M921.301941,395.779114 
 	C924.013184,396.952118 926.972534,396.558594 929.539124,399.629333 
 	C907.003967,399.629333 885.223816,399.629333 863.447449,399.629333 
@@ -42,7 +39,7 @@ M921.301941,395.779114
 	C906.833923,384.836334 911.589294,392.072418 921.301941,395.779114 
 z"></path>
 <!-- H -->
-<path fill="#000000" class="helm-letter" opacity="1.000000" stroke="none" d="
+<path fill="#000000" opacity="1.000000" stroke="none" d="
 M131.484467,230.506409 
 	C129.092865,229.947540 126.821152,229.995544 125.469429,227.881683 
 	C129.201599,225.421234 188.380142,225.318771 192.302460,227.637833 
@@ -80,7 +77,7 @@ M131.484467,230.506409
 	C144.879242,238.959198 141.631439,234.283325 131.484467,230.506409 
 z"></path>
 <!-- E -->
-<path fill="#000000" class="helm-letter" opacity="1.000000" stroke="none" d="
+<path fill="#000000" opacity="1.000000" stroke="none" d="
 M432.000061,238.177826 
 	C423.688873,238.331711 415.822510,237.604065 408.091217,239.109589 
 	C401.915253,240.312225 400.017212,242.672241 399.070831,248.709808 
@@ -114,7 +111,7 @@ M432.000061,238.177826
 	C453.172668,238.022919 442.829346,238.255005 432.000061,238.177826 
 z"></path>
 <!-- L -->
-<path fill="#000000" class="helm-letter" opacity="1.000000" stroke="none" d="
+<path fill="#000000" opacity="1.000000" stroke="none" d="
 M542.634033,245.615921 
 	C541.609558,240.523560 539.791870,236.461014 535.886475,233.309723 
 	C532.377502,230.478256 527.329285,231.110260 524.136719,227.043839 
