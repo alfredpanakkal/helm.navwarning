@@ -1,3 +1,0 @@
-# Helm.Warning Python Dependencies
-# High-performance adaptive scraping using D4Vinci/Scrapling
-scrapling[fetchers]
