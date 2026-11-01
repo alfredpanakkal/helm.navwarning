@@ -1,6 +1,9 @@
 <div align="center">
 
-<img src="public/logo.svg" alt="Helm.Warning logo" width="420"/>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logofordark.svg">
+  <img src="docs/brand/logoforlight.svg" alt="Helm.Warning logo" width="420">
+</picture>
 
 # ⚓ Helm.Warning
 
@@ -46,6 +49,7 @@ Helm.Warning is an automated pipeline, spatial geometry visualizer, and navigati
 - [Documentation Grid](#-documentation-grid)
 - [Local Development & Setup](#-local-development--setup)
 - [Development Changelog](#-development-changelog)
+- [Brand & Logo Assets](#-brand--logo-assets)
 - [Disclaimer](#-disclaimer)
 
 ---
@@ -322,6 +326,27 @@ CARTO_API_KEY=your-optional-carto-key
 - **Real-Time Data Bank Metrics Strip**: Real-time summary strip tracking active warnings, global coverage, critical alerts, and georeferencing percentage.
 
 </details>
+
+---
+
+## ⚓ Brand & Logo Assets
+
+Theme-aware full logo — auto-switches with your GitHub color scheme (light version shown below; white version on dark):
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logofordark.svg">
+  <img src="docs/brand/logoforlight.svg" alt="Helm.Warning logo" width="360">
+</picture>
+
+Header monogram mark (rendered black here; in app headers it uses `fill="currentColor"` at 24px and inherits each app's text/accent color):
+
+<img src="docs/brand/helm-monogram.svg" alt="Helm monogram" width="140">
+
+| Asset | File | Usage |
+|---|---|---|
+| Full logo — light theme (black `#000000`) | [`docs/brand/logoforlight.svg`](docs/brand/logoforlight.svg) | Light backgrounds |
+| Full logo — dark theme (white `#FFFFFF`) | [`docs/brand/logofordark.svg`](docs/brand/logofordark.svg) | Dark backgrounds |
+| Monogram mark | [`docs/brand/helm-monogram.svg`](docs/brand/helm-monogram.svg) | App headers, favicons, avatars (`currentColor`) |
 
 ---
 
