@@ -666,7 +666,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                                     ? 'bg-blue-50 text-blue-900 border border-blue-300'
                                     : geomType === 'Point'
                                     ? 'bg-emerald-50 text-emerald-900 border border-emerald-300'
-                                    : 'bg-gray-100 text-gray-600'
+                                    : 'bg-gw-secondary text-gw-accent'
                                 }`}
                               >
                                 <MapPin className="w-3 h-3" />

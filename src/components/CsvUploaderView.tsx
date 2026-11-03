@@ -1360,7 +1360,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
           {/* AI Triage Summary KPI Metrics Strip */}
           {aiBulkStats && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 p-4 bg-gw-primary text-gw-bg border-b-2 border-gw-primary">
-              <div className="bg-gw-primary/90 p-2.5 rounded-lg border border-slate-700">
+              <div className="bg-gw-primary/90 p-2.5 rounded-lg border border-gw-secondary">
                 <div className="text-[10px] uppercase font-bold text-gw-accent">Total Evaluated</div>
                 <div className="text-xl font-black text-white">{aiBulkStats.total}</div>
               </div>

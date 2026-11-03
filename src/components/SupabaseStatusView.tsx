@@ -321,7 +321,7 @@ CREATE TABLE public.raw_messages (
               </span>
             </div>
             <p className="text-xs text-gw-accent max-w-3xl leading-relaxed">
-              Verify server-side Gemini model connectivity (<code className="font-mono bg-gw-secondary px-1 rounded text-zinc-900">gemini-3.1-flash-lite</code>) and test if the <code className="font-mono bg-gw-secondary px-1 rounded text-zinc-900">GEMINI_API_KEY</code> secret is operational.
+              Verify server-side Gemini model connectivity (<code className="font-mono bg-gw-secondary px-1 rounded text-gw-primary">gemini-3.1-flash-lite</code>) and test if the <code className="font-mono bg-gw-secondary px-1 rounded text-gw-primary">GEMINI_API_KEY</code> secret is operational.
             </p>
           </div>
 
@@ -386,14 +386,14 @@ CREATE TABLE public.raw_messages (
                 </span>
               </div>
 
-              <div className="flex items-center gap-3 text-[11px] text-zinc-700">
+              <div className="flex items-center gap-3 text-[11px] text-gw-accent">
                 {geminiResult.model && (
-                  <span className="bg-gw-panel/80 px-2 py-0.5 rounded border border-zinc-300">
+                  <span className="bg-gw-panel/80 px-2 py-0.5 rounded border border-gw-secondary">
                     Model: <strong>{geminiResult.model}</strong>
                   </span>
                 )}
                 {geminiResult.latency_ms !== undefined && (
-                  <span className="bg-gw-panel/80 px-2 py-0.5 rounded border border-zinc-300 flex items-center gap-1">
+                  <span className="bg-gw-panel/80 px-2 py-0.5 rounded border border-gw-secondary flex items-center gap-1">
                     <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
                     <span>{geminiResult.latency_ms}ms</span>
                   </span>
@@ -411,7 +411,7 @@ CREATE TABLE public.raw_messages (
                 <div className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider">
                   Model Generated Response Output:
                 </div>
-                <div className="bg-zinc-950 text-emerald-400 p-3.5 rounded-lg border border-zinc-800 leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">
+                <div className="bg-zinc-950 text-emerald-400 p-3.5 rounded-lg border border-gw-secondary leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">
                   {geminiResult.response}
                 </div>
               </div>
@@ -463,7 +463,7 @@ CREATE TABLE public.raw_messages (
             </button>
           </div>
 
-          <pre className="bg-zinc-950 text-emerald-400 p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-[300px] whitespace-pre border border-zinc-800">
+          <pre className="bg-zinc-950 text-emerald-400 p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-[300px] whitespace-pre border border-gw-secondary">
             {sqlSchemaScript}
           </pre>
         </div>

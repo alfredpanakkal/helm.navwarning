@@ -407,7 +407,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   </p>
                   <button
                     onClick={() => setIsIngestionProcedureOpen?.(true)}
-                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-gw-primary hover:bg-slate-700 text-slate-200 border border-slate-600 rounded text-[11px] font-sans font-bold uppercase transition-colors"
+                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-gw-primary hover:bg-gw-tertiary text-gw-secondary border border-gw-secondary rounded text-[11px] font-sans font-bold uppercase transition-colors"
                   >
                     Open Ingestion Procedure →
                   </button>
@@ -450,7 +450,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   </div>
                   <div className={`w-2.5 h-2.5 rounded-full shrink-0 ml-1 ${
                     s.health.status === 'ok' ? 'bg-green-400' :
-                    s.health.status === 'warning' || s.health.status === 'stale' ? 'bg-amber-400' : 'bg-slate-300'
+                    s.health.status === 'warning' || s.health.status === 'stale' ? 'bg-amber-400' : 'bg-gw-accent'
                   }`}></div>
                 </div>
               ))}
