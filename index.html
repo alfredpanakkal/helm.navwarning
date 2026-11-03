@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
+
+<script>
+/* Pre-paint: apply the saved watch theme (hw-theme) before first paint. */
+(function () {
+  try {
+    var t = localStorage.getItem('hw-theme');
+    if (t === 'dark' || t === 'night') {
+      document.documentElement.setAttribute('data-theme', t);
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (m) m.setAttribute('content', t === 'night' ? '#080404' : '#0E1210');
+    }
+  } catch (e) { /* storage unavailable: stay on light */ }
+})();
+</script>
 <title>Live NAVAREA Warnings Map | Free Maritime Safety Information – Helm.Warning</title>
 <meta name="description" content="Free interactive map of live NAVAREA navigational warnings worldwide. View active maritime safety information for passage planning. No login required.">
 <link rel="canonical" href="https://helmwarning.vercel.app/">
