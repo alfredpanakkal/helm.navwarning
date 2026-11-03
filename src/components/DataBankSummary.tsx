@@ -75,7 +75,7 @@ export const DataBankSummary: React.FC<{
       {open && (
         <div className="px-3 py-3 flex flex-col gap-3">
           <div className="flex items-start gap-2.5">
-            <div className="w-7 h-7 rounded bg-gw-primary text-white flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded bg-gw-primary text-gw-bg flex items-center justify-center shrink-0">
               <Compass className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
