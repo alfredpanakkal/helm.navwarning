@@ -8,31 +8,135 @@
 <link rel="stylesheet" href="/assets/css/tokens.css">
 <link rel="stylesheet" href="/assets/css/components.css">
 <style>
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--surface-dark);font:400 15px system-ui}
-.card{background:var(--surface);border-radius:16px;padding:40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;font:600 20px system-ui;color:#fff}
-.logo .badge{width:40px;height:40px;background:#fff;color:var(--surface-dark);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
-.sub{text-align:center;color:var(--text-light);font-size:13px;margin-bottom:24px}
-.notice{background:#eff6ff;color:#1d4ed8;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.5;margin-bottom:20px}
-.notice a{color:#1d4ed8;font-weight:600}
-label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-light);margin-bottom:6px}
-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;font:400 15px system-ui;background:var(--surface);color:var(--text);margin-bottom:16px;min-height:48px;box-sizing:border-box}
-input:focus{outline:none;border-color:var(--text-muted)}
-.error{background:#fef2f2;color:var(--critical);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none}
-.links{margin-top:20px;text-align:center;display:flex;flex-direction:column;gap:8px}
-.links a{font-size:13px;color:var(--text-light);text-decoration:none}
-.links a:hover{color:#fff}
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--canvas, #ffffff);
+  color: var(--ink-body, #1f2937);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: var(--fs-body, 0.9rem);
+  font-weight: 400;
+}
+.login-box {
+  width: 100%;
+  max-width: 380px;
+  border: 1px solid var(--hairline, #eef1f4);
+  border-radius: 12px;
+  padding: 32px;
+  background: var(--canvas, #ffffff);
+}
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--ink-primary, #0b0e11);
+}
+.logo img {
+  width: 24px;
+  height: 24px;
+}
+.sub {
+  text-align: center;
+  color: var(--ink-secondary, #5f6b7a);
+  font-size: 0.85rem;
+  margin-bottom: 24px;
+}
+.notice {
+  background: var(--surface-subtle, #fafbfc);
+  color: var(--ink-secondary, #5f6b7a);
+  border: 1px solid var(--hairline, #eef1f4);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+label {
+  display: block;
+  font-size: var(--fs-label, 0.7rem);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-tertiary, #8b97a5);
+  margin-bottom: 6px;
+}
+input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border-input, #dde2e8);
+  border-radius: var(--radius-input, 12px);
+  font-size: 0.95rem;
+  background: var(--canvas, #ffffff);
+  color: var(--ink-primary, #0b0e11);
+  margin-bottom: 16px;
+  min-height: 44px;
+  box-sizing: border-box;
+  transition: border-color var(--transition, 0.12s ease), box-shadow var(--transition, 0.12s ease);
+}
+input:focus {
+  outline: none;
+  border-color: var(--accent, #2b6e8c);
+  box-shadow: 0 0 0 3px var(--accent-halo, rgba(43,110,140,0.10));
+}
+.btn-submit {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--border-input, #dde2e8);
+  border-radius: var(--radius-btn, 6px);
+  background: transparent;
+  color: var(--accent, #2b6e8c);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition, 0.12s ease);
+}
+.btn-submit:hover:not(:disabled) {
+  border-color: var(--accent, #2b6e8c);
+  background: var(--surface-subtle, #fafbfc);
+}
+.btn-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.error {
+  border: 1px solid var(--border-input, #dde2e8);
+  color: var(--sev-critical, #c44536);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  margin-bottom: 16px;
+  display: none;
+}
+.links {
+  margin-top: 24px;
+  text-align: center;
+}
+.links a {
+  font-size: 0.8rem;
+  color: var(--ink-secondary, #5f6b7a);
+  text-decoration: none;
+  transition: color var(--transition, 0.12s ease);
+}
+.links a:hover {
+  color: var(--accent, #2b6e8c);
+}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="logo"><img class="badge" src="/favicon.svg" alt=""> Helm.Warning</div>
-  <div class="sub">Admin Gateway — restricted access</div>
+<div class="login-box">
+  <div class="logo"><img src="/favicon.svg" alt=""> Helm.Warning</div>
+  <div class="sub">Admin gateway — restricted access</div>
 
   <div class="notice">
-    The legacy single-file admin console has been retired. Sign in here to be
-    redirected to the unified React admin console (Data Bank tools, manual
-    parser, imports, audit and Supabase views).
+    Sign in to access administrative tools including Data Bank operations, manual parser, imports, and audit ledger.
   </div>
 
   <div class="error" id="loginError"></div>
@@ -41,11 +145,11 @@ input:focus{outline:none;border-color:var(--text-muted)}
     <input type="email" id="loginEmail" placeholder="admin@helm.warning" autocomplete="username" required>
     <label for="loginPassword">Password</label>
     <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required>
-    <button class="btn btn-primary" type="submit" id="loginBtn" style="width:100%">Sign In &amp; Continue</button>
+    <button class="btn-submit" type="submit" id="loginBtn">Sign In &amp; Continue</button>
   </form>
 
   <div class="links">
-    <a href="/">← Back to public site</a>
+    <a href="/">← Back to public portal</a>
   </div>
 </div>
 

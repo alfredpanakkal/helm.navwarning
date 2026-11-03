@@ -33,18 +33,22 @@ export const DataBankV2: React.FC<DataBankProps> = ({
   const model = useDataBankModel({ warnings, archivedWarnings, initialStatusFilter, initialNavAreaFilter, routeState, onRouteStateChange });
 
   return (
-    <div data-databank-v2 className="flex flex-col gap-3 font-ui max-w-[1600px] mx-auto p-2 sm:p-2 md:p-3 w-full">
-      {/* Page Header matching index.html */}
+    <div data-databank-v2 className="flex flex-col gap-6 font-sans max-w-[var(--max-width,1180px)] mx-auto p-4 w-full">
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
         <div className="flex items-baseline gap-2.5">
-          <h1 className="text-xl sm:text-2xl font-bold text-gw-primary tracking-tight">Data Bank</h1>
-          <span className="text-xs sm:text-sm font-medium text-gw-accent">
-            {isLoading && warnings.length === 0 ? 'Syncing live warnings...' : `${warnings.length} published warnings`}
+          <h1 className="text-2xl font-medium text-[var(--ink-primary,#0b0e11)] tracking-tight">Data bank</h1>
+          <span className="text-sm font-normal text-[var(--ink-secondary,#5f6b7a)]">
+            {isLoading && warnings.length === 0 ? 'Syncing live warnings...' : (
+              <>
+                <span className="font-medium text-[var(--ink-primary,#0b0e11)]">{warnings.length}</span> published warnings
+              </>
+            )}
           </span>
         </div>
       </div>
 
-      <div className="bg-gw-panel border border-gw-secondary rounded-xl overflow-hidden shadow-2xs">
+      <div className="border border-[var(--hairline,#eef1f4)] rounded-[8px] overflow-hidden bg-transparent">
         <DataBankStatusBar
           model={model}
           sources={sources}
@@ -52,7 +56,9 @@ export const DataBankV2: React.FC<DataBankProps> = ({
           isRefreshing={isRefreshing}
           isLoading={isLoading}
         />
-        <DataBankControls model={model} />
+        <div className="border-t border-[var(--hairline-alt,#f2f5f8)]">
+          <DataBankControls model={model} />
+        </div>
       </div>
 
       {/* In-Force Coverage Banner when NAVAREA is selected */}

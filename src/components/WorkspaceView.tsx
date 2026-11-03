@@ -1,5 +1,5 @@
-import React from 'react';
-import { Activity, Database, MapPin, Zap, AlertCircle, FileText, CheckCircle2, ArrowRight, Upload, Edit3, Shield, Archive, HardDrive, RefreshCw, AlertTriangle, Check, RotateCw, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Activity, Database, MapPin, Zap, AlertCircle, FileText, CheckCircle2, ArrowRight, Upload, Edit3, Shield, Archive, HardDrive, RefreshCw, AlertTriangle, Check, RotateCw, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { SourceRegistryItem, NavWarning, IngestionGeneration } from '../types';
 import { TabType } from '../App';
 import { computeAttentionRequired, STATUS_LOOKUP, UnifiedStatusType } from '../utils/statusModel';
@@ -27,6 +27,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   isIngestionProcedureOpen,
   setIsIngestionProcedureOpen,
 }) => {
+  const [showAttention, setShowAttention] = useState(true);
   const attentionItems = computeAttentionRequired(sources, warnings, generations, supabaseConnected);
   const activeSourcesCount = sources.filter((s) => s.enabled).length;
   const verifiedSourcesCount = sources.filter((s) => s.verification?.status === 'verified').length;
@@ -41,91 +42,107 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   ).length;
 
   return (
-    <div className="flex flex-col gap-6 sm:gap-8">
+    <div className="flex flex-col gap-5 sm:gap-6">
 
       {/* 1. Attention Required Card (Top Summary if issues exist) */}
       {attentionItems.length > 0 && (
-        <div className="bg-amber-50/90 border-2 border-amber-300 rounded-xl p-4 sm:p-5 shadow-sm">
-          <div className="flex items-center justify-between pb-3 border-b border-amber-200">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 bg-amber-500 text-white rounded flex items-center justify-center font-bold">
-                <AlertTriangle className="w-4 h-4" />
+        <div className="bg-amber-50/90 border border-amber-300 rounded-xl p-3.5 sm:p-4 shadow-2xs">
+          <div className="flex items-center justify-between pb-2 border-b border-amber-200">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-amber-500 text-white rounded flex items-center justify-center font-bold shrink-0">
+                <AlertTriangle className="w-3.5 h-3.5" />
               </div>
               <div>
-                <h3 className="font-bold text-amber-950 text-sm sm:text-base">Attention Required ({attentionItems.length})</h3>
-                <p className="text-xs text-amber-800">Items requiring verification, sync, or parameter adjustment.</p>
+                <h3 className="font-semibold text-amber-950 text-xs sm:text-sm">Attention Required ({attentionItems.length})</h3>
+                <p className="text-[11px] text-amber-800">Items requiring verification, sync, or parameter adjustment.</p>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowAttention(!showAttention)}
+              className="text-xs text-amber-800 hover:text-amber-950 font-medium flex items-center gap-1 cursor-pointer"
+            >
+              <span>{showAttention ? 'Minimize' : 'Show All'}</span>
+              {showAttention ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-3">
-            {attentionItems.slice(0, 4).map((item) => (
-              <div
-                key={item.id}
-                className="bg-gw-panel border border-amber-200 rounded-lg p-3 flex items-start justify-between gap-3 shadow-2xs"
-              >
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className={`px-1.5 py-0.5 text-[10px] font-bold uppercase rounded border ${STATUS_LOOKUP[item.status].badgeClass}`}>
-                      {STATUS_LOOKUP[item.status].symbol} {STATUS_LOOKUP[item.status].label}
-                    </span>
-                    <span className="font-bold text-xs text-gw-primary">{item.title}</span>
+          {showAttention && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2.5">
+              {attentionItems.slice(0, 4).map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-surface border border-amber-200 rounded-lg p-2.5 flex items-start justify-between gap-2 shadow-2xs"
+                >
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded border ${STATUS_LOOKUP[item.status].badgeClass}`}>
+                        {STATUS_LOOKUP[item.status].symbol} {STATUS_LOOKUP[item.status].label}
+                      </span>
+                      <span className="font-medium text-xs text-ink-primary truncate max-w-[180px] sm:max-w-xs">{item.title}</span>
+                    </div>
+                    <p className="text-[11px] text-ink-secondary truncate">{item.reason}</p>
                   </div>
-                  <p className="text-xs text-gw-accent line-clamp-1">{item.reason}</p>
+                  {item.warningId && onSelectWarning ? (
+                    <button
+                      onClick={() => {
+                        const warn = warnings.find((w) => w.warning_id === item.warningId);
+                        if (warn) onSelectWarning(warn);
+                      }}
+                      className="shrink-0 px-2 py-1 bg-accent text-white rounded text-xs font-medium hover:brightness-110 transition-all cursor-pointer"
+                    >
+                      Fix Now →
+                    </button>
+                  ) : item.actionTab ? (
+                    <button
+                      onClick={() => onNavigate?.(item.actionTab as TabType)}
+                      className="shrink-0 text-xs font-medium text-accent hover:underline cursor-pointer"
+                    >
+                      {item.actionLabel || 'View'}
+                    </button>
+                  ) : null}
                 </div>
-                {item.warningId && onSelectWarning ? (
-                  <button
-                    onClick={() => {
-                      const warn = warnings.find((w) => w.warning_id === item.warningId);
-                      if (warn) onSelectWarning(warn);
-                    }}
-                    className="shrink-0 px-2.5 py-1 bg-gw-primary text-gw-bg hover:bg-gw-accent rounded text-xs font-bold transition-all"
-                  >
-                    Fix Now →
-                  </button>
-                ) : item.actionTab ? (
-                  <button
-                    onClick={() => onNavigate?.(item.actionTab as TabType)}
-                    className="shrink-0 touch-hit text-xs font-bold text-gw-primary hover:text-gw-accent underline"
-                  >
-                    {item.actionLabel || 'View'}
-                  </button>
-                ) : null}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* 2. Compressed Status Strip & Quick Actions */}
-      <div className="bg-gw-panel border border-gw-secondary rounded-xl p-3.5 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-2xs">
-        <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-gw-primary">
+      <div className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 shadow-2xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-xs font-medium text-ink-primary">
           <button
             onClick={() => onNavigateWithFilter ? onNavigateWithFilter('sources', 'unverified') : onNavigate?.('sources')}
             title="View sources (filtered to unverified if any)"
-            className="flex items-center gap-2 px-3 py-1.5 bg-gw-secondary hover:bg-gw-secondary border border-gw-secondary rounded-lg transition-colors cursor-pointer"
+            className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-surface-subtle hover:bg-surface border border-border-input hover:border-hairline rounded-lg transition-colors cursor-pointer"
           >
-            <span className="text-emerald-600 font-bold">●</span>
-            <span className="text-gw-accent">Registered Feeds:</span>
-            <span className="text-gw-primary font-bold">{activeSourcesCount}/{sources.length} Active</span>
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-600 font-bold">●</span>
+              <span className="text-ink-secondary text-xs">Registered Feeds:</span>
+            </div>
+            <span className="text-ink-primary font-semibold text-xs ml-auto sm:ml-0">{activeSourcesCount}/{sources.length} Active</span>
           </button>
           <button
             onClick={() => onNavigateWithFilter ? onNavigateWithFilter('databank', 'unverified') : onNavigate?.('databank')}
             title="Jump to candidate warnings requiring verification"
-            className="flex items-center gap-2 px-3 py-1.5 bg-gw-secondary hover:bg-gw-secondary border border-gw-secondary rounded-lg transition-colors cursor-pointer"
+            className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-surface-subtle hover:bg-surface border border-border-input hover:border-hairline rounded-lg transition-colors cursor-pointer"
           >
-            <span className="text-emerald-600 font-bold">●</span>
-            <span className="text-gw-accent">Active NAVWARNs:</span>
-            <span className="text-gw-primary font-bold">{warnings.filter((w) => w.status === 'active').length} Published</span>
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-600 font-bold">●</span>
+              <span className="text-ink-secondary text-xs">Active NAVWARNs:</span>
+            </div>
+            <span className="text-ink-primary font-semibold text-xs ml-auto sm:ml-0">{warnings.filter((w) => w.status === 'active').length} Published</span>
           </button>
           <button
             onClick={() => onNavigate?.('supabase')}
-            className="flex items-center gap-2 px-3 py-1.5 bg-gw-secondary hover:bg-gw-secondary border border-gw-secondary rounded-lg transition-colors cursor-pointer"
+            className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-surface-subtle hover:bg-surface border border-border-input hover:border-hairline rounded-lg transition-colors cursor-pointer"
           >
-            <span className={supabaseConnected ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
-              ●
-            </span>
-            <span className="text-gw-accent">Supabase Server:</span>
-            <span className={supabaseConnected ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
+            <div className="flex items-center gap-2">
+              <span className={supabaseConnected ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
+                ●
+              </span>
+              <span className="text-ink-secondary text-xs">Supabase Server:</span>
+            </div>
+            <span className={`font-semibold text-xs ml-auto sm:ml-0 ${supabaseConnected ? 'text-emerald-700' : 'text-rose-700'}`}>
               {supabaseConnected ? 'Connected' : 'Offline'}
             </span>
           </button>
@@ -135,115 +152,115 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
       {/* 3. NAVWARN Candidate Discovery & Action Grid */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-gw-primary flex items-center gap-2">
-            <Database className="w-4 h-4 text-gw-accent" />
-            Candidate Discovery & Ingestion Tools
+          <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-ink-primary flex items-center gap-2">
+            <Database className="w-4 h-4 text-accent" />
+            Candidate Discovery &amp; Ingestion Tools
           </h2>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gw-accent font-bold">Primary Actions</span>
+            <span className="text-xs text-ink-tertiary hidden sm:inline">Primary Actions</span>
             <button
               onClick={() => setIsIngestionProcedureOpen?.(true)}
-              className="touch-hit text-xs text-gw-accent font-bold hover:text-gw-primary underline cursor-pointer"
+              className="touch-hit text-xs text-accent font-medium hover:underline cursor-pointer"
             >
               Ingestion Procedure
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3">
           <button
             onClick={() => onNavigate?.('sources')}
-            className="bg-gw-panel border border-gw-secondary rounded-xl p-4 text-left hover:border-gw-secondary hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
+            className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-gw-secondary rounded-lg flex items-center justify-center bg-gw-secondary">
-                <Database className="w-4 h-4 text-gw-accent" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline rounded-lg flex items-center justify-center bg-surface-subtle">
+                <Database className="w-3.5 h-3.5 text-accent" />
               </div>
-              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-3.5 h-3.5 text-ink-tertiary group-hover:text-ink-primary group-hover:translate-x-0.5 transition-all" />
             </div>
-            <div>
-              <div className="text-sm font-bold text-gw-primary">Candidate Sources</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">{sources.length} Registered Feeds</div>
+            <div className="mt-2">
+              <div className="text-xs sm:text-sm font-semibold text-ink-primary">Candidate Sources</div>
+              <div className="text-[10px] text-ink-secondary mt-0.5">{sources.length} Registered Feeds</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('manual')}
-            className="bg-gw-panel border border-gw-secondary rounded-xl p-4 text-left hover:border-gw-secondary hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
+            className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-gw-secondary rounded-lg flex items-center justify-center bg-gw-secondary">
-                <Edit3 className="w-4 h-4 text-gw-accent" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline rounded-lg flex items-center justify-center bg-surface-subtle">
+                <Edit3 className="w-3.5 h-3.5 text-accent" />
               </div>
-              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-3.5 h-3.5 text-ink-tertiary group-hover:text-ink-primary group-hover:translate-x-0.5 transition-all" />
             </div>
-            <div>
-              <div className="text-sm font-bold text-gw-primary">Manual Parser</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">Deterministic &amp; Gemini AI</div>
+            <div className="mt-2">
+              <div className="text-xs sm:text-sm font-semibold text-ink-primary">Manual Parser</div>
+              <div className="text-[10px] text-ink-secondary mt-0.5">Deterministic &amp; Gemini</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('imports')}
-            className="bg-gw-panel border border-gw-secondary rounded-xl p-4 text-left hover:border-gw-secondary hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
+            className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-gw-secondary rounded-lg flex items-center justify-center bg-gw-secondary">
-                <Upload className="w-4 h-4 text-gw-accent" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline rounded-lg flex items-center justify-center bg-surface-subtle">
+                <Upload className="w-3.5 h-3.5 text-accent" />
               </div>
-              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-3.5 h-3.5 text-ink-tertiary group-hover:text-ink-primary group-hover:translate-x-0.5 transition-all" />
             </div>
-            <div>
-              <div className="text-sm font-bold text-gw-primary">Bulk Imports</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">CSV, GPX, S-124 ZIP</div>
+            <div className="mt-2">
+              <div className="text-xs sm:text-sm font-semibold text-ink-primary">Bulk Imports</div>
+              <div className="text-[10px] text-ink-secondary mt-0.5">CSV, GPX, S-124 ZIP</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('audit')}
-            className="bg-gw-panel border border-gw-secondary rounded-xl p-4 text-left hover:border-gw-secondary hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
+            className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-gw-secondary rounded-lg flex items-center justify-center bg-gw-secondary">
-                <Shield className="w-4 h-4 text-gw-accent" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline rounded-lg flex items-center justify-center bg-surface-subtle">
+                <Shield className="w-3.5 h-3.5 text-accent" />
               </div>
-              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-3.5 h-3.5 text-ink-tertiary group-hover:text-ink-primary group-hover:translate-x-0.5 transition-all" />
             </div>
-            <div>
-              <div className="text-sm font-bold text-gw-primary">Audit Pointer Log</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">Generations &amp; History</div>
+            <div className="mt-2">
+              <div className="text-xs sm:text-sm font-semibold text-ink-primary">Audit Log</div>
+              <div className="text-[10px] text-ink-secondary mt-0.5">Generations &amp; History</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('evidence')}
-            className="bg-gw-panel border border-gw-secondary rounded-xl p-4 text-left hover:border-gw-secondary hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
+            className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-gw-secondary rounded-lg flex items-center justify-center bg-gw-secondary">
-                <Archive className="w-4 h-4 text-gw-accent" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline rounded-lg flex items-center justify-center bg-surface-subtle">
+                <Archive className="w-3.5 h-3.5 text-accent" />
               </div>
-              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-3.5 h-3.5 text-ink-tertiary group-hover:text-ink-primary group-hover:translate-x-0.5 transition-all" />
             </div>
-            <div>
-              <div className="text-sm font-bold text-gw-primary">Evidence Locker</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">SHA-256 Raw Artifacts</div>
+            <div className="mt-2">
+              <div className="text-xs sm:text-sm font-semibold text-ink-primary">Evidence Locker</div>
+              <div className="text-[10px] text-ink-secondary mt-0.5">SHA-256 Artifacts</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('supabase')}
-            className="bg-gw-panel border border-gw-secondary rounded-xl p-4 text-left hover:border-gw-secondary hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
+            className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-gw-secondary rounded-lg flex items-center justify-center bg-gw-secondary">
-                <HardDrive className="w-4 h-4 text-gw-accent" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline rounded-lg flex items-center justify-center bg-surface-subtle">
+                <HardDrive className="w-3.5 h-3.5 text-accent" />
               </div>
-              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-3.5 h-3.5 text-ink-tertiary group-hover:text-ink-primary group-hover:translate-x-0.5 transition-all" />
             </div>
-            <div>
-              <div className="text-sm font-bold text-gw-primary">Supabase Server</div>
-              <div className="text-[10px] text-gw-accent mt-0.5">Storage &amp; Sync Status</div>
+            <div className="mt-2">
+              <div className="text-xs sm:text-sm font-semibold text-ink-primary">Supabase Server</div>
+              <div className="text-[10px] text-ink-secondary mt-0.5">Storage &amp; Sync Status</div>
             </div>
           </button>
         </div>

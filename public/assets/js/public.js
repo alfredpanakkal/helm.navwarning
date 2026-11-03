@@ -1067,6 +1067,7 @@ function hideTitleCard(force = false) {
     card.setAttribute('aria-hidden', 'true');
   }
 }
+window.hideTitleCard = hideTitleCard;
 
 window.handleTitleCardClick = function() {
   if (activeTouchFeature) {
@@ -1151,16 +1152,35 @@ window.closeWarningDrawer = function() {
 window.copyCurrentWarningText = function() {
   if (!currentDrawerWarning) return;
   const text = getBulletinText(currentDrawerWarning) || currentDrawerWarning.raw_text || '';
+  if (!text) {
+    showToast('No bulletin text available to copy');
+    return;
+  }
+  const done = () => showToast('Warning bulletin copied to clipboard');
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => {
-      showToast('Warning bulletin copied to clipboard');
-    }).catch(() => {
-      showToast('Copied bulletin text');
+    navigator.clipboard.writeText(text).then(done).catch(() => {
+      fallbackCopyText(text, done);
     });
   } else {
-    showToast('Copied bulletin text');
+    fallbackCopyText(text, done);
   }
 };
+
+function fallbackCopyText(text, callback) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (typeof callback === 'function') callback();
+  } catch (_) {
+    showToast('Failed to copy text to clipboard');
+  }
+}
 
 function bindProgressiveFeatureInteractions(layer, w, summaryText, color) {
   const wid = w.canonical_id || w.warning_id || w.id;
@@ -1224,7 +1244,7 @@ function bindProgressiveFeatureInteractions(layer, w, summaryText, color) {
 
 // ═══════════ POLYMORPHIC PLOTTING ENGINE ═══════════
 function getWarningColor(w) {
-  const text = (w.title || '' + ' ' + (w.raw_text || '') + ' ' + (w.category || '')).toUpperCase();
+  const text = ((w.title || '') + ' ' + (w.raw_text || '') + ' ' + (w.category || '')).toUpperCase();
   const cats = Array.isArray(w.categories) ? w.categories.join(' ').toLowerCase() : (w.category || '').toLowerCase();
 
   if (w.severity === 'critical' || /FIRING|GUNNERY|MISSILE|ROCKET|UXO|EXPLOSIVE|MINE|BOMBING/i.test(text) || cats.includes('military')) {
@@ -1269,9 +1289,10 @@ function buildPopupHtml(w, label, geomType) {
 }
 
 function plotWarning(w) {
+  if (typeof L === 'undefined') return;
   const isMobile = document.body.classList.contains('is-mobile');
   const color = getWarningColor(w);
-  const wid = w.warning_id || w.id;
+  const wid = w.canonical_id || w.warning_id || w.id;
   const isMilitary = color === '#dc2626';
 
   w._layers = [];
@@ -1640,7 +1661,7 @@ async function toggleInlineWarning(w, itemEl){
     return;
   }
 
-  expandedWarningId = w.warning_id || w.id;
+  expandedWarningId = w.canonical_id || w.warning_id || w.id;
   itemEl.classList.add('expanded');
 
   // Focus map on marker
@@ -1661,7 +1682,7 @@ async function toggleInlineWarning(w, itemEl){
 
   const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}, ${lng.toFixed(2)}` : 'N/A');
   const issuedText = formatWarningIssuedText(w);
-  const wid = w.warning_id || w.id;
+  const wid = w.canonical_id || w.warning_id || w.id;
 
   expBody.innerHTML = `
     <div class="warning-expanded-badges">
@@ -1752,7 +1773,7 @@ function rebuildMapList(items = null){
 
   activeItems.forEach(w=>{
     const item=document.createElement('div');
-    const wid = w.warning_id || w.id;
+    const wid = w.canonical_id || w.warning_id || w.id;
     item.className='warning-item';
     item.dataset.warningId = wid;
     item.onclick=()=>toggleInlineWarning(w, item);
@@ -1919,7 +1940,7 @@ window.locateOnMap = function(){
       currentWarning._primaryLayer.openPopup();
     }
 
-    const wid = currentWarning.warning_id || currentWarning.id;
+    const wid = currentWarning.canonical_id || currentWarning.warning_id || currentWarning.id;
     const itemEl = Array.from(document.querySelectorAll('.warning-item')).find(el => el.dataset.warningId === wid);
     if(itemEl) {
       itemEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1941,7 +1962,7 @@ function statusBadge(w){
 let expandedTableWarningId = null;
 
 function toggleTableDetailRow(w, tr) {
-  const wid = w.warning_id || w.id;
+  const wid = w.canonical_id || w.warning_id || w.id;
   const isCurrentlyOpen = tr.classList.contains('table-row-selected');
   const tb = document.getElementById('tableBody');
   if (!tb) return;
@@ -2203,6 +2224,12 @@ function populateTable(filtered=warnings){
   if(!tb) return;
   tb.innerHTML='';
   const live=filtered.filter(w=>w.status!=='rejected');
+  const tc = document.getElementById('tableCount');
+  if (live.length === 0) {
+    tb.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px 16px;color:var(--ink-secondary);font-size:0.9rem;">No published warnings match the selected filters.</td></tr>';
+    if (tc) tc.textContent = 'Showing 0 of 0';
+    return;
+  }
   live.forEach(w=>{
     const tr=document.createElement('tr');
     const wid = w.canonical_id || w.warning_id || w.id;
@@ -2217,8 +2244,10 @@ function populateTable(filtered=warnings){
         toggleTableDetailRow(w, tr);
       }
     };
+    const sevClass = w.severity === 'critical' ? 'critical' : w.severity === 'high' ? 'high' : 'moderate';
+    const sevLabel = (w.severity || 'moderate').toUpperCase();
     tr.innerHTML=`<td><strong>${wid}</strong> <svg class="row-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"/></svg></td><td>${w.navarea}</td><td>${w.title}</td>
-    <td>${badge(w.severity==='high'?'high':w.severity==='critical'?'critical':'moderate',w.severity.toUpperCase())}</td>
+    <td>${badge(sevClass, sevLabel)}</td>
     <td>${formatWarningDate(w)}</td><td>${w.coordinates || w.coords || 'N/A'}</td><td>${statusBadge(w)}</td>`;
     tb.appendChild(tr);
 
@@ -2226,7 +2255,6 @@ function populateTable(filtered=warnings){
       toggleTableDetailRow(w, tr);
     }
   });
-  const tc = document.getElementById('tableCount');
   if(tc) tc.textContent=`Showing 1–${live.length} of ${live.length}`;
 }
 
@@ -2299,14 +2327,37 @@ function populateCards(filtered=warnings){
     }
   });
 }
+function getFilteredWarnings(){
+  const q=(document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+  const na=document.getElementById('filter-navarea')?.value;
+  const sv=document.getElementById('filter-severity')?.value;
+  const ca=document.getElementById('filter-category')?.value;
+
+  return warnings.filter(w=>{
+    if(w.status==='rejected') return false;
+    if(na && !matchesNavArea(w.navarea, na)) return false;
+    if(sv && w.severity!==sv) return false;
+    if(ca && w.category!==ca) return false;
+    if(q){
+      const wid=(w.canonical_id || w.warning_id || w.id || '').toLowerCase();
+      const title=(w.title || '').toLowerCase();
+      const area=(w.navarea || '').toLowerCase();
+      const text=(w.raw_text || w.area_text || '').toLowerCase();
+      if(!wid.includes(q) && !title.includes(q) && !area.includes(q) && !text.includes(q)){
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
 window.filterTable = function(){
-  const q=document.getElementById('searchInput')?.value.toLowerCase() || '';
-  const f=warnings.filter(w=>((w.warning_id || w.id)+w.title+w.navarea).toLowerCase().includes(q));
+  const f=getFilteredWarnings();
   populateTable(f); populateCards(f);
 };
 window.applyFilters = function(){
   const na=document.getElementById('filter-navarea')?.value, sv=document.getElementById('filter-severity')?.value, ca=document.getElementById('filter-category')?.value;
-  const f=warnings.filter(w=>(!na||matchesNavArea(w.navarea, na))&&(!sv||w.severity===sv)&&(!ca||w.category===ca));
+  const f=getFilteredWarnings();
   populateTable(f); populateCards(f);
   const n=[na,sv,ca].filter(Boolean).length, el=document.getElementById('activeFilterCount');
   if(el){ el.style.display=n?'inline-flex':'none'; el.textContent=n; }
@@ -2331,7 +2382,7 @@ function updateStats(){
   const live=warnings.filter(w=>w.status!=='rejected');
   const areas=new Set(live.map(w=>w.navarea)).size;
   const n=live.length;
-  ['nav-map-badge','nav-data-badge','drawer-map-badge','bottomBadge'].forEach(id => {
+  ['nav-map-badge','nav-data-badge','drawer-map-badge','drawer-data-badge','bottomBadge'].forEach(id => {
     const el = document.getElementById(id); if(el) el.textContent = n;
   });
   const mlb = document.getElementById('mapLiveBadge'); if(mlb) mlb.innerHTML=`<span class="dot"></span> ${n} live`;
@@ -2348,6 +2399,7 @@ function updateStats(){
 function populateSources(){
   const g=document.getElementById('sourcesGrid');
   if(!g) return;
+  g.innerHTML='';
   [["I","UK Hydrographic Office","msi.admiralty.co.uk",4],["Baltic","Swedish Maritime Admin","sjofartsverket.se",2],["II","SHOM (France)","diffusion.shom.fr",3],["III","IHM (Spain)","armada.defensa.gob.es",3],["IV, XII","NGA (USA)","msi.nga.mil",5],["V","CHM (Brazil)","marinha.mil.br",2],["VI","SHN (Argentina)","hidro.gov.ar",1],["VII","SANHO (South Africa)","sanho.co.za",2],["VIII","INHO (India)","hydrobharat.gov.in",3],["IX","Pakistan Hydro Dept","hydrography.paknavy.gov.pk",2],["X","AMSA (Australia)","amsa.gov.au",4],["XI","Japan Coast Guard","kaiho.mlit.go.jp",3],["XIV","Maritime New Zealand","maritimenz.govt.nz",2],["XV","SHOA (Chile)","shoa.cl",2]].forEach(([r,p,u,n])=>{
     const un=["V","VI","XV"].includes(r);
     const d=document.createElement('div'); d.className='source-card';
@@ -2625,6 +2677,9 @@ function toggleCoordMode(force) {
   }
   setCoordReadout(coordModeActive ? '—' : '', coordModeActive ? 'Cursor' : '');
 }
+
+window.copyCoordReadout = copyCoordReadout;
+window.toggleCoordMode = toggleCoordMode;
 
 function setupCoordinatePicker(map) {
   if (!map) return;

@@ -40,8 +40,8 @@ export const DataBankSummary: React.FC<{
   const lastRun = generations[0];
 
   return (
-    <section data-databank-summary className="bg-secondary border-subtle rounded-md overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-subtle">
+    <section data-databank-summary className="border border-[var(--hairline,#eef1f4)] rounded-[6px] overflow-hidden bg-transparent">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--hairline,#eef1f4)]">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -49,14 +49,14 @@ export const DataBankSummary: React.FC<{
           className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
         >
           {open ? (
-            <ChevronUp className="w-4 h-4 text-gw-primary shrink-0" />
+            <ChevronUp className="w-4 h-4 text-[var(--ink-secondary,#5f6b7a)] shrink-0" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-gw-primary shrink-0" />
+            <ChevronDown className="w-4 h-4 text-[var(--ink-secondary,#5f6b7a)] shrink-0" />
           )}
-          <span className="font-bold text-gw-primary uppercase tracking-wider text-xs shrink-0">
+          <span className="font-medium text-[var(--ink-primary,#0b0e11)] text-xs shrink-0">
             Summary
           </span>
-          <span className="text-[11px] text-gw-accent truncate tabular-nums">
+          <span className="text-[11px] text-[var(--ink-secondary,#5f6b7a)] truncate tabular-nums">
             {warnings.length} records · {activeCount} active · {criticalCount} high confidence ·{' '}
             {navareaCoverage}/{ALL_NAVAREAS.length} NAVAREAs
           </span>
@@ -65,7 +65,7 @@ export const DataBankSummary: React.FC<{
           type="button"
           onClick={() => setIsProcedureModalOpen(true)}
           title="View Ingestion Procedure (SOP)"
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded border-subtle text-gw-primary font-bold uppercase tracking-wider text-[10px] hover:bg-gw-bg transition-all shrink-0 cursor-pointer"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-[6px] border border-[var(--border-input,#dde2e8)] text-[var(--ink-secondary,#5f6b7a)] hover:text-[var(--accent,#2b6e8c)] hover:border-[var(--accent,#2b6e8c)] font-medium text-xs transition-colors shrink-0 cursor-pointer"
         >
           <span>Procedure</span>
           <span aria-hidden="true">↗</span>

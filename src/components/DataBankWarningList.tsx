@@ -454,18 +454,18 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
               return (
                 <div
                   key={cardId}
-                  className="bg-gw-panel border border-gw-secondary rounded-xl overflow-hidden shadow-2xs hover:border-gw-secondary transition-all"
+                  className="bg-transparent border-b border-[var(--hairline-alt,#f2f5f8)] transition-colors"
                 >
-                  <div className="p-2.5">
+                  <div className="py-2.5 px-1">
                     <WarningHierarchyLines warning={w} sources={sources} />
                   </div>
-                  <div className="px-2.5 pb-2.5 flex items-center gap-2 flex-wrap">
+                  <div className="px-1 pb-2.5 flex items-center gap-3 flex-wrap">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onLocate(w);
                       }}
-                      className="btn btn-sm btn-secondary text-xs flex items-center gap-1.5 text-gw-accent"
+                      className="text-xs flex items-center gap-1.5 text-[var(--ink-secondary,#5f6b7a)] hover:text-[var(--accent,#2b6e8c)] transition-colors"
                       title="Locate on Map"
                     >
                       <Locate className="w-3.5 h-3.5" />
@@ -475,7 +475,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       onClick={(e) => toggleExpand(cardId, e)}
                       aria-expanded={isExpanded}
                       aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
-                      className="btn btn-sm btn-ghost text-xs flex items-center gap-1 text-gw-accent hover:text-gw-primary"
+                      className="text-xs flex items-center gap-1 text-[var(--ink-secondary,#5f6b7a)] hover:text-[var(--accent,#2b6e8c)] transition-colors"
                     >
                       <span>Details</span>
                       {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -487,7 +487,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                           handleVerify(w.warning_id);
                         }}
                         disabled={verifyingIds.has(w.warning_id)}
-                        className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs flex items-center gap-1 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="ml-auto px-2 py-0.5 border border-[var(--border-input,#dde2e8)] hover:border-[var(--accent,#2b6e8c)] text-xs text-[var(--accent,#2b6e8c)] rounded-[6px] font-medium transition-colors flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                         title="Quick Verify"
                       >
                         <ShieldCheck className="w-3.5 h-3.5" />
@@ -495,7 +495,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       </button>
                     )}
                     {verifyErrors[w.warning_id] && (
-                      <span role="alert" className="text-rose-700 text-xs font-bold">
+                      <span role="alert" className="text-[var(--sev-critical,#c44536)] text-xs font-medium">
                         {verifyErrors[w.warning_id]}
                       </span>
                     )}
@@ -680,18 +680,18 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         <div className="hidden md:block">
           <div
             id="databank-table-header"
-            className="z-console-sticky sticky top-[var(--console-sticky-offset)] flex flex-wrap items-center gap-1.5 p-2.5 bg-gw-primary text-gw-bg text-[11px] font-semibold tracking-wider uppercase select-none shadow-xs rounded-t-xl border border-gw-secondary border-b-0 -mb-px"
+            className="z-console-sticky sticky top-[var(--console-sticky-offset)] flex flex-wrap items-center gap-1.5 py-2.5 px-3 bg-[var(--canvas,#ffffff)] text-[var(--ink-tertiary,#8b97a5)] text-[11px] font-medium tracking-[0.06em] uppercase select-none border-b border-[var(--hairline,#eef1f4)]"
           >
-            <span className="px-1.5 text-gw-accent font-mono text-[10px]">SORT</span>
+            <span className="px-1 text-[var(--ink-tertiary,#8b97a5)] font-mono text-[10px]">SORT</span>
             {V2_SORT_BUTTONS.map(({ field, label }) => (
               <button
                 key={field}
                 type="button"
                 onClick={() => handleSort(field)}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded transition-all font-mono cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded transition-all font-mono cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent,#2b6e8c)] ${
                   sortField === field
-                    ? 'bg-gw-bg/20 text-gw-bg font-bold ring-1 ring-gw-bg/30 shadow-xs'
-                    : 'text-gw-secondary hover:bg-gw-panel/10 hover:text-gw-bg'
+                    ? 'border border-[var(--border-chip-on,#b0bcc9)] bg-[var(--surface-subtle,#fafbfc)] text-[var(--ink-primary,#0b0e11)] font-medium'
+                    : 'text-[var(--ink-secondary,#5f6b7a)] hover:text-[var(--ink-primary,#0b0e11)]'
                 }`}
                 title={getSortLabel(field, field === 'area' ? 'NAVAREA' : label)}
                 aria-sort={sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -699,9 +699,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 <span className="truncate">{label}</span>
                 {sortField === field ? (
                   sortDirection === 'asc' ? (
-                    <ArrowUp className="w-3 h-3 text-gw-bg shrink-0" />
+                    <ArrowUp className="w-3 h-3 text-[var(--accent,#2b6e8c)] shrink-0" />
                   ) : (
-                    <ArrowDown className="w-3 h-3 text-gw-bg shrink-0" />
+                    <ArrowDown className="w-3 h-3 text-[var(--accent,#2b6e8c)] shrink-0" />
                   )
                 ) : (
                   <ArrowUpDown className="w-3 h-3 opacity-30 shrink-0" />
@@ -713,7 +713,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
       )}
 
       {/* Horizontal scroller: keeps the sticky right-hand action column working. */}
-      <div className="hidden md:block bg-gw-panel border border-gw-secondary rounded-xl overflow-hidden overflow-x-auto shadow-2xs">
+      <div className="hidden md:block overflow-hidden overflow-x-auto">
         {/* Table Header: Selected Element - Interactive Column Sorting (classic path) */}
         {legacy && (
         <div
@@ -901,21 +901,20 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             isLoading ? (
               <LoadingSkeletonRows />
             ) : (
-            <div className="p-10 text-center bg-gw-panel space-y-3">
-              <div className="w-12 h-12 rounded-full bg-gw-bg border border-gw-primary text-gw-primary flex items-center justify-center mx-auto">
-                <Search className="w-6 h-6" />
+            <div className="py-16 text-center space-y-2 bg-transparent">
+              <div className="text-[1.1rem] font-[450] text-[var(--ink-primary,#0b0e11)]">
+                No warnings match the selected criteria
               </div>
-              <div className="text-xs font-bold text-gw-primary uppercase tracking-wider">No Navigational Warnings Found</div>
-              <p className="text-xs text-gw-accent max-w-sm mx-auto">
-                No active warnings match the current search, NAVAREA, or status filters — clear them to see every published warning.
+              <p className="text-[0.9rem] text-[var(--ink-tertiary,#8b97a5)] max-w-sm mx-auto">
+                No active warnings match the current filters — try clearing filters or search for{' '}
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="text-[var(--accent,#2b6e8c)] underline hover:opacity-80 transition-opacity font-medium cursor-pointer"
+                >
+                  all warnings
+                </button>.
               </p>
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="px-3 py-1.5 bg-gw-primary text-gw-bg rounded text-xs font-bold hover:bg-gw-accent transition-colors"
-              >
-                Reset All Filters
-              </button>
             </div>
             )
           ) : legacy ? (
@@ -1014,12 +1013,12 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 <div
                   key={cardId}
                   onClick={() => onLocate(w)}
-                  className={`py-2 px-3 border-b border-gw-secondary bg-gw-panel hover:bg-gw-secondary/80 transition-colors cursor-pointer group ${
-                    isExpanded ? 'bg-gw-secondary/60' : ''
+                  className={`py-3 px-3 border-b border-[var(--hairline-alt,#f2f5f8)] bg-transparent hover:bg-[var(--surface-subtle,#fafbfc)] transition-colors cursor-pointer group ${
+                    isExpanded ? 'bg-[var(--surface-subtle,#fafbfc)]' : ''
                   }`}
                 >
                   <WarningHierarchyLines warning={w} sources={sources} />
-                  <div className="mt-1.5 flex items-center gap-2">
+                  <div className="mt-2 flex items-center gap-3">
                     <button
                       aria-label={`Locate warning ${w.source_warning_id} on map`}
                       title={`Locate warning ${w.source_warning_id} on map`}
@@ -1027,9 +1026,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         e.stopPropagation();
                         onLocate(w);
                       }}
-                      className="btn btn-sm btn-secondary text-xs flex items-center gap-1.5 text-gw-accent"
+                      className="text-xs flex items-center gap-1.5 text-[var(--ink-secondary,#5f6b7a)] hover:text-[var(--accent,#2b6e8c)] transition-colors"
                     >
-                      <Locate className="w-3.5 h-3.5 text-gw-accent" />
+                      <Locate className="w-3.5 h-3.5" />
                       <span>View on map</span>
                     </button>
                     <button
@@ -1040,7 +1039,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       }}
                       aria-expanded={isExpanded}
                       aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
-                      className="btn btn-sm btn-ghost text-xs flex items-center gap-1 text-gw-accent hover:text-gw-primary"
+                      className="text-xs flex items-center gap-1 text-[var(--ink-secondary,#5f6b7a)] hover:text-[var(--accent,#2b6e8c)] transition-colors"
                     >
                       <span>Details</span>
                       {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -1053,14 +1052,14 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                           handleVerify(w.warning_id);
                         }}
                         disabled={verifyingIds.has(w.warning_id)}
-                        className="ml-auto btn btn-sm btn-primary bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-xs flex items-center gap-1 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="ml-auto px-2 py-0.5 border border-[var(--border-input,#dde2e8)] hover:border-[var(--accent,#2b6e8c)] text-xs text-[var(--accent,#2b6e8c)] rounded-[6px] font-medium transition-colors flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <ShieldCheck className="w-3.5 h-3.5" />
                         <span>Verify</span>
                       </button>
                     )}
                     {verifyErrors[w.warning_id] && (
-                      <span role="alert" className="text-rose-700 text-xs font-bold">
+                      <span role="alert" className="text-[var(--sev-critical,#c44536)] text-xs font-medium">
                         {verifyErrors[w.warning_id]}
                       </span>
                     )}
@@ -1073,27 +1072,27 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         </div>
 
         {/* Shifting & Pagination Controls Footer */}
-        <div className="min-w-[900px] flex flex-col gap-2.5 px-3.5 py-3 sm:px-4 sm:py-3.5 bg-gw-secondary/90 border-t border-gw-secondary text-xs font-mono select-none">
-          {/* Row 1: Record Range Summary + Page Size Shifter */}
-          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
-            <div className="text-gw-accent font-medium">
-              Showing <span className="font-bold text-gw-primary">{sortedWarnings.length === 0 ? 0 : startIndex + 1}</span>–
-              <span className="font-bold text-gw-primary">{endIndex}</span> of{' '}
-              <span className="font-bold text-gw-primary">{sortedWarnings.length}</span> warnings
+        <div className="mt-6 flex flex-col gap-3 py-3 border-t border-[var(--hairline,#eef1f4)] text-xs select-none">
+          {/* Row 1: Record Range Summary + Page Size Selector */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-[var(--ink-tertiary,#8b97a5)] text-[0.8rem]">
+              Showing <span className="font-medium text-[var(--ink-body,#1f2937)]">{sortedWarnings.length === 0 ? 0 : startIndex + 1}</span>–
+              <span className="font-medium text-[var(--ink-body,#1f2937)]">{endIndex}</span> of{' '}
+              <span className="font-medium text-[var(--ink-body,#1f2937)]">{sortedWarnings.length}</span> warnings
               {warnings.length !== sortedWarnings.length && (
-                <span className="text-[11px] text-gw-accent ml-1.5">(filtered from {warnings.length})</span>
+                <span className="text-[11px] text-[var(--ink-tertiary,#8b97a5)] ml-1.5">(filtered from {warnings.length})</span>
               )}
             </div>
 
             <div className="flex items-center gap-1.5">
-              <span className="text-gw-accent text-[11px] uppercase font-bold">Rows:</span>
+              <span className="text-[var(--ink-tertiary,#8b97a5)] text-[11px] uppercase tracking-wider font-medium">Rows:</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="bg-gw-panel border border-gw-secondary rounded px-2 py-1 text-xs font-bold text-gw-primary outline-none focus:border-gw-primary cursor-pointer"
+                className="bg-transparent border border-[var(--border-input,#dde2e8)] rounded-[6px] px-2 py-1 text-xs font-medium text-[var(--ink-body,#1f2937)] outline-none focus:border-[var(--accent,#2b6e8c)] cursor-pointer"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -1104,87 +1103,58 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             </div>
           </div>
 
-          {/* Row 2: Page Shifter Navigation Controls */}
+          {/* Row 2: Page Navigation Controls */}
           {pageSize !== 'ALL' && totalPages > 1 && (
-            <div className="flex flex-wrap items-center gap-2 border-t border-gw-secondary pt-2.5">
-              <span className="text-gw-accent text-[11px] font-bold mr-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--hairline-alt,#f2f5f8)]">
+              <span className="text-[var(--ink-tertiary,#8b97a5)] text-[11px]">
                 Page {validPage} of {totalPages}
               </span>
 
-              {/* First Page */}
-              <button
-                type="button"
-                onClick={shiftFirstPage}
-                disabled={validPage === 1}
-                aria-label="First page"
-                className="p-1.5 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-gw-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
-                title="Shift to First Page"
-              >
-                <ChevronsLeft className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Prev Page: Text-only with arrow glyph */}
+                <button
+                  type="button"
+                  onClick={shiftPrevPage}
+                  disabled={validPage === 1}
+                  className="px-2 py-1 text-xs font-medium text-[var(--ink-secondary,#5f6b7a)] hover:text-[var(--ink-primary,#0b0e11)] disabled:text-[var(--ink-faint,#b0bcc9)] disabled:cursor-not-allowed transition-colors"
+                  title="Shift Previous Page (or Shift+Left)"
+                >
+                  ← Previous
+                </button>
 
-              {/* Prev Page */}
-              <button
-                type="button"
-                onClick={shiftPrevPage}
-                disabled={validPage === 1}
-                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-gw-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs font-bold"
-                title="Shift Previous Page (or Shift+Left)"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Prev</span>
-              </button>
+                {/* Page Number Buttons */}
+                <div className="flex items-center gap-1">
+                  {pageNumbers.map((p, i) => (
+                    p === '...' ? (
+                      <span key={`dots-${i}`} className="px-1 text-[var(--ink-tertiary,#8b97a5)]">...</span>
+                    ) : (
+                      <button
+                        key={`page-${p}`}
+                        type="button"
+                        onClick={() => shiftToPage(Number(p))}
+                        className={`min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs transition-colors ${
+                          validPage === p
+                            ? 'border border-[var(--border-input,#dde2e8)] bg-[var(--surface-subtle,#fafbfc)] text-[var(--ink-primary,#0b0e11)] font-medium rounded-[6px]'
+                            : 'text-[var(--ink-faint,#b0bcc9)] hover:text-[var(--ink-primary,#0b0e11)] bg-transparent'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  ))}
+                </div>
 
-              {/* Page Number Pills */}
-              <div className="flex items-center gap-1.5">
-                {pageNumbers.map((p, i) => (
-                  p === '...' ? (
-                    <span key={`dots-${i}`} className="px-1 text-gw-accent font-bold">...</span>
-                  ) : (
-                    <button
-                      key={`page-${p}`}
-                      type="button"
-                      onClick={() => shiftToPage(Number(p))}
-                      className={`min-w-[32px] h-8 px-1.5 flex items-center justify-center rounded text-xs font-bold transition-all ${
-                        validPage === p
-                          ? 'bg-gw-primary text-gw-bg font-black shadow-xs'
-                          : 'bg-gw-panel border border-gw-secondary text-gw-primary hover:bg-gw-bg'
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  )
-                ))}
+                {/* Next Page: Text-only with arrow glyph */}
+                <button
+                  type="button"
+                  onClick={shiftNextPage}
+                  disabled={validPage === totalPages}
+                  className="px-2 py-1 text-xs font-medium text-[var(--ink-secondary,#5f6b7a)] hover:text-[var(--ink-primary,#0b0e11)] disabled:text-[var(--ink-faint,#b0bcc9)] disabled:cursor-not-allowed transition-colors"
+                  title="Shift Next Page (or Shift+Right)"
+                >
+                  Next →
+                </button>
               </div>
-
-              {/* Next Page */}
-              <button
-                type="button"
-                onClick={shiftNextPage}
-                disabled={validPage === totalPages}
-                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-gw-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs font-bold"
-                title="Shift Next Page (or Shift+Right)"
-              >
-                <span>Next</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-
-              {/* Last Page */}
-              <button
-                type="button"
-                onClick={shiftLastPage}
-                disabled={validPage === totalPages}
-                aria-label="Last page"
-                className="p-1.5 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-gw-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
-                title="Shift to Last Page"
-              >
-                <ChevronsRight className="w-3.5 h-3.5" />
-              </button>
-
-              {/* Keyboard Shortcut Hint */}
-              <span className="hidden xl:inline text-[10px] text-gw-accent ml-2">
-                (<kbd className="px-1 py-0.5 bg-gw-panel border border-gw-secondary rounded text-[9px] font-mono">Shift+←/→</kbd> to shift)
-              </span>
             </div>
           )}
         </div>

@@ -1,137 +1,183 @@
 @import "tailwindcss";
 
-/* ------------------------------------------------------------------
-   CONSOLE STACKING TOKENS - single source of truth for layered
-   surfaces. Scale: sticky strips < page chrome < overlay scrims <
-   floating action buttons < raised overlays (the edit modal must
-   sit above the detail modal, which stays open underneath it).
-   --console-sticky-offset = sticky site header height (56px)
-   + 1px bottom border; update it if the header height changes. */
+/* ═══════════════════════════════════════════════════════════════
+   HELM.PORTS DESIGN SYSTEM — Console Integration
+   Strict hard constraints:
+   - Information-first minimalism. The data IS the design.
+   - Chrome recedes; content leads. No cards, no shadows, no zebra striping, no filled buttons.
+   - Whitespace is the primary hierarchy tool.
+   - Exactly ONE accent color: #2b6e8c (with focus halo rgba(43,110,140,0.10)).
+   - Weight 500 is the maximum anywhere. Never use 600/700/bold.
+   - Sentence case everywhere except tiny uppercase table labels.
+   - Motion is micro chromatic only (100–150ms). No spatial animation, hover lift, or scale.
+   - Max width: 1180px.
+   ═══════════════════════════════════════════════════════════════ */
+
 :root {
+  /* Surfaces */
+  --canvas:          #ffffff;
+  --surface-subtle:  #fafbfc;   /* only for current-page, hover, active-chip */
+  --hairline:        #eef1f4;   /* table header underline */
+  --hairline-alt:    #f2f5f8;   /* row dividers */
+  --border-input:    #dde2e8;
+  --border-chip:     #e3e8ee;
+  --border-chip-on:  #b0bcc9;
+
+  /* Ink */
+  --ink-primary:     #0b0e11;   /* hero, primary data */
+  --ink-body:        #1f2937;   /* table body */
+  --ink-secondary:   #5f6b7a;   /* subline, meta, labels */
+  --ink-tertiary:    #8b97a5;   /* table headers, placeholders, inactive */
+  --ink-faint:       #b0bcc9;   /* inactive pagination */
+
+  /* Accent (the ONLY accent) */
+  --accent:          #2b6e8c;
+  --accent-halo:     rgba(43, 110, 140, 0.10);
+
+  /* Semantic (dots only — never fills, never pills) */
+  --sev-critical:    #c44536;
+  --sev-high:        #c07a2b;
+  --sev-medium:      #6b8f9c;
+  --sev-low:         #9aa6b2;
+
+  /* Radius */
+  --radius-input:    12px;
+  --radius-chip:     999px;
+  --radius-btn:      6px;
+
+  /* Spacing scale */
+  --space-section:   64px;
+  --space-block:     24px;
+  --space-tight:     8px;
+
+  /* Type scale */
+  --fs-hero:         clamp(2rem, 5vw, 3.25rem);
+  --fs-subline:      1.05rem;
+  --fs-body:         0.9rem;
+  --fs-label:        0.7rem;
+  --fs-meta:         0.8rem;
+
+  /* Weights */
+  --w-hero:          500;
+  --w-body:          450;
+  --w-regular:       400;
+  --w-label:         500;
+
+  /* Motion */
+  --transition:      0.12s ease;
+  --max-width:       1180px;
+
+  /* Console Stacking Tokens */
   --z-console-sticky: 10;
   --z-console-chrome: 50;
   --z-console-overlay: 60;
   --z-console-fab: 65;
   --z-console-overlay-raised: 70;
   --console-sticky-offset: 57px;
+  --touch-min: 44px;
 }
+
 .z-console-sticky { z-index: var(--z-console-sticky); }
 .z-console-chrome { z-index: var(--z-console-chrome); }
 .z-console-overlay { z-index: var(--z-console-overlay); }
 .z-console-fab { z-index: var(--z-console-fab); }
 .z-console-overlay-raised { z-index: var(--z-console-overlay-raised); }
 
-/* ═══════════════════════════════════════════════════════════════
-   TOKEN RESTYLE — align the React console with the public site's
-   design system (public/assets/css/tokens.css).
-
-   The console is fully token-driven: every component consumes the
-   gw-* custom properties below, so remapping them here restyles the
-   whole console without touching a single component.
-
-   Mapping (console token → public-site token):
-     gw-primary   #0f172a  ← --surface-dark (dark chrome + main text)
-     gw-secondary #e2e8f0  ← --border       (hairlines + light text on dark)
-     gw-tertiary  #334155  ← slate-700      (panels/chips on dark chrome)
-     gw-bg        #fafafa  ← --bg           (page background)
-     gw-accent    #64748b  ← --text-muted   (muted text)
-     gw-accent-on-dark #94a3b8 ← --text-light
-     fonts        system-ui ← --font-h1/h2/body (was Courier New everywhere)
-   ═══════════════════════════════════════════════════════════════ */
-
 @theme {
-  --color-gw-primary: #0f172a;
-  --color-gw-secondary: #e2e8f0;
-  --color-gw-tertiary: #334155;
-  --color-gw-bg: #fafafa;
-  --color-gw-accent: #64748b;
-  /* Muted lift of --color-gw-accent for use on dark chrome (#0f172a / #334155).
-     Mirrors the public site's --text-light (#94a3b8): AA contrast on dark. */
-  --color-gw-accent-on-dark: #94a3b8;
-
-  /* The public site uses system-ui throughout (ui-monospace only for raw
-     warning text). 'font-mono' is repointed at the same system stack so the
-     console's pervasive font-mono/font-sans/font-ui classes all render the
-     public typography without editing call sites. */
-  --font-mono: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-ui: system-ui, -apple-system, 'Segoe UI', sans-serif;
-
-  /* Public radius scale: --radius 8px, --radius-sm 4px, --radius-lg 12px. */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-
-  /* Hierarchy tokens (Sprint 0 Task 2). Primary containers keep a clear
-     border; secondary containers use background contrast + spacing only. */
-  --border-primary: 1px solid var(--color-gw-primary);
-  --border-subtle: 1px solid var(--color-gw-secondary);
-  --bg-secondary: #ffffff;
-  /* Light surface token for Tailwind utilities (bg-gw-panel, incl. /NN opacity
-     modifiers, which the custom .bg-secondary utility cannot carry). Theme
-     blocks below remap it to the Bridge / Red watch panel surfaces. */
+  /* Re-map gw-* tokens to Helm.Ports single accent and minimal palette */
+  --color-gw-primary: #0b0e11;
+  --color-gw-secondary: #dde2e8;
+  --color-gw-tertiary: #fafbfc;
+  --color-gw-bg: #ffffff;
+  --color-gw-accent: #5f6b7a;
+  --color-gw-accent-on-dark: #8b97a5;
   --color-gw-panel: #ffffff;
+
+  --color-accent: #2b6e8c;
+  --color-canvas: #ffffff;
+  --color-surface-subtle: #fafbfc;
+  --color-hairline: #eef1f4;
+  --color-hairline-alt: #f2f5f8;
+  --color-border-input: #dde2e8;
+  --color-border-chip: #e3e8ee;
+  --color-border-chip-on: #b0bcc9;
+
+  --color-ink-primary: #0b0e11;
+  --color-ink-body: #1f2937;
+  --color-ink-secondary: #5f6b7a;
+  --color-ink-tertiary: #8b97a5;
+  --color-ink-faint: #b0bcc9;
+
+  /* Strict Inter font stack */
+  --font-mono: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+
+  --border-primary: 1px solid var(--hairline);
+  --border-subtle: 1px solid var(--hairline-alt);
+  --bg-secondary: #ffffff;
   --space-compact: 0.5rem;
 
-  /* Severity colours — the Helm.Warning watch-theme design (PR #93), LIGHT
-     "Chart paper" values. The data-theme override blocks at the end of this
-     file remap them for Bridge and Red watch, so text-gw-critical etc.
-     follow the active theme. Always pair a severity colour with a shape and
-     a word — colour is never the only signal. */
-  --color-gw-critical: #B42318;
-  --color-gw-high: #8C5208;
-  --color-gw-moderate: #2E5C8A;
+  --color-gw-critical: #c44536;
+  --color-gw-high: #c07a2b;
+  --color-gw-moderate: #6b8f9c;
 }
 
 @layer utilities {
-  .border-primary { border: var(--border-primary); }
-  .border-subtle { border: var(--border-subtle); }
-  .bg-secondary { background-color: var(--bg-secondary); }
+  .border-primary { border: 1px solid var(--hairline); }
+  .border-subtle { border: 1px solid var(--hairline-alt); }
+  .bg-secondary { background-color: var(--canvas); }
   .space-compact { gap: var(--space-compact); }
   .font-ui { font-family: var(--font-ui); }
 }
 
 @layer base {
   body {
-    background-color: var(--color-gw-bg);
-    color: var(--color-gw-primary);
+    background-color: var(--canvas);
+    color: var(--ink-body);
     font-family: var(--font-sans);
+    font-size: var(--fs-body);
+    font-weight: 400;
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
     overflow-x: hidden;
   }
 
-  /* The Courier-era 40px grid overlay is gone: the public site has a clean
-     flat #fafafa canvas. */
-
-  ::selection {
-    background: var(--color-gw-primary);
-    color: var(--color-gw-bg);
+  /* HARD CONSTRAINT: Weight 500 is the maximum anywhere. Never use 600/700/bold */
+  b, strong, .font-bold, .font-semibold, .font-black, .font-extrabold {
+    font-weight: 500 !important;
   }
 
-  /* Keyboard focus matches the public site (2px outline, --surface-dark). */
+  /* HARD CONSTRAINT: No shadows except search focus halo */
+  .shadow-xs, .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl, .shadow-2xs, .shadow-hard {
+    box-shadow: none !important;
+  }
+
+  ::selection {
+    background: var(--surface-subtle);
+    color: var(--ink-primary);
+  }
+
   :focus-visible {
-    outline: 2px solid var(--color-gw-primary);
+    outline: 1.5px solid var(--accent);
     outline-offset: 2px;
   }
   .gw-dark-surface :focus-visible,
   .gw-dark-surface:focus-visible {
-    outline-color: var(--color-gw-secondary);
+    outline-color: var(--accent);
   }
 
-  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--color-gw-secondary); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--color-gw-accent); }
+  ::-webkit-scrollbar-thumb { background: var(--border-input); border-radius: var(--radius-btn); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-chip-on); }
 }
 
 @layer utilities {
-  /* Accent text inside the dark header/nav/footer chrome still needs the
-     AA-safe lift; re-pointing the token here repairs every nested
-     `text-gw-accent` without editing call sites. */
-  .gw-dark-surface {
-    --color-gw-accent: var(--color-gw-accent-on-dark);
-  }
-
   .gw-skip-link {
     position: absolute;
     left: -9999px;
@@ -143,318 +189,71 @@
     top: 0.5rem;
     position: fixed;
     padding: 0.5rem 0.875rem;
-    background: var(--color-gw-primary);
-    color: #ffffff;
-    border: 2px solid var(--color-gw-secondary);
-    border-radius: 4px;
-    font-weight: 700;
+    background: var(--canvas);
+    color: var(--ink-primary);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-btn);
+    font-weight: 500;
     text-transform: uppercase;
     font-size: 0.75rem;
     letter-spacing: 0.05em;
   }
 
-  /* Public-site soft shadows (was the 4px hard offset shadow). */
-  .shadow-hard {
-    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
-  }
+  .shadow-hard { box-shadow: none !important; }
   .shadow-hard-hover:hover {
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
-    transform: translateY(-1px);
+    box-shadow: none !important;
+    transform: none !important;
   }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { scrollbar-width: none; }
 
-  /* Horizontal Table Scroll Shadow Indicators */
+  /* Table hairlines */
   .table-scroll-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    background:
-      linear-gradient(to right, #ffffff 30%, rgba(255, 255, 255, 0)),
-      linear-gradient(to right, rgba(255, 255, 255, 0), #ffffff 70%) 100% 0,
-      radial-gradient(farthest-side at 0 50%, rgba(20, 22, 28, 0.18), rgba(0, 0, 0, 0)),
-      radial-gradient(farthest-side at 100% 50%, rgba(20, 22, 28, 0.18), rgba(0, 0, 0, 0)) 100% 0;
-    background-repeat: no-repeat;
-    background-color: #ffffff;
-    background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
-    background-attachment: local, local, scroll, scroll;
+    background: var(--canvas);
+  }
+
+  /* Search focus halo utility (the only element allowed a halo) */
+  .search-halo:focus,
+  .search-halo:focus-within {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px var(--accent-halo) !important;
+    outline: none !important;
   }
 }
 
-/* Custom Marker */
+/* Custom Minimal Map Marker */
 .nw-marker {
-  width: 16px; height: 16px; border-radius: 50%;
-  border: 2px solid var(--color-gw-primary);
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
-  position: relative; background: #ffffff;
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 1.5px solid var(--canvas);
+  position: relative; background: var(--accent);
 }
-.nw-marker::after {
-  content: ''; position: absolute; inset: 2px; border-radius: 50%;
-  border: 1px solid var(--color-gw-primary);
-}
-.nw-marker.sev-critical { background: #dc2626; }
-.nw-marker.sev-high { background: #ea580c; }
-.nw-marker.sev-moderate { background: #f59e0b; }
-.nw-marker.sev-low { background: #94a3b8; }
-.nw-marker.sev-info { background: #ffffff; }
+.nw-marker.sev-critical { background: var(--sev-critical); }
+.nw-marker.sev-high { background: var(--sev-high); }
+.nw-marker.sev-moderate { background: var(--sev-medium); }
+.nw-marker.sev-low { background: var(--sev-low); }
+.nw-marker.sev-info { background: var(--canvas); }
 
-/* Leaflet overrides */
-.leaflet-container { background: var(--color-gw-bg); font-family: var(--font-sans); }
-.leaflet-control-attribution { background: rgba(255,255,255,0.8) !important; color: var(--color-gw-accent) !important; font-size: 10px !important; }
-.leaflet-control-attribution a { color: var(--color-gw-primary) !important; }
+/* Leaflet Overrides */
+.leaflet-container { background: var(--canvas); font-family: var(--font-sans); }
+.leaflet-control-attribution { background: rgba(255,255,255,0.85) !important; color: var(--ink-secondary) !important; font-size: 10px !important; }
+.leaflet-control-attribution a { color: var(--accent) !important; text-decoration: none; }
 .leaflet-control-zoom a {
-  background: #ffffff !important; color: var(--color-gw-primary) !important;
-  border: 1px solid var(--color-gw-secondary) !important; border-radius: 6px !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  background: var(--canvas) !important; color: var(--ink-primary) !important;
+  border: 1px solid var(--border-input) !important; border-radius: var(--radius-btn) !important;
+  box-shadow: none !important;
 }
-.leaflet-control-zoom a:hover { background: var(--color-gw-secondary) !important; }
+.leaflet-control-zoom a:hover { background: var(--surface-subtle) !important; }
 .leaflet-popup-content-wrapper {
-  background: #ffffff !important; color: var(--color-gw-primary) !important;
-  border: 1px solid var(--color-gw-secondary) !important; border-radius: 8px !important;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12) !important;
+  background: var(--canvas) !important; color: var(--ink-primary) !important;
+  border: 1px solid var(--border-input) !important; border-radius: var(--radius-btn) !important;
+  box-shadow: none !important;
 }
-.leaflet-popup-tip { background: #ffffff !important; border: 1px solid var(--color-gw-secondary) !important; }
-.leaflet-popup-close-button { color: var(--color-gw-primary) !important; }
+.leaflet-popup-tip { background: var(--canvas) !important; border: 1px solid var(--border-input) !important; }
+.leaflet-popup-close-button { color: var(--ink-secondary) !important; }
 
-/* Jump Target Pulse Beacon */
-@keyframes beacon-ping {
-  0% { transform: scale(0.6); opacity: 0.9; }
-  100% { transform: scale(2.2); opacity: 0; }
-}
-.jump-beacon-pulse {
-  position: relative;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-.jump-beacon-pulse::before {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  border: 2px solid #0284c7;
-  background: rgba(14, 165, 233, 0.25);
-  animation: beacon-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-.jump-beacon-pulse .beacon-center {
-  width: 10px;
-  height: 10px;
-  background: #0369a1;
-  border: 2px solid white;
-  border-radius: 50%;
-  box-shadow: 0 0 8px rgba(3, 105, 161, 0.8);
-}
-
-/* Polymorphic NAVAREA Hazard Badges */
-.nw-hazard-badge {
-  position: relative;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid currentColor;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.15s ease;
-}
-.nw-hazard-badge:hover {
-  transform: scale(1.18);
-  z-index: 1000 !important;
-}
-
-@keyframes hazard-pulse {
-  0% { transform: scale(0.9); opacity: 0.9; }
-  60% { transform: scale(2.2); opacity: 0.2; }
-  100% { transform: scale(2.6); opacity: 0; }
-}
-
-.nw-pulse-ring {
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  background: transparent;
-  animation: hazard-pulse 2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
-  pointer-events: none;
-}
-
-.nw-marker-label {
-  position: absolute;
-  bottom: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: var(--font-sans);
-  font-size: 8px;
-  font-weight: 700;
-  line-height: 1;
-  padding: 2px 4px;
-  border-radius: 2px;
-  color: #ffffff;
-  white-space: nowrap;
-  pointer-events: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   MULTI-PLOT MARITIME MAP SPATIAL STYLES & MOBILE ADAPTATIONS
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Numbered Corner Vertex Pins */
-.vertex-pin {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #fbbf24;
-  color: #78350f;
-  border: 1.5px solid #d97706;
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-  position: relative;
-  cursor: pointer;
-  user-select: none;
-  transition: transform 0.15s ease, background-color 0.15s ease;
-}
-/* Touch hit-box expansion for mobile (20px -> 36px) */
-.vertex-pin::after {
-  content: '';
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-}
-.vertex-pin:hover {
-  transform: scale(1.2);
-  background: #f59e0b;
-}
-.vertex-pin:active {
-  transform: scale(0.92);
-}
-
-/* Centroid Surface Area Badge */
-.centroid-metric-badge {
-  background: rgba(15, 23, 42, 0.92);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 9999px;
-  padding: 3px 9px;
-  font-family: var(--font-sans);
-  font-size: 10.5px;
-  font-weight: 700;
-  white-space: nowrap;
-  pointer-events: auto;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  backdrop-filter: blur(4px);
-  transition: transform 0.15s ease, background-color 0.15s ease;
-}
-.centroid-metric-badge:hover {
-  transform: scale(1.08);
-  background: #0f172a;
-  border-color: #38bdf8;
-}
-.centroid-metric-badge .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #38bdf8;
-}
-
-/* Radial Measurement Badge for Safety Zones */
-.radial-measure-badge {
-  background: rgba(245, 158, 11, 0.95);
-  color: #78350f;
-  border: 1px solid #b45309;
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-family: var(--font-sans);
-  font-size: 9.5px;
-  font-weight: 800;
-  white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-  pointer-events: none;
-}
-
-/* Route Terminus Marker (Point A / Point B) */
-.route-terminus-pin {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  background: #06b6d4;
-  color: #083344;
-  border: 1.5px solid #0e7490;
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  cursor: pointer;
-  user-select: none;
-  transition: transform 0.15s ease;
-}
-.route-terminus-pin:hover {
-  transform: scale(1.2);
-}
-.route-terminus-pin:active {
-  transform: scale(0.92);
-}
-
-/* Drift Vector Arrowhead */
-.drift-arrow-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ea580c;
-  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.4));
-  pointer-events: none;
-}
-
-/* Touch Momentum Scrolling Container */
-.touch-momentum-scroll {
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.touch-momentum-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-/* Mobile Bottom Sheet Drag Handle */
-.bottom-sheet-drag-handle {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: #94a3b8;
-  margin: 6px auto;
-  cursor: grab;
-}
-
-/* Active tap feedback for touch elements */
-.touch-tap-active:active {
-  transform: scale(0.92);
-}
-
-
-/* ═══════════════════════════════════════════════════════════════
-   SHARED TOUCH-TARGET LAYER (console UX audit: touch targets)
-   The design system already defines --touch-min: 44px
-   (public/assets/css/tokens.css) but the console's ad-hoc Tailwind
-   buttons (px-2 py-1 text-xs, p-1) ignore it. Fixed once here at the
-   shared layer, coarse pointers only — the mouse layout is untouched.
-   :where() keeps specificity 0 so any explicit min-h-*/h-* utility
-   still wins. Map controls (map-*-btn, .settings-*) keep their own
-   components.css sizing and are not restyled. */
+/* Mobile Touch Layer */
 @media (pointer: coarse) {
   @layer base {
     :where(button:not(.touch-hit), [role="tab"], summary) {
@@ -463,12 +262,10 @@
     }
     :where(select, input:not([type="checkbox"]):not([type="radio"]), textarea) {
       min-height: var(--touch-min, 44px);
-      font-size: 16px; /* 16px stops iOS focus-zoom on text-xs/text-sm inputs */
+      font-size: 16px;
     }
   }
   @layer utilities {
-    /* Link-style text actions keep their compact visual size; the hit
-       area expands around them instead (.vertex-pin::after pattern). */
     .touch-hit { position: relative; }
     .touch-hit::after {
       content: '';
@@ -478,73 +275,336 @@
   }
 }
 
-/* Responsive NAVAREA Select Full Width on mobile */
-@media (max-width: 768px) {
-  .navarea-select-wrapper {
-    width: 100% !important;
-  }
-  .navarea-select {
-    width: 100% !important;
-  }
-}
-
 @layer utilities {
-  /* label-mono (Helm.Ports convention, adapted for the console): the mono
-     eyebrow / section-tag style. 11px, uppercase, 0.08em tracking, weight
-     500, tabular digits so IDs and counts line up. Use for section labels,
-     metadata tags and eyebrows — never for body copy. Size comes from
-     --label-mono-size (public tokens.css). */
   .label-mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: var(--label-mono-size, 11px);
+    font-family: var(--font-sans);
+    font-size: var(--fs-label, 0.7rem);
     font-weight: 500;
     line-height: 16px;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     font-variant-numeric: tabular-nums;
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   WATCH THEMES (console) — mapped onto the existing gw-* token system.
-   Mirrors public/assets/css/tokens.css (PR #93): Light "Chart paper"
-   (default, byte-identical to the current console palette), Dark
-   "Bridge", Night "Red watch". These blocks are INERT until data-theme
-   is set on <html>: the console wires no theme switcher yet — that lands
-   after the raw-palette migration (bg-white / slate-* -> gw-* tokens),
-   so the console look on main is unchanged. Contrast for every pair is
-   asserted in src/theme/themeContrast.test.ts (console gw-token mapping).
-
-   Light hairlines (--color-gw-secondary on --color-gw-bg, ~1.2:1) are the
-   pre-existing decorative-hairline convention, not a theme regression; in
-   Dark/Night the same token carries the design --line (>= 3:1). */
-:root[data-theme="dark"] {
-  --color-gw-primary: #E9EDE9;    /* main text */
-  --color-gw-secondary: #6B756C; /* hairlines + muted text on light surfaces */
-  --color-gw-tertiary: #1C2A22;   /* panels/chips on dark chrome */
-  --color-gw-bg: #0E1210;
-  --color-gw-accent: #9FA69F;
-  --color-gw-accent-on-dark: #9FA69F;
-  --bg-secondary: #151A17;
-  --color-gw-panel: #151A17;
-  --color-gw-critical: #F08484;
-  --color-gw-high: #D9A24A;
-  --color-gw-moderate: #8DB4E2;
+/* ═══════════ LEAFLET MAP TOOLBAR & SETTINGS (CONSOLE PARITY) ═══════════ */
+.map-ctrl-topright {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 520;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
 }
 
-:root[data-theme="night"] {
-  /* Red watch: dim reds and browns on near-black to protect night vision.
-     Keep font weight >= 400 in this theme — thin red-on-black loses
-     legibility well before the contrast math suggests it. */
-  --color-gw-primary: #E0857A;
-  --color-gw-secondary: #945E53;
-  --color-gw-tertiary: #2A1412;
-  --color-gw-bg: #080404;
-  --color-gw-accent: #B5786B;
-  --color-gw-accent-on-dark: #B5786B;
-  --bg-secondary: #120A08;
-  --color-gw-panel: #120A08;
-  --color-gw-critical: #FF6B5E;
-  --color-gw-high: #D08A3E;
-  --color-gw-moderate: #BC8577;
+.map-recenter-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 38px;
+  min-height: 38px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--border-input, #dde2e8);
+  border-radius: 9999px;
+  font: 600 12px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink-body, #1f2937);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
 }
+.map-recenter-pill-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+.map-recenter-pill-btn:hover {
+  background: var(--canvas, #ffffff);
+  border-color: var(--ink-secondary, #5f6b7a);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.map-recenter-pill-btn:active {
+  transform: scale(0.97);
+}
+
+.map-focus-btn,
+.map-gear-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border-input, #dde2e8);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink-body, #1f2937);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  padding: 0;
+}
+.map-focus-btn:hover,
+.map-gear-btn:hover {
+  background: var(--canvas, #ffffff);
+  border-color: var(--ink-secondary, #5f6b7a);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.map-focus-btn:active,
+.map-gear-btn:active {
+  transform: scale(0.97);
+}
+.map-focus-btn.active,
+.map-gear-btn.active {
+  background: var(--ink-primary, #0b0e11);
+  color: #ffffff;
+  border-color: var(--ink-primary, #0b0e11);
+}
+
+.map-ctrl-topright .map-coord-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border-input, #dde2e8);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.map-ctrl-topright .map-coord-btn:hover {
+  background: var(--canvas, #ffffff);
+  border-color: var(--ink-secondary, #5f6b7a);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.map-ctrl-topright .map-coord-btn.is-active {
+  background: var(--ink-primary, #0b0e11);
+  color: #ffffff;
+  border-color: var(--ink-primary, #0b0e11);
+}
+
+/* Settings Popover */
+.map-settings-popover {
+  position: absolute;
+  top: 58px;
+  right: 14px;
+  z-index: 520;
+  background: var(--canvas, #ffffff);
+  border: 1px solid var(--border-input, #dde2e8);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  width: 290px;
+  padding: 14px 16px;
+  display: none;
+  flex-direction: column;
+}
+.map-settings-popover.open {
+  display: flex;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--hairline, #eef1f4);
+  margin-bottom: 14px;
+}
+.settings-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-primary, #0b0e11);
+  letter-spacing: -0.01em;
+}
+.settings-close-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  color: var(--ink-secondary, #5f6b7a);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.settings-close-btn:hover {
+  background: var(--surface-subtle, #fafbfc);
+  color: var(--ink-primary, #0b0e11);
+}
+
+.settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-secondary, #5f6b7a);
+  margin-top: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.master-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  background: var(--ink-primary, #0b0e11);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.master-toggle-btn.off {
+  background: var(--surface-subtle, #f1f5f9);
+  color: var(--ink-secondary, #5f6b7a);
+  border: 1px solid var(--border-input, #dde2e8);
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 4px;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink-body, #1f2937);
+  font-weight: 450;
+  user-select: none;
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+.settings-item:hover {
+  background: var(--surface-subtle, #fafbfc);
+}
+
+.settings-item input[type="radio"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  border: 2px solid #94a3b8;
+  border-radius: 50%;
+  outline: none;
+  margin: 0;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  background: transparent;
+  transition: border-color 0.15s;
+}
+.settings-item input[type="radio"]:checked {
+  border-color: var(--ink-primary, #0b0e11);
+}
+.settings-item input[type="radio"]:checked::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ink-primary, #0b0e11);
+}
+
+.settings-item input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  border: 2px solid var(--ink-primary, #0b0e11);
+  border-radius: 4px;
+  outline: none;
+  margin: 0;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  background: var(--ink-primary, #0b0e11);
+  transition: background 0.15s, border-color 0.15s;
+}
+.settings-item input[type="checkbox"]:not(:checked) {
+  background: transparent;
+  border-color: #94a3b8;
+}
+.settings-item input[type="checkbox"]:checked::before {
+  content: "";
+  width: 5px;
+  height: 10px;
+  border: solid #ffffff;
+  border-width: 0 2.2px 2.2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.settings-divider {
+  height: 1px;
+  background: var(--hairline, #eef1f4);
+  margin: 14px 0;
+  border: none;
+}
+
+.settings-footer {
+  padding-top: 10px;
+  margin-top: 6px;
+  border-top: 1px solid var(--hairline, #eef1f4);
+}
+
+.settings-reset-btn,
+.settings-reset-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-secondary, #5f6b7a);
+  cursor: pointer;
+  padding: 8px 4px;
+  border-radius: 6px;
+  transition: color 0.15s;
+  outline: none;
+}
+.settings-reset-btn:hover,
+.settings-reset-link:hover {
+  color: var(--ink-primary, #0b0e11);
+}
+

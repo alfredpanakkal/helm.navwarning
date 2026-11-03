@@ -1,6 +1,6 @@
 {
-  "summary":  "Comprehensive remediation plan for console UI/UX audit across all 4 sections (Warnings, Ingest, Trace, System), addressing z-index collisions, runtime handler exceptions, missing confirmation dialogs, layout container width alignment, and interactive focus states.",
-  "updatedAt":  "2026-10-25T15:50:40.986959559Z",
-  "requestFeedback":  true,
-  "userFacing":  true
+  "summary": "Architectural remediation plan to restore the missing CSS styles for the map toolbar and 'Layers & Chart Type' settings bottom sheet/popover in AI Studio, matching production helmwarning.vercel.app.",
+  "updatedAt": "2026-11-03T15:34:29.193740817Z",
+  "requestFeedback": true,
+  "userFacing": true
 }

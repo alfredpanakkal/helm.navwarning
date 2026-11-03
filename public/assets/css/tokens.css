@@ -1,120 +1,163 @@
 :root {
-  /* Status Colors (5 only) */
-  --critical: #dc2626;
-  --high: #ea580c;
-  --active: #059669;
-  --verified: #0d9488;
-  --neutral: #64748b;
-
+  /* ═══════════ HELM.PORTS DESIGN TOKENS (non-negotiable single source of truth) ═══════════ */
   /* Surfaces */
-  --bg: #fafafa;
-  --surface: #ffffff;
-  --surface-dark: #0f172a;
-  --border: #e2e8f0;
-  --text: #1e293b;
-  --text-muted: #64748b;
-  --text-light: #94a3b8;
+  --canvas:          #ffffff;
+  --surface-subtle:  #fafbfc;   /* only for current-page, hover, active-chip */
+  --hairline:        #eef1f4;   /* table header underline */
+  --hairline-alt:    #f2f5f8;   /* row dividers */
+  --border-input:    #dde2e8;
+  --border-chip:     #e3e8ee;
+  --border-chip-on:  #b0bcc9;
 
-  /* Typography (3 levels) */
-  --font-h1: 600 28px/1.3 system-ui, sans-serif;
-  --font-h2: 600 20px/1.4 system-ui, sans-serif;
-  --font-body: 400 14px/1.5 system-ui, sans-serif;
+  /* Ink */
+  --ink-primary:     #0b0e11;   /* hero, primary data */
+  --ink-body:        #1f2937;   /* table body */
+  --ink-secondary:   #5f6b7a;   /* subline, meta, labels */
+  --ink-tertiary:    #8b97a5;   /* table headers, placeholders, inactive */
+  --ink-faint:       #b0bcc9;   /* inactive pagination */
 
-  /* Spacing Scale */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 40px;
-  --space-2xl: 64px;
+  /* Accent (the ONLY accent) */
+  --accent:          #2b6e8c;
+  --accent-halo:     rgba(43, 110, 140, 0.10);
+
+  /* Semantic (dots only — never fills, never pills) */
+  --sev-critical:    #c44536;
+  --sev-high:        #c07a2b;
+  --sev-medium:      #6b8f9c;
+  --sev-low:         #9aa6b2;
 
   /* Radius */
-  --radius: 8px;
-  --radius-sm: 4px;
-  --radius-lg: 12px;
+  --radius-input:    12px;
+  --radius-chip:     999px;
+  --radius-btn:      6px;
+
+  /* Spacing scale */
+  --space-section:   64px;   /* use 64–96px between major sections */
+  --space-block:     24px;   /* between sub-blocks */
+  --space-tight:     8px;
+
+  /* Type scale */
+  --fs-hero:         clamp(2rem, 5vw, 3.25rem);
+  --fs-subline:      1.05rem;
+  --fs-body:         0.9rem;
+  --fs-label:        0.7rem;   /* uppercase, letter-spacing 0.06em */
+  --fs-meta:         0.8rem;
+
+  /* Weights (500 is max anywhere; never 600/700/bold) */
+  --w-hero:          500;
+  --w-body:          450;
+  --w-regular:       400;
+  --w-label:         500;
+
+  /* Motion: micro and chromatic only (100–150ms). No spatial animation, hover lift, or scale */
+  --transition:      0.12s ease;
+
+  /* Layout */
+  --max-width:       1180px;
+
+  /* ═══════════ LEGACY ALIASES (mapped to Helm.Ports tokens) ═══════════ */
+  --bg:              var(--canvas);
+  --surface:         var(--canvas);
+  --surface-dark:    var(--ink-primary);
+  --border:          var(--border-input);
+  --line:            var(--hairline);
+  --text:            var(--ink-body);
+  --text-muted:      var(--ink-secondary);
+  --text-light:      var(--ink-tertiary);
+  --critical:        var(--sev-critical);
+  --high:            var(--sev-high);
+  --active:          var(--accent);
+  --verified:        var(--accent);
+  --neutral:         var(--ink-secondary);
 
   /* Safe Areas */
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left: env(safe-area-inset-left, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-top:        env(safe-area-inset-top, 0px);
+  --safe-bottom:     env(safe-area-inset-bottom, 0px);
+  --safe-left:       env(safe-area-inset-left, 0px);
+  --safe-right:      env(safe-area-inset-right, 0px);
 
   /* Touch Targets & Component Heights */
-  --touch-min: 44px;
-  --header-h: 56px;
-  --bottomnav-h: 56px;
+  --touch-min:       44px;
+  --header-h:        56px;
+  --bottomnav-h:     56px;
+
+  /* Typography fallback stack */
+  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-body:       400 0.9rem/1.5 var(--font-family-base);
+  --font-h1:         500 var(--fs-hero)/1.15 var(--font-family-base);
+  --font-h2:         500 1.25rem/1.3 var(--font-family-base);
+  --font-mono:       ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --label-mono-size: 11px;
+  --label-mono-tracking: 0.06em;
 }
 
-/* ═══════════ THEME SYSTEM — Light "Chart paper" / Dark "Bridge" / Night "Red watch" ═══════════
-   Three watch-state themes. data-theme on <html> selects the palette; an inline
-   pre-paint script in each page head applies the saved theme (localStorage key
-   "hw-theme") before first paint. Light is the default and keeps the historical
-   paper look. WCAG: text pairs >= 4.5:1, borders/status/focus >= 3:1 — enforced
-   by src/theme/themeContrast.test.ts. Severity colours are always paired with a
-   shape and a word in markup; colour is never the only signal. */
-
+/* Light / Default Theme */
 :root,
 :root[data-theme="light"] {
   color-scheme: light;
-  --background: #FAFAF7;
-  --foreground: #1D211E;
-  --muted-foreground: #5D665F;
-  --accent: #2F6B4F;
-  --accent-fill: #DDEFE0;
-  --line: #6F7770;
-  --sev-critical: #B42318;
-  --sev-high: #8C5208;
-  --sev-moderate: #2E5C8A;
-  /* Helm.Ports label-mono style */
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --label-mono-size: 11px;
-  --label-mono-tracking: 0.08em;
+  --background:       var(--canvas);
+  --foreground:       var(--ink-primary);
+  --muted-foreground: var(--ink-secondary);
+  --accent:           #2b6e8c;
+  --accent-fill:      var(--surface-subtle);
+  --line:             var(--hairline);
+  --sev-critical:     #c44536;
+  --sev-high:         #c07a2b;
+  --sev-moderate:     #6b8f9c;
 }
 
+/* Dark Theme */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #0E1210;
-  --foreground: #E9EDE9;
-  --muted-foreground: #9FA69F;
-  --accent: #8FCBA8;
-  --accent-fill: #1C2A22;
-  --line: #6B756C;
-  --sev-critical: #F08484;
-  --sev-high: #D9A24A;
-  --sev-moderate: #8DB4E2;
-  /* legacy aliases so existing public components follow the active theme */
-  --bg: #0E1210;
-  --surface: #151A17;
-  --surface-dark: #101511;
-  --border: #6B756C;
-  --text: #E9EDE9;
-  --text-muted: #9FA69F;
-  --text-light: #6B756C;
-  --critical: #F08484;
-  --high: #D9A24A;
+  --canvas:          #0e1210;
+  --surface-subtle:  #151a17;
+  --hairline:        #1f2823;
+  --hairline-alt:    #19211c;
+  --border-input:    #2a352e;
+  --border-chip:     #243028;
+  --border-chip-on:  #3d4e43;
+  --ink-primary:     #e9ede9;
+  --ink-body:        #d4dad4;
+  --ink-secondary:   #9fa69f;
+  --ink-tertiary:    #6b756c;
+  --ink-faint:       #424b43;
+  --accent:          #4a94b8;
+  --accent-halo:     rgba(74, 148, 184, 0.15);
+  --sev-critical:    #f08484;
+  --sev-high:        #d9a24a;
+  --sev-medium:      #8db4e2;
+  --sev-low:         #6b756c;
+  --background:      #0e1210;
+  --foreground:      #e9ede9;
+  --muted-foreground:#9fa69f;
+  --accent-fill:     #1c2a22;
+  --line:            #243028;
 }
 
+/* Night Theme */
 :root[data-theme="night"] {
   color-scheme: dark;
-  /* Red watch: dim reds and browns on near-black to protect night vision.
-     Keep font weight >= 400 in this theme — thin red-on-black loses legibility. */
-  --background: #080404;
-  --foreground: #E0857A;
-  --muted-foreground: #B5786B;
-  --accent: #E0857A;
-  --accent-fill: #2A1412;
-  --line: #945E53;
-  --sev-critical: #FF6B5E;
-  --sev-high: #D08A3E;
-  --sev-moderate: #BC8577;
-  /* legacy aliases so existing public components follow the active theme */
-  --bg: #080404;
-  --surface: #120A08;
-  --surface-dark: #170D0A;
-  --border: #945E53;
-  --text: #E0857A;
-  --text-muted: #B5786B;
-  --text-light: #945E53;
-  --critical: #FF6B5E;
-  --high: #D08A3E;
+  --canvas:          #080404;
+  --surface-subtle:  #120a08;
+  --hairline:        #1f1210;
+  --hairline-alt:    #170e0c;
+  --border-input:    #301b17;
+  --border-chip:     #2a1613;
+  --border-chip-on:  #4a2923;
+  --ink-primary:     #e0857a;
+  --ink-body:        #cc786d;
+  --ink-secondary:   #b5786b;
+  --ink-tertiary:    #945e53;
+  --ink-faint:       #543029;
+  --accent:          #e0857a;
+  --accent-halo:     rgba(224, 133, 122, 0.15);
+  --sev-critical:    #ff6b5e;
+  --sev-high:        #d08a3e;
+  --sev-medium:      #bc8577;
+  --sev-low:         #945e53;
+  --background:      #080404;
+  --foreground:      #e0857a;
+  --muted-foreground:#b5786b;
+  --accent-fill:     #2a1412;
+  --line:            #301b17;
 }

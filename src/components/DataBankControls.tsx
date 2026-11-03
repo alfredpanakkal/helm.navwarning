@@ -12,17 +12,17 @@ const SMART_SORT_OPTIONS: { id: string; label: string }[] = [
 ];
 
 const selectClass = (active: boolean) =>
-  `appearance-none rounded-lg border px-3 pr-7 py-1.5 text-xs font-semibold cursor-pointer outline-none transition-all min-h-[38px] max-w-full ${
+  `appearance-none rounded-full border px-3 pr-7 py-1.5 text-xs font-medium cursor-pointer outline-none transition-all min-h-[36px] max-w-full ${
     active
-      ? 'bg-gw-primary text-gw-bg border-gw-primary shadow-2xs'
-      : 'bg-gw-panel border-gw-secondary text-gw-primary hover:border-gw-secondary focus:border-gw-primary shadow-2xs'
+      ? 'bg-surface-subtle border-border-chip-on text-ink-primary'
+      : 'bg-canvas border-border-chip text-ink-secondary hover:border-border-chip-on'
   }`;
 
 const selectChevron = (active: boolean) => (
   <span
     aria-hidden="true"
-    className={`absolute right-2.5 w-1.5 h-1.5 border-r-2 border-b-2 rotate-45 pointer-events-none ${
-      active ? 'border-gw-bg' : 'border-gw-secondary'
+    className={`absolute right-2.5 w-1.5 h-1.5 border-r border-b rotate-45 pointer-events-none ${
+      active ? 'border-ink-primary' : 'border-ink-tertiary'
     }`}
   />
 );
@@ -82,15 +82,15 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
   };
 
   return (
-    <div className="p-3.5 flex flex-col gap-2.5">
-      {/* Primary row: search + compact filters + More filters */}
-      <div className="flex flex-col lg:flex-row gap-2.5">
-        <div className="flex-1 min-w-[200px] flex items-center gap-2 bg-gw-panel border border-gw-secondary rounded-lg px-3 py-1.5 focus-within:border-gw-primary focus-within:ring-1 focus-within:ring-gw-primary shadow-2xs">
-          <Search className="w-4 h-4 text-gw-accent shrink-0" />
+    <div className="p-3.5 flex flex-col gap-3">
+      {/* Primary row: search (~640px wrapper, 12px radius, accent focus halo) + compact filters */}
+      <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+        <div className="w-full max-w-[640px] flex items-center gap-2 bg-canvas border border-border-input rounded-[12px] px-3.5 py-2.5 focus-within:border-accent focus-within:ring-3 focus-within:ring-[var(--accent-halo)] transition-all">
+          <Search className="w-4 h-4 text-ink-tertiary shrink-0" />
           <input
             type="text"
             placeholder="Search records by ID, text, area, coords..."
-            className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-gw-primary placeholder:text-gw-accent"
+            className="bg-transparent border-none outline-none text-xs sm:text-[1.05rem] w-full text-ink-primary placeholder:text-ink-tertiary font-normal"
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -105,7 +105,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 setCurrentPage(1);
               }}
               aria-label="Clear search text"
-              className="text-xs text-gw-accent hover:text-gw-primary font-bold p-0.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+              className="text-xs text-ink-tertiary hover:text-ink-primary font-medium p-0.5 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
               title="Clear search text"
             >
               <X className="w-3.5 h-3.5" />
@@ -182,10 +182,10 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             type="button"
             onClick={() => setShowMoreFilters((v) => !v)}
             aria-expanded={showMoreFilters}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold tracking-wide transition-all min-h-[38px] cursor-pointer shadow-2xs ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium tracking-wide transition-all min-h-[36px] cursor-pointer ${
               showMoreFilters
-                ? 'bg-gw-primary text-gw-bg border-gw-primary'
-                : 'bg-gw-panel text-gw-accent border-gw-secondary hover:bg-gw-secondary hover:border-gw-secondary'
+                ? 'bg-surface-subtle text-ink-primary border-border-chip-on'
+                : 'bg-canvas text-ink-secondary border-border-chip hover:border-border-chip-on'
             }`}
           >
             <Filter className="w-3.5 h-3.5" />
@@ -195,22 +195,22 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
       </div>
 
       {/* Feedback strip: result count, active sort, reset */}
-      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gw-secondary">
-        <span className="text-[11px] font-medium text-gw-accent">
-          Matching: <strong className="text-gw-primary font-semibold tabular-nums">{sortedWarnings.length}</strong>
+      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-hairline">
+        <span className="text-[11px] font-medium text-ink-secondary">
+          Matching: <strong className="text-ink-primary font-medium tabular-nums">{sortedWarnings.length}</strong>
         </span>
 
-        <span className="text-gw-secondary" aria-hidden="true">·</span>
+        <span className="text-hairline" aria-hidden="true">·</span>
 
-        <span className="text-[11px] font-medium text-gw-accent hidden sm:inline">
-          Sorted by <strong className="text-gw-primary font-semibold capitalize">{sortField}</strong>
+        <span className="text-[11px] font-medium text-ink-secondary hidden sm:inline">
+          Sorted by <strong className="text-ink-primary font-medium capitalize">{sortField}</strong>
         </span>
 
         {hasActiveFilters && (
           <button
             type="button"
             onClick={handleResetFilters}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gw-secondary border border-gw-secondary rounded-md text-xs font-semibold text-gw-accent hover:bg-gw-primary hover:text-white transition-colors min-h-[28px] cursor-pointer ml-auto"
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-surface-subtle border border-border-input rounded text-xs font-medium text-ink-secondary hover:text-ink-primary transition-colors cursor-pointer ml-auto"
             title="Reset all filters"
           >
             <X className="w-3.5 h-3.5" />
@@ -222,8 +222,8 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
       {/* Active filter pills */}
       {hasActiveFilters && (
         <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
-          <span className="text-[10px] font-bold uppercase text-gw-accent mr-1">
-            Active Filters:
+          <span className="text-[10px] font-medium uppercase text-ink-tertiary mr-1 tracking-[0.06em]">
+            Active filters:
           </span>
 
           {searchTerm.trim() && (
@@ -233,7 +233,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 setSearchTerm('');
                 setCurrentPage(1);
               }}
-              className="inline-flex items-center gap-1 px-2 py-0.5 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-surface-subtle border border-border-chip-on rounded-full text-ink-primary font-medium cursor-pointer"
               title="Remove text search"
             >
               <span>Search: &quot;{searchTerm}&quot;</span>

@@ -150,26 +150,26 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <>
       {/* Top Main Navigation Bar */}
-      <header className="site-header sticky top-0 z-console-chrome bg-gw-panel/95 backdrop-blur-md border-b border-gw-secondary shadow-2xs">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 flex justify-between items-center py-2 md:py-0 min-h-[56px] gap-2 md:gap-4">
+      <header className="site-header sticky top-0 z-console-chrome bg-canvas border-b border-hairline">
+        <div className="max-w-[var(--max-width,1180px)] mx-auto px-4 sm:px-6 flex justify-between items-center py-2 md:py-0 min-h-[56px] gap-2 md:gap-4">
           
           {/* Logo & Console Title */}
           <div className="flex items-center gap-2.5 sm:gap-3">
             <a href="#/warnings/map" className="logo flex items-center gap-2 text-decoration-none" aria-label="Helm.Warning Console Home">
-              <span className="logo-badge w-8 h-8 rounded bg-gw-primary text-gw-bg font-bold flex items-center justify-center text-sm shadow-xs select-none" aria-hidden="true">
+              <span className="logo-badge w-7 h-7 rounded border border-border-input text-ink-primary font-medium flex items-center justify-center text-xs select-none" aria-hidden="true">
                 HW
               </span>
-              <span className="font-bold text-base sm:text-lg text-gw-primary tracking-tight">
+              <span className="font-medium text-base text-ink-primary tracking-tight">
                 Helm.Warning
               </span>
             </a>
-            <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-gw-secondary text-gw-accent border border-gw-secondary">
+            <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-sans font-medium uppercase tracking-wider text-ink-tertiary">
               Console
             </span>
           </div>
 
           {/* Desktop Section Navigation — 4-section IA: Warnings / Ingest / Trace / System */}
-          <nav className="hidden md:flex items-center gap-1 overflow-x-auto no-scrollbar" role="tablist" aria-label="Console primary sections">
+          <nav className="hidden md:flex items-center gap-1.5 overflow-x-auto no-scrollbar" role="tablist" aria-label="Console primary sections">
             {sectionMeta.map((section) => {
               const isActive = activeSection === section.id;
               return (
@@ -180,20 +180,20 @@ export const Header: React.FC<HeaderProps> = ({
                   aria-label={section.label + ' tab'}
                   onClick={() => handleSectionSelect(section.id)}
                   className={
-                    'nav-tab flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ' +
+                    'nav-tab flex items-center gap-1.5 px-3 py-1.5 rounded-full font-medium text-xs sm:text-sm transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
                     (isActive
-                      ? 'active bg-gw-primary text-gw-bg shadow-xs font-semibold'
-                      : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary')
+                      ? 'bg-surface-subtle border border-border-chip-on text-ink-primary'
+                      : 'border border-transparent text-ink-secondary hover:text-ink-primary hover:bg-surface-subtle')
                   }
                 >
                   <span>{section.label}</span>
                   {section.id === 'warnings' && typeof activeCount === 'number' && (
                     <span
                       className={
-                        'badge ml-2.5 px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold tabular-nums ' +
+                        'badge ml-1 px-1.5 py-0.2 rounded-full text-[11px] font-sans font-medium tabular-nums ' +
                         (isActive
-                          ? 'bg-gw-bg/20 text-gw-bg'
-                          : 'bg-gw-secondary text-gw-accent')
+                          ? 'text-ink-primary'
+                          : 'text-ink-tertiary')
                       }
                     >
                       {activeCount.toLocaleString()}
@@ -207,9 +207,9 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Header Right Meta & Admin Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Live Stream Status Indicator */}
-            <div className="hidden lg:flex items-center gap-2 text-xs text-gw-accent font-medium">
-              <span className="status-dot live" aria-hidden="true"></span>
-              <span>Live Stream</span>
+            <div className="hidden lg:flex items-center gap-1.5 text-xs text-ink-secondary font-medium">
+              <span className="w-2 h-2 rounded-full bg-accent inline-block" aria-hidden="true"></span>
+              <span>Live stream</span>
             </div>
 
             {/* Public Portal Link */}
@@ -217,10 +217,10 @@ export const Header: React.FC<HeaderProps> = ({
               href="/"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-colors border border-transparent hover:border-gw-secondary"
+              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium text-ink-secondary hover:text-ink-primary hover:bg-surface-subtle transition-colors border border-transparent hover:border-hairline"
               title="Open Public Maritime Portal"
             >
-              <span>Public Portal</span>
+              <span>Public portal</span>
               <span aria-hidden="true" className="text-[11px]">↗</span>
             </a>
 
@@ -236,24 +236,24 @@ export const Header: React.FC<HeaderProps> = ({
                 }}
                 aria-label="Sign out of admin session"
                 className={
-                  'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ' +
+                  'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium border transition-all cursor-pointer ' +
                   (signOutConfirm
-                    ? 'text-rose-700 bg-rose-50 border-rose-300'
-                    : 'text-emerald-800 bg-emerald-50 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border-emerald-200')
+                    ? 'text-sev-critical bg-surface-subtle border-sev-critical'
+                    : 'text-ink-body bg-transparent hover:bg-surface-subtle border-border-input')
                 }
                 title="Admin session active (app_metadata.role === 'admin'). Click to sign out."
               >
-                <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                <Lock className="w-3.5 h-3.5 text-accent" />
                 <span>{signOutConfirm ? 'Confirm sign out?' : 'Sign out'}</span>
               </button>
             ) : (
               <button
                 onClick={() => setShowAdminModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gw-accent bg-gw-panel hover:bg-gw-secondary border border-gw-secondary shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium text-ink-secondary bg-transparent hover:bg-surface-subtle border border-border-input transition-all cursor-pointer"
                 title="Unlock Console Administrator Access"
               >
-                <Key className="w-3.5 h-3.5 text-amber-600" />
-                <span>Sign In</span>
+                <Key className="w-3.5 h-3.5 text-accent" />
+                <span>Sign in</span>
               </button>
             )}
           </div>
@@ -261,8 +261,8 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Section sub-tabs: the views of the active section */}
-        <nav className="bg-gw-secondary/90 border-t border-gw-secondary" role="tablist" aria-label="Section view tabs">
-          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1.5 min-h-[40px]">
+        <nav className="bg-canvas border-t border-hairline" role="tablist" aria-label="Section view tabs">
+          <div className="max-w-[var(--max-width,1180px)] mx-auto px-4 sm:px-6 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1.5 min-h-[38px]">
             {sectionViews.map((view) => {
               const isActive = activeTab === view.id;
               return (
@@ -273,15 +273,15 @@ export const Header: React.FC<HeaderProps> = ({
                   aria-label={view.label + ' tab'}
                   onClick={() => setActiveTab(view.id)}
                   className={
-                    'px-3 py-1 text-xs font-semibold rounded-md border transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ' +
+                    'px-2.5 py-1 text-xs font-medium rounded border transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
                     (isActive
-                      ? 'bg-gw-panel text-gw-primary border-gw-secondary shadow-2xs font-bold'
-                      : 'text-gw-accent border-transparent hover:text-gw-primary hover:bg-gw-secondary/50')
+                      ? 'bg-surface-subtle text-ink-primary border-border-chip-on'
+                      : 'text-ink-secondary border-transparent hover:text-ink-primary hover:bg-surface-subtle')
                   }
                 >
                   <span>{view.label}</span>
                   {view.id === 'databank' && typeof activeCount === 'number' && (
-                    <span className="text-[10px] px-1.5 py-0.5 bg-gw-secondary/80 rounded text-gw-accent font-mono font-semibold tabular-nums">
+                    <span className="text-[10px] px-1 py-0.2 rounded text-ink-tertiary font-sans font-medium tabular-nums">
                       {activeCount.toLocaleString()}
                     </span>
                   )}

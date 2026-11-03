@@ -90,9 +90,23 @@ export const WarningSeverityBadge: React.FC<{ warning: NavWarning; className?: s
   className = '',
 }) => {
   const sev = warningSeverity(warning);
+  const dotColor =
+    sev.label === 'CRITICAL'
+      ? 'var(--sev-critical, #c44536)'
+      : sev.label === 'HIGH'
+      ? 'var(--sev-high, #c07a2b)'
+      : 'var(--sev-medium, #6b8f9c)';
+  const labelText =
+    sev.label === 'CRITICAL' ? 'Critical' : sev.label === 'HIGH' ? 'High' : 'Moderate';
+
   return (
-    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0 ${sev.className} ${className}`}>
-      {sev.label}
+    <span className={`inline-flex items-center gap-1.5 text-xs text-[var(--ink-body,#1f2937)] font-[450] shrink-0 ${className}`}>
+      <span
+        className="w-2 h-2 rounded-full shrink-0"
+        style={{ backgroundColor: dotColor }}
+        aria-hidden="true"
+      />
+      <span>{labelText}</span>
     </span>
   );
 };
@@ -130,21 +144,21 @@ export const WarningHierarchyLines: React.FC<WarningHierarchyLinesProps> = ({
       {/* Line 1 — ID & NAVAREA (secondary, prominent) */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono text-[11px] font-bold text-gw-primary truncate">
+          <span className="font-mono text-[11px] font-medium text-[var(--accent,#2b6e8c)] truncate">
             NAVAREA {w.navarea} · {w.source_warning_id}
           </span>
           {coastal && (
-            <span className="text-[8px] font-mono font-bold px-1 rounded bg-sky-100 text-sky-800 border border-sky-300 shrink-0">
+            <span className="text-[8px] font-mono font-medium px-1 rounded bg-[var(--surface-subtle,#fafbfc)] text-[var(--ink-secondary,#5f6b7a)] border border-[var(--border-input,#dde2e8)] shrink-0">
               COASTAL
             </span>
           )}
           {/TRUNCATED/i.test(w.raw_text || '') && (
-            <span className="text-[8px] font-mono font-bold px-1 rounded bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
+            <span className="text-[8px] font-mono font-medium px-1 rounded bg-[var(--surface-subtle,#fafbfc)] text-[var(--sev-high,#c07a2b)] border border-[var(--border-input,#dde2e8)] shrink-0">
               LIST TRUNCATED
             </span>
           )}
           {(!w.spatial?.geometries?.length && !w.spatial?.circles?.length && !w.latitude) && (
-            <span className="text-[8px] font-mono font-bold px-1 rounded bg-orange-100 text-orange-900 border border-orange-300 shrink-0">
+            <span className="text-[8px] font-mono font-medium px-1 rounded bg-[var(--surface-subtle,#fafbfc)] text-[var(--ink-secondary,#5f6b7a)] border border-[var(--border-input,#dde2e8)] shrink-0">
               {/IN\s+FORCE/i.test(w.raw_text || '') ? 'UNPLOTTED: META_LIST' : 'UNPLOTTED: NO_COORDS'}
             </span>
           )}
@@ -157,17 +171,17 @@ export const WarningHierarchyLines: React.FC<WarningHierarchyLinesProps> = ({
       </div>
 
       {/* Line 2 — headline (strongest) */}
-      <p className="text-[13px] font-semibold text-gw-primary leading-snug line-clamp-2">{warningHeadline(w)}</p>
+      <p className="text-[13px] font-[450] text-[var(--ink-body,#1f2937)] leading-snug line-clamp-2">{warningHeadline(w)}</p>
 
       {/* Line 3 — validity · source · status */}
-      <div className="flex items-center gap-1.5 text-[10px] text-gw-accent font-mono min-w-0">
+      <div className="flex items-center gap-1.5 text-[10px] text-[var(--ink-secondary,#5f6b7a)] font-mono min-w-0">
         {validity && <span className="shrink-0">{validity}</span>}
-        {validity && <span className="shrink-0 text-gw-secondary">·</span>}
+        {validity && <span className="shrink-0 text-[var(--ink-tertiary,#8b97a5)]">·</span>}
         <span className="truncate" title={source}>
           {source}
         </span>
         {showStatus && (
-          <span className="flex items-center gap-1 shrink-0 font-bold uppercase ml-auto">
+          <span className="flex items-center gap-1 shrink-0 font-medium ml-auto">
             <span className={`w-1.5 h-1.5 rounded-full ${statusDotClass(w.status)}`} />
             <span className={statusTextClass(w.status)}>{w.status}</span>
           </span>
