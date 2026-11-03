@@ -98,7 +98,7 @@ function layerToGeometryPatches(layer: EcdisIntermediateLayer): WarningGeometryP
 }
 
 const inputCls =
-  'w-full bg-white border border-gw-secondary rounded px-3 py-2 outline-none text-sm focus:border-gw-primary transition-colors';
+  'w-full bg-gw-panel border border-gw-secondary rounded px-3 py-2 outline-none text-sm focus:border-gw-primary transition-colors';
 
 export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onClose, onSaved }) => {
   const [tab, setTab] = useState<EditTab>('classification');
@@ -268,7 +268,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
       type="button"
       onClick={() => setTab(id)}
       className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold uppercase tracking-wider transition-colors ${
-        tab === id ? 'bg-gw-primary text-gw-bg' : 'bg-white text-gw-primary hover:bg-gw-bg'
+        tab === id ? 'bg-gw-primary text-gw-bg' : 'bg-gw-panel text-gw-primary hover:bg-gw-bg'
       }`}
     >
       {icon}
@@ -292,14 +292,14 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
         </div>
 
         {/* Identity strip (read-only: raw_text + canonical id are evidence) */}
-        <div className="px-4 py-2 bg-white border-b border-gw-secondary flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+        <div className="px-4 py-2 bg-gw-panel border-b border-gw-secondary flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
           <span><strong>NAVAREA:</strong> {identity.navarea} <em>(change via Lifecycle → Move)</em></span>
           <span><strong>Canonical ID:</strong> <span className="font-mono">{identity.canonical}</span></span>
           {identity.updatedAt && <span><strong>Version:</strong> {new Date(identity.updatedAt).toLocaleString()}</span>}
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 px-4 pt-2 bg-white border-b border-gw-secondary">
+        <div className="flex gap-1 px-4 pt-2 bg-gw-panel border-b border-gw-secondary">
           {tabBtn('classification', <Tag className="w-3.5 h-3.5" />, 'Type / Text')}
           {tabBtn('time', <Clock className="w-3.5 h-3.5" />, 'Time / Expiry')}
           {tabBtn('lifecycle', <LifeBuoy className="w-3.5 h-3.5" />, 'Status / Tier')}
@@ -325,7 +325,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                       className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
                         categories.includes(c.id)
                           ? 'bg-gw-primary text-gw-bg border-gw-primary'
-                          : 'bg-white text-gw-primary border-gw-secondary hover:border-gw-primary'
+                          : 'bg-gw-panel text-gw-primary border-gw-secondary hover:border-gw-primary'
                       }`}
                     >
                       {c.label}
@@ -337,7 +337,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                 <label className="block text-xs font-bold uppercase tracking-wider mb-1">Area text</label>
                 <textarea className={inputCls + ' min-h-[80px]'} value={areaText} onChange={(e) => setAreaText(e.target.value)} maxLength={2000} />
               </div>
-              <div className="text-[11px] text-gray-500 border border-gw-secondary rounded p-2 bg-white/60">
+              <div className="text-[11px] text-gw-accent border border-gw-secondary rounded p-2 bg-gw-panel/60">
                 <strong>Raw bulletin text is read-only</strong> — it is the evidence anchor. Edits apply to derived fields only.
               </div>
             </div>
@@ -359,11 +359,11 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                 <button
                   type="button"
                   onClick={() => setValidTo('')}
-                  className="px-3 py-1.5 bg-white border border-gw-secondary rounded text-xs font-bold hover:border-gw-primary transition-colors"
+                  className="px-3 py-1.5 bg-gw-panel border border-gw-secondary rounded text-xs font-bold hover:border-gw-primary transition-colors"
                 >
                   No expiry (clear)
                 </button>
-                <span className="text-[11px] text-gray-500">
+                <span className="text-[11px] text-gw-accent">
                   Setting an expiry date <strong>never</strong> auto-changes the status — lifecycle changes are explicit operator actions.
                 </span>
               </div>
@@ -392,7 +392,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                   </select>
                 </div>
               </div>
-              <div className="text-[11px] text-gray-500 bg-amber-50 border border-amber-300 rounded p-2">
+              <div className="text-[11px] text-gw-accent bg-amber-50 border border-amber-300 rounded p-2">
                 Tier A invariants: geometry required, EXPLICIT quality, not superseded. The server enforces them and rejects the edit otherwise.
               </div>
               <div>
@@ -414,7 +414,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                     <option value="">— keep in {identity.navarea} —</option>
                     {NAVAREA_OPTIONS.map((n) => <option key={n} value={n}>NAVAREA {n}</option>)}
                   </select>
-                  <span className="text-[11px] text-gray-500">Creates a new warning in the target region; original becomes superseded.</span>
+                  <span className="text-[11px] text-gw-accent">Creates a new warning in the target region; original becomes superseded.</span>
                 </div>
               </div>
             </div>
@@ -423,7 +423,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
           {tab === 'geometry' && (
             <div className="space-y-3">
               {!geometryLayer && (
-                <div className="text-xs text-gray-500 border border-gw-secondary rounded p-3 bg-white/60">
+                <div className="text-xs text-gw-accent border border-gw-secondary rounded p-3 bg-gw-panel/60">
                   No existing geometry found on this warning. The editor below extracts an editable layer from the raw
                   bulletin text — edit the points, tick “include”, then Save.
                 </div>
@@ -437,7 +437,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                 />
                 Include geometry changes in this save
               </label>
-              <div className="border border-gw-secondary rounded bg-white">
+              <div className="border border-gw-secondary rounded bg-gw-panel">
                 <EcdisFeatureEditor
                   initialLayer={geometryLayer || undefined}
                   rawText={warning.raw_text || ''}
@@ -482,7 +482,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
         )}
 
         {/* Footer */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-white border-t-2 border-gw-primary">
+        <div className="flex items-center gap-2 px-4 py-3 bg-gw-panel border-t-2 border-gw-primary">
           <input
             className={inputCls + ' flex-1'}
             placeholder="Edit reason (stored on the audit row)"
@@ -512,7 +512,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
           <button
             type="button"
             onClick={requestClose}
-            className="px-4 py-2 bg-white border border-gw-secondary text-gw-primary font-bold text-xs uppercase tracking-wider rounded hover:bg-gw-bg transition-colors"
+            className="px-4 py-2 bg-gw-panel border border-gw-secondary text-gw-primary font-bold text-xs uppercase tracking-wider rounded hover:bg-gw-bg transition-colors"
           >
             Cancel
           </button>

@@ -528,7 +528,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
       type="button"
       onClick={() => (mode === m ? exitMode() : enterMode(m))}
       className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border transition-colors ${
-        mode === m ? 'bg-gw-primary text-gw-bg border-gw-primary' : 'bg-white text-gw-primary border-gw-secondary hover:border-gw-primary'
+        mode === m ? 'bg-gw-primary text-gw-bg border-gw-primary' : 'bg-gw-panel text-gw-primary border-gw-secondary hover:border-gw-primary'
       }`}
     >
       {icon}
@@ -538,7 +538,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
 
   return (
     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[480] w-[calc(100%-24px)] max-w-lg pointer-events-auto">
-      <div className="bg-white/95 border-2 border-gw-primary rounded-xl shadow-2xl backdrop-blur-xs p-2.5 space-y-2">
+      <div className="bg-gw-panel/95 border-2 border-gw-primary rounded-xl shadow-2xl backdrop-blur-xs p-2.5 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-gw-primary truncate">
             <PenTool className="w-3.5 h-3.5 shrink-0" />
@@ -552,7 +552,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                 <button
                   type="button"
                   onClick={() => { pushHistory(); partsRef.current = buildPartsFromWarning(selectedWarning); drawPtsRef.current = []; markDirtyIfChanged(); setMessage('Draft reset to the stored geometry.'); setMessageKind('info'); renderDraft(); }}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-white border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:text-gw-primary transition-colors"
+                  className="flex items-center gap-1 px-2 py-1.5 bg-gw-panel border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:text-gw-primary transition-colors"
                   title="Reset draft to stored geometry"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -561,7 +561,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                   type="button"
                   onClick={undo}
                   disabled={histLen.undo === 0}
-                  className="p-1.5 bg-white border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="p-1.5 bg-gw-panel border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Undo (Ctrl+Z)"
                   aria-label="Undo"
                 >
@@ -571,7 +571,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                   type="button"
                   onClick={redo}
                   disabled={histLen.redo === 0}
-                  className="p-1.5 bg-white border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="p-1.5 bg-gw-panel border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Redo (Ctrl+Y)"
                   aria-label="Redo"
                 >
@@ -590,7 +590,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                   type="button"
                   onClick={exitMode}
                   aria-label="Cancel geometry edits"
-                  className="p-1.5 bg-white border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+                  className="p-1.5 bg-gw-panel border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                   title="Cancel"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -609,7 +609,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                 type="button"
                 onClick={() => setDrawShape(shape)}
                 className={`flex items-center gap-1 px-2 py-1 rounded border font-bold uppercase ${
-                  drawShape === shape ? 'bg-gw-primary text-gw-bg border-gw-primary' : 'bg-white text-gw-primary border-gw-secondary'
+                  drawShape === shape ? 'bg-gw-primary text-gw-bg border-gw-primary' : 'bg-gw-panel text-gw-primary border-gw-secondary'
                 }`}
               >
                 <Icon className="w-3 h-3" />

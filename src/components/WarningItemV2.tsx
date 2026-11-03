@@ -18,7 +18,7 @@ export function warningSeverity(w: NavWarning): { label: WarningSeverityBand; cl
   const c = w.extraction_confidence;
   if (c === 1) return { label: 'CRITICAL', className: 'bg-rose-50 text-rose-700 border border-rose-200 font-bold' };
   if (typeof c === 'number' && c >= 0.8) return { label: 'HIGH', className: 'bg-orange-50 text-orange-700 border border-orange-200 font-bold' };
-  return { label: 'MODERATE', className: 'bg-slate-50 text-slate-600 border border-slate-200 font-medium' };
+  return { label: 'MODERATE', className: 'bg-gw-secondary text-gw-accent border border-gw-secondary font-medium' };
 }
 
 export function warningHeadline(w: NavWarning): string {
@@ -78,11 +78,11 @@ export const isCoastalWarning = (w: NavWarning): boolean => {
 };
 
 function statusDotClass(status: NavWarning['status']): string {
-  return status === 'active' ? 'bg-green-600' : status === 'unverified' ? 'bg-amber-500' : 'bg-zinc-400';
+  return status === 'active' ? 'bg-green-600' : status === 'unverified' ? 'bg-amber-500' : 'bg-gw-accent';
 }
 
 function statusTextClass(status: NavWarning['status']): string {
-  return status === 'active' ? 'text-green-700' : status === 'unverified' ? 'text-amber-700' : 'text-zinc-600';
+  return status === 'active' ? 'text-green-700' : status === 'unverified' ? 'text-amber-700' : 'text-gw-accent';
 }
 
 export const WarningSeverityBadge: React.FC<{ warning: NavWarning; className?: string }> = ({
@@ -130,7 +130,7 @@ export const WarningHierarchyLines: React.FC<WarningHierarchyLinesProps> = ({
       {/* Line 1 — ID & NAVAREA (secondary, prominent) */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono text-[11px] font-bold text-slate-900 truncate">
+          <span className="font-mono text-[11px] font-bold text-gw-primary truncate">
             NAVAREA {w.navarea} · {w.source_warning_id}
           </span>
           {coastal && (
@@ -157,12 +157,12 @@ export const WarningHierarchyLines: React.FC<WarningHierarchyLinesProps> = ({
       </div>
 
       {/* Line 2 — headline (strongest) */}
-      <p className="text-[13px] font-semibold text-slate-900 leading-snug line-clamp-2">{warningHeadline(w)}</p>
+      <p className="text-[13px] font-semibold text-gw-primary leading-snug line-clamp-2">{warningHeadline(w)}</p>
 
       {/* Line 3 — validity · source · status */}
-      <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono min-w-0">
+      <div className="flex items-center gap-1.5 text-[10px] text-gw-accent font-mono min-w-0">
         {validity && <span className="shrink-0">{validity}</span>}
-        {validity && <span className="shrink-0 text-slate-300">·</span>}
+        {validity && <span className="shrink-0 text-gw-secondary">·</span>}
         <span className="truncate" title={source}>
           {source}
         </span>
@@ -202,7 +202,7 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">NAVAREA Region</span>
-          <span className="font-bold text-gw-primary inline-block px-2 py-0.5 bg-white border border-gw-secondary rounded">
+          <span className="font-bold text-gw-primary inline-block px-2 py-0.5 bg-gw-panel border border-gw-secondary rounded">
             NAVAREA {w.navarea}
           </span>
         </div>
@@ -222,7 +222,7 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
               {copiedKey === 'coords' ? 'Copied!' : 'Copy Coords'}
             </button>
           </div>
-          <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
+          <div className="font-bold text-gw-primary bg-gw-panel px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5 text-gw-accent shrink-0" />
             <span className="truncate font-mono">{formatSpatialCoordinates(w.spatial)}</span>
           </div>
@@ -238,7 +238,7 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
             </span>
           )}
         </div>
-        <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
+        <div className="font-bold text-gw-primary bg-gw-panel px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5 text-gw-accent shrink-0" />
           <span className="font-mono truncate">
             {getWarningDate(w)}
@@ -262,14 +262,14 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
             {copiedKey === 'raw' ? 'Copied!' : 'Copy Raw Telemetry'}
           </button>
         </div>
-        <div className="p-2.5 bg-white border border-gw-secondary rounded text-[11px] text-gw-primary font-mono leading-relaxed max-h-36 overflow-y-auto no-scrollbar">
+        <div className="p-2.5 bg-gw-panel border border-gw-secondary rounded text-[11px] text-gw-primary font-mono leading-relaxed max-h-36 overflow-y-auto no-scrollbar">
           {getWarningBulletinText(w)}
         </div>
       </div>
 
       <div className="flex justify-between items-center text-[10px] pt-1">
         <span className="text-gw-accent font-bold">Extraction Confidence:</span>
-        <span className="font-bold text-gw-primary bg-white px-2 py-0.5 rounded border border-gw-secondary">
+        <span className="font-bold text-gw-primary bg-gw-panel px-2 py-0.5 rounded border border-gw-secondary">
           {typeof conf === 'number' && Number.isFinite(conf) ? `${Math.round(conf * 100)}% Match` : 'Not recorded'}
         </span>
       </div>

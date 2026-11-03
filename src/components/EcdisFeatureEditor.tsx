@@ -265,7 +265,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
   const isDirty = diffSummary !== null;
 
   return (
-    <div className="bg-white border-2 border-gw-primary rounded-xl overflow-hidden shadow-md font-mono text-xs text-gw-primary">
+    <div className="bg-gw-panel border-2 border-gw-primary rounded-xl overflow-hidden shadow-md font-mono text-xs text-gw-primary">
       {/* Layer Header */}
       <div className="p-4 bg-gw-bg border-b-2 border-gw-primary flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
@@ -281,7 +281,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
         </div>
 
         {/* Geometry Intent Selector */}
-        <div className="flex items-center gap-2 bg-white border border-gw-primary rounded p-1.5 shadow-xs">
+        <div className="flex items-center gap-2 bg-gw-panel border border-gw-primary rounded p-1.5 shadow-xs">
           <span className="text-[10px] font-bold uppercase text-gw-accent">Geometry Intent:</span>
           <select
             value={layer.geometry_intent}
@@ -349,7 +349,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                     </span>
 
                     {/* Inference Badge */}
-                    <span className="text-[9px] text-gw-accent bg-white px-1.5 py-0.5 rounded border border-gw-secondary">
+                    <span className="text-[9px] text-gw-accent bg-gw-panel px-1.5 py-0.5 rounded border border-gw-secondary">
                       {feat.properties.inference}
                     </span>
 
@@ -366,7 +366,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                     <button
                       disabled={idx === 0}
                       onClick={() => handleMovePoint(idx, 'up')}
-                      className="p-1 text-gw-primary hover:bg-white rounded disabled:opacity-30"
+                      className="p-1 text-gw-primary hover:bg-gw-panel rounded disabled:opacity-30"
                       title="Move Point Up"
                       aria-label="Move point up"
                     >
@@ -375,7 +375,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                     <button
                       disabled={idx === layer.features.length - 1}
                       onClick={() => handleMovePoint(idx, 'down')}
-                      className="p-1 text-gw-primary hover:bg-white rounded disabled:opacity-30"
+                      className="p-1 text-gw-primary hover:bg-gw-panel rounded disabled:opacity-30"
                       title="Move Point Down"
                       aria-label="Move point down"
                     >
@@ -401,7 +401,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                       step="0.0001"
                       value={lat}
                       onChange={(e) => handleCoordinateChange(feat.id, lon.toString(), e.target.value)}
-                      className="w-full bg-white border border-gw-primary rounded px-2 py-1 text-xs font-bold outline-none focus:ring-1 focus:ring-gw-primary"
+                      className="w-full bg-gw-panel border border-gw-primary rounded px-2 py-1 text-xs font-bold outline-none focus:ring-1 focus:ring-gw-primary"
                     />
                   </div>
 
@@ -412,7 +412,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                       step="0.0001"
                       value={lon}
                       onChange={(e) => handleCoordinateChange(feat.id, e.target.value, lat.toString())}
-                      className="w-full bg-white border border-gw-primary rounded px-2 py-1 text-xs font-bold outline-none focus:ring-1 focus:ring-gw-primary"
+                      className="w-full bg-gw-panel border border-gw-primary rounded px-2 py-1 text-xs font-bold outline-none focus:ring-1 focus:ring-gw-primary"
                     />
                   </div>
 
@@ -423,7 +423,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                       onChange={(e) =>
                         handleRoleChange(feat.id, (e.target.value || null) as FeatureRoleHint)
                       }
-                      className="w-full bg-white border border-gw-primary rounded px-2 py-1 text-xs font-bold outline-none cursor-pointer"
+                      className="w-full bg-gw-panel border border-gw-primary rounded px-2 py-1 text-xs font-bold outline-none cursor-pointer"
                     >
                       <option value="">None (Null)</option>
                       <option value="vertex">Vertex (Polygon)</option>
@@ -446,7 +446,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
                   <div>
                     <span className="text-gw-accent font-bold">Source Raw Snippet:</span>
-                    <div className="text-gw-primary font-mono bg-white/80 p-1.5 rounded border border-gw-secondary truncate">
+                    <div className="text-gw-primary font-mono bg-gw-panel/80 p-1.5 rounded border border-gw-secondary truncate">
                       {feat.properties.raw_text}
                     </div>
                   </div>
@@ -457,7 +457,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                       placeholder="Add officer notes / remarks..."
                       value={feat.properties.user_notes}
                       onChange={(e) => handleNotesChange(feat.id, e.target.value)}
-                      className="w-full bg-white border border-gw-secondary rounded px-2 py-1 outline-none text-[10px]"
+                      className="w-full bg-gw-panel border border-gw-secondary rounded px-2 py-1 outline-none text-[10px]"
                     />
                   </div>
                 </div>
@@ -482,14 +482,14 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
         <div className="flex items-center gap-1.5 flex-wrap justify-center">
           <button
             onClick={() => handleInsertPoint(layer.features.length - 1)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-panel border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> Add Point Feature
           </button>
           <button
             onClick={undo}
             disabled={undoStack.length === 0}
-            className="p-1.5 bg-white border border-gw-secondary rounded text-gw-accent hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="p-1.5 bg-gw-panel border border-gw-secondary rounded text-gw-accent hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             title="Undo last layer change"
           >
             <Undo2 className="w-3.5 h-3.5" />
@@ -497,7 +497,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
           <button
             onClick={redo}
             disabled={redoStack.length === 0}
-            className="p-1.5 bg-white border border-gw-secondary rounded text-gw-accent hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="p-1.5 bg-gw-panel border border-gw-secondary rounded text-gw-accent hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             title="Redo"
           >
             <Redo2 className="w-3.5 h-3.5" />
@@ -505,7 +505,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
           <button
             onClick={resetToOriginal}
             disabled={!isDirty}
-            className="p-1.5 bg-white border border-gw-secondary rounded text-gw-accent hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="p-1.5 bg-gw-panel border border-gw-secondary rounded text-gw-accent hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             title="Reset officer layer to the extracted original"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -515,7 +515,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={handleCopyGeoJson}
-            className="flex items-center gap-1 px-3 py-1.5 bg-white border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 bg-gw-panel border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
           >
             <Copy className="w-3.5 h-3.5" />
             <span>{copySuccess ? 'Copied GeoJSON!' : 'Copy Layer GeoJSON'}</span>

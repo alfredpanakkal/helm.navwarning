@@ -208,7 +208,7 @@ CREATE TABLE public.raw_messages (
       </div>
 
       {/* Connection Status Banner */}
-      <div className="bg-white border-2 border-gw-primary rounded-xl p-5 shadow-hard space-y-4">
+      <div className="bg-gw-panel border-2 border-gw-primary rounded-xl p-5 shadow-hard space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`p-2.5 rounded-lg border ${
@@ -274,7 +274,7 @@ CREATE TABLE public.raw_messages (
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border-2 border-gw-primary rounded-xl p-4 shadow-hard">
+        <div className="bg-gw-panel border-2 border-gw-primary rounded-xl p-4 shadow-hard">
           <div className="text-[10px] font-bold text-gw-accent uppercase tracking-wider mb-1">NAV WARNINGS TABLE</div>
           <div className="text-2xl font-bold font-mono text-gw-primary">
             {status?.counts?.warnings ?? warnings.length}
@@ -282,7 +282,7 @@ CREATE TABLE public.raw_messages (
           <div className="text-[10px] text-gw-accent mt-1">Local State: {warnings.length} notices</div>
         </div>
 
-        <div className="bg-white border-2 border-gw-primary rounded-xl p-4 shadow-hard">
+        <div className="bg-gw-panel border-2 border-gw-primary rounded-xl p-4 shadow-hard">
           <div className="text-[10px] font-bold text-gw-accent uppercase tracking-wider mb-1">SOURCES REGISTRY</div>
           <div className="text-2xl font-bold font-mono text-gw-primary">
             {status?.counts?.sources ?? 17}
@@ -290,7 +290,7 @@ CREATE TABLE public.raw_messages (
           <div className="text-[10px] text-gw-accent mt-1">Verified Feeds</div>
         </div>
 
-        <div className="bg-white border-2 border-gw-primary rounded-xl p-4 shadow-hard">
+        <div className="bg-gw-panel border-2 border-gw-primary rounded-xl p-4 shadow-hard">
           <div className="text-[10px] font-bold text-gw-accent uppercase tracking-wider mb-1">GENERATION POINTERS</div>
           <div className="text-2xl font-bold font-mono text-gw-primary">
             {status?.counts?.generations ?? generations.length}
@@ -298,7 +298,7 @@ CREATE TABLE public.raw_messages (
           <div className="text-[10px] text-gw-accent mt-1">Audit Log Rows</div>
         </div>
 
-        <div className="bg-white border-2 border-gw-primary rounded-xl p-4 shadow-hard">
+        <div className="bg-gw-panel border-2 border-gw-primary rounded-xl p-4 shadow-hard">
           <div className="text-[10px] font-bold text-gw-accent uppercase tracking-wider mb-1">RAW ARTIFACTS</div>
           <div className="text-2xl font-bold font-mono text-gw-primary">
             {status?.counts?.artifacts ?? artifacts.length}
@@ -308,7 +308,7 @@ CREATE TABLE public.raw_messages (
       </div>
 
       {/* Gemini AI Integration Test Module (Admin Password Protected) */}
-      <div className="bg-white border-2 border-gw-primary rounded-2xl p-6 shadow-hard space-y-5">
+      <div className="bg-gw-panel border-2 border-gw-primary rounded-2xl p-6 shadow-hard space-y-5">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b-2 border-gw-secondary pb-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -321,7 +321,7 @@ CREATE TABLE public.raw_messages (
               </span>
             </div>
             <p className="text-xs text-gw-accent max-w-3xl leading-relaxed">
-              Verify server-side Gemini model connectivity (<code className="font-mono bg-zinc-100 px-1 rounded text-zinc-900">gemini-3.1-flash-lite</code>) and test if the <code className="font-mono bg-zinc-100 px-1 rounded text-zinc-900">GEMINI_API_KEY</code> secret is operational.
+              Verify server-side Gemini model connectivity (<code className="font-mono bg-gw-secondary px-1 rounded text-gw-primary">gemini-3.1-flash-lite</code>) and test if the <code className="font-mono bg-gw-secondary px-1 rounded text-gw-primary">GEMINI_API_KEY</code> secret is operational.
             </p>
           </div>
 
@@ -386,20 +386,20 @@ CREATE TABLE public.raw_messages (
                 </span>
               </div>
 
-              <div className="flex items-center gap-3 text-[11px] text-zinc-700">
+              <div className="flex items-center gap-3 text-[11px] text-gw-accent">
                 {geminiResult.model && (
-                  <span className="bg-white/80 px-2 py-0.5 rounded border border-zinc-300">
+                  <span className="bg-gw-panel/80 px-2 py-0.5 rounded border border-gw-secondary">
                     Model: <strong>{geminiResult.model}</strong>
                   </span>
                 )}
                 {geminiResult.latency_ms !== undefined && (
-                  <span className="bg-white/80 px-2 py-0.5 rounded border border-zinc-300 flex items-center gap-1">
+                  <span className="bg-gw-panel/80 px-2 py-0.5 rounded border border-gw-secondary flex items-center gap-1">
                     <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
                     <span>{geminiResult.latency_ms}ms</span>
                   </span>
                 )}
                 {geminiResult.timestamp && (
-                  <span className="text-[10px] text-zinc-500">
+                  <span className="text-[10px] text-gw-accent">
                     {new Date(geminiResult.timestamp).toLocaleTimeString()}
                   </span>
                 )}
@@ -411,7 +411,7 @@ CREATE TABLE public.raw_messages (
                 <div className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider">
                   Model Generated Response Output:
                 </div>
-                <div className="bg-zinc-950 text-emerald-400 p-3.5 rounded-lg border border-zinc-800 leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">
+                <div className="bg-gw-primary text-gw-secondary p-3.5 rounded-lg border border-gw-secondary leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">
                   {geminiResult.response}
                 </div>
               </div>
@@ -422,7 +422,7 @@ CREATE TABLE public.raw_messages (
                 </div>
                 {!geminiResult.hasKey && (
                   <p className="text-xs font-sans text-amber-950 leading-relaxed font-semibold bg-amber-100/80 p-2.5 rounded border border-amber-300">
-                    👉 <strong>How to fix:</strong> Your app uses server-side Gemini integration. Go to your AI Studio application <strong>Settings &gt; Secrets</strong> menu and define <code className="bg-white px-1.5 py-0.5 rounded border border-amber-400 text-amber-900 font-mono">GEMINI_API_KEY</code>.
+                    👉 <strong>How to fix:</strong> Your app uses server-side Gemini integration. Go to your AI Studio application <strong>Settings &gt; Secrets</strong> menu and define <code className="bg-gw-panel px-1.5 py-0.5 rounded border border-amber-400 text-amber-900 font-mono">GEMINI_API_KEY</code>.
                   </p>
                 )}
                 {geminiResult.error?.includes('Forbidden') && (
@@ -434,12 +434,12 @@ CREATE TABLE public.raw_messages (
             )}
           </div>
         ) : (
-          <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono text-zinc-600 flex items-center justify-between">
+          <div className="p-4 bg-gw-bg border border-gw-secondary rounded-xl text-xs font-mono text-gw-accent flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-indigo-500" />
               <span>Click "Test Gemini Integration" to perform a real-time server API operational check.</span>
             </div>
-            <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Status: Ready</span>
+            <span className="text-[10px] text-gw-accent uppercase tracking-wider">Status: Ready</span>
           </div>
         )}
       </div>
@@ -448,7 +448,7 @@ CREATE TABLE public.raw_messages (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* SQL Setup Script */}
-        <div className="lg:col-span-2 bg-white border-2 border-gw-primary rounded-xl p-5 shadow-hard space-y-3">
+        <div className="lg:col-span-2 bg-gw-panel border-2 border-gw-primary rounded-xl p-5 shadow-hard space-y-3">
           <div className="flex justify-between items-center border-b border-gw-secondary pb-3">
             <div className="flex items-center gap-2 font-bold text-sm uppercase tracking-wider">
               <FileCode className="w-4 h-4 text-gw-primary" />
@@ -463,13 +463,13 @@ CREATE TABLE public.raw_messages (
             </button>
           </div>
 
-          <pre className="bg-zinc-950 text-emerald-400 p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-[300px] whitespace-pre border border-zinc-800">
+          <pre className="bg-gw-primary text-gw-secondary p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-[300px] whitespace-pre border border-gw-secondary">
             {sqlSchemaScript}
           </pre>
         </div>
 
         {/* JSON Export Backup */}
-        <div className="bg-white border-2 border-gw-primary rounded-xl p-5 shadow-hard flex flex-col justify-between space-y-4">
+        <div className="bg-gw-panel border-2 border-gw-primary rounded-xl p-5 shadow-hard flex flex-col justify-between space-y-4">
           <div className="space-y-3">
             <div className="flex items-center gap-2 font-bold text-sm uppercase tracking-wider border-b border-gw-secondary pb-3">
               <Download className="w-4 h-4 text-gw-primary" />

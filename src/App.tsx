@@ -628,16 +628,16 @@ export default function App() {
             session. No tab renders content until Header's server-verified
             session bootstrap or an explicit adminLogin() succeeds. */}
         {!isAdminMode && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-12 text-center max-w-xl mx-auto my-12 shadow-xs space-y-4">
-            <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-300 text-slate-800 flex items-center justify-center mx-auto shadow-2xs">
+          <div className="bg-gw-panel border border-gw-secondary rounded-2xl p-8 sm:p-12 text-center max-w-xl mx-auto my-12 shadow-xs space-y-4">
+            <div className="w-12 h-12 rounded-full bg-gw-secondary border border-gw-secondary text-gw-primary flex items-center justify-center mx-auto shadow-2xs">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
               </svg>
             </div>
             <div className="space-y-1">
-              <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wider">Administrative Gate Active</h2>
-              <p className="text-xs text-slate-500 leading-relaxed">
+              <h2 className="text-lg font-bold text-gw-primary uppercase tracking-wider">Administrative Gate Active</h2>
+              <p className="text-xs text-gw-accent leading-relaxed">
                 This console is restricted to administrative sessions. Sign in with your Supabase Administrator account to access the map view, data bank, source registry, pipeline ingestion, manual parsing, bulk imports, audit logs, and Supabase server settings.
               </p>
             </div>

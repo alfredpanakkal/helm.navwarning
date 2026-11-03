@@ -91,7 +91,7 @@ export const MissingWarningsDrawer: React.FC<MissingWarningsDrawerProps> = ({
       />
 
       {/* Drawer Panel */}
-      <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col z-10 border-l border-gw-primary/20">
+      <div className="relative w-full max-w-md bg-gw-panel h-full shadow-2xl flex flex-col z-10 border-l border-gw-primary/20">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-gw-secondary flex items-center justify-between bg-gw-bg/40">
           <div className="flex items-center gap-2.5">
@@ -119,7 +119,7 @@ export const MissingWarningsDrawer: React.FC<MissingWarningsDrawerProps> = ({
         </div>
 
         {/* Search & Filter Toolbar */}
-        <div className="p-3 border-b border-gw-secondary bg-white">
+        <div className="p-3 border-b border-gw-secondary bg-gw-panel">
           <input
             type="text"
             data-testid="search-missing-input"
@@ -161,7 +161,7 @@ export const MissingWarningsDrawer: React.FC<MissingWarningsDrawerProps> = ({
                           type="button"
                           onClick={() => onFetchMissing(id)}
                           disabled={isFetching}
-                          className="px-2 py-1 bg-white border border-red-300 hover:border-red-500 text-red-700 text-[10px] font-bold rounded uppercase transition-colors cursor-pointer disabled:opacity-50"
+                          className="px-2 py-1 bg-gw-panel border border-red-300 hover:border-red-500 text-red-700 text-[10px] font-bold rounded uppercase transition-colors cursor-pointer disabled:opacity-50"
                         >
                           Fetch
                         </button>

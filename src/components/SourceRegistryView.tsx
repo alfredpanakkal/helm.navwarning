@@ -53,64 +53,64 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
     <div className="w-full space-y-6">
       {/* Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-2xs hover:border-slate-300 transition-all">
+        <div className="bg-gw-panel border border-gw-secondary p-4 rounded-xl flex items-center justify-between shadow-2xs hover:border-gw-secondary transition-all">
           <div>
-            <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Total NAVAREAs</div>
-            <div className="text-2xl font-mono font-bold text-slate-900 mt-1">21</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">18 Candidates + 3 Investigating</div>
+            <div className="text-[11px] text-gw-accent font-bold uppercase tracking-wider">Total NAVAREAs</div>
+            <div className="text-2xl font-mono font-bold text-gw-primary mt-1">21</div>
+            <div className="text-[11px] text-gw-accent mt-0.5">18 Candidates + 3 Investigating</div>
           </div>
-          <Radio className="w-7 h-7 text-slate-400" />
+          <Radio className="w-7 h-7 text-gw-accent" />
         </div>
 
-        <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-2xs hover:border-slate-300 transition-all">
+        <div className="bg-gw-panel border border-gw-secondary p-4 rounded-xl flex items-center justify-between shadow-2xs hover:border-gw-secondary transition-all">
           <div>
-            <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Verified Endpoints</div>
+            <div className="text-[11px] text-gw-accent font-bold uppercase tracking-wider">Verified Endpoints</div>
             <div className="text-2xl font-mono font-bold text-emerald-700 mt-1">{verifiedCount}</div>
             <div className="text-[11px] text-emerald-700 font-medium mt-0.5">Active Ingestion Feeds</div>
           </div>
           <CheckCircle2 className="w-7 h-7 text-emerald-600" />
         </div>
 
-        <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-2xs hover:border-slate-300 transition-all">
+        <div className="bg-gw-panel border border-gw-secondary p-4 rounded-xl flex items-center justify-between shadow-2xs hover:border-gw-secondary transition-all">
           <div>
-            <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Unverified Coverage</div>
+            <div className="text-[11px] text-gw-accent font-bold uppercase tracking-wider">Unverified Coverage</div>
             <div className="text-2xl font-mono font-bold text-amber-700 mt-1">{unverifiedCount}</div>
             <div className="text-[11px] text-amber-700 font-medium mt-0.5">NAVAREA XIII, XX, XXI</div>
           </div>
           <AlertTriangle className="w-7 h-7 text-amber-500" />
         </div>
 
-        <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-2xs hover:border-slate-300 transition-all">
+        <div className="bg-gw-panel border border-gw-secondary p-4 rounded-xl flex items-center justify-between shadow-2xs hover:border-gw-secondary transition-all">
           <div>
-            <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Poll Cadence</div>
-            <div className="text-2xl font-mono font-bold text-slate-900 mt-1">360 min</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">6-hour Polling Defaults</div>
+            <div className="text-[11px] text-gw-accent font-bold uppercase tracking-wider">Poll Cadence</div>
+            <div className="text-2xl font-mono font-bold text-gw-primary mt-1">360 min</div>
+            <div className="text-[11px] text-gw-accent mt-0.5">6-hour Polling Defaults</div>
           </div>
-          <Clock className="w-7 h-7 text-slate-400" />
+          <Clock className="w-7 h-7 text-gw-accent" />
         </div>
       </div>
 
       {/* Registry Table */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-        <div className="p-4 border-b border-slate-200 bg-slate-50/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="bg-gw-panel border border-gw-secondary rounded-xl overflow-hidden shadow-2xs">
+        <div className="p-4 border-b border-gw-secondary bg-gw-secondary/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wider">
-              <Radio className="w-4 h-4 text-slate-700" />
+            <h2 className="text-sm font-bold text-gw-primary flex items-center gap-2 uppercase tracking-wider">
+              <Radio className="w-4 h-4 text-gw-accent" />
               <span>NAVWARN Candidate Discovery Registry</span>
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-gw-accent mt-0.5">
               Official maritime publication coordinators, endpoint verification status, and publication semantics.
             </p>
           </div>
 
-          <div className="text-xs text-slate-700 bg-white px-3 py-1.5 rounded-lg border border-slate-200 font-mono font-bold uppercase shrink-0 shadow-2xs">
+          <div className="text-xs text-gw-accent bg-gw-panel px-3 py-1.5 rounded-lg border border-gw-secondary font-mono font-bold uppercase shrink-0 shadow-2xs">
             Status: <span className="text-emerald-700">18 of 21 NAVAREAs Scaffolded</span>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-900">
-            <thead className="bg-slate-50 text-slate-500 font-mono uppercase text-[10px] border-b border-slate-200">
+          <table className="w-full text-left text-xs text-gw-primary">
+            <thead className="bg-gw-secondary text-gw-accent font-mono uppercase text-[10px] border-b border-gw-secondary">
               <tr>
                 <th className="py-3 px-4">NAVAREA</th>
                 <th className="py-3 px-4">Coordinator / Publisher</th>
@@ -176,7 +176,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
 
                     <td className="py-3 px-4">
                       {src.health?.status === 'stale' ? (
-                        <div className="flex items-center gap-1 text-slate-900 bg-slate-100 border border-slate-400 px-2 py-0.5 rounded font-bold uppercase text-[10px] w-fit">
+                        <div className="flex items-center gap-1 text-gw-primary bg-gw-secondary border border-gw-secondary px-2 py-0.5 rounded font-bold uppercase text-[10px] w-fit">
                           <span>◌ Stale</span>
                         </div>
                       ) : src.health?.status === 'error' ? (
@@ -237,7 +237,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
       {/* Onboarding Checklist Modal */}
       {selectedSourceForChecklist && (
         <div className="fixed inset-0 z-console-overlay bg-gw-primary/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div ref={checklistRef} role="dialog" aria-modal="true" aria-labelledby="source-checklist-title" className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+          <div ref={checklistRef} role="dialog" aria-modal="true" aria-labelledby="source-checklist-title" className="bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-start justify-between gap-2 border-b-2 border-gw-primary pb-3">
               <div>
                 <span className="bg-gw-primary text-gw-secondary font-mono text-xs font-bold px-2.5 py-0.5 rounded uppercase">

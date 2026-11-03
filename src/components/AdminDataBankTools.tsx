@@ -279,7 +279,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
   }, []);
 
   return (
-    <div className="border-2 border-gw-primary rounded-xl bg-white shadow-hard overflow-hidden text-xs">
+    <div className="border-2 border-gw-primary rounded-xl bg-gw-panel shadow-hard overflow-hidden text-xs">
       {/* Header */}
       <div className="bg-gw-primary text-gw-bg px-3 py-2 flex items-center justify-between">
         <div className="font-bold uppercase tracking-wider flex items-center gap-2">
@@ -308,19 +308,19 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
 
       {/* Filter row + saved views */}
       <div className="p-3 border-b border-gw-secondary bg-gw-bg/40 flex flex-wrap items-center gap-2">
-        <select value={navareaFilter} onChange={(e) => setNavareaFilter(e.target.value)} className="px-2 py-1 border border-gw-primary rounded text-[11px] font-mono font-bold bg-white">
+        <select value={navareaFilter} onChange={(e) => setNavareaFilter(e.target.value)} className="px-2 py-1 border border-gw-primary rounded text-[11px] font-mono font-bold bg-gw-panel">
           <option value="ALL">All NAVAREAs</option>
           {navareas.map((n) => (
             <option key={n} value={n}>{n}</option>
           ))}
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-2 py-1 border border-gw-primary rounded text-[11px] font-mono font-bold bg-white">
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-2 py-1 border border-gw-primary rounded text-[11px] font-mono font-bold bg-gw-panel">
           <option value="ALL">All statuses</option>
           {['active', 'cancelled', 'expired', 'superseded', 'unverified'].map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
-        <select value={tierFilter} onChange={(e) => setTierFilter(e.target.value)} className="px-2 py-1 border border-gw-primary rounded text-[11px] font-mono font-bold bg-white">
+        <select value={tierFilter} onChange={(e) => setTierFilter(e.target.value)} className="px-2 py-1 border border-gw-primary rounded text-[11px] font-mono font-bold bg-gw-panel">
           <option value="ALL">All tiers</option>
           {['A', 'B', 'C'].map((t) => (
             <option key={t} value={t}>Tier {t}</option>
@@ -331,13 +331,13 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search id / text..."
-          className="px-2 py-1 border border-gw-primary rounded text-[11px] font-mono flex-1 min-w-[140px] bg-white"
+          className="px-2 py-1 border border-gw-primary rounded text-[11px] font-mono flex-1 min-w-[140px] bg-gw-panel"
         />
 
         {/* Saved views */}
         <div className="flex items-center gap-1 flex-wrap">
           {savedViews.map((v) => (
-            <span key={v.name} className="inline-flex items-center gap-1 bg-white border border-gw-secondary rounded-full pl-2 pr-1 py-0.5">
+            <span key={v.name} className="inline-flex items-center gap-1 bg-gw-panel border border-gw-secondary rounded-full pl-2 pr-1 py-0.5">
               <button type="button" onClick={() => applyView(v)} className="text-xs font-bold uppercase hover:text-gw-primary" title={`Apply view: NAVAREA=${v.navarea} status=${v.status} tier=${v.tier}`}>
                 {v.name}
               </button>
@@ -351,7 +351,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
             value={newViewName}
             onChange={(e) => setNewViewName(e.target.value)}
             placeholder="view name"
-            className="px-2 py-0.5 border border-gw-secondary rounded text-[10px] font-mono w-20 bg-white"
+            className="px-2 py-0.5 border border-gw-secondary rounded text-[10px] font-mono w-20 bg-gw-panel"
           />
           <button type="button" onClick={saveCurrentView} className="flex items-center gap-1 px-2 py-0.5 bg-gw-bg border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
             <Save className="w-3 h-3" />
@@ -361,15 +361,15 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
       </div>
 
       {/* Bulk edit bar */}
-      <div className="p-3 border-b border-gw-secondary bg-white flex flex-wrap items-center gap-2">
+      <div className="p-3 border-b border-gw-secondary bg-gw-panel flex flex-wrap items-center gap-2">
         <span className="text-[10px] font-bold uppercase text-gw-accent">Bulk edit {checked.size > 0 ? `(${checked.size})` : ''}:</span>
-        <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)} className="px-2 py-1 border border-gw-secondary rounded text-[11px] font-mono bg-white">
+        <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)} className="px-2 py-1 border border-gw-secondary rounded text-[11px] font-mono bg-gw-panel">
           <option value="">status…</option>
           {['active', 'cancelled', 'expired', 'unverified'].map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
-        <select value={bulkTier} onChange={(e) => setBulkTier(e.target.value)} className="px-2 py-1 border border-gw-secondary rounded text-[11px] font-mono bg-white">
+        <select value={bulkTier} onChange={(e) => setBulkTier(e.target.value)} className="px-2 py-1 border border-gw-secondary rounded text-[11px] font-mono bg-gw-panel">
           <option value="">tier…</option>
           {['B', 'C'].map((t) => (
             <option key={t} value={t}>Tier {t}</option>
@@ -380,7 +380,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
           value={bulkNote}
           onChange={(e) => setBulkNote(e.target.value)}
           placeholder="audit note (reason for bulk edit)"
-          className="px-2 py-1 border border-gw-secondary rounded text-[11px] font-mono flex-1 min-w-[160px] bg-white"
+          className="px-2 py-1 border border-gw-secondary rounded text-[11px] font-mono flex-1 min-w-[160px] bg-gw-panel"
         />
         <button
           type="button"
@@ -398,13 +398,13 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
         <span className="text-[10px] font-bold uppercase text-gw-accent">
           Export {selectedWarnings.length > 0 ? `${selectedWarnings.length} selected` : `${filtered.length} filtered`}:
         </span>
-        <button type="button" onClick={exportAsCsv} className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
+        <button type="button" onClick={exportAsCsv} className="flex items-center gap-1 px-2 py-1 bg-gw-panel border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
           <Download className="w-3 h-3" /> CSV
         </button>
-        <button type="button" onClick={exportAsGeoJson} className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
+        <button type="button" onClick={exportAsGeoJson} className="flex items-center gap-1 px-2 py-1 bg-gw-panel border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
           <Download className="w-3 h-3" /> GeoJSON
         </button>
-        <button type="button" onClick={exportAsKml} className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
+        <button type="button" onClick={exportAsKml} className="flex items-center gap-1 px-2 py-1 bg-gw-panel border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg">
           <Download className="w-3 h-3" /> KML
         </button>
       </div>
@@ -447,7 +447,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
                 <td className="px-2 py-1.5">
                   <span className={
                     w.status === 'active' ? 'text-emerald-700 font-bold' :
-                    w.status === 'superseded' ? 'text-slate-500' : 'text-amber-700'
+                    w.status === 'superseded' ? 'text-gw-accent' : 'text-amber-700'
                   }>{w.status}</span>
                 </td>
                 <td className="px-2 py-1.5">{w.triage_tier ? 'Tier ' + String(w.triage_tier).toUpperCase() : '—'}</td>
@@ -466,7 +466,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
 
       {/* Audit drawer */}
       {auditWarning && (
-        <div className="border-t-2 border-gw-primary bg-white p-3">
+        <div className="border-t-2 border-gw-primary bg-gw-panel p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[11px] font-bold uppercase text-gw-primary flex items-center gap-2">
               <History className="w-4 h-4" />

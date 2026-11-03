@@ -191,7 +191,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
       {/* AI Parsing Failed Pop-up Modal */}
       {aiFallbackModal?.active && (
         <div className="fixed inset-0 bg-black/50 z-console-overlay flex items-center justify-center p-4">
-          <div ref={aiFallbackRef} role="dialog" aria-modal="true" aria-labelledby="ai-fallback-title" className="bg-white border-2 border-amber-600 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl animate-in fade-in zoom-in duration-200">
+          <div ref={aiFallbackRef} role="dialog" aria-modal="true" aria-labelledby="ai-fallback-title" className="bg-gw-panel border-2 border-amber-600 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl animate-in fade-in zoom-in duration-200">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
                 <AlertTriangle className="w-6 h-6" />
@@ -225,7 +225,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
       )}
 
       {/* Header Info */}
-      <div className="bg-white border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
         <div>
           <h2 className="text-base font-bold text-gw-primary flex items-center gap-2 uppercase tracking-wider">
             <FileText className="w-5 h-5 text-gw-primary" />
@@ -243,7 +243,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input Form */}
-        <form onSubmit={handleParse} className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-5 space-y-4 shadow-sm">
+        <form onSubmit={handleParse} className="bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl p-5 space-y-4 shadow-sm">
           <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-gw-primary uppercase tracking-wider">Target NAVAREA</label>
@@ -416,7 +416,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
         </form>
 
         {/* Extracted Output Result */}
-        <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-sm">
+        <div className="bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-sm">
           {supabaseSaveMsg && (
             <div
               className={`p-3 rounded-lg text-xs font-bold flex items-center justify-between ${
@@ -512,7 +512,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   </div>
                   <div className="text-[11px] text-indigo-900 leading-relaxed font-mono flex flex-wrap items-center gap-2">
                     <span>Cancellations declared:</span>
-                    <span className="font-bold text-red-700 bg-white px-2 py-0.5 rounded border border-red-300">
+                    <span className="font-bold text-red-700 bg-gw-panel px-2 py-0.5 rounded border border-red-300">
                       {manifestSummary.cancelledByManifest.length > 0 ? manifestSummary.cancelledByManifest.join(', ') : 'None'}
                     </span>
                     {manifestSummary.newlyDeactivatedCount > 0 && (
@@ -543,7 +543,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                       <th className="p-3 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gw-primary/20 bg-white font-mono">
+                  <tbody className="divide-y divide-gw-primary/20 bg-gw-panel font-mono">
                     {parsedResults.map((w, idx) => {
                       const isQuarantined = Boolean((w.ambiguous_positions && w.ambiguous_positions.length > 0) || w.data_quality === 'AMBIGUOUS');
                       const geom = w.spatial?.geometries?.[0];
@@ -596,13 +596,13 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                                   ? 'bg-orange-100 text-orange-900 border border-orange-300'
                                   : w.hazard_category === 'subsea'
                                   ? 'bg-blue-100 text-blue-900 border border-blue-300'
-                                  : 'bg-slate-100 text-slate-800 border border-slate-300'
+                                  : 'bg-gw-secondary text-gw-primary border border-gw-secondary'
                               }`}
                             >
                               {isManifest ? 'Manifest' : w.hazard_category || 'Notice'}
                             </span>
                             {(w as any).details?.vessel?.name && (
-                              <div className="text-[10px] text-slate-600 mt-1 truncate max-w-[140px]" title={(w as any).details.vessel.name}>
+                              <div className="text-[10px] text-gw-accent mt-1 truncate max-w-[140px]" title={(w as any).details.vessel.name}>
                                 🚢 {(w as any).details.vessel.name}
                               </div>
                             )}
@@ -642,7 +642,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                             {w.ambiguous_positions && w.ambiguous_positions.length > 0 && (
                               <div className="text-[9px] font-mono font-bold text-rose-700 mt-1">
                                 {w.ambiguous_positions[0].reason === 'PARTIAL_HEMISPHERE' ? '⚠️ Partial Hemi' : '⚠️ Missing Hemi'}
-                                <span className="text-[8px] text-slate-500 block font-normal">
+                                <span className="text-[8px] text-gw-accent block font-normal">
                                   Lat: {w.ambiguous_positions[0].has_lat_hem ? '✓' : '✗'} | Lon: {w.ambiguous_positions[0].has_lon_hem ? '✓' : '✗'}
                                 </span>
                               </div>
@@ -666,7 +666,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                                     ? 'bg-blue-50 text-blue-900 border border-blue-300'
                                     : geomType === 'Point'
                                     ? 'bg-emerald-50 text-emerald-900 border border-emerald-300'
-                                    : 'bg-gray-100 text-gray-600'
+                                    : 'bg-gw-secondary text-gw-accent'
                                 }`}
                               >
                                 <MapPin className="w-3 h-3" />
@@ -687,7 +687,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                                 <span>Fallback</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-gw-primary bg-gw-secondary px-2 py-0.5 rounded border border-gw-secondary">
                                 <span>Rules</span>
                               </span>
                             )}
@@ -832,21 +832,21 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
                       {/* Extracted Details Drawer */}
                       {((parsedResult as any).details || (parsedResult.cancels && parsedResult.cancels.length > 0) || parsedResult.valid_to) && (
-                        <div className="p-2.5 bg-slate-50 border border-slate-200 rounded space-y-1 text-xs">
+                        <div className="p-2.5 bg-gw-secondary border border-gw-secondary rounded space-y-1 text-xs">
                           <span className="text-gw-accent uppercase font-bold text-[10px] block">Extracted Telex Attributes:</span>
                           <div className="flex flex-wrap gap-2 text-[11px] font-mono">
                             {(parsedResult as any).details?.vessel?.name && (
-                              <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
+                              <span className="bg-gw-panel px-2 py-0.5 rounded border border-gw-secondary">
                                 🚢 Vessel: {(parsedResult as any).details.vessel.name} ({(parsedResult as any).details.vessel.role || 'operation'})
                               </span>
                             )}
                             {(parsedResult as any).details?.aton?.name && (
-                              <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
+                              <span className="bg-gw-panel px-2 py-0.5 rounded border border-gw-secondary">
                                 💡 AtoN: {(parsedResult as any).details.aton.name} [{(parsedResult as any).details.aton.state}]
                               </span>
                             )}
                             {(parsedResult as any).details?.operation?.type && (
-                              <span className="bg-white px-2 py-0.5 rounded border border-slate-300">
+                              <span className="bg-gw-panel px-2 py-0.5 rounded border border-gw-secondary">
                                 ⚙️ Operation: {(parsedResult as any).details.operation.type}
                               </span>
                             )}
@@ -866,11 +866,11 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
                       {/* Unparsed Lines Audit */}
                       {(parsedResult as any).unparsed_lines && (parsedResult as any).unparsed_lines.length > 0 && (
-                        <div className="p-2 bg-slate-50 border border-slate-200 rounded text-[11px] font-mono text-slate-700">
-                          <span className="font-bold text-slate-800">
+                        <div className="p-2 bg-gw-secondary border border-gw-secondary rounded text-[11px] font-mono text-gw-accent">
+                          <span className="font-bold text-gw-primary">
                             Preserved Unparsed Lines ({(parsedResult as any).unparsed_lines.length}):
                           </span>
-                          <ul className="list-disc list-inside mt-1 space-y-0.5 text-[10px] text-slate-600">
+                          <ul className="list-disc list-inside mt-1 space-y-0.5 text-[10px] text-gw-accent">
                             {(parsedResult as any).unparsed_lines.map((line: string, i: number) => (
                               <li key={i}>{line}</li>
                             ))}
@@ -924,7 +924,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
           {/* Dedicated Single Warning Inspection Modal */}
           {inspectedWarning && (
             <div className="fixed inset-0 bg-black/60 z-console-overlay flex items-center justify-center p-4">
-              <div ref={inspectRef} role="dialog" aria-modal="true" aria-labelledby="inspect-warning-title" className="bg-white border-2 border-gw-primary rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-200 custom-scrollbar">
+              <div ref={inspectRef} role="dialog" aria-modal="true" aria-labelledby="inspect-warning-title" className="bg-gw-panel border-2 border-gw-primary rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-200 custom-scrollbar">
                 <div className="flex items-center justify-between border-b-2 border-gw-primary pb-3">
                   <div>
                     <h3 id="inspect-warning-title" className="text-base font-bold text-gw-primary font-mono flex items-center gap-2">
@@ -947,7 +947,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
                 <div className="space-y-3 text-xs">
                   {/* Data Quality & P0 Safety Diagnostics Panel */}
-                  <div className="p-3 rounded-lg border flex flex-col gap-2 font-mono text-xs bg-slate-50 border-slate-200">
+                  <div className="p-3 rounded-lg border flex flex-col gap-2 font-mono text-xs bg-gw-secondary border-gw-secondary">
                     <div className="flex items-center justify-between">
                       <span className="font-bold uppercase text-[10px] text-gw-accent">Data Quality Rating:</span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
@@ -979,14 +979,14 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
                     {/* Grounding Diagnostic Details */}
                     {inspectedWarning.grounding_diagnostic && (
-                      <div className="p-2 bg-white rounded border border-slate-200 space-y-1 text-[11px]">
-                        <div className="flex items-center justify-between font-bold text-slate-800">
+                      <div className="p-2 bg-gw-panel rounded border border-gw-secondary space-y-1 text-[11px]">
+                        <div className="flex items-center justify-between font-bold text-gw-primary">
                           <span>Grounding Verification:</span>
                           <span className={inspectedWarning.grounding_diagnostic.grounded ? 'text-emerald-700' : 'text-rose-700'}>
                             {inspectedWarning.grounding_diagnostic.grounded ? '✓ 100% Grounded in Raw Text' : '✗ Ungrounded Coordinates Detected'}
                           </span>
                         </div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-[10px] text-gw-accent">
                           Checked {inspectedWarning.grounding_diagnostic.checked_count} coordinate phrases.
                           {inspectedWarning.grounding_diagnostic.matched_phrases.length > 0 && (
                             <span className="block text-emerald-800 mt-0.5">Matched: {inspectedWarning.grounding_diagnostic.matched_phrases.join(', ')}</span>
@@ -1010,7 +1010,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
                   <div>
                     <span className="font-bold uppercase text-[10px] text-gw-accent">Raw Telex Notice:</span>
-                    <pre className="mt-1 p-3 bg-gw-bg rounded-lg border border-gw-primary/30 font-mono text-[11px] whitespace-pre-wrap text-slate-800 leading-relaxed max-h-48 overflow-y-auto custom-scrollbar">
+                    <pre className="mt-1 p-3 bg-gw-bg rounded-lg border border-gw-primary/30 font-mono text-[11px] whitespace-pre-wrap text-gw-primary leading-relaxed max-h-48 overflow-y-auto custom-scrollbar">
                       {inspectedWarning.raw_text}
                     </pre>
                   </div>
@@ -1020,12 +1020,12 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     <div className="mt-1 flex flex-wrap gap-1.5 font-mono text-[11px]">
                       {inspectedWarning.spatial?.raw_coordinate_text?.length ? (
                         inspectedWarning.spatial.raw_coordinate_text.map((c, i) => (
-                          <span key={i} className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-300">
+                          <span key={i} className="px-2 py-0.5 rounded bg-gw-secondary text-gw-primary border border-gw-secondary">
                             {c}
                           </span>
                         ))
                       ) : (
-                        <span className="text-slate-500 italic">No spatial coordinates extracted</span>
+                        <span className="text-gw-accent italic">No spatial coordinates extracted</span>
                       )}
                     </div>
                   </div>
@@ -1070,7 +1070,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setInspectedWarning(null)}
-                    className="px-4 py-2.5 bg-gw-bg hover:bg-slate-200 text-gw-primary font-bold text-xs uppercase tracking-wider rounded border border-gw-primary transition-colors"
+                    className="px-4 py-2.5 bg-gw-bg hover:bg-gw-secondary text-gw-primary font-bold text-xs uppercase tracking-wider rounded border border-gw-primary transition-colors"
                   >
                     Close
                   </button>
