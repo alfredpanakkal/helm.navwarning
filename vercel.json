@@ -2,8 +2,13 @@
   "cleanUrls": true,
   "redirects": [
     {
+      "source": "/about",
+      "destination": "/?tab=info",
+      "permanent": true
+    },
+    {
       "source": "/sources",
-      "destination": "/about",
+      "destination": "/?tab=info",
       "permanent": true
     }
   ],
