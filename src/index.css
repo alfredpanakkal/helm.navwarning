@@ -66,6 +66,10 @@
   --border-primary: 1px solid var(--color-gw-primary);
   --border-subtle: 1px solid var(--color-gw-secondary);
   --bg-secondary: #ffffff;
+  /* Light surface token for Tailwind utilities (bg-gw-panel, incl. /NN opacity
+     modifiers, which the custom .bg-secondary utility cannot carry). Theme
+     blocks below remap it to the Bridge / Red watch panel surfaces. */
+  --color-gw-panel: #ffffff;
   --space-compact: 0.5rem;
 
   /* Severity colours — the Helm.Warning watch-theme design (PR #93), LIGHT
@@ -522,6 +526,7 @@
   --color-gw-accent: #9FA69F;
   --color-gw-accent-on-dark: #9FA69F;
   --bg-secondary: #151A17;
+  --color-gw-panel: #151A17;
   --color-gw-critical: #F08484;
   --color-gw-high: #D9A24A;
   --color-gw-moderate: #8DB4E2;
@@ -538,6 +543,7 @@
   --color-gw-accent: #B5786B;
   --color-gw-accent-on-dark: #B5786B;
   --bg-secondary: #120A08;
+  --color-gw-panel: #120A08;
   --color-gw-critical: #FF6B5E;
   --color-gw-high: #D08A3E;
   --color-gw-moderate: #BC8577;
