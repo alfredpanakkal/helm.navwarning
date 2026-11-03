@@ -168,7 +168,6 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
-          {/* Desktop Section Navigation — 4-section IA: Warnings / Ingest / Trace / System */}
                     {/* Single-row navigation: the 4 sections plus the active section's views
               in one 56px bar (Phase 1 chrome merge — replaces the 56px header +
               38px sub-tab strip, so --console-sticky-offset: 57px now matches
@@ -241,7 +240,62 @@ export const Header: React.FC<HeaderProps> = ({
               );
             })}
           </nav>
-      
+
+          {/* Header Right Meta & Admin Controls */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Live Stream Status Indicator */}
+            <div className="hidden lg:flex items-center gap-1.5 text-xs text-ink-secondary font-medium">
+              <span className="w-2 h-2 rounded-full bg-accent inline-block" aria-hidden="true"></span>
+              <span>Live stream</span>
+            </div>
+
+            {/* Public Portal Link */}
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium text-ink-secondary hover:text-ink-primary hover:bg-surface-subtle transition-colors border border-transparent hover:border-hairline"
+              title="Open Public Maritime Portal"
+            >
+              <span>Public portal</span>
+              <span aria-hidden="true" className="text-[11px]">↗</span>
+            </a>
+
+            {/* Admin Lock / Sign In Status */}
+            {isAdminMode ? (
+              <button
+                onClick={() => {
+                  if (signOutConfirm) {
+                    handleLockAdmin();
+                  } else {
+                    setSignOutConfirm(true);
+                  }
+                }}
+                aria-label="Sign out of admin session"
+                className={
+                  'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium border transition-all cursor-pointer ' +
+                  (signOutConfirm
+                    ? 'text-sev-critical bg-surface-subtle border-sev-critical'
+                    : 'text-ink-body bg-transparent hover:bg-surface-subtle border-border-input')
+                }
+                title="Admin session active (app_metadata.role === 'admin'). Click to sign out."
+              >
+                <Lock className="w-3.5 h-3.5 text-accent" />
+                <span>{signOutConfirm ? 'Confirm sign out?' : 'Sign out'}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAdminModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium text-ink-secondary bg-transparent hover:bg-surface-subtle border border-border-input transition-all cursor-pointer"
+                title="Unlock Console Administrator Access"
+              >
+                <Key className="w-3.5 h-3.5 text-accent" />
+                <span>Sign in</span>
+              </button>
+            )}
+          </div>
+
+        </div>
       </header>
 
       {/* Mobile Bottom Quick Navigation — the 4 sections */}
