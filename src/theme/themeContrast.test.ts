@@ -6,7 +6,7 @@
  * (borders, status colours, focus rings) >= 3:1, for every theme.
  */
 import { describe, expect, it } from 'vitest';
-import { THEME_NAMES, THEME_PALETTES, type ThemePalette } from './themeTokens';
+import { CONSOLE_TOKEN_MAP, THEME_NAMES, THEME_PALETTES, type ThemePalette } from './themeTokens';
 
 function channel(c: number): number {
   const v = c / 255;
@@ -93,5 +93,53 @@ describe('watch-theme WCAG contrast', () => {
       expect(r, c + ' red-dominant').toBeGreaterThan(g);
       expect(g, c + ' brown not blue').toBeGreaterThanOrEqual(b);
     }
+  });
+});
+
+describe('console gw-token mapping', () => {
+  // src/index.css maps the watch themes onto the console's gw-* tokens.
+  // These are the pairs token-driven console code actually creates; the
+  // values come from CONSOLE_TOKEN_MAP, which mirrors that CSS byte for byte.
+  it('gw-primary as text passes 4.5:1 on gw-bg and on the panel surface in every theme', () => {
+    for (const name of THEME_NAMES) {
+      const c = CONSOLE_TOKEN_MAP[name];
+      expect(contrast(c.primary, c.bg), name + ' primary/bg').toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.primary, c.bgSecondary), name + ' primary/panel').toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('gw-accent as muted text passes 4.5:1 on gw-bg and on the panel surface in every theme', () => {
+    for (const name of THEME_NAMES) {
+      const c = CONSOLE_TOKEN_MAP[name];
+      expect(contrast(c.accent, c.bg), name + ' accent/bg').toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.accent, c.bgSecondary), name + ' accent/panel').toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('gw-accent-on-dark passes 4.5:1 on the light-theme dark chrome it was made for', () => {
+    const light = CONSOLE_TOKEN_MAP.light;
+    expect(contrast(light.accentOnDark, light.primary)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(light.accentOnDark, light.tertiary)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('severity tokens pass 4.5:1 on gw-bg and the panel surface in every theme', () => {
+    for (const name of THEME_NAMES) {
+      const c = CONSOLE_TOKEN_MAP[name];
+      for (const sev of [c.critical, c.high, c.moderate]) {
+        expect(contrast(sev, c.bg), name + ' severity/bg').toBeGreaterThanOrEqual(4.5);
+        expect(contrast(sev, c.bgSecondary), name + ' severity/panel').toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it('hairlines: dark/night secondary carries the design --line (>= 3:1); light keeps its legacy decorative hairline', () => {
+    for (const name of ['dark', 'night'] as const) {
+      const c = CONSOLE_TOKEN_MAP[name];
+      expect(contrast(c.secondary, c.bg), name + ' line/bg').toBeGreaterThanOrEqual(3);
+      expect(contrast(c.secondary, c.bgSecondary), name + ' line/panel').toBeGreaterThanOrEqual(3);
+    }
+    // Light hairline is a pre-existing decorative convention (~1.2:1), kept
+    // unchanged on purpose; no console theme switcher ships before the
+    // raw-palette migration, so this never regresses a themed surface.
   });
 });
