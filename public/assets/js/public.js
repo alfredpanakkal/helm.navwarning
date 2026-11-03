@@ -298,12 +298,12 @@ function getBulletinText(obj) {
 }
 
 function formatWarningDate(w) {
-  if (!w || typeof w !== 'object') return 'N/A';
+  if (!w || typeof w !== 'object') return 'Date not stated';
   const val = w.issued_date || w.issued || w.date || w.issued_text || w.issued_at || w.timestamp || w.created_at;
-  if (!val) return 'N/A';
+  if (!val) return 'Date not stated';
   if (typeof val === 'string') {
     const trimmed = val.trim();
-    if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return 'N/A';
+    if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return 'Date not stated';
     if (trimmed.includes('T') && !isNaN(Date.parse(trimmed))) {
       try {
         return trimmed.split('T')[0];
@@ -320,11 +320,11 @@ function formatWarningDate(w) {
 }
 
 function formatWarningIssuedText(w) {
-  if (!w || typeof w !== 'object') return 'N/A';
+  if (!w || typeof w !== 'object') return 'Date not stated';
   const val = w.issued_text || w.issued_date || w.issued || w.date || w.issued_at || w.timestamp || w.created_at;
-  if (!val) return 'N/A';
+  if (!val) return 'Date not stated';
   const str = String(val).trim();
-  return (str && str !== 'undefined' && str !== 'null') ? str : 'N/A';
+  return (str && str !== 'undefined' && str !== 'null') ? str : 'Date not stated';
 }
 
 // ═══════════ DEVICE / NAV ═══════════
@@ -366,11 +366,6 @@ window.switchTab = function(tab){
     t.classList.remove('active');
     t.setAttribute('aria-selected', 'false');
   });
-  document.querySelectorAll('.drawer-item').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.bottom-nav-item').forEach(t=>{
-    t.classList.remove('active');
-    t.setAttribute('aria-selected', 'false');
-  });
   const panel = document.getElementById('tab-'+tab);
   if(panel){
     panel.classList.add('active');
@@ -380,12 +375,6 @@ window.switchTab = function(tab){
   if(mainTab){
     mainTab.classList.add('active');
     mainTab.setAttribute('aria-selected', 'true');
-  }
-  document.querySelector(`.drawer-item[data-drawer-tab="${tab}"]`)?.classList.add('active');
-  const bottomTab = document.querySelector(`.bottom-nav-item[data-bottom-tab="${tab}"]`);
-  if(bottomTab){
-    bottomTab.classList.add('active');
-    bottomTab.setAttribute('aria-selected', 'true');
   }
 
   const isMap = (tab === 'map');
@@ -403,21 +392,6 @@ window.switchTab = function(tab){
   } else {
     window.scrollTo({top:0,behavior:'smooth'});
   }
-};
-
-window.toggleDrawer = function(){
-  const drawer = document.getElementById('drawer');
-  const overlay = document.getElementById('drawerOverlay');
-  const toggleBtn = document.querySelector('.menu-toggle');
-  const isOpen = drawer?.classList.toggle('open');
-  overlay?.classList.toggle('open');
-  if(toggleBtn){
-    toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-  }
-  if(drawer){
-    drawer.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
-  }
-  document.body.style.overflow = isOpen ? 'hidden' : '';
 };
 
 window.toggleAdvancedFilters = function(explicitState){
@@ -451,7 +425,6 @@ document.addEventListener('keydown', e => {
       toggleMapFocusMode(false);
       return;
     }
-    toggleDrawerIfOpen();
     toggleAdvancedFilters(false);
     closeWarningModal();
     closeMapSettings();
@@ -463,7 +436,6 @@ document.addEventListener('keydown', e => {
     }
   }
 });
-function toggleDrawerIfOpen(){ if(document.getElementById('drawer')?.classList.contains('open')) toggleDrawer(); }
 
 // ═══════════ MAP & SPATIAL ENGINE ═══════════
 let leafletMap = null;
@@ -1832,6 +1804,34 @@ window.resetMapView = function(){
 };
 window.locateMapView = window.resetMapView;
 
+/* My position — geolocate, drop a persistent marker and pan to it */
+let mePositionMarker = null;
+window.locateMe = function(){
+  const m = getLeafletMap();
+  if (!m) return;
+  if (!navigator.geolocation || !navigator.geolocation.getCurrentPosition) {
+    showToast('Position unavailable on this device');
+    return;
+  }
+  showToast('Locating…');
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const ll = [pos.coords.latitude, pos.coords.longitude];
+    if (mePositionMarker) {
+      mePositionMarker.setLatLng(ll);
+    } else {
+      // #2563eb mirrors a distinct "you" marker color for Leaflet SVG
+      mePositionMarker = L.circleMarker(ll, {
+        radius: 8, color: '#2563eb', weight: 2,
+        fillColor: '#2563eb', fillOpacity: 0.35
+      }).addTo(m).bindTooltip('Your position', { direction: 'top', offset: [0, -8] });
+    }
+    m.setView(ll, Math.max(m.getZoom(), 10));
+    showToast('Showing your position');
+  }, () => {
+    showToast('Position unavailable');
+  }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+};
+
 window.toggleLayer = function(name, vis){
   const m = getLeafletMap();
   if(!m) return;
@@ -1991,7 +1991,7 @@ function toggleTableDetailRow(w, tr) {
   const lat = Number(w.latitude ?? w.lat);
   const lng = Number(w.longitude ?? w.lng);
   const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}, ${lng.toFixed(2)}` : 'N/A');
-  const issuedText = w.issued_text || w.issued_date || w.issued || 'N/A';
+  const issuedText = formatWarningIssuedText(w);
   const sevClass = w.severity === 'critical' ? 'critical' : w.severity === 'high' ? 'high' : 'moderate';
   const verClass = w.is_verified ? 'verified' : 'neutral';
   const verLabel = w.is_verified ? 'VERIFIED' : 'UNVERIFIED';
@@ -2293,10 +2293,11 @@ function populateCards(filtered=warnings){
     const lng = Number(w.longitude ?? w.lng);
     const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}°, ${lng.toFixed(2)}°` : 'Spatial Vector');
 
+    const idLabel = /^NAVAREA/i.test(String(wid)) ? String(wid) : `${wid} · ${w.navarea}`;
     c.innerHTML=`
       <div class="warning-card-main">
         <div class="warning-card-header">
-          <span class="warning-card-id">${wid} · ${w.navarea}</span>
+          <span class="warning-card-id">${idLabel}</span>
           ${badge(sevClass, sevLabel)}
         </div>
         <div class="warning-card-title">${w.title}</div>
@@ -2382,7 +2383,7 @@ function updateStats(){
   const live=warnings.filter(w=>w.status!=='rejected');
   const areas=new Set(live.map(w=>w.navarea)).size;
   const n=live.length;
-  ['nav-map-badge','nav-data-badge','drawer-map-badge','drawer-data-badge','bottomBadge'].forEach(id => {
+  ['nav-map-badge','nav-data-badge'].forEach(id => {
     const el = document.getElementById(id); if(el) el.textContent = n;
   });
   const mlb = document.getElementById('mapLiveBadge'); if(mlb) mlb.innerHTML=`<span class="dot"></span> ${n} live`;
@@ -2392,10 +2393,15 @@ function updateStats(){
   const sAct = document.getElementById('statActive'); if(sAct) sAct.textContent=n;
   const sCov = document.getElementById('statCoverage'); if(sCov) sCov.textContent=areas+'/21';
   const sCovSub = document.getElementById('statCoverageSub'); if(sCovSub) sCovSub.textContent=Math.round(areas/21*100)+'% world coverage';
-  const hi=live.filter(w=>w.severity==='critical'||w.severity==='high').length;
-  const sHi = document.getElementById('statHigh'); if(sHi) sHi.textContent=hi;
-  const sHiSub = document.getElementById('statHighSub'); if(sHiSub) sHiSub.textContent=hi+' of '+n+' warnings';
 }
+window.toggleStatSummary = function(){
+  const grid = document.getElementById('statGrid');
+  const btn = document.getElementById('statSummaryToggle');
+  if(!grid || !btn) return;
+  const show = grid.hasAttribute('hidden');
+  if(show){ grid.removeAttribute('hidden'); } else { grid.setAttribute('hidden',''); }
+  btn.setAttribute('aria-expanded', show ? 'true' : 'false');
+};
 function populateSources(){
   const g=document.getElementById('sourcesGrid');
   if(!g) return;
@@ -2722,3 +2728,4 @@ function setupCoordinatePicker(map) {
     setCoordReadout(dmd, 'Selected');
   });
 }
+

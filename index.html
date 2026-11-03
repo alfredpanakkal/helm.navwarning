@@ -114,43 +114,33 @@
 .site-header{background:var(--canvas);border-bottom:1px solid var(--hairline);position:sticky;top:0;z-index:1000;padding-top:var(--safe-top)}
 .header-inner{max-width:var(--max-width,1180px);margin:0 auto;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:56px}
 .logo{font:500 16px var(--font-family-base);letter-spacing:-0.01em;color:var(--ink-primary);text-decoration:none;display:flex;align-items:center;gap:8px;flex-shrink:0}
-.logo-badge{width:26px;height:26px;background:transparent;color:var(--ink-primary);border:1px solid var(--border-input);border-radius:var(--radius-btn);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500}
 .logo-mark{height:20px;width:auto;flex-shrink:0;display:block;color:var(--ink-primary)}
 .main-nav{display:flex;gap:4px}
-.nav-tab{padding:6px 14px;border-radius:var(--radius-chip,999px);background:transparent;border:1px solid transparent;font:500 13px var(--font-family-base);color:var(--ink-secondary);cursor:pointer;min-height:36px;display:flex;align-items:center;transition:background var(--transition),border-color var(--transition),color var(--transition)}
+.nav-tab{padding:6px 14px;border-radius:var(--radius-chip,999px);background:transparent;border:1px solid transparent;font:500 13px var(--font-family-base);color:var(--ink-secondary);cursor:pointer;min-height:36px;display:flex;align-items:center;transition:background var(--transition),border-color var(--transition),color var(--transition);position:relative}
 .nav-tab:hover{background:var(--surface-subtle);color:var(--ink-primary);border-color:var(--border-chip)}
 .nav-tab.active{background:var(--surface-subtle);border-color:var(--border-chip-on);color:var(--ink-primary)}
 .nav-tab .badge{margin-left:6px;padding:0 6px;border-radius:var(--radius-chip);font-size:11px;font-weight:500;color:var(--ink-tertiary);background:transparent}
 a.nav-tab{text-decoration:none}
+.nav-tab.stacked{flex-direction:column;gap:1px;padding:3px 12px;min-width:56px;text-align:center}
+.nav-tab.stacked svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0}
+.nav-tab.stacked .nav-tab-label{font-size:11px;line-height:1.2}
+.nav-tab.stacked .badge{position:absolute;top:2px;right:6px;margin:0;padding:0 5px}
 .header-meta{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--ink-secondary)}
 .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
 .status-dot.live{background:var(--accent)}
-body.is-mobile .main-nav,body.is-tablet .main-nav{display:none}
 body.is-mobile #last-updated{display:none}
-.menu-toggle{display:none;width:40px;height:40px;border:1px solid var(--border-input);background:transparent;cursor:pointer;align-items:center;justify-content:center;border-radius:var(--radius-btn)}
-body.is-mobile .menu-toggle,body.is-tablet .menu-toggle{display:flex}
-.menu-toggle svg{width:20px;height:20px;stroke:var(--ink-primary)}
 
-.drawer-overlay{position:fixed;inset:0;background:rgba(11,14,17,.3);z-index:1500;opacity:0;visibility:hidden;transition:opacity var(--transition),visibility var(--transition)}
-.drawer-overlay.open{opacity:1;visibility:visible}
-.drawer{position:fixed;top:0;left:0;bottom:0;width:280px;max-width:82vw;background:var(--canvas);border-right:1px solid var(--hairline);z-index:1600;transform:translateX(-100%);visibility:hidden;transition:transform .2s ease,visibility .2s;display:flex;flex-direction:column;padding-top:var(--safe-top)}
-.drawer.open{transform:translateX(0);visibility:visible}
-.drawer-header{padding:20px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:10px;font-weight:500;font-size:15px;letter-spacing:-0.01em}
-.drawer-nav{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
-.drawer-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--radius-btn);border:1px solid transparent;background:transparent;font:500 14px var(--font-family-base);color:var(--ink-body);cursor:pointer;min-height:40px;text-align:left;width:100%;transition:background var(--transition),color var(--transition)}
-.drawer-item:hover{background:var(--surface-subtle);color:var(--ink-primary)}
-.drawer-item.active{background:var(--surface-subtle);border-color:var(--border-chip-on);color:var(--ink-primary)}
-.drawer-item svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0}
-.drawer-item .badge{margin-left:auto;color:var(--ink-tertiary);font-size:11px;font-weight:500}
-a.drawer-item{text-decoration:none;color:var(--ink-body)}
-.drawer-footer{padding:16px 20px;border-top:1px solid var(--hairline);font-size:11px;color:var(--ink-secondary)}
+/* Info panel (single-nav IA) */
+.info-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px}
+.info-section summary{padding:14px 18px;font:600 15px var(--font-family-base);color:var(--ink-primary);cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:44px}
+.info-section summary::-webkit-details-marker{display:none}
+.info-section summary::after{content:'▾';color:var(--ink-tertiary);font-size:12px}
+.info-section[open] summary::after{content:'▴'}
+.info-section-body{padding:0 18px 16px;color:var(--ink-body);font-size:14px;line-height:1.6}
+.info-section-body p{margin:0 0 10px}
+.info-section-body a{color:var(--accent,#0e7490)}
+.info-section .sources-grid{padding:0 18px 16px}
 
-.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--canvas);border-top:1px solid var(--hairline);z-index:1000;padding-bottom:var(--safe-bottom)}
-body.is-mobile .bottom-nav{display:flex}
-.bottom-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;min-height:var(--bottomnav-h);border:none;background:none;cursor:pointer;color:var(--ink-secondary);font-size:11px;font-weight:500;position:relative}
-.bottom-nav-item svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.8;fill:none}
-.bottom-nav-item.active{color:var(--ink-primary)}
-a.bottom-nav-item{text-decoration:none;color:var(--ink-secondary)}
 .bottom-badge{position:absolute;top:4px;right:50%;transform:translateX(18px);color:var(--sev-high);font-size:10px;font-weight:500}
 
 .main{max-width:var(--max-width,1180px);margin:0 auto;padding:var(--space-block,24px) 16px;padding-left:calc(16px + var(--safe-left));padding-right:calc(16px + var(--safe-right))}
@@ -172,6 +162,14 @@ body.is-mobile .page-header .actions{width:100%}
 
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--space-block,24px);margin-bottom:var(--space-block,24px);padding:var(--space-tight,8px) 0;border-bottom:1px solid var(--hairline)}
 .stat-card{background:transparent;border:none;border-radius:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.stat-summary{display:flex;align-items:center;gap:10px;width:100%;background:var(--surface-subtle,transparent);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin:12px 0 16px;min-height:44px;font:600 13.5px var(--font-family-base);color:var(--ink-primary);cursor:pointer;text-align:left;justify-content:space-between}
+.stat-summary:hover{border-color:var(--border-chip-on)}
+.stat-summary strong{font-weight:700}
+.stat-summary-sep{color:var(--ink-tertiary)}
+.stat-summary svg{flex-shrink:0;transition:transform .2s ease}
+.stat-summary[aria-expanded="true"] svg{transform:rotate(180deg)}
+.stat-summary[aria-expanded="false"] svg{transform:rotate(0)}
+.data-bank-disclaimer{margin-top:16px;font-size:12px;color:var(--ink-secondary);text-align:center}
 .stat-icon{display:none}
 .stat-content{display:flex;flex-direction:column;gap:2px}
 .stat-label{font-size:var(--fs-label,0.7rem);font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-tertiary)}
@@ -209,7 +207,6 @@ body:not(.is-mobile) .map-top-section.collapsed ~ .map-container{height:calc(100
 /* Mobile Handsets: Full-bleed adaptive map fitted between header and bottom nav */
 body.is-mobile.tab-map-active{position:fixed!important;inset:0!important;width:100vw!important;height:100%!important;height:100dvh!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;overscroll-behavior:none!important}
 body.is-mobile.tab-map-active .site-header{flex-shrink:0!important;z-index:1000!important}
-body.is-mobile.tab-map-active .bottom-nav{flex-shrink:0!important;position:relative!important;z-index:1000!important;width:100%!important;box-shadow:0 -1px 8px rgba(0,0,0,.08)}
 body.is-mobile.tab-map-active .main{flex:1 1 0%!important;height:auto!important;min-height:0!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
 body.is-mobile.tab-map-active #tab-map{flex:1 1 0%!important;height:100%!important;min-height:0!important;width:100%!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;margin:0!important;padding:0!important}
 body.is-mobile.tab-map-active .map-top-section{flex-shrink:0!important;margin-bottom:0!important;padding:8px 12px!important;background:var(--surface)!important;border-bottom:1px solid var(--border)!important;max-height:180px;transition:max-height .25s cubic-bezier(.16,1,.3,1),opacity .2s ease,padding .2s ease!important}
@@ -226,27 +223,34 @@ body.is-mobile.tab-map-active #map{height:100%!important;width:100%!important;to
 /* Pure Chart Focus Mode */
 body.map-focus-active{overflow:hidden}
 body.map-focus-active .site-header,
-body.map-focus-active .bottom-nav,
 body.map-focus-active .site-footer,
-body.map-focus-active .map-top-section,
-body.map-focus-active .menu-toggle{display:none!important}
+body.map-focus-active .map-top-section{display:none!important}
 body.map-focus-active .main{padding:0!important;max-width:100vw!important;margin:0!important}
 body.map-focus-active .map-container{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;border-radius:0!important;border:none!important;z-index:1200!important}
 
-/* Map Controls Floating Chip */
-.map-controls-chip{position:absolute;top:14px;left:14px;z-index:520;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(255,255,255,.94);border:1px solid var(--border);border-radius:9999px;font:600 12px system-ui,-apple-system,sans-serif;color:var(--text);box-shadow:0 2px 10px rgba(0,0,0,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;transition:all .18s cubic-bezier(.16,1,.3,1);user-select:none;min-height:36px}
-.map-controls-chip:hover{background:var(--surface);border-color:var(--neutral);transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.12)}
-.map-controls-chip:active{transform:scale(.97)}
-.chip-dot{width:7px;height:7px;border-radius:50%;background:var(--active);animation:pulse 2s infinite}
-.chip-count{font-size:11px;font-weight:700;color:var(--text-muted);background:var(--border);padding:1px 6px;border-radius:8px}
-.chip-chevron{transition:transform .22s ease}
+/* Map Controls Floating Chip — full-width status row */
+.map-controls-chip{position:absolute;top:8px;left:8px;right:8px;width:auto;z-index:520;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(255,255,255,.97);border:1px solid var(--border);border-radius:12px;font:700 13px system-ui,-apple-system,sans-serif;color:var(--text);box-shadow:0 2px 10px rgba(0,0,0,.1);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;transition:all .18s cubic-bezier(.16,1,.3,1);user-select:none;min-height:36px}
+.map-controls-chip:hover{background:#fff;border-color:var(--neutral)}
+.map-controls-chip:active{transform:scale(.99)}
+.chip-dot{width:7px;height:7px;border-radius:50%;background:var(--active);animation:pulse 2s infinite;flex-shrink:0}
+.chip-count{font-size:11px;font-weight:700;color:var(--text);background:var(--border);padding:1px 6px;border-radius:8px;flex-shrink:0}
+.chip-chevron{transition:transform .22s ease;flex-shrink:0}
 .map-controls-chip.is-expanded .chip-chevron{transform:rotate(180deg)}
+
+/* Right-edge vertical control stack */
+.map-ctrl-topright{position:absolute;top:56px;right:8px;z-index:520;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.map-ctrl-topright button{width:44px;height:44px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:background .15s,border-color .15s,color .15s;padding:0}
+.map-ctrl-topright button:hover{border-color:var(--neutral)}
+.map-ctrl-topright button svg{stroke:currentColor;stroke-width:2;fill:none}
 #map{height:100%;width:100%}
 .leaflet-control-zoom, .leaflet-control-attribution{display:none!important}
 .leaflet-control-zoom{display:none!important}
-.map-warning-list{position:absolute;top:64px;right:16px;width:310px;max-height:calc(100% - 80px);overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;z-index:500;box-shadow:0 4px 14px rgba(0,0,0,.08);transition:width .22s ease,max-height .22s ease,height .22s ease}
+.map-warning-list{position:absolute;top:54px;right:16px;width:310px;max-height:calc(100% - 70px);overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;z-index:500;box-shadow:0 4px 14px rgba(0,0,0,.08);transition:width .22s ease,max-height .22s ease,height .22s ease}
 .map-warning-list.is-minimized{max-height:44px;overflow:hidden}
 .map-warning-list.is-minimized .warning-item, .map-warning-list.is-minimized .warning-item-empty{display:none}
+.map-warning-list.is-minimized .panel-header h2{display:none}
+.panel-peek-handle{display:none;width:36px;height:4px;border-radius:2px;background:var(--border);flex-shrink:0}
+.map-warning-list.is-minimized .panel-peek-handle{display:block}
 .map-warning-list.is-maximized{width:min(520px,calc(100% - 32px));height:calc(100% - 32px);max-height:calc(100% - 32px);z-index:600}
 body.is-mobile .map-warning-list{position:absolute;top:auto;bottom:10px;left:10px;right:10px;width:auto;max-height:230px}
 body.is-mobile .map-warning-list.is-minimized{max-height:44px}
@@ -286,7 +290,7 @@ body.is-mobile .coord-panel{top:58px;bottom:auto;left:10px;max-width:calc(100% -
 .coord-pin-tooltip{font:600 11px ui-monospace,monospace;background:var(--surface);border:1px solid var(--border);border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.12);color:var(--text)}
 .map-attribution{position:absolute;bottom:8px;right:8px;font-size:10px;color:var(--text-light);background:rgba(255,255,255,.8);padding:2px 6px;border-radius:4px;z-index:500}
 
-.filter-bar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:var(--space-block,24px);flex-wrap:wrap}
+.filter-bar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:var(--space-block,24px);flex-wrap:wrap;position:sticky;top:calc(var(--header-h,56px) + var(--safe-top,0px));z-index:900;background:var(--canvas);padding:10px 0;border-bottom:1px solid var(--hairline)}
 .search{flex:1;min-width:260px;max-width:640px}
 .search input{width:100%;padding:1rem 1.25rem;border:1px solid var(--border-input);border-radius:var(--radius-input,12px);font:400 1.05rem var(--font-family-base);background:var(--canvas);color:var(--ink-primary);min-height:48px;outline:none;transition:border-color var(--transition),box-shadow var(--transition)}
 .search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-halo)}
@@ -342,7 +346,8 @@ body.is-mobile .card-list{display:flex;flex-direction:column;gap:14px;margin-bot
 .warning-card-main{display:flex;flex-direction:column;gap:8px;width:100%}
 .warning-card-header{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .warning-card-id{font-weight:700;font-size:14px;color:var(--text);letter-spacing:-0.2px}
-.warning-card-title{font-size:15px;font-weight:600;line-height:1.35;color:var(--text);word-break:break-word}
+.warning-card-title{font-size:15px;font-weight:600;line-height:1.35;color:var(--text);word-break:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.warning-card.expanded .warning-card-title{-webkit-line-clamp:unset}
 .warning-card-meta{display:flex;gap:12px;font-size:12px;color:var(--text-muted);flex-wrap:wrap;align-items:center}
 .warning-card-expanded-body{padding-top:12px;border-top:1px dashed var(--border);display:flex;flex-direction:column;gap:12px;animation:fadeUp .2s ease;cursor:default}
 .warning-expanded-badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
@@ -395,7 +400,7 @@ body.is-mobile .navarea-select{width:100%}
 body.is-mobile .page-header .actions .btn{flex:1}
 
 .site-footer{background:var(--surface);border-top:1px solid var(--border);margin-top:64px;padding:24px;padding-bottom:calc(24px + var(--safe-bottom))}
-body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(--bottomnav-h))}
+body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
 .footer-inner{max-width:1400px;margin:0 auto;text-align:center;font-size:13px;color:var(--text-muted)}
 .footer-disclaimer{margin-top:8px;font-size:12px;color:var(--text-light);max-width:600px;margin-inline:auto}
 .footer-links{margin-top:10px;font-size:12px}
@@ -429,32 +434,14 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 
     <!-- PUBLIC NAV ONLY — no admin -->
     <nav class="main-nav" aria-label="Main navigation">
-      <div role="tablist" aria-label="Main navigation views" style="display:flex;gap:4px">
-        <button class="nav-tab active" data-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" id="tab-btn-map" onclick="switchTab('map')">Map View <span class="badge" id="nav-map-badge">0</span></button>
-        <button class="nav-tab" data-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" id="tab-btn-data" onclick="switchTab('data')">Data Bank <span class="badge" id="nav-data-badge">0</span></button>
-        <button class="nav-tab" data-tab="sources" role="tab" aria-selected="false" aria-controls="tab-sources" id="tab-btn-sources" onclick="switchTab('sources')">Sources</button>
-        <a class="nav-tab" href="/about" aria-label="About and disclaimer" title="About &amp; disclaimer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></a>
+      <div role="tablist" aria-label="Main navigation views" style="display:flex;gap:2px">
+        <button class="nav-tab stacked active" data-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" id="tab-btn-map" onclick="switchTab('map')" title="Map View"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg><span class="nav-tab-label">Map</span><span class="badge" id="nav-map-badge">0</span></button>
+        <button class="nav-tab stacked" data-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" id="tab-btn-data" onclick="switchTab('data')" title="Data Bank"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg><span class="nav-tab-label">Data</span><span class="badge" id="nav-data-badge">0</span></button>
+        <button class="nav-tab stacked" data-tab="info" role="tab" aria-selected="false" aria-controls="tab-info" id="tab-btn-info" onclick="switchTab('info')" title="Sources, Disclaimer & About"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span class="nav-tab-label">Info</span></button>
       </div>
     </nav>
-
-
-    <button class="menu-toggle" onclick="toggleDrawer()" aria-label="Navigation Menu" aria-expanded="false" aria-controls="drawer">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
   </div>
 </header>
-
-<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()" aria-hidden="true"></div>
-<nav class="drawer" id="drawer" aria-label="Mobile drawer navigation" aria-hidden="true">
-  <div class="drawer-header"><img class="logo-badge" src="/favicon.svg" alt="" aria-hidden="true"> HELM.WARNING</div>
-  <div class="drawer-nav">
-    <button class="drawer-item active" data-drawer-tab="map" onclick="switchTab('map');toggleDrawer()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>Map View<span class="badge" id="drawer-map-badge">0</span></button>
-    <button class="drawer-item" data-drawer-tab="data" onclick="switchTab('data');toggleDrawer()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>Data Bank<span class="badge" id="drawer-data-badge">0</span></button>
-    <button class="drawer-item" data-drawer-tab="sources" onclick="switchTab('sources');toggleDrawer()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>Sources</button>
-    <a class="drawer-item" href="/about"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>About &amp; Disclaimer</a>
-  </div>
-  <div class="drawer-footer">Automated decision-support system.<br>Not a substitute for GMDSS.</div>
-</nav>
 
 <main id="main" class="main" tabindex="-1">
 
@@ -519,9 +506,11 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
     </button>
 
     <div class="map-ctrl-topright" role="toolbar" aria-label="Map Navigation Controls">
-      <button type="button" class="map-recenter-pill-btn" onclick="resetMapView()" title="Re-center / Locate" aria-label="Re-center navigation area on map">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8"/></svg>
-        <span>Re-center</span>
+      <button type="button" class="map-locate-btn" id="btnMapLocate" onclick="locateMe()" title="My position" aria-label="Show my position">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <button type="button" class="map-recenter-pill-btn" onclick="resetMapView()" title="Fit all warnings" aria-label="Fit all warnings in view">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M4 4h4M4 4v4M20 4h-4M20 4v4M4 20h4M4 20v-4M20 20h-4M20 20v-4"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
       <button type="button" class="map-focus-btn" id="btnMapFocus" onclick="toggleMapFocusMode()" title="Maximize Map View (Focus Mode)" aria-label="Maximize map view full screen">
         <svg id="iconMapFocusMax" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -639,6 +628,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
     <div class="map-warning-list" id="mapWarningList">
       <div class="panel-header">
         <div style="display:flex;align-items:center;gap:8px">
+          <span class="panel-peek-handle" aria-hidden="true"></span>
           <h2>Active Warnings</h2>
           <span class="badge-simple badge-active" id="mapLiveBadge"><span class="dot"></span> 0 live</span>
         </div>
@@ -669,14 +659,23 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
       <span class="data-bank-count-pill" id="dataSubtitle">0 published warnings</span>
     </div>
     <div class="actions data-bank-actions">
-      <button class="btn btn-primary" id="btnRefreshSupabase" onclick="refreshSupabaseConnection()">
-        <svg style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-        <span>Refresh</span>
+      <button class="btn btn-primary" id="btnRefreshSupabase" onclick="refreshSupabaseConnection()" title="Refresh" aria-label="Refresh data">
+        <svg style="width:14px;height:14px;display:inline-block;vertical-align:-2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
       </button>
-      <button class="btn btn-secondary" onclick="showToast('Export not available for public users')">Export</button>
+      <button class="btn btn-secondary" onclick="showToast('Export not available for public users')" title="Export" aria-label="Export warnings">
+        <svg style="width:14px;height:14px;display:inline-block;vertical-align:-2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
     </div>
   </div>
-  <div class="stat-grid">
+  <button type="button" class="stat-summary" id="statSummaryToggle" onclick="toggleStatSummary()" aria-expanded="false" aria-controls="statGrid" title="Show metrics">
+    <span><strong id="statActive">0</strong> in force</span>
+    <span class="stat-summary-sep" aria-hidden="true">·</span>
+    <span id="statCoverage">0/21</span>
+    <span class="stat-summary-sep" aria-hidden="true">·</span>
+    <span><strong id="statGeo">100%</strong> geo</span>
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+  <div class="stat-grid collapsible" id="statGrid" hidden>
     <div class="stat-card">
       <div class="stat-icon active" aria-hidden="true">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M4.93 4.93a10 10 0 0 1 14.14 0M7.76 7.76a6 6 0 0 1 8.48 0"/></svg>
@@ -698,18 +697,6 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
         <div class="stat-value-row">
           <span class="stat-value" id="statCoverage">0/21</span>
           <span class="stat-sub" id="statCoverageSub">0% global</span>
-        </div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon high" aria-hidden="true">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Critical / High</div>
-        <div class="stat-value-row">
-          <span class="stat-value" id="statHigh">0</span>
-          <span class="stat-sub" id="statHighSub">0 warnings</span>
         </div>
       </div>
     </div>
@@ -820,25 +807,37 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
     <div class="table-footer"><span id="tableCount">Showing 1–0 of 0</span><span>Rows: 10</span></div>
   </div>
   <div class="card-list" id="cardList"></div>
+  <p class="data-bank-disclaimer">Automated decision-support system. Not a substitute for GMDSS — official broadcasts always take priority.</p>
 </div>
 
-<!-- SOURCES -->
-<div class="tab-panel" id="tab-sources" role="tabpanel" aria-labelledby="tab-btn-sources" hidden>
+<!-- INFO -->
+<div class="tab-panel" id="tab-info" role="tabpanel" aria-labelledby="tab-btn-info" hidden>
   <div class="page-header">
-    <div><h2>Source Registry</h2><p class="subtitle">14 verified feeds across 21 NAVAREAs</p></div>
+    <div><h2>Info</h2><p class="subtitle">Sources, safety disclaimer &amp; about</p></div>
   </div>
-  <div class="sources-grid" id="sourcesGrid"></div>
+  <details class="info-section" open>
+    <summary>Sources</summary>
+    <div class="info-section-body">
+      <p>Verified feeds across the 21 NAVAREA regions. <a href="/about#source-registry">Browse the full public source registry →</a></p>
+    </div>
+    <div class="sources-grid" id="sourcesGrid"></div>
+  </details>
+  <details class="info-section">
+    <summary>Disclaimer</summary>
+    <div class="info-section-body">
+      <p><strong>Helm.Warning is an automated decision-support system and is not a substitute for GMDSS.</strong></p>
+      <p>Official navigational warnings are broadcast via the Global Maritime Distress and Safety Service (GMDSS) and the World-Wide Navigational Warning Service (WWNWS). This convenience copy may be delayed or incomplete; official broadcasts and the Master's judgment always take priority. Do not use this site as the sole source of navigational safety information.</p>
+    </div>
+  </details>
+  <details class="info-section">
+    <summary>About</summary>
+    <div class="info-section-body">
+      <p>Helm.Warning is a free maritime safety information (MSI) cartography service aggregating in-force NAVAREA navigational warnings from official hydrographic authorities worldwide and rendering them on interactive nautical charts. No login or account is required.</p>
+      <p><a href="/about">Read the full about page &amp; disclaimer →</a></p>
+    </div>
+  </details>
 </div>
 </main>
-
-<nav class="bottom-nav" aria-label="Mobile bottom navigation">
-  <div role="tablist" aria-label="Mobile navigation views" style="display:flex;width:100%;align-items:center">
-    <button class="bottom-nav-item active" data-bottom-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" onclick="switchTab('map')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg><span>Map</span><span class="bottom-badge" id="bottomBadge">0</span></button>
-    <button class="bottom-nav-item" data-bottom-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" onclick="switchTab('data')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg><span>Data</span></button>
-    <button class="bottom-nav-item" data-bottom-tab="sources" role="tab" aria-selected="false" aria-controls="tab-sources" onclick="switchTab('sources')"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg><span>Sources</span></button>
-    <a class="bottom-nav-item" href="/about" aria-label="About and disclaimer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Info</span></a>
-  </div>
-</nav>
 
 <footer class="site-footer">
   <div class="footer-inner">
@@ -995,3 +994,4 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom) + var(
 </script>
 </body>
 </html>
+
