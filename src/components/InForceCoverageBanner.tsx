@@ -69,7 +69,7 @@ export const InForceCoverageBanner: React.FC<InForceCoverageBannerProps> = ({
   return (
     <div
       data-testid="in-force-coverage-banner"
-      className={`bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm transition-all ${className}`}
+      className={`bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm transition-all ${className}`}
     >
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gw-secondary/60">
@@ -83,7 +83,7 @@ export const InForceCoverageBanner: React.FC<InForceCoverageBannerProps> = ({
                 {`IN-FORCE STATUS: NAVAREA ${cleanNavarea}`}
               </span>
               {snapshot?.isAuthoritative && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-gw-primary text-white font-mono">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-gw-primary text-gw-bg font-mono">
                   Authoritative
                 </span>
               )}
@@ -121,7 +121,7 @@ export const InForceCoverageBanner: React.FC<InForceCoverageBannerProps> = ({
               data-testid="refresh-coverage-btn"
               onClick={() => onTriggerRefresh()}
               disabled={isRefreshing || isLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gw-primary text-gw-primary hover:bg-gw-bg rounded-lg text-xs font-bold transition-all cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-panel border border-gw-primary text-gw-primary hover:bg-gw-bg rounded-lg text-xs font-bold transition-all cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
               title="Refresh in-force notices from coordinator source"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isLoading ? 'animate-spin' : ''}`} />
