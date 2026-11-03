@@ -33,11 +33,11 @@ export const DataBankV2: React.FC<DataBankProps> = ({
   const model = useDataBankModel({ warnings, archivedWarnings, initialStatusFilter, initialNavAreaFilter, routeState, onRouteStateChange });
 
   return (
-    <div data-databank-v2 className="flex flex-col gap-6 font-sans max-w-[var(--max-width,1180px)] mx-auto p-4 w-full">
+    <div data-databank-v2 className="flex flex-col gap-6 font-sans p-4 w-full">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
         <div className="flex items-baseline gap-2.5">
-          <h1 className="text-2xl font-medium text-[var(--ink-primary,#0b0e11)] tracking-tight">Data bank</h1>
+          <h1 className="view-title">Data bank</h1>
           <span className="text-sm font-normal text-[var(--ink-secondary,#5f6b7a)]">
             {isLoading && warnings.length === 0 ? 'Syncing live warnings...' : (
               <>
