@@ -820,7 +820,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
           <select
             value={csvNavArea}
             onChange={(e) => setCsvNavArea(e.target.value as NavAreaId | 'AUTO')}
-            className="bg-white border border-gw-secondary text-gw-primary text-xs px-2.5 py-1 rounded font-bold focus:outline-none focus:ring-1 focus:ring-gw-primary"
+            className="bg-gw-panel border border-gw-secondary text-gw-primary text-xs px-2.5 py-1 rounded font-bold focus:outline-none focus:ring-1 focus:ring-gw-primary"
           >
             <option value="AUTO">Auto-detect from Data (e.g. XVII)</option>
             {Object.keys(NAVAREA_BOUNDS).map((area) => (
@@ -849,7 +849,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
           onClick={() => handleTabSwitch('markdown')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
             activeImportTab === 'markdown'
-              ? 'border-gw-primary text-gw-primary bg-white shadow-sm'
+              ? 'border-gw-primary text-gw-primary bg-gw-panel shadow-sm'
               : 'border-transparent text-gw-accent hover:text-gw-primary'
           }`}
         >
@@ -861,7 +861,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
           onClick={() => handleTabSwitch('paste')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
             activeImportTab === 'paste'
-              ? 'border-gw-primary text-gw-primary bg-white shadow-sm'
+              ? 'border-gw-primary text-gw-primary bg-gw-panel shadow-sm'
               : 'border-transparent text-gw-accent hover:text-gw-primary'
           }`}
         >
@@ -873,7 +873,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
           onClick={() => handleTabSwitch('file')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
             activeImportTab === 'file'
-              ? 'border-gw-primary text-gw-primary bg-white shadow-sm'
+              ? 'border-gw-primary text-gw-primary bg-gw-panel shadow-sm'
               : 'border-transparent text-gw-accent hover:text-gw-primary'
           }`}
         >
@@ -885,7 +885,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
           onClick={() => handleTabSwitch('api')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
             activeImportTab === 'api'
-              ? 'border-gw-primary text-gw-primary bg-white shadow-sm'
+              ? 'border-gw-primary text-gw-primary bg-gw-panel shadow-sm'
               : 'border-transparent text-gw-accent hover:text-gw-primary'
           }`}
         >
@@ -896,7 +896,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 0: AI Bulk Ingestion & Triage */}
       {activeImportTab === 'ai_bulk' && (
-        <div className="bg-white border-2 border-sky-600 p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
+        <div className="bg-gw-panel border-2 border-sky-600 p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-sky-900 uppercase tracking-wider flex items-center gap-2">
@@ -953,7 +953,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 <select
                   value={aiModel}
                   onChange={(e) => setAiModel(e.target.value)}
-                  className="bg-white border border-sky-300 text-sky-900 text-xs px-2.5 py-1 rounded font-bold focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  className="bg-gw-panel border border-sky-300 text-sky-900 text-xs px-2.5 py-1 rounded font-bold focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Fast / Recommended)</option>
                   <option value="gemini-flash-latest">Gemini Flash Latest</option>
@@ -966,7 +966,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 <select
                   value={aiBulkStrictness}
                   onChange={(e) => setAiBulkStrictness(e.target.value as any)}
-                  className="bg-white border border-sky-300 text-sky-900 text-xs px-2.5 py-1 rounded font-bold focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  className="bg-gw-panel border border-sky-300 text-sky-900 text-xs px-2.5 py-1 rounded font-bold focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="standard">Standard (Balanced Noise Filtering)</option>
                   <option value="strict">Strict (Require Coordinates & Strict IDs)</option>
@@ -993,7 +993,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               value={aiBulkText}
               onChange={(e) => setAiBulkText(e.target.value)}
               placeholder="Paste unstructured NAVAREA messages, scraped website text, raw bulletin feeds, or tabular rows..."
-              className="w-full h-56 font-mono text-xs p-3 bg-slate-900 text-emerald-300 border-2 border-sky-600/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-600 leading-relaxed shadow-inner"
+              className="w-full h-56 font-mono text-xs p-3 bg-gw-primary text-emerald-300 border-2 border-sky-600/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-600 leading-relaxed shadow-inner"
             />
           </div>
 
@@ -1030,7 +1030,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 0: Paste Markdown (.md) */}
       {activeImportTab === 'markdown' && (
-        <div className="bg-white border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
+        <div className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-gw-primary uppercase tracking-wider flex items-center gap-2">
@@ -1111,7 +1111,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 <select
                   value={aiModel}
                   onChange={(e) => setAiModel(e.target.value)}
-                  className="bg-white border border-gw-secondary text-gw-primary text-xs px-2 py-1 rounded font-bold"
+                  className="bg-gw-panel border border-gw-secondary text-gw-primary text-xs px-2 py-1 rounded font-bold"
                 >
                   <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Fast/Recommended)</option>
                   <option value="gemini-flash-latest">Gemini Flash Latest</option>
@@ -1131,7 +1131,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               className="w-full font-mono text-xs p-3.5 bg-gw-bg border-2 border-gw-secondary rounded-xl text-gw-primary focus:outline-none focus:border-gw-primary focus:ring-1 focus:ring-gw-primary transition-all resize-y leading-relaxed"
             />
             {markdownContent && (
-              <div className="absolute bottom-3 right-3 text-[11px] font-mono bg-white/95 border border-gw-secondary px-2 py-0.5 rounded text-gw-accent shadow-xs">
+              <div className="absolute bottom-3 right-3 text-[11px] font-mono bg-gw-panel/95 border border-gw-secondary px-2 py-0.5 rounded text-gw-accent shadow-xs">
                 {markdownContent.split('\n').length} lines · {(markdownContent.length / 1024).toFixed(1)} KB
               </div>
             )}
@@ -1161,7 +1161,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 1: Paste Raw Data */}
       {activeImportTab === 'paste' && (
-        <div className="bg-white border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
+        <div className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-gw-primary uppercase tracking-wider flex items-center gap-2">
@@ -1206,7 +1206,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               className="w-full font-mono text-xs p-3.5 bg-gw-bg border-2 border-gw-secondary rounded-xl text-gw-primary focus:outline-none focus:border-gw-primary focus:ring-1 focus:ring-gw-primary transition-all resize-y leading-relaxed"
             />
             {pasteContent && (
-              <div className="absolute bottom-3 right-3 text-[11px] font-mono bg-white/90 border border-gw-secondary px-2 py-0.5 rounded text-gw-accent">
+              <div className="absolute bottom-3 right-3 text-[11px] font-mono bg-gw-panel/90 border border-gw-secondary px-2 py-0.5 rounded text-gw-accent">
                 {pasteContent.split('\n').filter(Boolean).length} rows detected
               </div>
             )}
@@ -1236,7 +1236,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 2: File Upload (CSV, GPX, ZIP) */}
       {activeImportTab === 'file' && (
-        <div className="bg-white border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm">
+        <div className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <UploadCloud className="w-5 h-5 text-gw-primary" />
             <h2 className="text-base font-bold text-gw-primary uppercase tracking-wider">Bulk CSV, S-124 ZIP & GPX Import</h2>
@@ -1284,7 +1284,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 3: FreeOpenAPI Live Sync */}
       {activeImportTab === 'api' && (
-        <div className="bg-white border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm">
+        <div className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Globe className="w-5 h-5 text-gw-primary" />
             <h2 className="text-base font-bold text-gw-primary uppercase tracking-wider">FreeOpenAPI Live Sync</h2>
@@ -1356,12 +1356,12 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Parsed & Triaged Warnings Preview Card */}
       {(parsedWarnings.length > 0 || rejectedItems.length > 0) && (
-        <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm flex flex-col space-y-0">
+        <div className="bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm flex flex-col space-y-0">
           {/* AI Triage Summary KPI Metrics Strip */}
           {aiBulkStats && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 p-4 bg-slate-900 text-white border-b-2 border-gw-primary">
-              <div className="bg-slate-800/90 p-2.5 rounded-lg border border-slate-700">
-                <div className="text-[10px] uppercase font-bold text-slate-400">Total Evaluated</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 p-4 bg-gw-primary text-gw-bg border-b-2 border-gw-primary">
+              <div className="bg-gw-primary/90 p-2.5 rounded-lg border border-slate-700">
+                <div className="text-[10px] uppercase font-bold text-gw-accent">Total Evaluated</div>
                 <div className="text-xl font-black text-white">{aiBulkStats.total}</div>
               </div>
               <div className="bg-emerald-950/70 p-2.5 rounded-lg border border-emerald-700/60">
@@ -1443,7 +1443,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 onClick={() => setPreviewSubTab('accepted')}
                 className={`px-4 py-2 text-xs font-bold uppercase rounded-t-lg transition-colors flex items-center gap-2 ${
                   previewSubTab === 'accepted'
-                    ? 'bg-white text-emerald-800 border-t-2 border-x-2 border-emerald-600 shadow-xs'
+                    ? 'bg-gw-panel text-emerald-800 border-t-2 border-x-2 border-emerald-600 shadow-xs'
                     : 'text-gw-accent hover:text-gw-primary'
                 }`}
               >
@@ -1457,7 +1457,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                   onClick={() => setPreviewSubTab('rejected')}
                   className={`px-4 py-2 text-xs font-bold uppercase rounded-t-lg transition-colors flex items-center gap-2 ${
                     previewSubTab === 'rejected'
-                      ? 'bg-white text-red-800 border-t-2 border-x-2 border-red-600 shadow-xs'
+                      ? 'bg-gw-panel text-red-800 border-t-2 border-x-2 border-red-600 shadow-xs'
                       : 'text-gw-accent hover:text-red-600'
                   }`}
                 >
@@ -1510,7 +1510,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
               <div className="max-h-[600px] overflow-y-auto space-y-3">
                 {rejectedItems.map((rej, idx) => (
-                  <div key={rej.id || idx} className="bg-white border-2 border-red-300 rounded-xl p-4 flex flex-col gap-3 shadow-xs">
+                  <div key={rej.id || idx} className="bg-gw-panel border-2 border-red-300 rounded-xl p-4 flex flex-col gap-3 shadow-xs">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-bold bg-red-600 text-white px-2.5 py-1 rounded flex items-center gap-1">
@@ -1521,30 +1521,30 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                           [{rej.rejection_code}]
                         </span>
                         {rej.warning_id && (
-                          <span className="text-xs font-bold text-slate-800">
+                          <span className="text-xs font-bold text-gw-primary">
                             ID: {rej.warning_id}
                           </span>
                         )}
                         {rej.navarea && (
-                          <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                          <span className="text-xs font-bold text-gw-accent bg-gw-secondary px-2 py-0.5 rounded">
                             NAVAREA {rej.navarea}
                           </span>
                         )}
                         {rej.hazard_category && (
-                          <span className="text-xs font-medium text-slate-500">
+                          <span className="text-xs font-medium text-gw-accent">
                             Category: {rej.hazard_category}
                           </span>
                         )}
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <span className="text-[11px] font-semibold text-slate-500">
+                        <span className="text-[11px] font-semibold text-gw-accent">
                           Confidence: {(rej.confidence * 100).toFixed(0)}%
                         </span>
                         <button
                           type="button"
                           onClick={() => handleOverrideRejectToAccept(rej)}
-                          className="bg-slate-100 hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 border border-slate-300 hover:border-emerald-500 text-xs font-bold uppercase px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+                          className="bg-gw-secondary hover:bg-emerald-50 text-gw-primary hover:text-emerald-800 border border-gw-secondary hover:border-emerald-500 text-xs font-bold uppercase px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
                           title="Override Gemini's rejection and force acceptance of this notice into the staged warnings"
                         >
                           <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
@@ -1563,14 +1563,14 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                         {rej.rejection_reason}
                       </div>
                       {rej.understanding_summary && (
-                        <div className="text-[11px] text-slate-600 pt-1.5 border-t border-red-200 mt-1">
+                        <div className="text-[11px] text-gw-accent pt-1.5 border-t border-red-200 mt-1">
                           <strong>Snippet Context:</strong> {rej.understanding_summary}
                         </div>
                       )}
                     </div>
 
                     {/* Raw Snippet */}
-                    <div className="text-[11px] font-mono text-slate-700 bg-slate-100 p-2.5 rounded border border-slate-200 whitespace-pre-wrap max-h-28 overflow-y-auto leading-relaxed">
+                    <div className="text-[11px] font-mono text-gw-accent bg-gw-secondary p-2.5 rounded border border-gw-secondary whitespace-pre-wrap max-h-28 overflow-y-auto leading-relaxed">
                       {rej.raw_snippet}
                     </div>
                   </div>
@@ -1642,7 +1642,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                     const isAiAssessed = Boolean(warn.ai_triage);
 
                     return (
-                      <div key={warn.warning_id || i} className="bg-white border-2 border-gw-primary rounded-xl p-4 flex flex-col gap-3 shadow-xs">
+                      <div key={warn.warning_id || i} className="bg-gw-panel border-2 border-gw-primary rounded-xl p-4 flex flex-col gap-3 shadow-xs">
                         {/* Header Row */}
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex flex-wrap items-center gap-2">
@@ -1730,7 +1730,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                                 <span>Gemini AI Understanding:</span>
                               </span>
                               {warn.ai_triage.coordinate_sanity && (
-                                <span className="text-[10px] font-semibold text-slate-500">
+                                <span className="text-[10px] font-semibold text-gw-accent">
                                   Bounds Check: <span className="uppercase font-mono">{warn.ai_triage.coordinate_sanity}</span>
                                 </span>
                               )}
@@ -1796,40 +1796,40 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
       )}
       {/* Pre-Commit Confirmation Barrier Modal */}
       {isConfirmCommitOpen && (
-        <div className="fixed inset-0 z-console-overlay flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs">
-          <div ref={confirmRef} role="dialog" aria-modal="true" aria-labelledby="confirm-commit-title" className="bg-white border-2 border-emerald-600 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-console-overlay flex items-center justify-center p-4 bg-gw-primary/75 backdrop-blur-xs">
+          <div ref={confirmRef} role="dialog" aria-modal="true" aria-labelledby="confirm-commit-title" className="bg-gw-panel border-2 border-emerald-600 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-700 flex items-center justify-center shrink-0">
                 <Database className="w-5 h-5" />
               </div>
               <div>
-                <h3 id="confirm-commit-title" className="text-base font-bold text-slate-900 uppercase tracking-wider">
+                <h3 id="confirm-commit-title" className="text-base font-bold text-gw-primary uppercase tracking-wider">
                   Confirm Supabase Live Commit
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Target: PostgreSQL table <code className="font-mono font-bold text-slate-800">nav_warnings</code>
+                <p className="text-xs text-gw-accent">
+                  Target: PostgreSQL table <code className="font-mono font-bold text-gw-primary">nav_warnings</code>
                 </p>
               </div>
             </div>
 
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs space-y-2 text-slate-700">
-              <div className="flex justify-between pb-1.5 border-b border-slate-200">
-                <span className="font-medium text-slate-500">Total Staged Warnings:</span>
-                <span className="font-bold font-mono text-slate-900">{parsedWarnings.length}</span>
+            <div className="bg-gw-secondary border border-gw-secondary rounded-xl p-4 text-xs space-y-2 text-gw-accent">
+              <div className="flex justify-between pb-1.5 border-b border-gw-secondary">
+                <span className="font-medium text-gw-accent">Total Staged Warnings:</span>
+                <span className="font-bold font-mono text-gw-primary">{parsedWarnings.length}</span>
               </div>
-              <div className="flex justify-between pb-1.5 border-b border-slate-200">
-                <span className="font-medium text-slate-500">Validated GPS Features:</span>
+              <div className="flex justify-between pb-1.5 border-b border-gw-secondary">
+                <span className="font-medium text-gw-accent">Validated GPS Features:</span>
                 <span className="font-bold font-mono text-emerald-700">
                   {parsedWarnings.filter(w => (w.latitude != null && w.longitude != null) || (w.spatial?.geometries?.length > 0)).length}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="font-medium text-slate-500">Conflict Policy:</span>
-                <span className="font-bold text-slate-900">Upsert on (source_id, warning_id)</span>
+                <span className="font-medium text-gw-accent">Conflict Policy:</span>
+                <span className="font-bold text-gw-primary">Upsert on (source_id, warning_id)</span>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-gw-accent leading-relaxed">
               Writing these warnings will persist them to the live Supabase database and update active GIS geometries. This action takes immediate effect across all administrative and public views.
             </p>
 
@@ -1837,7 +1837,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               <button
                 type="button"
                 onClick={() => setIsConfirmCommitOpen(false)}
-                className="px-4 py-2 border border-slate-300 hover:bg-slate-100 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-700 transition-colors cursor-pointer"
+                className="px-4 py-2 border border-gw-secondary hover:bg-gw-secondary rounded-lg text-xs font-bold uppercase tracking-wider text-gw-accent transition-colors cursor-pointer"
               >
                 Cancel
               </button>

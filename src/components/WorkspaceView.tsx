@@ -61,16 +61,16 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             {attentionItems.slice(0, 4).map((item) => (
               <div
                 key={item.id}
-                className="bg-white border border-amber-200 rounded-lg p-3 flex items-start justify-between gap-3 shadow-2xs"
+                className="bg-gw-panel border border-amber-200 rounded-lg p-3 flex items-start justify-between gap-3 shadow-2xs"
               >
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className={`px-1.5 py-0.5 text-[10px] font-bold uppercase rounded border ${STATUS_LOOKUP[item.status].badgeClass}`}>
                       {STATUS_LOOKUP[item.status].symbol} {STATUS_LOOKUP[item.status].label}
                     </span>
-                    <span className="font-bold text-xs text-slate-900">{item.title}</span>
+                    <span className="font-bold text-xs text-gw-primary">{item.title}</span>
                   </div>
-                  <p className="text-xs text-slate-600 line-clamp-1">{item.reason}</p>
+                  <p className="text-xs text-gw-accent line-clamp-1">{item.reason}</p>
                 </div>
                 {item.warningId && onSelectWarning ? (
                   <button
@@ -97,34 +97,34 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
       )}
 
       {/* 2. Compressed Status Strip & Quick Actions */}
-      <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-2xs">
-        <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-800">
+      <div className="bg-gw-panel border border-gw-secondary rounded-xl p-3.5 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-gw-primary">
           <button
             onClick={() => onNavigateWithFilter ? onNavigateWithFilter('sources', 'unverified') : onNavigate?.('sources')}
             title="View sources (filtered to unverified if any)"
-            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1.5 bg-gw-secondary hover:bg-gw-secondary border border-gw-secondary rounded-lg transition-colors cursor-pointer"
           >
             <span className="text-emerald-600 font-bold">●</span>
-            <span className="text-slate-600">Registered Feeds:</span>
-            <span className="text-slate-900 font-bold">{activeSourcesCount}/{sources.length} Active</span>
+            <span className="text-gw-accent">Registered Feeds:</span>
+            <span className="text-gw-primary font-bold">{activeSourcesCount}/{sources.length} Active</span>
           </button>
           <button
             onClick={() => onNavigateWithFilter ? onNavigateWithFilter('databank', 'unverified') : onNavigate?.('databank')}
             title="Jump to candidate warnings requiring verification"
-            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1.5 bg-gw-secondary hover:bg-gw-secondary border border-gw-secondary rounded-lg transition-colors cursor-pointer"
           >
             <span className="text-emerald-600 font-bold">●</span>
-            <span className="text-slate-600">Active NAVWARNs:</span>
-            <span className="text-slate-900 font-bold">{warnings.filter((w) => w.status === 'active').length} Published</span>
+            <span className="text-gw-accent">Active NAVWARNs:</span>
+            <span className="text-gw-primary font-bold">{warnings.filter((w) => w.status === 'active').length} Published</span>
           </button>
           <button
             onClick={() => onNavigate?.('supabase')}
-            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1.5 bg-gw-secondary hover:bg-gw-secondary border border-gw-secondary rounded-lg transition-colors cursor-pointer"
           >
             <span className={supabaseConnected ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
               ●
             </span>
-            <span className="text-slate-600">Supabase Server:</span>
+            <span className="text-gw-accent">Supabase Server:</span>
             <span className={supabaseConnected ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
               {supabaseConnected ? 'Connected' : 'Offline'}
             </span>
@@ -153,97 +153,97 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-3">
           <button
             onClick={() => onNavigate?.('sources')}
-            className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-300 hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
+            className="bg-gw-panel border border-gw-secondary rounded-xl p-4 text-left hover:border-gw-secondary hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50">
-                <Database className="w-4 h-4 text-slate-700" />
+              <div className="w-8 h-8 border border-gw-secondary rounded-lg flex items-center justify-center bg-gw-secondary">
+                <Database className="w-4 h-4 text-gw-accent" />
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-0.5 transition-all" />
             </div>
             <div>
-              <div className="text-sm font-bold text-slate-900">Candidate Sources</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">{sources.length} Registered Feeds</div>
+              <div className="text-sm font-bold text-gw-primary">Candidate Sources</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">{sources.length} Registered Feeds</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('manual')}
-            className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-300 hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
+            className="bg-gw-panel border border-gw-secondary rounded-xl p-4 text-left hover:border-gw-secondary hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50">
-                <Edit3 className="w-4 h-4 text-slate-700" />
+              <div className="w-8 h-8 border border-gw-secondary rounded-lg flex items-center justify-center bg-gw-secondary">
+                <Edit3 className="w-4 h-4 text-gw-accent" />
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-0.5 transition-all" />
             </div>
             <div>
-              <div className="text-sm font-bold text-slate-900">Manual Parser</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Deterministic &amp; Gemini AI</div>
+              <div className="text-sm font-bold text-gw-primary">Manual Parser</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">Deterministic &amp; Gemini AI</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('imports')}
-            className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-300 hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
+            className="bg-gw-panel border border-gw-secondary rounded-xl p-4 text-left hover:border-gw-secondary hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50">
-                <Upload className="w-4 h-4 text-slate-700" />
+              <div className="w-8 h-8 border border-gw-secondary rounded-lg flex items-center justify-center bg-gw-secondary">
+                <Upload className="w-4 h-4 text-gw-accent" />
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-0.5 transition-all" />
             </div>
             <div>
-              <div className="text-sm font-bold text-slate-900">Bulk Imports</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">CSV, GPX, S-124 ZIP</div>
+              <div className="text-sm font-bold text-gw-primary">Bulk Imports</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">CSV, GPX, S-124 ZIP</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('audit')}
-            className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-300 hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
+            className="bg-gw-panel border border-gw-secondary rounded-xl p-4 text-left hover:border-gw-secondary hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50">
-                <Shield className="w-4 h-4 text-slate-700" />
+              <div className="w-8 h-8 border border-gw-secondary rounded-lg flex items-center justify-center bg-gw-secondary">
+                <Shield className="w-4 h-4 text-gw-accent" />
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-0.5 transition-all" />
             </div>
             <div>
-              <div className="text-sm font-bold text-slate-900">Audit Pointer Log</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Generations &amp; History</div>
+              <div className="text-sm font-bold text-gw-primary">Audit Pointer Log</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">Generations &amp; History</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('evidence')}
-            className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-300 hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
+            className="bg-gw-panel border border-gw-secondary rounded-xl p-4 text-left hover:border-gw-secondary hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50">
-                <Archive className="w-4 h-4 text-slate-700" />
+              <div className="w-8 h-8 border border-gw-secondary rounded-lg flex items-center justify-center bg-gw-secondary">
+                <Archive className="w-4 h-4 text-gw-accent" />
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-0.5 transition-all" />
             </div>
             <div>
-              <div className="text-sm font-bold text-slate-900">Evidence Locker</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">SHA-256 Raw Artifacts</div>
+              <div className="text-sm font-bold text-gw-primary">Evidence Locker</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">SHA-256 Raw Artifacts</div>
             </div>
           </button>
 
           <button
             onClick={() => onNavigate?.('supabase')}
-            className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-300 hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
+            className="bg-gw-panel border border-gw-secondary rounded-xl p-4 text-left hover:border-gw-secondary hover:shadow-xs transition-all group flex flex-col justify-between min-h-[110px] cursor-pointer"
           >
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50">
-                <HardDrive className="w-4 h-4 text-slate-700" />
+              <div className="w-8 h-8 border border-gw-secondary rounded-lg flex items-center justify-center bg-gw-secondary">
+                <HardDrive className="w-4 h-4 text-gw-accent" />
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-4 h-4 text-gw-accent group-hover:text-gw-primary group-hover:translate-x-0.5 transition-all" />
             </div>
             <div>
-              <div className="text-sm font-bold text-slate-900">Supabase Server</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Storage &amp; Sync Status</div>
+              <div className="text-sm font-bold text-gw-primary">Supabase Server</div>
+              <div className="text-[10px] text-gw-accent mt-0.5">Storage &amp; Sync Status</div>
             </div>
           </button>
         </div>
@@ -254,36 +254,36 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         {/* Main Column */}
         <div className="flex flex-col gap-6 sm:gap-8">
           {/* Pipeline Card */}
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 bg-slate-50/80 gap-2">
-              <div className="text-sm sm:text-base font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2 sm:gap-3">
-                <div className="w-6 h-6 sm:w-7 sm:h-7 border border-slate-300 rounded flex items-center justify-center shrink-0 bg-white">
-                  <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
+          <div className="bg-gw-panel border border-gw-secondary rounded-xl overflow-hidden shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gw-secondary bg-gw-secondary/80 gap-2">
+              <div className="text-sm sm:text-base font-bold uppercase tracking-wider text-gw-primary flex items-center gap-2 sm:gap-3">
+                <div className="w-6 h-6 sm:w-7 sm:h-7 border border-gw-secondary rounded flex items-center justify-center shrink-0 bg-gw-panel">
+                  <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gw-accent" />
                 </div>
                 Ingestion Pipeline Overview
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase">LIVE SESSION METRICS</span>
+                <span className="text-[10px] sm:text-xs text-gw-accent font-bold uppercase">LIVE SESSION METRICS</span>
               </div>
             </div>
             
             <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="relative bg-slate-50/60 border border-slate-200 rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5 shadow-2xs">
-                <div className="absolute top-0 left-0 w-full h-1 bg-slate-900 rounded-t-lg"></div>
-                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-slate-400">01</span>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 border border-slate-300 rounded-lg flex items-center justify-center mb-2 sm:mb-3 bg-white">
-                  <Database className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800" />
+              <div className="relative bg-gw-secondary/60 border border-gw-secondary rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5 shadow-2xs">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gw-primary rounded-t-lg"></div>
+                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-gw-accent">01</span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gw-secondary rounded-lg flex items-center justify-center mb-2 sm:mb-3 bg-gw-panel">
+                  <Database className="w-4 h-4 sm:w-5 sm:h-5 text-gw-primary" />
                 </div>
-                <div className="text-sm sm:text-base font-bold text-slate-900 mb-1">Fetch Sources</div>
-                <div className="text-[11px] sm:text-xs text-slate-500 mb-3 sm:mb-4 leading-relaxed">Poll NAVAREA coordinators via HTTPS.</div>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-200">
+                <div className="text-sm sm:text-base font-bold text-gw-primary mb-1">Fetch Sources</div>
+                <div className="text-[11px] sm:text-xs text-gw-accent mb-3 sm:mb-4 leading-relaxed">Poll NAVAREA coordinators via HTTPS.</div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-gw-secondary">
                   <div>
-                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">ENABLED</div>
-                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{activeSourcesCount}/{sources.length}</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-gw-accent font-semibold">ENABLED</div>
+                    <div className="text-sm sm:text-base font-bold text-gw-primary mt-0.5">{activeSourcesCount}/{sources.length}</div>
                   </div>
                   <div>
-                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">VERIFIED</div>
-                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{verifiedSourcesCount}</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-gw-accent font-semibold">VERIFIED</div>
+                    <div className="text-sm sm:text-base font-bold text-gw-primary mt-0.5">{verifiedSourcesCount}</div>
                   </div>
                 </div>
                 <div className="mt-3 flex justify-end items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase text-emerald-700">
@@ -291,22 +291,22 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 </div>
               </div>
 
-              <div className="relative bg-slate-50/60 border border-slate-200 rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5 shadow-2xs">
-                <div className="absolute top-0 left-0 w-full h-1 bg-slate-900 rounded-t-lg"></div>
-                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-slate-400">02</span>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 border border-slate-300 rounded-lg flex items-center justify-center mb-2 sm:mb-3 bg-white">
-                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800" />
+              <div className="relative bg-gw-secondary/60 border border-gw-secondary rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5 shadow-2xs">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gw-primary rounded-t-lg"></div>
+                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-gw-accent">02</span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gw-secondary rounded-lg flex items-center justify-center mb-2 sm:mb-3 bg-gw-panel">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-gw-primary" />
                 </div>
-                <div className="text-sm sm:text-base font-bold text-slate-900 mb-1">Parse &amp; Normalize</div>
-                <div className="text-[11px] sm:text-xs text-slate-500 mb-3 sm:mb-4 leading-relaxed">Tokenize raw text into structured records.</div>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-200">
+                <div className="text-sm sm:text-base font-bold text-gw-primary mb-1">Parse &amp; Normalize</div>
+                <div className="text-[11px] sm:text-xs text-gw-accent mb-3 sm:mb-4 leading-relaxed">Tokenize raw text into structured records.</div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-gw-secondary">
                   <div>
-                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">ACTIVE</div>
-                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{activeWarningsCount}</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-gw-accent font-semibold">ACTIVE</div>
+                    <div className="text-sm sm:text-base font-bold text-gw-primary mt-0.5">{activeWarningsCount}</div>
                   </div>
                   <div>
-                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">REVIEW</div>
-                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{unverifiedWarningsCount}</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-gw-accent font-semibold">REVIEW</div>
+                    <div className="text-sm sm:text-base font-bold text-gw-primary mt-0.5">{unverifiedWarningsCount}</div>
                   </div>
                 </div>
                 <div className="mt-3 flex justify-end items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase text-emerald-700">
@@ -314,22 +314,22 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 </div>
               </div>
 
-              <div className="relative bg-slate-50/60 border border-slate-200 rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5 shadow-2xs">
-                <div className="absolute top-0 left-0 w-full h-1 bg-slate-900 rounded-t-lg"></div>
-                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-slate-400">03</span>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 border border-slate-300 rounded-lg flex items-center justify-center mb-2 sm:mb-3 bg-white">
-                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800" />
+              <div className="relative bg-gw-secondary/60 border border-gw-secondary rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5 shadow-2xs">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gw-primary rounded-t-lg"></div>
+                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-gw-accent">03</span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gw-secondary rounded-lg flex items-center justify-center mb-2 sm:mb-3 bg-gw-panel">
+                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-gw-primary" />
                 </div>
-                <div className="text-sm sm:text-base font-bold text-slate-900 mb-1">Geocode Geometry</div>
-                <div className="text-[11px] sm:text-xs text-slate-500 mb-3 sm:mb-4 leading-relaxed">Extract lat/lon points, polygons, circles.</div>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-200">
+                <div className="text-sm sm:text-base font-bold text-gw-primary mb-1">Geocode Geometry</div>
+                <div className="text-[11px] sm:text-xs text-gw-accent mb-3 sm:mb-4 leading-relaxed">Extract lat/lon points, polygons, circles.</div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-gw-secondary">
                   <div>
-                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">SPATIAL</div>
-                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{spatialCount}</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-gw-accent font-semibold">SPATIAL</div>
+                    <div className="text-sm sm:text-base font-bold text-gw-primary mt-0.5">{spatialCount}</div>
                   </div>
                   <div>
-                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">PARSERS</div>
-                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{deterministicCount}D/{aiCount}AI</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-gw-accent font-semibold">PARSERS</div>
+                    <div className="text-sm sm:text-base font-bold text-gw-primary mt-0.5">{deterministicCount}D/{aiCount}AI</div>
                   </div>
                 </div>
                 <div className="mt-3 flex justify-end items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase text-emerald-700">
@@ -337,22 +337,22 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 </div>
               </div>
 
-              <div className="relative bg-slate-50/60 border border-slate-200 rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5 shadow-2xs">
-                <div className="absolute top-0 left-0 w-full h-1 bg-slate-900 rounded-t-lg"></div>
-                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-slate-400">04</span>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 border border-slate-300 rounded-lg flex items-center justify-center mb-2 sm:mb-3 bg-white">
-                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800" />
+              <div className="relative bg-gw-secondary/60 border border-gw-secondary rounded-lg p-3.5 sm:p-4 pt-4 sm:pt-5 shadow-2xs">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gw-primary rounded-t-lg"></div>
+                <span className="absolute top-3 right-3 sm:right-4 text-[10px] font-bold text-gw-accent">04</span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gw-secondary rounded-lg flex items-center justify-center mb-2 sm:mb-3 bg-gw-panel">
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-gw-primary" />
                 </div>
-                <div className="text-sm sm:text-base font-bold text-slate-900 mb-1">Publish Generation</div>
-                <div className="text-[11px] sm:text-xs text-slate-500 mb-3 sm:mb-4 leading-relaxed">Atomic pointer swap to active warnings.</div>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-slate-200">
+                <div className="text-sm sm:text-base font-bold text-gw-primary mb-1">Publish Generation</div>
+                <div className="text-[11px] sm:text-xs text-gw-accent mb-3 sm:mb-4 leading-relaxed">Atomic pointer swap to active warnings.</div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t border-gw-secondary">
                   <div>
-                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">GENERATIONS</div>
-                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{generations.length}</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-gw-accent font-semibold">GENERATIONS</div>
+                    <div className="text-sm sm:text-base font-bold text-gw-primary mt-0.5">{generations.length}</div>
                   </div>
                   <div>
-                    <div className="text-[9px] sm:text-[10px] uppercase text-slate-400 font-semibold">STORAGE</div>
-                    <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">{supabaseConnected ? 'LIVE' : 'LOCAL'}</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase text-gw-accent font-semibold">STORAGE</div>
+                    <div className="text-sm sm:text-base font-bold text-gw-primary mt-0.5">{supabaseConnected ? 'LIVE' : 'LOCAL'}</div>
                   </div>
                 </div>
                 <div className="mt-3 flex justify-end items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase text-emerald-700">
@@ -363,11 +363,11 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           </div>
 
           {/* Activity / Generation Card */}
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-            <div className="flex justify-between items-center px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 bg-slate-50/80">
-              <div className="text-sm sm:text-base font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2 sm:gap-3">
-                <div className="w-6 h-6 sm:w-7 sm:h-7 border border-slate-300 rounded flex items-center justify-center shrink-0 bg-white">
-                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
+          <div className="bg-gw-panel border border-gw-secondary rounded-xl overflow-hidden shadow-2xs">
+            <div className="flex justify-between items-center px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gw-secondary bg-gw-secondary/80">
+              <div className="text-sm sm:text-base font-bold uppercase tracking-wider text-gw-primary flex items-center gap-2 sm:gap-3">
+                <div className="w-6 h-6 sm:w-7 sm:h-7 border border-gw-secondary rounded flex items-center justify-center shrink-0 bg-gw-panel">
+                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gw-accent" />
                 </div>
                 Ingestion Generations &amp; Activity
               </div>
@@ -400,14 +400,14 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   );
                 })
               ) : (
-                <div className="py-4 text-center text-slate-400 space-y-2">
+                <div className="py-4 text-center text-gw-accent space-y-2">
                   <p>No automated background cycles recorded in this session.</p>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[10px] text-gw-accent">
                     Operating on live synchronized store ({warnings.length} warnings across {sources.length} sources).
                   </p>
                   <button
                     onClick={() => setIsIngestionProcedureOpen?.(true)}
-                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded text-[11px] font-sans font-bold uppercase transition-colors"
+                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-gw-primary hover:bg-slate-700 text-slate-200 border border-slate-600 rounded text-[11px] font-sans font-bold uppercase transition-colors"
                   >
                     Open Ingestion Procedure →
                   </button>
@@ -419,7 +419,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
         {/* Side Column: Source Health */}
         <div className="flex flex-col gap-6 sm:gap-8">
-          <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden h-full flex flex-col shadow-sm">
+          <div className="bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden h-full flex flex-col shadow-sm">
             <div className="flex justify-between items-center px-4 sm:px-6 py-3.5 sm:py-4 border-b-2 border-gw-primary">
               <div className="text-base sm:text-lg font-bold uppercase tracking-wider flex items-center gap-2 sm:gap-3">
                 <div className="w-6 h-6 sm:w-7 sm:h-7 border border-gw-primary rounded flex items-center justify-center shrink-0">

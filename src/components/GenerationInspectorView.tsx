@@ -38,7 +38,7 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
   return (
     <div className="w-full space-y-6">
       {/* Title */}
-      <div className="bg-white border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
         <div>
           <h2 className="text-base font-bold text-gw-primary flex items-center gap-2 uppercase tracking-wider">
             <Activity className="w-5 h-5 text-gw-primary" />
@@ -56,7 +56,7 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
       </div>
 
       {/* Active Pointers Table */}
-      <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
         <div className="p-4 border-b-2 border-gw-primary bg-gw-bg">
           <h3 className="text-sm font-bold text-gw-primary flex items-center gap-2 uppercase tracking-wider">
             <Layers className="w-4 h-4 text-gw-primary" />
@@ -93,7 +93,7 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
       </div>
 
       {/* Ingestion Generation Log */}
-      <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
         <div className="p-4 border-b-2 border-gw-primary bg-gw-bg">
           <h3 className="text-sm font-bold text-gw-primary flex items-center gap-2 uppercase tracking-wider">
             <Activity className="w-4 h-4 text-gw-primary" />
@@ -166,7 +166,7 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
       </div>
 
       {/* Pipeline Run Ledger (pipeline_runs) */}
-      <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
         <div className="p-4 border-b-2 border-gw-primary bg-gw-bg flex items-center justify-between">
           <h3 className="text-sm font-bold text-gw-primary flex items-center gap-2 uppercase tracking-wider">
             <RefreshCw className={'w-4 h-4 text-gw-primary shrink-0' + (runsLoading ? ' animate-spin' : '')} />

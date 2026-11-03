@@ -14,7 +14,7 @@ export const EvidenceLockerView: React.FC<EvidenceLockerViewProps> = ({ artifact
   return (
     <div className="w-full space-y-6">
       {/* Title & Info */}
-      <div className="bg-white border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
         <div>
           <h2 className="text-base font-bold text-gw-primary flex items-center gap-2 uppercase tracking-wider">
             <Archive className="w-5 h-5 text-gw-primary" />
@@ -33,7 +33,7 @@ export const EvidenceLockerView: React.FC<EvidenceLockerViewProps> = ({ artifact
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Artifact List */}
-        <div className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 space-y-3 shadow-sm">
+        <div className="bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl p-4 space-y-3 shadow-sm">
           <div className="text-xs font-bold text-gw-primary uppercase tracking-wider border-b-2 border-gw-primary pb-2">
             Stored Raw Artifacts
           </div>
@@ -48,7 +48,7 @@ export const EvidenceLockerView: React.FC<EvidenceLockerViewProps> = ({ artifact
                   className={`p-3 rounded-lg border-2 transition-all cursor-pointer text-xs space-y-1.5 ${
                     isSelected
                       ? 'bg-gw-bg border-gw-primary text-gw-primary shadow-sm'
-                      : 'bg-white border-gw-secondary hover:border-gw-primary text-gw-primary'
+                      : 'bg-gw-panel border-gw-secondary hover:border-gw-primary text-gw-primary'
                   }`}
                   tabIndex={0}
                   onKeyDown={(e) => {
@@ -76,7 +76,7 @@ export const EvidenceLockerView: React.FC<EvidenceLockerViewProps> = ({ artifact
         </div>
 
         {/* Selected Artifact Inspector */}
-        <div className="lg:col-span-2 bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl p-5 space-y-4 shadow-sm">
+        <div className="lg:col-span-2 bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl p-5 space-y-4 shadow-sm">
           {selectedArtifact ? (
             <>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b-2 border-gw-primary pb-3">
