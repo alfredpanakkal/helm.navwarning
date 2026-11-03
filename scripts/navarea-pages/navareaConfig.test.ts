@@ -209,7 +209,7 @@ describe('Warning detail pages', () => {
   it('includes detail URLs in the sitemap when provided', () => {
     const xml = buildSitemapXml('2026-10-25', ['/navarea/XI/warning/0451-26', '/navarea/IV/warning/1157-21']);
     const locs = (xml.match(/<loc>/g) || []).length;
-    expect(locs).toBe(26);
+    expect(locs).toBe(25); // 23 base routes (home, about, 21 regions) + 2 detail URLs
     expect(xml).toContain(SITE_URL + '/navarea/XI/warning/0451-26');
     expect(xml).toContain(SITE_URL + '/navarea/IV/warning/1157-21');
   });
