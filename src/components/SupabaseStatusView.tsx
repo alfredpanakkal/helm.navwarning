@@ -439,7 +439,7 @@ CREATE TABLE public.raw_messages (
               <Sparkles className="w-4 h-4 text-indigo-500" />
               <span>Click "Test Gemini Integration" to perform a real-time server API operational check.</span>
             </div>
-            <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Status: Ready</span>
+            <span className="text-[10px] text-gw-accent uppercase tracking-wider">Status: Ready</span>
           </div>
         )}
       </div>

@@ -520,7 +520,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                     </span>
 
                     {/* Severity Badge */}
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white shrink-0 ${isCritical ? 'bg-gw-primary' : 'bg-gw-tertiary'}`}>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-gw-bg shrink-0 ${isCritical ? 'bg-gw-primary' : 'bg-gw-tertiary'}`}>
                       {isCritical ? 'CRITICAL' : 'HIGH'}
                     </span>
                   </div>
@@ -688,10 +688,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 key={field}
                 type="button"
                 onClick={() => handleSort(field)}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded transition-all font-mono cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded transition-all font-mono cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
                   sortField === field
-                    ? 'bg-gw-bg/20 text-gw-bg font-bold ring-1 ring-white/30 shadow-xs'
-                    : 'text-gw-secondary hover:bg-gw-panel/10 hover:text-white'
+                    ? 'bg-gw-bg/20 text-gw-bg font-bold ring-1 ring-gw-bg/30 shadow-xs'
+                    : 'text-gw-secondary hover:bg-gw-panel/10 hover:text-gw-bg'
                 }`}
                 title={getSortLabel(field, field === 'area' ? 'NAVAREA' : label)}
                 aria-sort={sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -699,9 +699,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 <span className="truncate">{label}</span>
                 {sortField === field ? (
                   sortDirection === 'asc' ? (
-                    <ArrowUp className="w-3 h-3 text-white shrink-0" />
+                    <ArrowUp className="w-3 h-3 text-gw-bg shrink-0" />
                   ) : (
-                    <ArrowDown className="w-3 h-3 text-white shrink-0" />
+                    <ArrowDown className="w-3 h-3 text-gw-bg shrink-0" />
                   )
                 ) : (
                   <ArrowUpDown className="w-3 h-3 opacity-30 shrink-0" />
@@ -724,10 +724,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
           <button
             type="button"
             onClick={() => handleSort('id')}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
               sortField === 'id'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
             }`}
             title={getSortLabel('id', 'Warning ID')}
             aria-sort={sortField === 'id' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -735,9 +735,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             <span className="truncate">ID</span>
             {sortField === 'id' ? (
               sortDirection === 'asc' ? (
-                <ArrowUp className="w-3 h-3 text-white shrink-0" />
+                <ArrowUp className="w-3 h-3 text-gw-bg shrink-0" />
               ) : (
-                <ArrowDown className="w-3 h-3 text-white shrink-0" />
+                <ArrowDown className="w-3 h-3 text-gw-bg shrink-0" />
               )
             ) : (
               <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -748,10 +748,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
           <button
             type="button"
             onClick={() => handleSort('area')}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
               sortField === 'area'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
             }`}
             title={getSortLabel('area', 'NAVAREA')}
             aria-sort={sortField === 'area' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -759,9 +759,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             <span className="truncate">AREA</span>
             {sortField === 'area' ? (
               sortDirection === 'asc' ? (
-                <ArrowUp className="w-3 h-3 text-white shrink-0" />
+                <ArrowUp className="w-3 h-3 text-gw-bg shrink-0" />
               ) : (
-                <ArrowDown className="w-3 h-3 text-white shrink-0" />
+                <ArrowDown className="w-3 h-3 text-gw-bg shrink-0" />
               )
             ) : (
               <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -772,10 +772,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
           <button
             type="button"
             onClick={() => handleSort('title')}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
               sortField === 'title'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
             }`}
             title={getSortLabel('title', 'Title & Summary')}
             aria-sort={sortField === 'title' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -783,9 +783,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             <span className="truncate">TITLE</span>
             {sortField === 'title' ? (
               sortDirection === 'asc' ? (
-                <ArrowUp className="w-3 h-3 text-white shrink-0" />
+                <ArrowUp className="w-3 h-3 text-gw-bg shrink-0" />
               ) : (
-                <ArrowDown className="w-3 h-3 text-white shrink-0" />
+                <ArrowDown className="w-3 h-3 text-gw-bg shrink-0" />
               )
             ) : (
               <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -796,10 +796,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
           <button
             type="button"
             onClick={() => handleSort('severity')}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
               sortField === 'severity'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
             }`}
             title={getSortLabel('severity', 'Severity & Confidence')}
             aria-sort={sortField === 'severity' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -807,9 +807,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             <span className="truncate">SEVERITY</span>
             {sortField === 'severity' ? (
               sortDirection === 'asc' ? (
-                <ArrowUp className="w-3 h-3 text-white shrink-0" />
+                <ArrowUp className="w-3 h-3 text-gw-bg shrink-0" />
               ) : (
-                <ArrowDown className="w-3 h-3 text-white shrink-0" />
+                <ArrowDown className="w-3 h-3 text-gw-bg shrink-0" />
               )
             ) : (
               <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -820,10 +820,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
           <button
             type="button"
             onClick={() => handleSort('coords')}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
               sortField === 'coords'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
             }`}
             title={getSortLabel('coords', 'Coordinates')}
             aria-sort={sortField === 'coords' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -831,9 +831,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             <span className="truncate">COORDS</span>
             {sortField === 'coords' ? (
               sortDirection === 'asc' ? (
-                <ArrowUp className="w-3 h-3 text-white shrink-0" />
+                <ArrowUp className="w-3 h-3 text-gw-bg shrink-0" />
               ) : (
-                <ArrowDown className="w-3 h-3 text-white shrink-0" />
+                <ArrowDown className="w-3 h-3 text-gw-bg shrink-0" />
               )
             ) : (
               <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -844,10 +844,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
           <button
             type="button"
             onClick={() => handleSort('issued')}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
               sortField === 'issued'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
             }`}
             title={getSortLabel('issued', 'Issued Date')}
             aria-sort={sortField === 'issued' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -855,9 +855,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             <span className="truncate">ISSUED</span>
             {sortField === 'issued' ? (
               sortDirection === 'asc' ? (
-                <ArrowUp className="w-3 h-3 text-white shrink-0" />
+                <ArrowUp className="w-3 h-3 text-gw-bg shrink-0" />
               ) : (
-                <ArrowDown className="w-3 h-3 text-white shrink-0" />
+                <ArrowDown className="w-3 h-3 text-gw-bg shrink-0" />
               )
             ) : (
               <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -868,10 +868,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
           <button
             type="button"
             onClick={() => handleSort('status')}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
               sortField === 'status'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
             }`}
             title={getSortLabel('status', 'Warning Status')}
             aria-sort={sortField === 'status' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -879,9 +879,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             <span className="truncate">STATUS</span>
             {sortField === 'status' ? (
               sortDirection === 'asc' ? (
-                <ArrowUp className="w-3 h-3 text-white shrink-0" />
+                <ArrowUp className="w-3 h-3 text-gw-bg shrink-0" />
               ) : (
-                <ArrowDown className="w-3 h-3 text-white shrink-0" />
+                <ArrowDown className="w-3 h-3 text-gw-bg shrink-0" />
               )
             ) : (
               <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100 transition-opacity shrink-0" />
