@@ -141,6 +141,34 @@ body.is-mobile #last-updated{display:none}
 .info-section-body a{color:var(--accent,#0e7490)}
 .info-section .sources-grid{padding:0 18px 16px}
 
+/* Merged About-page content (Info tab) */
+.info-section-body .disclaimer-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid #f59e0b;border-radius:8px;padding:16px 18px;margin:12px 0 0}
+.info-section-body .disclaimer-box p{margin:0 0 10px}
+.info-section-body .disclaimer-box p:last-child{margin:0}
+.info-overview{font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px}
+.info-src-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;padding:0;list-style:none;margin:0 0 14px}
+body.is-mobile .info-src-grid{grid-template-columns:1fr;gap:8px}
+.info-src-card{display:block;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;text-decoration:none;min-height:var(--touch-min,44px)}
+.info-src-card:hover{border-color:var(--ink-tertiary)}
+.info-src-id{display:block;font-weight:600;font-size:15px;color:var(--ink-primary)}
+.info-src-label{display:block;font-weight:500;font-size:13.5px;color:var(--ink-body)}
+.info-src-waters{display:block;font-size:12.5px;color:var(--ink-secondary);margin-top:6px}
+.info-src-authority{display:block;font-size:12.5px;color:var(--ink-tertiary);margin-top:4px}
+.feed-badge{display:inline-block;margin-top:10px;font-size:11.5px;font-weight:500;padding:2px 9px;border-radius:999px;border:1px solid var(--border)}
+.feed-ok{color:#16a34a;border-color:#16a34a;background:rgba(22,163,74,0.08)}
+.feed-warn{color:#b45309;border-color:#f59e0b;background:rgba(245,158,11,0.10)}
+.feed-none{color:var(--ink-tertiary)}
+.info-portal{font-size:12.5px;color:var(--ink-secondary);margin:4px 0 12px}
+.info-portal a{word-break:break-all}
+.dev-links a{color:var(--accent,#0e7490)}
+.theme-picker{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 4px}
+.theme-option{flex:1 1 150px;display:flex;flex-direction:column;gap:3px;align-items:flex-start;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--ink-body);font:inherit;cursor:pointer;min-height:var(--touch-min,44px);text-align:left;transition:border-color .15s,box-shadow .15s}
+.theme-option:hover{border-color:var(--ink-tertiary)}
+.theme-option:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.theme-option[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.theme-option-name{font-weight:500;font-size:14px}
+.theme-option-desc{font-size:12px;color:var(--ink-tertiary)}
+
 .bottom-badge{position:absolute;top:4px;right:50%;transform:translateX(18px);color:var(--sev-high);font-size:10px;font-weight:500}
 
 .main{max-width:var(--max-width,1180px);margin:0 auto;padding:var(--space-block,24px) 16px;padding-left:calc(16px + var(--safe-left));padding-right:calc(16px + var(--safe-right))}
@@ -490,7 +518,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
   <p class="solas-banner" id="solasBanner" role="note">
     <strong>Situational awareness only.</strong>
     <span class="solas-banner-actions">
-      <a class="solas-banner-btn" href="/about" aria-label="About and full safety disclaimer" title="About &amp; disclaimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></a>
+      <a class="solas-banner-btn" href="/?tab=info" aria-label="About and full safety disclaimer" title="About &amp; disclaimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></a>
       <button type="button" class="solas-banner-btn solas-banner-close" aria-label="Dismiss situational awareness notice" title="Dismiss"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </span>
   </p>
@@ -810,30 +838,105 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
   <p class="data-bank-disclaimer">Automated decision-support system. Not a substitute for GMDSS — official broadcasts always take priority.</p>
 </div>
 
-<!-- INFO -->
+<!-- INFO (merged with the former /about page) -->
 <div class="tab-panel" id="tab-info" role="tabpanel" aria-labelledby="tab-btn-info" hidden>
   <div class="page-header">
-    <div><h2>Info</h2><p class="subtitle">Sources, safety disclaimer &amp; about</p></div>
+    <div><h2>Info &amp; About</h2><p class="subtitle">About, sources, safety disclaimer &amp; watch themes</p></div>
   </div>
+  <details class="info-section" open>
+    <summary>About Helm.Warning</summary>
+    <div class="info-section-body">
+      <p>Helm.Warning is a free interactive map that displays live NAVAREA navigational warnings to support maritime situational awareness and passage planning. Active warnings are plotted on nautical charts with danger areas, safety zones, and hazard points — no login or account required.</p>
+      <p>Warnings are aggregated from official NAVAREA coordinators operating under the World-Wide Navigational Warning Service (WWNWS), jointly coordinated by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO). Coverage spans all 21 NAVAREA regions worldwide, including the five Arctic areas (XVII–XXI). Data is refreshed daily from verified hydrographic authority feeds such as the UKHO, NGA, SHOM, AMSA, and the Japan Coast Guard.</p>
+      <p><a href="#source-registry">Explore the 21 NAVAREA areas &amp; warnings →</a></p>
+    </div>
+  </details>
   <details class="info-section" open>
     <summary>Sources</summary>
     <div class="info-section-body">
-      <p>Verified feeds across the 21 NAVAREA regions. <a href="/about#source-registry">Browse the full public source registry →</a></p>
+      <p>Live status of the verified feeds across the 21 NAVAREA regions. <a href="#source-registry">See the full source registry →</a></p>
     </div>
     <div class="sources-grid" id="sourcesGrid"></div>
+  </details>
+  <details class="info-section" open id="source-registry">
+    <summary>Source Registry — the 21 NAVAREA regions</summary>
+    <div class="info-section-body">
+      <p>Every NAVAREA ocean region has one designated area coordinator — a national hydrographic office or maritime authority — responsible for issuing, updating and cancelling its warnings. Select any region below to open its regional page with the live in-force warnings and the original bulletins.</p>
+      <p class="info-overview">Regions: <strong>21</strong> · Automated feeds: <strong>10</strong> · Not reliable / restricted: <strong>4</strong> · Manual entry only: <strong>7</strong> · Coverage: global, including the Arctic</p>
+      <ul class="info-src-grid">
+      <li><a class="info-src-card" href="/navarea/I"><span class="info-src-id">NAVAREA I</span><span class="info-src-label">North Atlantic / UK</span><span class="info-src-waters">Covers the Northeast Atlantic, North Sea and waters around the United Kingdom and Ireland.</span><span class="info-src-authority">Coordinator: the United Kingdom Hydrographic Office (UKHO)</span><span class="feed-badge feed-ok">Automated ingestion — verified official feed</span></a><p class="info-portal">Source: <a href="https://msi.admiralty.co.uk/RadioNavigationalWarnings" target="_blank" rel="noopener noreferrer">UKHO Admiralty radio navigational warnings</a></p></li>
+      <li><a class="info-src-card" href="/navarea/II"><span class="info-src-id">NAVAREA II</span><span class="info-src-label">East Atlantic</span><span class="info-src-waters">Covers the Northeast Atlantic and Bay of Biscay.</span><span class="info-src-authority">Coordinator: the Service Hydrographique et Oceanographique de la Marine (SHOM, France)</span><span class="feed-badge feed-none">No automated feed — reviewed manual entry only</span></a></li>
+      <li><a class="info-src-card" href="/navarea/III"><span class="info-src-id">NAVAREA III</span><span class="info-src-label">Mediterranean</span><span class="info-src-waters">Covers the Mediterranean and Black Seas.</span><span class="info-src-authority">Coordinator: the Instituto Hidrografico de la Marina (IHM, Spain)</span><span class="feed-badge feed-ok">Automated ingestion — verified official feed</span></a><p class="info-portal">Source: <a href="https://armada.defensa.gob.es/ihm/XML/navareas_crudo.xml" target="_blank" rel="noopener noreferrer">IHM Armada (Spain) NAVAREA XML snapshot</a></p></li>
+      <li><a class="info-src-card" href="/navarea/IV"><span class="info-src-id">NAVAREA IV</span><span class="info-src-label">West Atlantic</span><span class="info-src-waters">Covers the Western North Atlantic and Gulf of Mexico.</span><span class="info-src-authority">Coordinator: the National Geospatial-Intelligence Agency (NGA, United States)</span><span class="feed-badge feed-ok">Automated ingestion — verified official feed</span></a><p class="info-portal">Source: <a href="https://msi.nga.mil/apology_objects/DailyMemIV.txt" target="_blank" rel="noopener noreferrer">NGA (US) Daily Memo IV</a></p></li>
+      <li><a class="info-src-card" href="/navarea/V"><span class="info-src-id">NAVAREA V</span><span class="info-src-label">Brazil / SW Atlantic</span><span class="info-src-waters">Covers the Southwest Atlantic off Brazil.</span><span class="info-src-authority">Coordinator: the Diretoria de Hidrografia e Navegacao (DHN, Brazil)</span><span class="feed-badge feed-warn">Not reliable — automatic crawling not permitted; data may be stale</span></a><p class="info-portal">Source: <a href="https://www.marinha.mil.br/chm/dados-do-segnav-aviso-radio-nautico-tela/avisos-radio-nauticos-e-sar" target="_blank" rel="noopener noreferrer">CHM Marinha (Brazil) portal</a></p></li>
+      <li><a class="info-src-card" href="/navarea/VI"><span class="info-src-id">NAVAREA VI</span><span class="info-src-label">Argentina / SE Atlantic</span><span class="info-src-waters">Covers the Southeast Atlantic off Argentina.</span><span class="info-src-authority">Coordinator: the Servicio de Hidrografia Naval (SHN, Argentina)</span><span class="feed-badge feed-none">No automated feed — reviewed manual entry only</span></a></li>
+      <li><a class="info-src-card" href="/navarea/VII"><span class="info-src-id">NAVAREA VII</span><span class="info-src-label">South Africa</span><span class="info-src-waters">Covers the waters off South Africa and the Southern Ocean.</span><span class="info-src-authority">Coordinator: the South African Navy Hydrographic Office</span><span class="feed-badge feed-ok">Automated ingestion — verified official feed</span></a><p class="info-portal">Source: <a href="https://www.sanho.co.za/notices_mariners/navarea_v11_messages.htm?b2=NAVAREA+VII" target="_blank" rel="noopener noreferrer">SANHO (South Africa) notices to mariners</a></p></li>
+      <li><a class="info-src-card" href="/navarea/VIII"><span class="info-src-id">NAVAREA VIII</span><span class="info-src-label">Indian Ocean</span><span class="info-src-waters">Covers the North Indian Ocean.</span><span class="info-src-authority">Coordinator: the Indian Navy Hydrographic Department (INHD)</span><span class="feed-badge feed-ok">Automated ingestion — verified official feed</span></a><p class="info-portal">Source: <a href="https://hydrobharat.gov.in/navarea-warnings" target="_blank" rel="noopener noreferrer">NHO India — HydroBharat portal</a></p></li>
+      <li><a class="info-src-card" href="/navarea/IX"><span class="info-src-id">NAVAREA IX</span><span class="info-src-label">Red Sea / Persian Gulf</span><span class="info-src-waters">Covers the Red Sea, Persian Gulf and Arabian Sea.</span><span class="info-src-authority">Coordinator: the Pakistan Navy Hydrographic Department (PNHD)</span><span class="feed-badge feed-ok">Automated ingestion — verified official feed</span></a><p class="info-portal">Source: <a href="https://hydrography.paknavy.gov.pk/navarea-ix-warnings/" target="_blank" rel="noopener noreferrer">Pakistan Navy Hydrographic Department</a></p></li>
+      <li><a class="info-src-card" href="/navarea/X"><span class="info-src-id">NAVAREA X</span><span class="info-src-label">Australia</span><span class="info-src-waters">Covers the waters off Australia and the Coral Sea.</span><span class="info-src-authority">Coordinator: the Australian Maritime Safety Authority (AMSA)</span><span class="feed-badge feed-ok">Automated ingestion — verified official feed</span></a><p class="info-portal">Source: <a href="https://www.operations.amsa.gov.au/AMSA.Web.MSIPublication/Home" target="_blank" rel="noopener noreferrer">AMSA / RCC Australia MSI publication</a></p></li>
+      <li><a class="info-src-card" href="/navarea/XI"><span class="info-src-id">NAVAREA XI</span><span class="info-src-label">East Asia / Japan</span><span class="info-src-waters">Covers the waters off East Asia, the South China Sea and Japan.</span><span class="info-src-authority">Coordinator: the Japan Coast Guard (JCG)</span><span class="feed-badge feed-ok">Automated ingestion — verified official feed</span></a><p class="info-portal">Source: <a href="https://www1.kaiho.mlit.go.jp/TUHO/keiho/navarea11_en.html" target="_blank" rel="noopener noreferrer">Japan Coast Guard (Kaiho)</a></p></li>
+      <li><a class="info-src-card" href="/navarea/XII"><span class="info-src-id">NAVAREA XII</span><span class="info-src-label">East Pacific</span><span class="info-src-waters">Covers the Eastern Pacific and waters off the United States West Coast.</span><span class="info-src-authority">Coordinator: the National Geospatial-Intelligence Agency (NGA, United States)</span><span class="feed-badge feed-ok">Automated ingestion — verified official feed</span></a><p class="info-portal">Source: <a href="https://msi.nga.mil/apology_objects/DailyMemXII.txt" target="_blank" rel="noopener noreferrer">NGA (US) Daily Memo XII</a></p></li>
+      <li><a class="info-src-card" href="/navarea/XIII"><span class="info-src-id">NAVAREA XIII</span><span class="info-src-label">NW Pacific / Okhotsk</span><span class="info-src-waters">Covers the Northwest Pacific and Sea of Okhotsk.</span><span class="info-src-authority">Coordinator: the Federal Agency for Maritime and River Transport of Russia (Rosmorrechflot)</span><span class="feed-badge feed-warn">Not reliable — automatic crawling not permitted; data may be stale</span></a></li>
+      <li><a class="info-src-card" href="/navarea/XIV"><span class="info-src-id">NAVAREA XIV</span><span class="info-src-label">New Zealand / S. Pacific</span><span class="info-src-waters">Covers the waters off New Zealand and the South Pacific.</span><span class="info-src-authority">Coordinator: Land Information New Zealand (LINZ)</span><span class="feed-badge feed-none">No automated feed — reviewed manual entry only</span></a></li>
+      <li><a class="info-src-card" href="/navarea/XV"><span class="info-src-id">NAVAREA XV</span><span class="info-src-label">Chile / SE Pacific</span><span class="info-src-waters">Covers the Southeast Pacific off Chile.</span><span class="info-src-authority">Coordinator: the Servicio Hidrografico y Oceanografico de la Armada de Chile (SHOA)</span><span class="feed-badge feed-none">No automated feed — reviewed manual entry only</span></a></li>
+      <li><a class="info-src-card" href="/navarea/XVI"><span class="info-src-id">NAVAREA XVI</span><span class="info-src-label">Peru / E. South Pacific</span><span class="info-src-waters">Covers the Southeast Pacific off Peru.</span><span class="info-src-authority">Coordinator: the Direccion de Hidrografia y Navegacion (DHN, Peru)</span><span class="feed-badge feed-none">No automated feed — reviewed manual entry only</span></a></li>
+      <li><a class="info-src-card" href="/navarea/XVII"><span class="info-src-id">NAVAREA XVII</span><span class="info-src-label">Arctic Canada (West)</span><span class="info-src-waters">Covers the Arctic waters of Western Canada.</span><span class="info-src-authority">Coordinator: the Canadian Coast Guard (CCG)</span><span class="feed-badge feed-none">No automated feed — reviewed manual entry only</span></a></li>
+      <li><a class="info-src-card" href="/navarea/XVIII"><span class="info-src-id">NAVAREA XVIII</span><span class="info-src-label">Arctic Canada (East)</span><span class="info-src-waters">Covers the Arctic waters of Eastern Canada.</span><span class="info-src-authority">Coordinator: the Canadian Coast Guard (CCG)</span><span class="feed-badge feed-none">No automated feed — reviewed manual entry only</span></a></li>
+      <li><a class="info-src-card" href="/navarea/XIX"><span class="info-src-id">NAVAREA XIX</span><span class="info-src-label">Arctic Norway</span><span class="info-src-waters">Covers the Arctic waters off Norway.</span><span class="info-src-authority">Coordinator: the Norwegian Coastal Administration</span><span class="feed-badge feed-ok">Automated ingestion — verified official feed</span></a><p class="info-portal">Source: <a href="https://kyvreports.kystverket.no/NavcoReport/navareaxixvarsler.aspx" target="_blank" rel="noopener noreferrer">Kystverket NavcoReport</a></p></li>
+      <li><a class="info-src-card" href="/navarea/XX"><span class="info-src-id">NAVAREA XX</span><span class="info-src-label">Arctic Russia (Kara/Laptev)</span><span class="info-src-waters">Covers the Arctic waters of Russia including the Kara and Laptev Seas.</span><span class="info-src-authority">Coordinator: the Federal Agency for Maritime and River Transport of Russia (Rosmorrechflot)</span><span class="feed-badge feed-warn">Not reliable — automatic crawling not permitted; data may be stale</span></a></li>
+      <li><a class="info-src-card" href="/navarea/XXI"><span class="info-src-id">NAVAREA XXI</span><span class="info-src-label">Arctic Russia (East Siberian)</span><span class="info-src-waters">Covers the Arctic waters of Russia including the East Siberian Sea.</span><span class="info-src-authority">Coordinator: the Federal Agency for Maritime and River Transport of Russia (Rosmorrechflot)</span><span class="feed-badge feed-warn">Not reliable — automatic crawling not permitted; data may be stale</span></a></li>
+      </ul>
+      <p>Helm.Warning ingests each region and plots the parsed warnings on the <a href="/">live map</a>. Every card carries an ingestion status: <span class="feed-badge feed-ok">green</span> = automated ingestion from a verified official feed; <span class="feed-badge feed-warn">amber</span> = not reliable, the source does not permit automatic crawling (bot-protected portal or no accessible publication endpoint), so data may be stale; <span class="feed-badge feed-none">grey</span> = no automated feed yet, warnings entered through the reviewed admin pipeline rather than an unofficial source. Regions with a verified source portal also link to it directly below the card.</p>
+    </div>
   </details>
   <details class="info-section">
     <summary>Disclaimer</summary>
     <div class="info-section-body">
-      <p><strong>Helm.Warning is an automated decision-support system and is not a substitute for GMDSS.</strong></p>
-      <p>Official navigational warnings are broadcast via the Global Maritime Distress and Safety Service (GMDSS) and the World-Wide Navigational Warning Service (WWNWS). This convenience copy may be delayed or incomplete; official broadcasts and the Master's judgment always take priority. Do not use this site as the sole source of navigational safety information.</p>
+      <div class="disclaimer-box">
+        <p>Helm.Warning is a situational-awareness tool. It shows a convenience copy of NAVAREA and other maritime safety warnings gathered from public sources. It is not an official source of Maritime Safety Information.</p>
+        <p>The map can lag behind the original broadcasts, miss warnings, or show them incorrectly. Always check the official broadcast (NAVTEX, SafetyNET, or the issuing authority) before relying on any warning.</p>
+        <p>Official broadcasts and the Master's judgment take priority over anything shown here. Under SOLAS, responsibility for the safe navigation of the vessel stays with the Master. Helm.Warning must not be used as the sole or primary source for passage planning or navigation decisions.</p>
+      </div>
     </div>
   </details>
   <details class="info-section">
-    <summary>About</summary>
+    <summary>About the Developer</summary>
     <div class="info-section-body">
-      <p>Helm.Warning is a free maritime safety information (MSI) cartography service aggregating in-force NAVAREA navigational warnings from official hydrographic authorities worldwide and rendering them on interactive nautical charts. No login or account is required.</p>
-      <p><a href="/about">Read the full about page &amp; disclaimer →</a></p>
+      <p>Helm.Warning is built by <strong>Alfred Panakkal Jose</strong> — a Full-Stack Developer and serving Third Officer with over 2 years of experience as Third Officer and active in the maritime field since 2019.</p>
+      <p>Having worked on ocean-going oil tankers, he has first-hand experience of the real difficulties faced by seafarers — limited connectivity, high operational pressure, and the constant need for reliable tools at sea. This practical understanding shapes the way he builds software: simple, fast, offline-friendly, and focused on actual bridge and operational needs.</p>
+      <p>Alongside his sea-going career, Alfred has developed several maritime and productivity web applications under the <strong>Helm</strong> series, including:</p>
+      <ul>
+        <li><strong>Helm Almanac</strong> – Maritime reference and vessel schedule tool</li>
+        <li><strong>Helm Productivity</strong> – Watchkeeping and task management suite for seafarers</li>
+        <li><strong>Helm Bond</strong> – Networking and bond store management platform</li>
+        <li><strong>Helm Fasting</strong> – Health companion designed for long voyages</li>
+        <li><strong>Navarea Warning Plotter</strong> and other utility tools</li>
+      </ul>
+      <p class="dev-links">
+        <strong>Portfolio:</strong> <a href="https://alfred-panakkal.vercel.app" rel="noopener">alfred-panakkal.vercel.app</a><br>
+        <strong>LinkedIn:</strong> <a href="https://www.linkedin.com/in/alfredpanakkal" rel="noopener">linkedin.com/in/alfredpanakkal</a>
+      </p>
+    </div>
+  </details>
+  <details class="info-section" aria-labelledby="info-theme-heading">
+    <summary id="info-theme-heading">Display &amp; Watch Themes</summary>
+    <div class="info-section-body">
+      <p>Helm.Warning follows the watch. Pick the theme that suits your station and time of day — your choice is saved on this device and applies across the site, including the live map.</p>
+      <div class="theme-picker" role="group" aria-label="Choose theme">
+        <button type="button" class="theme-option" data-theme-set="light" aria-pressed="true">
+          <span class="theme-option-name">Chart paper</span>
+          <span class="theme-option-desc">Light — desk &amp; passage planning</span>
+        </button>
+        <button type="button" class="theme-option" data-theme-set="dark" aria-pressed="false">
+          <span class="theme-option-name">Bridge</span>
+          <span class="theme-option-desc">Dark — the main bridge look</span>
+        </button>
+        <button type="button" class="theme-option" data-theme-set="night" aria-pressed="false">
+          <span class="theme-option-name">Red watch</span>
+          <span class="theme-option-desc">Night — dim reds to protect night vision</span>
+        </button>
+      </div>
+      <p>Red watch is intentionally dim. These colours are calculated, not tested on a bridge display — try it at night on your own device and adjust screen brightness until it is comfortable. Severity colours keep the same meaning in every theme: a Critical warning always looks Critical.</p>
     </div>
   </details>
 </div>
@@ -843,7 +946,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
   <div class="footer-inner">
     <div>Helm.Warning — NAVAREA Maritime Safety Information Pipeline</div>
     <div class="footer-disclaimer">Helm.Warning is a convenience copy of navigational warnings and may be delayed or incomplete. Official broadcasts and the Master's judgment always take priority.</div>
-    <div class="footer-links"><a href="/">Map</a> · <a href="/about">About &amp; Disclaimer</a></div>
+    <div class="footer-links"><a href="/">Map</a> · <a href="/?tab=info">About &amp; Disclaimer</a></div>
 
     <!-- Crawlable Pre-baked Semantic Content for Search Engines & Mariners -->
     <details class="seo-accordion">
@@ -990,6 +1093,35 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
   var btn = b.querySelector('.solas-banner-close');
   if (btn) btn.addEventListener('click', hide);
   setTimeout(hide, 8000);
+})();
+</script>
+<script>
+/* Watch-theme picker (merged from the former /about page): applies live + persists hw-theme. */
+(function () {
+  var KEY = 'hw-theme';
+  var META = { light: '#FAFAF7', dark: '#0E1210', night: '#080404' };
+  var btns = Array.prototype.slice.call(document.querySelectorAll('[data-theme-set]'));
+  function current() {
+    try { var t = localStorage.getItem(KEY); return (t === 'dark' || t === 'night') ? t : 'light'; }
+    catch (e) { return 'light'; }
+  }
+  function paint(t) {
+    btns.forEach(function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-theme-set') === t ? 'true' : 'false');
+    });
+  }
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.getAttribute('data-theme-set');
+      if (t !== 'dark' && t !== 'night') t = 'light';
+      try { localStorage.setItem(KEY, t); } catch (e) { /* private mode: not persisted */ }
+      document.documentElement.setAttribute('data-theme', t);
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (m) m.setAttribute('content', META[t]);
+      paint(t);
+    });
+  });
+  paint(current());
 })();
 </script>
 </body>
