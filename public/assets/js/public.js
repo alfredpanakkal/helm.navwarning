@@ -2562,6 +2562,12 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       }
     }
   } catch (deepLinkErr) { /* ignore malformed query strings */ }
+  // Static-page top-nav deep link: /?tab=data or /?tab=info opens that tab
+  // (linked from the prerendered /about, /navarea and warning pages).
+  try {
+    const wantedTab = new URLSearchParams(window.location.search).get('tab');
+    if (wantedTab === 'data' || wantedTab === 'info') switchTab(wantedTab);
+  } catch (tabLinkErr) { /* ignore malformed query strings */ }
   const isMap = document.getElementById('tab-map')?.classList.contains('active') ?? true;
   document.body.classList.toggle('tab-map-active', isMap);
   document.documentElement.classList.toggle('tab-map-active', isMap);
