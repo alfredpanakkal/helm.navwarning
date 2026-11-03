@@ -467,7 +467,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setViewMode('table')}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-all ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${
                         viewMode === 'table' ? 'bg-gw-primary text-gw-secondary shadow-sm' : 'text-gw-accent hover:text-gw-primary'
                       }`}
                     >
@@ -477,7 +477,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setViewMode('cards')}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-all ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${
                         viewMode === 'cards' ? 'bg-gw-primary text-gw-secondary shadow-sm' : 'text-gw-accent hover:text-gw-primary'
                       }`}
                     >

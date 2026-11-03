@@ -249,7 +249,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
               <button
                 onClick={() => setSelectedSourceForChecklist(null)}
                 aria-label="Close source checklist"
-                className="text-gw-accent hover:text-gw-primary font-bold text-lg p-1"
+                className="text-gw-accent hover:text-gw-primary font-bold text-lg p-2"
               >
                 <X className="w-5 h-5" />
               </button>

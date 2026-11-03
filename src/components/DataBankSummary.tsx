@@ -65,7 +65,7 @@ export const DataBankSummary: React.FC<{
           type="button"
           onClick={() => setIsProcedureModalOpen(true)}
           title="View Ingestion Procedure (SOP)"
-          className="flex items-center gap-1 px-2 py-1 rounded border-subtle text-gw-primary font-bold uppercase tracking-wider text-[10px] hover:bg-gw-bg transition-all shrink-0 cursor-pointer"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded border-subtle text-gw-primary font-bold uppercase tracking-wider text-[10px] hover:bg-gw-bg transition-all shrink-0 cursor-pointer"
         >
           <span>Procedure</span>
           <span aria-hidden="true">↗</span>
