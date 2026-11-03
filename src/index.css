@@ -67,6 +67,15 @@
   --border-subtle: 1px solid var(--color-gw-secondary);
   --bg-secondary: #ffffff;
   --space-compact: 0.5rem;
+
+  /* Severity colours — the Helm.Warning watch-theme design (PR #93), LIGHT
+     "Chart paper" values. The data-theme override blocks at the end of this
+     file remap them for Bridge and Red watch, so text-gw-critical etc.
+     follow the active theme. Always pair a severity colour with a shape and
+     a word — colour is never the only signal. */
+  --color-gw-critical: #B42318;
+  --color-gw-high: #8C5208;
+  --color-gw-moderate: #2E5C8A;
 }
 
 @layer utilities {
@@ -473,4 +482,63 @@
   .navarea-select {
     width: 100% !important;
   }
+}
+
+@layer utilities {
+  /* label-mono (Helm.Ports convention, adapted for the console): the mono
+     eyebrow / section-tag style. 11px, uppercase, 0.08em tracking, weight
+     500, tabular digits so IDs and counts line up. Use for section labels,
+     metadata tags and eyebrows — never for body copy. Size comes from
+     --label-mono-size (public tokens.css). */
+  .label-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: var(--label-mono-size, 11px);
+    font-weight: 500;
+    line-height: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   WATCH THEMES (console) — mapped onto the existing gw-* token system.
+   Mirrors public/assets/css/tokens.css (PR #93): Light "Chart paper"
+   (default, byte-identical to the current console palette), Dark
+   "Bridge", Night "Red watch". These blocks are INERT until data-theme
+   is set on <html>: the console wires no theme switcher yet — that lands
+   after the raw-palette migration (bg-white / slate-* -> gw-* tokens),
+   so the console look on main is unchanged. Contrast for every pair is
+   asserted in src/theme/themeContrast.test.ts (console gw-token mapping).
+
+   Light hairlines (--color-gw-secondary on --color-gw-bg, ~1.2:1) are the
+   pre-existing decorative-hairline convention, not a theme regression; in
+   Dark/Night the same token carries the design --line (>= 3:1). */
+:root[data-theme="dark"] {
+  --color-gw-primary: #E9EDE9;    /* main text */
+  --color-gw-secondary: #6B756C; /* hairlines + muted text on light surfaces */
+  --color-gw-tertiary: #1C2A22;   /* panels/chips on dark chrome */
+  --color-gw-bg: #0E1210;
+  --color-gw-accent: #9FA69F;
+  --color-gw-accent-on-dark: #9FA69F;
+  --bg-secondary: #151A17;
+  --color-gw-critical: #F08484;
+  --color-gw-high: #D9A24A;
+  --color-gw-moderate: #8DB4E2;
+}
+
+:root[data-theme="night"] {
+  /* Red watch: dim reds and browns on near-black to protect night vision.
+     Keep font weight >= 400 in this theme — thin red-on-black loses
+     legibility well before the contrast math suggests it. */
+  --color-gw-primary: #E0857A;
+  --color-gw-secondary: #945E53;
+  --color-gw-tertiary: #2A1412;
+  --color-gw-bg: #080404;
+  --color-gw-accent: #B5786B;
+  --color-gw-accent-on-dark: #B5786B;
+  --bg-secondary: #120A08;
+  --color-gw-critical: #FF6B5E;
+  --color-gw-high: #D08A3E;
+  --color-gw-moderate: #BC8577;
 }

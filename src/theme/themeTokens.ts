@@ -78,3 +78,72 @@ export const THEME_NAMES: readonly ThemeName[] = ['light', 'dark', 'night'];
 
 /** localStorage key used by the pre-paint script and the About-page toggle. */
 export const THEME_STORAGE_KEY = 'hw-theme';
+
+/**
+ * Console (React app) mapping — how the watch themes land on the console's
+ * gw-* custom properties in src/index.css. The LIGHT values are the
+ * console's historical palette (so the default console look is unchanged);
+ * dark/night remap every token onto the Bridge / Red watch palettes.
+ *
+ * The console wires no theme switcher yet — these blocks are inert until
+ * <html data-theme="dark|night"> is set. A console switcher lands after the
+ * raw-palette migration (bg-white / slate-* classes -> gw-* tokens).
+ */
+export interface ConsoleTokens {
+  /** main text (light theme: dark chrome ink; dark/night: foreground text) */
+  primary: string;
+  /** hairlines + muted text on light surfaces (dark/night: the design --line) */
+  secondary: string;
+  /** panels/chips on dark chrome */
+  tertiary: string;
+  /** page background */
+  bg: string;
+  /** muted text */
+  accent: string;
+  /** muted text lift for dark chrome surfaces */
+  accentOnDark: string;
+  /** panel/sheet surface (--bg-secondary) */
+  bgSecondary: string;
+  critical: string;
+  high: string;
+  moderate: string;
+}
+
+export const CONSOLE_TOKEN_MAP: Record<ThemeName, ConsoleTokens> = {
+  light: {
+    primary: '#0f172a',
+    secondary: '#e2e8f0',
+    tertiary: '#334155',
+    bg: '#fafafa',
+    accent: '#64748b',
+    accentOnDark: '#94a3b8',
+    bgSecondary: '#ffffff',
+    critical: '#B42318',
+    high: '#8C5208',
+    moderate: '#2E5C8A',
+  },
+  dark: {
+    primary: '#E9EDE9',
+    secondary: '#6B756C',
+    tertiary: '#1C2A22',
+    bg: '#0E1210',
+    accent: '#9FA69F',
+    accentOnDark: '#9FA69F',
+    bgSecondary: '#151A17',
+    critical: '#F08484',
+    high: '#D9A24A',
+    moderate: '#8DB4E2',
+  },
+  night: {
+    primary: '#E0857A',
+    secondary: '#945E53',
+    tertiary: '#2A1412',
+    bg: '#080404',
+    accent: '#B5786B',
+    accentOnDark: '#B5786B',
+    bgSecondary: '#120A08',
+    critical: '#FF6B5E',
+    high: '#D08A3E',
+    moderate: '#BC8577',
+  },
+};
