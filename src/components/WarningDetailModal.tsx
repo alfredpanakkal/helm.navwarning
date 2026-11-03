@@ -196,7 +196,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
   return (
     <div className="fixed inset-0 z-console-overlay bg-gw-primary/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <span role="status" aria-live="polite" className="sr-only">{verifyAnnouncement}</span>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="warning-detail-title" className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="warning-detail-title" className="bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto">
         {/* Header Metadata */}
         <div className="p-4 sm:p-5 border-b-2 border-gw-primary bg-gw-bg">
           <div className="flex items-start justify-between gap-3">
@@ -399,14 +399,14 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                     <div className="space-y-1.5 pt-1">
                       <div className="text-[10px] font-mono font-bold uppercase text-rose-900">Quarantined Position Candidates:</div>
                       {warning.ambiguous_positions.map((pos, pidx) => (
-                        <div key={pidx} className="bg-white/80 p-2 rounded border border-rose-300 font-mono text-[11px] space-y-1">
+                        <div key={pidx} className="bg-gw-panel/80 p-2 rounded border border-rose-300 font-mono text-[11px] space-y-1">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-rose-900">{pos.raw_text}</span>
                             <span className="text-[10px] bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded font-bold uppercase">
                               {pos.reason}
                             </span>
                           </div>
-                          <div className="text-[10px] text-slate-600 flex items-center gap-3">
+                          <div className="text-[10px] text-gw-accent flex items-center gap-3">
                             <span>Lat Hem: {pos.has_lat_hem ? '✓ Present' : '✗ Missing'}</span>
                             <span>Lon Hem: {pos.has_lon_hem ? '✓ Present' : '✗ Missing'}</span>
                             {pos.suggested_lat_dir && (
@@ -422,10 +422,10 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
 
               {/* Grounding Diagnostic Box */}
               {warning.grounding_diagnostic && (
-                <div className="p-3 bg-slate-50 border border-slate-300 rounded-xl space-y-1.5 font-mono text-xs">
-                  <div className="flex items-center justify-between font-bold text-slate-800 text-[11px] uppercase">
+                <div className="p-3 bg-gw-secondary border border-gw-secondary rounded-xl space-y-1.5 font-mono text-xs">
+                  <div className="flex items-center justify-between font-bold text-gw-primary text-[11px] uppercase">
                     <span className="flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-slate-600" />
+                      <ShieldCheck className="w-3.5 h-3.5 text-gw-accent" />
                       <span>Coordinate Grounding Diagnostic</span>
                     </span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -436,7 +436,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                       {warning.grounding_diagnostic.grounded ? 'GROUNDED (100% VERBATIM)' : 'UNGROUNDED'}
                     </span>
                   </div>
-                  <div className="text-[10px] text-slate-600 space-y-1">
+                  <div className="text-[10px] text-gw-accent space-y-1">
                     <div>Checked: {warning.grounding_diagnostic.checked_count} coordinate phrase(s)</div>
                     {warning.grounding_diagnostic.matched_phrases.length > 0 && (
                       <div className="text-emerald-700 truncate">
@@ -459,7 +459,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                   {warning.radius_specifications.map((r, ridx) => (
                     <div key={ridx} className="text-[11px] text-blue-800 flex items-center justify-between">
                       <span>"{r.raw_text}"</span>
-                      <span className="font-bold bg-white px-2 py-0.5 rounded border border-blue-300 text-blue-900">
+                      <span className="font-bold bg-gw-panel px-2 py-0.5 rounded border border-blue-300 text-blue-900">
                         {r.radius_nm} NM ({r.stated_value} {r.stated_unit})
                       </span>
                     </div>
@@ -547,7 +547,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                           <th className="p-2.5">Segment Bearing & Dist</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gw-secondary bg-white">
+                      <tbody className="divide-y divide-gw-secondary bg-gw-panel">
                         {coordinatePoints.map((pt) => (
                           <tr key={pt.index} className="hover:bg-gw-bg transition-colors">
                             <td className="p-2.5 font-bold text-gw-primary border-r border-gw-secondary">
@@ -691,7 +691,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-white border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg shadow-xs transition-all"
+                className="flex items-center gap-1.5 px-3 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg shadow-xs transition-all"
               >
                 <Download className="w-3.5 h-3.5 text-sky-600" />
                 <span>Export Geometry</span>
@@ -699,7 +699,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
               </button>
 
               {isExportMenuOpen && (
-                <div className="absolute bottom-full mb-2 left-0 w-52 bg-white border-2 border-gw-primary rounded-xl shadow-2xl p-1.5 z-50 text-xs font-mono">
+                <div className="absolute bottom-full mb-2 left-0 w-52 bg-gw-panel border-2 border-gw-primary rounded-xl shadow-2xl p-1.5 z-50 text-xs font-mono">
                   <div className="px-2 py-1 text-[10px] text-gw-accent uppercase font-bold border-b border-gw-secondary mb-1">
                     Select Export Format:
                   </div>
@@ -781,7 +781,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 onClick={onPrevious}
                 disabled={!hasPrevious}
                 title="Previous unverified candidate in queue"
-                className="flex items-center gap-1 px-2.5 py-2 bg-white border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-2.5 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>Prev</span>
@@ -793,7 +793,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 onClick={onNext}
                 disabled={!hasNext}
                 title="Next unverified candidate in queue"
-                className="flex items-center gap-1 px-2.5 py-2 bg-white border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-2.5 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span>Next</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -817,7 +817,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 type="button"
                 onClick={() => onEditWarning(warning)}
                 title="Edit this warning (admin) — type, time/expiry, status, tier, geometry, NAVAREA move"
-                className="flex items-center gap-1.5 px-3 py-2 bg-white border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg transition-all shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg transition-all shadow-xs"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit</span>
@@ -832,7 +832,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="bg-white border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg transition-all shadow-xs"
+              className="bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg transition-all shadow-xs"
             >
               Close
             </button>

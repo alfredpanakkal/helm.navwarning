@@ -208,11 +208,11 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
 
   return (
     <div className="fixed inset-0 z-console-overlay bg-gw-primary/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="ingestion-procedure-title" className="bg-white border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden font-mono">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="ingestion-procedure-title" className="bg-gw-panel border-2 border-gw-primary rounded-xl sm:rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden font-mono">
         {/* Modal Header */}
         <div className="p-4 sm:p-5 border-b-2 border-gw-primary bg-gw-bg flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gw-primary text-white flex items-center justify-center shrink-0 shadow-xs">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gw-primary text-gw-bg flex items-center justify-center shrink-0 shadow-xs">
               <Server className="w-5 h-5" />
             </div>
             <div>
@@ -240,7 +240,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-gw-secondary bg-white px-4 sm:px-6 pt-2 gap-2 overflow-x-auto">
+        <div className="flex border-b border-gw-secondary bg-gw-panel px-4 sm:px-6 pt-2 gap-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('procedure')}
             className={`px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
@@ -295,7 +295,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                   <button
                     onClick={() => onTriggerRefresh()}
                     disabled={isRefreshing}
-                    className="px-4 py-2.5 bg-gw-primary text-white text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all shadow-xs flex items-center gap-2 shrink-0 disabled:opacity-50"
+                    className="px-4 py-2.5 bg-gw-primary text-gw-bg text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all shadow-xs flex items-center gap-2 shrink-0 disabled:opacity-50"
                   >
                     <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     {isRefreshing ? 'Syncing...' : 'Sync Live Feeds Now'}
@@ -312,7 +312,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Step 1 */}
-                  <div className="bg-white border-2 border-gw-primary rounded-xl p-4 shadow-xs space-y-2">
+                  <div className="bg-gw-panel border-2 border-gw-primary rounded-xl p-4 shadow-xs space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-black uppercase text-gw-accent tracking-wider">Step 01 • Discovery</span>
                       <span className="px-2 py-0.5 bg-gw-bg text-gw-primary text-[10px] font-bold rounded border border-gw-secondary">
@@ -329,7 +329,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                   </div>
 
                   {/* Step 2 */}
-                  <div className="bg-white border-2 border-gw-primary rounded-xl p-4 shadow-xs space-y-2">
+                  <div className="bg-gw-panel border-2 border-gw-primary rounded-xl p-4 shadow-xs space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-black uppercase text-gw-accent tracking-wider">Step 02 • Parsing</span>
                       <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 text-[10px] font-bold rounded border border-emerald-300">
@@ -346,7 +346,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                   </div>
 
                   {/* Step 3 */}
-                  <div className="bg-white border-2 border-gw-primary rounded-xl p-4 shadow-xs space-y-2">
+                  <div className="bg-gw-panel border-2 border-gw-primary rounded-xl p-4 shadow-xs space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-black uppercase text-gw-accent tracking-wider">Step 03 • Integrity</span>
                       <span className="px-2 py-0.5 bg-purple-50 text-purple-800 text-[10px] font-bold rounded border border-purple-300">
@@ -363,7 +363,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                   </div>
 
                   {/* Step 4 */}
-                  <div className="bg-white border-2 border-gw-primary rounded-xl p-4 shadow-xs space-y-2">
+                  <div className="bg-gw-panel border-2 border-gw-primary rounded-xl p-4 shadow-xs space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-black uppercase text-gw-accent tracking-wider">Step 04 • Storage</span>
                       <span className="px-2 py-0.5 bg-blue-50 text-blue-800 text-[10px] font-bold rounded border border-blue-300">
@@ -395,7 +395,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                   <div className="flex gap-2 shrink-0">
                     <button
                       onClick={() => setActiveTab('simulator')}
-                      className="px-3.5 py-2 bg-white text-gw-primary text-xs font-bold uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-bg transition-all"
+                      className="px-3.5 py-2 bg-gw-panel text-gw-primary text-xs font-bold uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-bg transition-all"
                     >
                       Test Parser Simulator
                     </button>
@@ -430,8 +430,8 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                     onClick={() => handleSelectPreset(preset)}
                     className={`px-2.5 py-1.5 text-xs rounded border transition-all ${
                       simNavArea === preset.navarea
-                        ? 'bg-gw-primary text-white border-gw-primary font-bold shadow-xs'
-                        : 'bg-white border-gw-secondary text-gw-accent hover:text-gw-primary hover:border-gw-primary'
+                        ? 'bg-gw-primary text-gw-bg border-gw-primary font-bold shadow-xs'
+                        : 'bg-gw-panel border-gw-secondary text-gw-accent hover:text-gw-primary hover:border-gw-primary'
                     }`}
                   >
                     {preset.name.split(' - ')[0]}
@@ -454,7 +454,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                         setSimNavArea(na);
                         handleRunSimulator(simText, na);
                       }}
-                      className="text-xs font-bold bg-white border border-gw-secondary rounded px-2 py-1 text-gw-primary outline-none focus:border-gw-primary"
+                      className="text-xs font-bold bg-gw-panel border border-gw-secondary rounded px-2 py-1 text-gw-primary outline-none focus:border-gw-primary"
                     >
                       <option value="I">NAVAREA I</option>
                       <option value="IV">NAVAREA IV</option>
@@ -481,7 +481,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
 
               {/* Parsed Output Display */}
               {parsedResult && (
-                <div className="bg-white border-2 border-gw-primary rounded-xl p-4 sm:p-5 space-y-4 shadow-xs">
+                <div className="bg-gw-panel border-2 border-gw-primary rounded-xl p-4 sm:p-5 space-y-4 shadow-xs">
                   <div className="flex items-center justify-between flex-wrap gap-2 border-b border-gw-secondary pb-3">
                     <div className="flex items-center gap-2">
                       <Cpu className="w-4 h-4 text-gw-primary" />
@@ -561,7 +561,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                         <button
                           onClick={handleCommitParsed}
                           disabled={!!(parsedResult?.warning && committedId === parsedResult.warning.warning_id)}
-                          className="px-4 py-2 bg-gw-primary text-white text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-4 py-2 bg-gw-primary text-gw-bg text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Download className="w-3.5 h-3.5" />
                           {parsedResult?.warning && committedId === parsedResult.warning.warning_id ? 'Notice Committed' : 'Commit Notice to Live Bank'}
@@ -594,7 +594,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                 {sources.map((src) => (
                   <div
                     key={src.source_id}
-                    className="p-3 bg-white border border-gw-secondary rounded-xl hover:border-gw-primary transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
+                    className="p-3 bg-gw-panel border border-gw-secondary rounded-xl hover:border-gw-primary transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -649,7 +649,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
           </div>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-gw-primary text-white text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all"
+            className="px-5 py-2 bg-gw-primary text-gw-bg text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all"
           >
             Close Procedure
           </button>
