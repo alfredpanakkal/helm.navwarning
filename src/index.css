@@ -10,7 +10,7 @@
    - Weight 500 is the maximum anywhere. Never use 600/700/bold.
    - Sentence case everywhere except tiny uppercase table labels.
    - Motion is micro chromatic only (100–150ms). No spatial animation, hover lift, or scale.
-   - Max width: 1180px.
+   - Public reading width: 1180px. The console app shell is fluid full-width.
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
@@ -45,10 +45,15 @@
   --radius-chip:     999px;
   --radius-btn:      6px;
 
-  /* Spacing scale */
+  /* Spacing scale — console rhythm 4 / 8 / 12 / 16 / 24 / 40 / 64.
+     16px = default intra-group gap, 24px = between groups, 40px+ = between page sections. */
   --space-section:   64px;
+  --space-page:      40px;
   --space-block:     24px;
+  --space-group:     16px;
+  --space-snug:      12px;
   --space-tight:     8px;
+  --space-xs:        4px;
 
   /* Type scale */
   --fs-hero:         clamp(2rem, 5vw, 3.25rem);

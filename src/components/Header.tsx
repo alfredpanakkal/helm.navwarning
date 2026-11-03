@@ -151,10 +151,10 @@ export const Header: React.FC<HeaderProps> = ({
     <>
       {/* Top Main Navigation Bar */}
       <header className="site-header sticky top-0 z-console-chrome bg-canvas border-b border-hairline">
-        <div className="max-w-[var(--max-width,1180px)] mx-auto px-4 sm:px-6 flex justify-between items-center py-2 md:py-0 min-h-[56px] gap-2 md:gap-4">
+        <div className="w-full px-4 sm:px-6 md:px-8 flex justify-between items-center py-2 md:py-0 min-h-[56px] gap-2 md:gap-6">
           
           {/* Logo & Console Title */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
             <a href="#/warnings/map" className="logo flex items-center gap-2 text-decoration-none" aria-label="Helm.Warning Console Home">
               <span className="logo-badge w-7 h-7 rounded border border-border-input text-ink-primary font-medium flex items-center justify-center text-xs select-none" aria-hidden="true">
                 HW
@@ -168,8 +168,16 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
-          {/* Desktop Section Navigation — 4-section IA: Warnings / Ingest / Trace / System */}
-          <nav className="hidden md:flex items-center gap-1.5 overflow-x-auto no-scrollbar" role="tablist" aria-label="Console primary sections">
+                    {/* Single-row navigation: the 4 sections plus the active section's views
+              in one 56px bar (Phase 1 chrome merge — replaces the 56px header +
+              38px sub-tab strip, so --console-sticky-offset: 57px now matches
+              the chrome exactly). Sections on the left, views after the divider;
+              the strip scrolls horizontally when narrow. */}
+          <nav
+            className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto no-scrollbar py-2"
+            role="tablist"
+            aria-label="Console sections and views"
+          >
             {sectionMeta.map((section) => {
               const isActive = activeSection === section.id;
               return (
@@ -180,7 +188,7 @@ export const Header: React.FC<HeaderProps> = ({
                   aria-label={section.label + ' tab'}
                   onClick={() => handleSectionSelect(section.id)}
                   className={
-                    'nav-tab flex items-center gap-1.5 px-3 py-1.5 rounded-full font-medium text-xs sm:text-sm transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
+                    'nav-tab flex items-center gap-1.5 px-3 py-2 rounded-full font-medium text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
                     (isActive
                       ? 'bg-surface-subtle border border-border-chip-on text-ink-primary'
                       : 'border border-transparent text-ink-secondary hover:text-ink-primary hover:bg-surface-subtle')
@@ -202,10 +210,39 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               );
             })}
+
+            {/* Divider between the section level and the active section's views */}
+            <span aria-hidden="true" className="w-px h-5 bg-hairline shrink-0" />
+
+            {sectionViews.map((view) => {
+              const isActive = activeTab === view.id;
+              return (
+                <button
+                  key={view.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-label={view.label + ' tab'}
+                  onClick={() => setActiveTab(view.id)}
+                  className={
+                    'px-3 py-1.5 text-xs font-medium rounded border transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
+                    (isActive
+                      ? 'bg-surface-subtle text-ink-primary border-border-chip-on'
+                      : 'text-ink-secondary border-transparent hover:text-ink-primary hover:bg-surface-subtle')
+                  }
+                >
+                  <span>{view.label}</span>
+                  {view.id === 'databank' && typeof activeCount === 'number' && (
+                    <span className="text-[10px] px-1 py-0.2 rounded text-ink-tertiary font-sans font-medium tabular-nums">
+                      {activeCount.toLocaleString()}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
 
           {/* Header Right Meta & Admin Controls */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Live Stream Status Indicator */}
             <div className="hidden lg:flex items-center gap-1.5 text-xs text-ink-secondary font-medium">
               <span className="w-2 h-2 rounded-full bg-accent inline-block" aria-hidden="true"></span>
@@ -259,37 +296,6 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
         </div>
-
-        {/* Section sub-tabs: the views of the active section */}
-        <nav className="bg-canvas border-t border-hairline" role="tablist" aria-label="Section view tabs">
-          <div className="max-w-[var(--max-width,1180px)] mx-auto px-4 sm:px-6 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1.5 min-h-[38px]">
-            {sectionViews.map((view) => {
-              const isActive = activeTab === view.id;
-              return (
-                <button
-                  key={view.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-label={view.label + ' tab'}
-                  onClick={() => setActiveTab(view.id)}
-                  className={
-                    'px-2.5 py-1 text-xs font-medium rounded border transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
-                    (isActive
-                      ? 'bg-surface-subtle text-ink-primary border-border-chip-on'
-                      : 'text-ink-secondary border-transparent hover:text-ink-primary hover:bg-surface-subtle')
-                  }
-                >
-                  <span>{view.label}</span>
-                  {view.id === 'databank' && typeof activeCount === 'number' && (
-                    <span className="text-[10px] px-1 py-0.2 rounded text-ink-tertiary font-sans font-medium tabular-nums">
-                      {activeCount.toLocaleString()}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
       </header>
 
       {/* Mobile Bottom Quick Navigation — the 4 sections */}
