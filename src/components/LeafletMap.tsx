@@ -1051,7 +1051,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full min-h-[480px] flex-1 border border-slate-300 rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900 isolate shadow-xs">
+    <div className="relative w-full h-full min-h-[480px] flex-1 border border-gw-secondary rounded-xl sm:rounded-2xl overflow-hidden bg-gw-primary isolate shadow-xs">
       {/* Map Canvas */}
       <div
         id="map"
@@ -1084,7 +1084,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectWarning(isolatedWarning)}
-                className="px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-500 rounded text-amber-950 font-bold uppercase text-xs transition-all"
+                className="px-2.5 py-1 bg-gw-panel hover:bg-amber-100 border border-amber-500 rounded text-amber-950 font-bold uppercase text-xs transition-all"
               >
                 Details
               </button>
@@ -1128,7 +1128,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       {/* TOP FILTERS POPDOWN PANEL */}
       {isTopFiltersOpen && (
         <div
-          className="absolute top-[60px] left-3.5 z-[530] w-[calc(100%-28px)] max-w-xl bg-white border-2 border-gw-primary rounded-xl shadow-2xl p-3.5 pointer-events-auto space-y-3"
+          className="absolute top-[60px] left-3.5 z-[530] w-[calc(100%-28px)] max-w-xl bg-gw-panel border-2 border-gw-primary rounded-xl shadow-2xl p-3.5 pointer-events-auto space-y-3"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between border-b border-gw-secondary pb-2">
@@ -1156,7 +1156,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               <select
                 value={currentNavArea}
                 onChange={(e) => handleSelectNavArea(e.target.value)}
-                className="w-full px-2.5 py-1.5 bg-white border border-gw-primary rounded-lg text-xs font-mono font-bold text-gw-primary outline-none focus:ring-1 focus:ring-gw-primary shadow-xs cursor-pointer"
+                className="w-full px-2.5 py-1.5 bg-gw-panel border border-gw-primary rounded-lg text-xs font-mono font-bold text-gw-primary outline-none focus:ring-1 focus:ring-gw-primary shadow-xs cursor-pointer"
               >
                 <option value="ALL">All Regions (Global View)</option>
                 {NAVAREA_ZONE_LIST.map((zone) => (
@@ -1171,7 +1171,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               <label className="block text-[10px] font-bold uppercase tracking-wider text-gw-accent mb-1">
                 Broadcast Scope
               </label>
-              <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-lg border border-gw-primary shadow-xs">
+              <div className="grid grid-cols-3 gap-1 bg-gw-panel p-1 rounded-lg border border-gw-primary shadow-xs">
                 {(['all', 'navarea', 'coastal'] as ScopeFilterType[]).map((scope) => (
                   <button
                     key={scope}
@@ -1203,7 +1203,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     className={`py-1 text-xs uppercase font-bold rounded transition-all text-center ${
                       filterSeverity === sev
                         ? 'bg-gw-primary text-gw-bg'
-                        : 'text-gw-accent hover:text-gw-primary hover:bg-white'
+                        : 'text-gw-accent hover:text-gw-primary hover:bg-gw-panel'
                     }`}
                   >
                     {sev === 'critical' ? 'Crit' : sev === 'moderate' ? 'Mod' : sev.slice(0, 4)}
@@ -1223,7 +1223,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Keyword, series, or area..."
-                  className="w-full pl-8 pr-7 py-1.5 text-xs font-mono bg-white border border-gw-primary rounded-lg text-gw-primary placeholder:text-gw-accent outline-none"
+                  className="w-full pl-8 pr-7 py-1.5 text-xs font-mono bg-gw-panel border border-gw-primary rounded-lg text-gw-primary placeholder:text-gw-accent outline-none"
                 />
                 {searchQuery && (
                   <button
@@ -1449,7 +1449,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               setCopiedCoordNotice(true);
               setTimeout(() => setCopiedCoordNotice(false), 2000);
             }}
-            className="p-1 hover:bg-slate-200 rounded text-gw-primary transition-colors ml-1"
+            className="p-1 hover:bg-gw-secondary rounded text-gw-primary transition-colors ml-1"
             title="Copy coordinate"
           >
             {copiedCoordNotice ? (
@@ -1468,7 +1468,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             left: Math.min(contextMenu.pixelPosition.x, (mapRef.current?.clientWidth || 600) - 260),
             top: Math.min(contextMenu.pixelPosition.y, (mapRef.current?.clientHeight || 600) - 240),
           }}
-          className="absolute z-[500] w-64 bg-white border-2 border-gw-primary rounded-xl shadow-2xl overflow-hidden text-xs pointer-events-auto"
+          className="absolute z-[500] w-64 bg-gw-panel border-2 border-gw-primary rounded-xl shadow-2xl overflow-hidden text-xs pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="bg-gw-primary text-gw-bg px-3 py-2 flex items-center justify-between">
@@ -1490,7 +1490,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <div className="p-2.5 bg-gw-bg/60 border-b border-gw-secondary">
             <div className="text-[10px] text-gw-accent uppercase font-bold flex items-center justify-between">
               <span>Anchor Coordinates</span>
-              <span className="text-[9px] font-mono bg-white px-1 py-0.5 border border-gw-secondary rounded font-bold">
+              <span className="text-[9px] font-mono bg-gw-panel px-1 py-0.5 border border-gw-secondary rounded font-bold">
                 DMM
               </span>
             </div>
@@ -1502,7 +1502,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             </div>
           </div>
 
-          <div className="p-1 space-y-0.5 bg-white">
+          <div className="p-1 space-y-0.5 bg-gw-panel">
             <button
               onClick={() => copyLayerLocation(contextMenu.nauticalCoordinates)}
               className="w-full flex items-center justify-between px-2.5 py-1.5 rounded hover:bg-gw-bg text-gw-primary transition-all font-medium text-left text-[11px]"
@@ -1574,7 +1574,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       {/* FULL-WIDTH BOTTOM SHEET OVERLAY: Active Warnings & Admin Triage (Harmonized) */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-[500] pointer-events-auto bg-white/95 backdrop-blur-md border-t-2 border-gw-primary shadow-[0_-8px_30px_rgba(0,0,0,0.18)] transition-all duration-300 ease-in-out flex flex-col ${
+        className={`absolute bottom-0 left-0 right-0 z-[500] pointer-events-auto bg-gw-panel/95 backdrop-blur-md border-t-2 border-gw-primary shadow-[0_-8px_30px_rgba(0,0,0,0.18)] transition-all duration-300 ease-in-out flex flex-col ${
           bottomSheetState === 'minimized'
             ? 'h-[46px]'
             : bottomSheetState === 'maximized'
@@ -1605,7 +1605,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             )}
 
             {currentNavArea !== 'ALL' && (
-              <span className="text-[10px] font-mono font-bold text-gw-accent bg-white px-1.5 py-0.5 border border-gw-secondary rounded hidden sm:inline">
+              <span className="text-[10px] font-mono font-bold text-gw-accent bg-gw-panel px-1.5 py-0.5 border border-gw-secondary rounded hidden sm:inline">
                 NAVAREA {currentNavArea}
               </span>
             )}
@@ -1614,7 +1614,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           {/* Quick Filter Switchers in Bottom Sheet Header (when expanded) */}
           {bottomSheetState !== 'minimized' && (
             <div className="hidden md:flex items-center gap-2">
-              <div className="flex items-center bg-white border border-gw-secondary rounded-lg p-0.5 text-[10px] font-bold uppercase">
+              <div className="flex items-center bg-gw-panel border border-gw-secondary rounded-lg p-0.5 text-[10px] font-bold uppercase">
                 {(['all', 'navarea', 'coastal'] as ScopeFilterType[]).map((scope) => (
                   <button
                     key={scope}
@@ -1637,7 +1637,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Filter active notices..."
-                  className="pl-6 pr-2 py-0.5 bg-white border border-gw-secondary rounded text-[11px] font-mono text-gw-primary placeholder:text-gw-accent outline-none w-36 lg:w-48 focus:border-gw-primary"
+                  className="pl-6 pr-2 py-0.5 bg-gw-panel border border-gw-secondary rounded text-[11px] font-mono text-gw-primary placeholder:text-gw-accent outline-none w-36 lg:w-48 focus:border-gw-primary"
                 />
               </div>
             </div>
@@ -1700,7 +1700,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   return (
                     <div
                       key={w.warning_id}
-                      className={`bg-white border rounded-xl p-3 transition-all shadow-xs ${
+                      className={`bg-gw-panel border rounded-xl p-3 transition-all shadow-xs ${
                         isHidden
                           ? 'border-amber-300 bg-amber-50/40 opacity-70'
                           : isExpanded
@@ -1799,7 +1799,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                             <button
                               type="button"
                               onClick={() => centerOnWarningArea(w)}
-                              className="flex items-center gap-1 px-2.5 py-1 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-white transition-colors"
+                              className="flex items-center gap-1 px-2.5 py-1 bg-gw-panel border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-white transition-colors"
                               title="Center map on hazard coordinates"
                             >
                               <MapPin className="w-3 h-3" />
@@ -1809,7 +1809,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                             <button
                               type="button"
                               onClick={() => onSelectWarning(w)}
-                              className="flex items-center gap-1 px-2.5 py-1 bg-white border border-gw-secondary text-gw-accent hover:border-gw-primary hover:text-gw-primary rounded text-[10px] font-bold uppercase transition-colors"
+                              className="flex items-center gap-1 px-2.5 py-1 bg-gw-panel border border-gw-secondary text-gw-accent hover:border-gw-primary hover:text-gw-primary rounded text-[10px] font-bold uppercase transition-colors"
                               title="Open full provenance and audit modal"
                             >
                               <ExternalLink className="w-3 h-3" />

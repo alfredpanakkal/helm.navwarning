@@ -591,14 +591,14 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                               : w.status === 'unverified' ? 'bg-amber-500'
                               : w.status === 'superseded' ? 'bg-indigo-500'
                               : w.status === 'cancelled' ? 'bg-rose-500'
-                              : 'bg-zinc-400'
+                              : 'bg-gw-accent'
                           }`}></span>
                           <span className={
                             w.status === 'active' ? 'text-green-600'
                               : w.status === 'unverified' ? 'text-amber-600'
                               : w.status === 'superseded' ? 'text-indigo-600'
                               : w.status === 'cancelled' ? 'text-rose-600'
-                              : 'text-zinc-600'
+                              : 'text-gw-accent'
                           }>{w.status}</span>
                         </span>
                       </div>
@@ -960,14 +960,14 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       : w.status === 'unverified' ? 'bg-amber-500'
                       : w.status === 'superseded' ? 'bg-indigo-500'
                       : w.status === 'cancelled' ? 'bg-rose-500'
-                      : 'bg-zinc-400'
+                      : 'bg-gw-accent'
                   }`}></span>
                   <span className={
                     w.status === 'active' ? 'text-green-700'
                       : w.status === 'unverified' ? 'text-amber-700'
                       : w.status === 'superseded' ? 'text-indigo-700'
                       : w.status === 'cancelled' ? 'text-rose-700'
-                      : 'text-zinc-600'
+                      : 'text-gw-accent'
                   }>
                     {w.status}
                   </span>

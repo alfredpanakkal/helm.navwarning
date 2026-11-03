@@ -14,15 +14,15 @@ const SMART_SORT_OPTIONS: { id: string; label: string }[] = [
 const selectClass = (active: boolean) =>
   `appearance-none rounded-lg border px-3 pr-7 py-1.5 text-xs font-semibold cursor-pointer outline-none transition-all min-h-[38px] max-w-full ${
     active
-      ? 'bg-gw-primary text-gw-bg border-slate-900 shadow-2xs'
-      : 'bg-gw-panel border-gw-secondary text-gw-primary hover:border-gw-secondary focus:border-slate-900 shadow-2xs'
+      ? 'bg-gw-primary text-gw-bg border-gw-primary shadow-2xs'
+      : 'bg-gw-panel border-gw-secondary text-gw-primary hover:border-gw-secondary focus:border-gw-primary shadow-2xs'
   }`;
 
 const selectChevron = (active: boolean) => (
   <span
     aria-hidden="true"
     className={`absolute right-2.5 w-1.5 h-1.5 border-r-2 border-b-2 rotate-45 pointer-events-none ${
-      active ? 'border-white' : 'border-slate-500'
+      active ? 'border-gw-bg' : 'border-gw-secondary'
     }`}
   />
 );
@@ -85,7 +85,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
     <div className="p-3.5 flex flex-col gap-2.5">
       {/* Primary row: search + compact filters + More filters */}
       <div className="flex flex-col lg:flex-row gap-2.5">
-        <div className="flex-1 min-w-[200px] flex items-center gap-2 bg-gw-panel border border-gw-secondary rounded-lg px-3 py-1.5 focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-gw-primary shadow-2xs">
+        <div className="flex-1 min-w-[200px] flex items-center gap-2 bg-gw-panel border border-gw-secondary rounded-lg px-3 py-1.5 focus-within:border-gw-primary focus-within:ring-1 focus-within:ring-gw-primary shadow-2xs">
           <Search className="w-4 h-4 text-gw-accent shrink-0" />
           <input
             type="text"
@@ -184,7 +184,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             aria-expanded={showMoreFilters}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold tracking-wide transition-all min-h-[38px] cursor-pointer shadow-2xs ${
               showMoreFilters
-                ? 'bg-gw-primary text-gw-bg border-slate-900'
+                ? 'bg-gw-primary text-gw-bg border-gw-primary'
                 : 'bg-gw-panel text-gw-accent border-gw-secondary hover:bg-gw-secondary hover:border-gw-secondary'
             }`}
           >

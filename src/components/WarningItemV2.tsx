@@ -78,11 +78,11 @@ export const isCoastalWarning = (w: NavWarning): boolean => {
 };
 
 function statusDotClass(status: NavWarning['status']): string {
-  return status === 'active' ? 'bg-green-600' : status === 'unverified' ? 'bg-amber-500' : 'bg-zinc-400';
+  return status === 'active' ? 'bg-green-600' : status === 'unverified' ? 'bg-amber-500' : 'bg-gw-accent';
 }
 
 function statusTextClass(status: NavWarning['status']): string {
-  return status === 'active' ? 'text-green-700' : status === 'unverified' ? 'text-amber-700' : 'text-zinc-600';
+  return status === 'active' ? 'text-green-700' : status === 'unverified' ? 'text-amber-700' : 'text-gw-accent';
 }
 
 export const WarningSeverityBadge: React.FC<{ warning: NavWarning; className?: string }> = ({

@@ -337,7 +337,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                 <label className="block text-xs font-bold uppercase tracking-wider mb-1">Area text</label>
                 <textarea className={inputCls + ' min-h-[80px]'} value={areaText} onChange={(e) => setAreaText(e.target.value)} maxLength={2000} />
               </div>
-              <div className="text-[11px] text-gray-500 border border-gw-secondary rounded p-2 bg-gw-panel/60">
+              <div className="text-[11px] text-gw-accent border border-gw-secondary rounded p-2 bg-gw-panel/60">
                 <strong>Raw bulletin text is read-only</strong> — it is the evidence anchor. Edits apply to derived fields only.
               </div>
             </div>
@@ -363,7 +363,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                 >
                   No expiry (clear)
                 </button>
-                <span className="text-[11px] text-gray-500">
+                <span className="text-[11px] text-gw-accent">
                   Setting an expiry date <strong>never</strong> auto-changes the status — lifecycle changes are explicit operator actions.
                 </span>
               </div>
@@ -392,7 +392,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                   </select>
                 </div>
               </div>
-              <div className="text-[11px] text-gray-500 bg-amber-50 border border-amber-300 rounded p-2">
+              <div className="text-[11px] text-gw-accent bg-amber-50 border border-amber-300 rounded p-2">
                 Tier A invariants: geometry required, EXPLICIT quality, not superseded. The server enforces them and rejects the edit otherwise.
               </div>
               <div>
@@ -414,7 +414,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                     <option value="">— keep in {identity.navarea} —</option>
                     {NAVAREA_OPTIONS.map((n) => <option key={n} value={n}>NAVAREA {n}</option>)}
                   </select>
-                  <span className="text-[11px] text-gray-500">Creates a new warning in the target region; original becomes superseded.</span>
+                  <span className="text-[11px] text-gw-accent">Creates a new warning in the target region; original becomes superseded.</span>
                 </div>
               </div>
             </div>
@@ -423,7 +423,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
           {tab === 'geometry' && (
             <div className="space-y-3">
               {!geometryLayer && (
-                <div className="text-xs text-gray-500 border border-gw-secondary rounded p-3 bg-gw-panel/60">
+                <div className="text-xs text-gw-accent border border-gw-secondary rounded p-3 bg-gw-panel/60">
                   No existing geometry found on this warning. The editor below extracts an editable layer from the raw
                   bulletin text — edit the points, tick “include”, then Save.
                 </div>
