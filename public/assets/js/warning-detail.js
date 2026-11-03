@@ -84,7 +84,7 @@
     if (w.triage_tier) html += metaRow('Geometry tier:', esc(w.triage_tier) + (w.data_quality ? ' &middot; ' + esc(w.data_quality) : ''));
     html += '</div>';
     html += '<section><h2>Original bulletin text</h2><pre class="warn-text">' + esc(w.raw_text || 'Original bulletin text is not available for this record.') + '</pre></section>';
-    html += '<p class="backlinks"><a href="' + regionHref + '">All NAVAREA ' + rn + ' warnings</a><a href="' + mapHref + '">View on the live map</a><a href="/sources">Source registry</a></p>';
+    html += '<p class="backlinks"><a href="' + regionHref + '">All NAVAREA ' + rn + ' warnings</a><a href="' + mapHref + '">View on the live map</a><a href="/about#source-registry">Source registry</a></p>';
     detailEl.innerHTML = html;
   }
 })();

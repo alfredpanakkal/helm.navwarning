@@ -1,16 +1,17 @@
 // scripts/navarea-pages/generate-navarea-pages.mjs
-// Prerenders the public NAVAREA regional pages, the source-registry hub
-// (/sources), the warning-detail shell (/warning-shell) and — when the
-// public Supabase read returns data — one static page per active warning
-// (/navarea/<RN>/warning/<num>-<year>) plus public/sitemap.xml. Runs as the
-// first step of 'npm run build'. Regional + sources + shell output is
+// Prerenders the public NAVAREA regional pages, the combined About + Source
+// Registry page (/about), the warning-detail shell (/warning-shell) and —
+// when the public Supabase read returns data — one static page per active
+// warning (/navarea/<RN>/warning/<num>-<year>) plus public/sitemap.xml. Runs
+// as the first step of 'npm run build'. Regional + about + shell output is
 // deterministic; warning detail pages depend on the live database and are
-// gitignored (regenerated on every deploy, stale pages removed).
+// gitignored (regenerated on every deploy, stale pages removed). The old
+// /sources hub no longer exists — it permanently redirects to /about.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  buildPageHtml, buildSourcesPageHtml, buildWarningShellHtml, buildWarningPageHtml,
+  buildPageHtml, buildAboutPageHtml, buildWarningShellHtml, buildWarningPageHtml,
   buildSitemapXml, warningDetailPath, NAVAREA_REGIONS, normalizeStoredNavarea,
 } from './navareaConfig.mjs';
 import { fetchActiveWarnings } from './fetchActiveWarnings.mjs';
@@ -22,9 +23,11 @@ for (const r of NAVAREA_REGIONS) {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'index.html'), buildPageHtml(r));
 }
-const sourcesDir = path.join(root, 'public', 'sources');
-fs.mkdirSync(sourcesDir, { recursive: true });
-fs.writeFileSync(path.join(sourcesDir, 'index.html'), buildSourcesPageHtml());
+// Combined About + Source Registry page replaces the old static about.html;
+// the retired /sources directory is removed so no deploy serves the stale hub
+// (vercel.json redirects /sources to /about).
+fs.writeFileSync(path.join(root, 'public', 'about.html'), buildAboutPageHtml());
+fs.rmSync(path.join(root, 'public', 'sources'), { recursive: true, force: true });
 const shellDir = path.join(root, 'public', 'warning-shell');
 fs.mkdirSync(shellDir, { recursive: true });
 fs.writeFileSync(path.join(shellDir, 'index.html'), buildWarningShellHtml());
@@ -54,4 +57,5 @@ for (const [p, { regionId, w }] of byPath) {
   detailCount++;
 }
 fs.writeFileSync(path.join(root, 'public', 'sitemap.xml'), buildSitemapXml(new Date().toISOString().slice(0, 10), Array.from(byPath.keys())));
-console.log('Generated ' + NAVAREA_REGIONS.length + ' regional pages, source registry, warning shell, sitemap and ' + detailCount + ' warning detail pages');
+console.log('Generated ' + NAVAREA_REGIONS.length + ' regional pages, combined about/source-registry page, warning shell, sitemap and ' + detailCount + ' warning detail pages');
+

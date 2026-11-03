@@ -363,7 +363,7 @@ export function buildWarningPageHtml(r, w) {
     '    <h2>About this warning</h2>',
     '    <p>' + escapeHtml(idText) + ' is a navigational warning for NAVAREA ' + r.id + ' (' + r.shortLabel + '), broadcast by ' + r.authority + ' under the World-Wide Navigational Warning Service (WWNWS). Helm.Warning aggregates these broadcasts daily and plots warnings with resolved geometry on the <a href="' + navareaMapHref(r.id) + '">live map</a>.</p>',
     '    <p>Helm.Warning is a convenience copy of these broadcasts, not an official source of Maritime Safety Information. Always verify against official channels (NAVTEX, Inmarsat SafetyNET) as required by SOLAS &mdash; see the <a href="/about">about and disclaimer</a> page for the full safety notice.</p>',
-    '    <p class="backlinks"><a href="' + canonicalPath(r.id) + '">All NAVAREA ' + r.id + ' warnings</a><a href="' + navareaMapHref(r.id) + '">View on the live map</a><a href="/sources">Source registry</a></p>',
+    '    <p class="backlinks"><a href="' + canonicalPath(r.id) + '">All NAVAREA ' + r.id + ' warnings</a><a href="' + navareaMapHref(r.id) + '">View on the live map</a><a href="/about#source-registry">Source registry</a></p>',
     '  </section>',
     '',
     '  <p class="disclaimer-box">Situational awareness only. Not a substitute for GMDSS, NAVTEX or SafetyNET broadcasts. Official broadcasts and the Master&rsquo;s judgment always take priority.</p>',
@@ -419,9 +419,9 @@ export function buildWarningShellHtml() {
     '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <span>Warning</span></nav>',
     '  <h1 id="warningTitle">Navigational warning</h1>',
     '  <div id="warningDetail" aria-live="polite"></div>',
-    '  <p id="emptyState" class="empty" hidden>No warning matches this address. It may have been cancelled, expired or removed. Browse the <a href="/sources">source registry</a> or return to the <a href="/">live map</a>.</p>',
-    '  <p id="errorState" class="error" hidden role="alert">This warning could not be loaded right now. Retry later, browse the <a href="/sources">source registry</a>, or use the <a href="/">live map</a>.</p>',
-    '  <noscript><p class="muted">Enable JavaScript to load this warning. Static warning pages are rebuilt on every deployment &mdash; the <a href="/sources">source registry</a> lists all regions.</p></noscript>',
+    '  <p id="emptyState" class="empty" hidden>No warning matches this address. It may have been cancelled, expired or removed. Browse the <a href="/about#source-registry">source registry</a> or return to the <a href="/">live map</a>.</p>',
+    '  <p id="errorState" class="error" hidden role="alert">This warning could not be loaded right now. Retry later, browse the <a href="/about#source-registry">source registry</a>, or use the <a href="/">live map</a>.</p>',
+    '  <noscript><p class="muted">Enable JavaScript to load this warning. Static warning pages are rebuilt on every deployment &mdash; the <a href="/about#source-registry">source registry</a> lists all regions.</p></noscript>',
     '</main>',
     '',
     '<footer class="site">',
@@ -438,19 +438,18 @@ export function buildWarningShellHtml() {
   return lines.join('\n');
 }
 
-// Regenerates public/sitemap.xml: homepage + about + the source registry +
-// the 21 regional pages.
-// Prerendered public source-registry hub (/sources): one clickable card per
-// NAVAREA region linking to its regional page, with the region's waters and
-// official WWNWS area coordinator. Fully static - no client-side hydration,
-// so the whole registry is crawlable in the initial HTML.
-export function buildSourcesPageHtml() {
-  const url = SITE_URL + '/sources';
-  const title = 'NAVAREA Source Registry | Helm.Warning';
-  const description = 'The 21 NAVAREA regions of the World-Wide Navigational Warning Service (WWNWS) and their official area coordinators. Open any region for its live in-force navigational warnings and original bulletins.';
-  const jsonLd = '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[' +
+// Combined public About + Source Registry page (/about): everything the old
+// /about page carried (intro, data sources, safety disclaimer, developer,
+// watch-theme settings) plus the full 21-region source registry that used to
+// live at /sources. One crawlable, fully static page - no client-side
+// hydration. /sources permanently redirects here (vercel.json).
+export function buildAboutPageHtml() {
+  const url = SITE_URL + '/about';
+  const title = 'About Helm.Warning | NAVAREA Source Registry &amp; Maritime Safety Information';
+  const description = 'What Helm.Warning is, where its NAVAREA warning data comes from, the 21-region source registry with official WWNWS area coordinators, and the safety disclaimer: for situational awareness only - not a substitute for official Maritime Safety Information (MSI).';
+  const jsonLd = '{"@context":"schema.org","@type":"BreadcrumbList","itemListElement":[' +
     '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/"},' +
-    '{"@type":"ListItem","position":2,"name":"Source Registry","item":"' + url + '"}]}';
+    '{"@type":"ListItem","position":2,"name":"About","item":"' + url + '"}]}';
   const nAutomated = NAVAREA_REGIONS.filter(function (x) { return x.ingest === 'automated'; }).length;
   const nRestricted = NAVAREA_REGIONS.filter(function (x) { return x.ingest === 'restricted'; }).length;
   const nManual = NAVAREA_REGIONS.filter(function (x) { return x.ingest === 'manual'; }).length;
@@ -482,6 +481,74 @@ export function buildSourcesPageHtml() {
     '.feed-none{color:var(--text-light)}',
     '.source-portal{font-size:12.5px;color:var(--text-muted);margin:4px 0 12px}'
   ].join('');
+  const aboutCss = [
+    '.disclaimer-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid #f59e0b;border-radius:var(--radius);padding:16px 18px;margin:12px 0 0}',
+    '.disclaimer-box p{margin:0 0 10px;color:var(--text)}',
+    '.disclaimer-box p:last-child{margin:0}',
+    '.page ul{margin:0 0 14px;padding-left:20px;color:var(--text)}',
+    '.page li{margin:0 0 6px}',
+    '.dev-links{margin-top:16px}',
+    '.dev-links a{color:var(--text-muted)}',
+    '.dev-links a:hover{color:var(--text-light)}',
+    '.backlink{display:inline-flex;align-items:center;gap:8px;margin-top:32px;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);text-decoration:none;font-weight:500;min-height:var(--touch-min)}',
+    '.backlink:hover{border-color:var(--text-light)}',
+    '.cta-btn{display:inline-flex;align-items:center;gap:8px;margin-top:4px;padding:10px 18px;background:var(--verified);color:#fff;text-decoration:none;font-weight:600;border:1px solid transparent;border-radius:var(--radius);min-height:var(--touch-min);transition:filter .15s ease}',
+    '.cta-btn:hover{filter:brightness(1.12)}',
+    '.cta-btn:focus-visible{outline:2px solid var(--text-light);outline-offset:2px}',
+    '.theme-picker{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 4px}',
+    '.theme-option{flex:1 1 150px;display:flex;flex-direction:column;gap:3px;align-items:flex-start;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font:inherit;cursor:pointer;min-height:var(--touch-min);text-align:left;transition:border-color .15s,box-shadow .15s}',
+    '.theme-option:hover{border-color:var(--text-muted)}',
+    '.theme-option:focus-visible{outline:2px solid var(--accent);outline-offset:2px}',
+    '.theme-option[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}',
+    '.theme-option-name{font-weight:600;font-size:14px}',
+    '.theme-option-desc{font-size:12px;color:var(--text-muted)}'
+  ].join('');
+  const prePaintScript = [
+    '<script>',
+    '/* Pre-paint: apply the saved watch theme (hw-theme) before first paint. */',
+    '(function () {',
+    '  try {',
+    "    var t = localStorage.getItem('hw-theme');",
+    "    if (t === 'dark' || t === 'night') {",
+    "      document.documentElement.setAttribute('data-theme', t);",
+    '      var m = document.querySelector(\'meta[name="theme-color"]\');',
+    "      if (m) m.setAttribute('content', t === 'night' ? '#080404' : '#0E1210');",
+    '    }',
+    '  } catch (e) { /* storage unavailable: stay on light */ }',
+    '})();',
+    '</' + 'script>'
+  ].join('\n');
+  const themeToggleScript = [
+    '<script>',
+    '/* Watch-theme toggle: applies the selected theme live and persists it (hw-theme). */',
+    '(function () {',
+    "  var KEY = 'hw-theme';",
+    "  var META = { light: '#FAFAF7', dark: '#0E1210', night: '#080404' };",
+    "  var btns = Array.prototype.slice.call(document.querySelectorAll('[data-theme-set]'));",
+    '  function current() {',
+    "    try { var t = localStorage.getItem(KEY); return (t === 'dark' || t === 'night') ? t : 'light'; }",
+    "    catch (e) { return 'light'; }",
+    '  }',
+    '  function paint(t) {',
+    '    btns.forEach(function (b) {',
+    "      b.setAttribute('aria-pressed', b.getAttribute('data-theme-set') === t ? 'true' : 'false');",
+    '    });',
+    '  }',
+    '  btns.forEach(function (b) {',
+    "    b.addEventListener('click', function () {",
+    "      var t = b.getAttribute('data-theme-set');",
+    "      if (t !== 'dark' && t !== 'night') t = 'light';",
+    '      try { localStorage.setItem(KEY, t); } catch (e) { /* private mode: not persisted */ }',
+    "      document.documentElement.setAttribute('data-theme', t);",
+    '      var m = document.querySelector(\'meta[name="theme-color"]\');',
+    "      if (m) m.setAttribute('content', META[t]);",
+    '      paint(t);',
+    '    });',
+    '  });',
+    '  paint(current());',
+    '})();',
+    '</' + 'script>'
+  ].join('\n');
   const lines = [
     '<!DOCTYPE html>',
     '<html lang="en">',
@@ -489,6 +556,8 @@ export function buildSourcesPageHtml() {
     '<meta charset="UTF-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">',
     '<meta name="theme-color" content="#0f172a">',
+    '',
+    prePaintScript,
     '<title>' + title + '</title>',
     '<meta name="description" content="' + description + '">',
     '<link rel="canonical" href="' + url + '">',
@@ -506,7 +575,7 @@ export function buildSourcesPageHtml() {
     '<meta name="twitter:description" content="' + description + '">',
     '<script type="application/ld+json">' + jsonLd + '</' + 'script>',
     '<link rel="stylesheet" href="/assets/css/tokens.css">',
-    '<style>' + PAGE_CSS + sourceCss + '</style>',
+    '<style>' + PAGE_CSS + sourceCss + aboutCss + '</style>',
     '</head>',
     '<body>',
     '<header class="site-header">',
@@ -516,32 +585,92 @@ export function buildSourcesPageHtml() {
     '</header>',
     '',
     '<main class="page">',
-    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <span>Source Registry</span></nav>',
-    '  <h1>NAVAREA Source Registry</h1>',
-    '  <p class="lead">Helm.Warning tracks navigational warnings for the 21 NAVAREA ocean regions of the World-Wide Navigational Warning Service (WWNWS), run jointly by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO). Every region has one designated area coordinator &mdash; a national hydrographic office or maritime authority &mdash; responsible for issuing, updating and cancelling its warnings. Select any region below to open its regional page with the live in-force warnings and the original bulletins.</p>',
-    '  <p class="overview">Regions: <strong>21</strong> &middot; Automated feeds: <strong>' + nAutomated + '</strong> &middot; Not reliable / restricted: <strong>' + nRestricted + '</strong> &middot; Manual entry only: <strong>' + nManual + '</strong> &middot; Coverage: global, including the Arctic</p>',
+    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <span>About</span></nav>',
+    '  <h1>About Helm.Warning</h1>',
     '',
     '  <section>',
-    '    <h2>The 21 NAVAREA regions</h2>',
+    '    <h2>What is Helm.Warning?</h2>',
+    '    <p>Helm.Warning is a free interactive map that displays live NAVAREA navigational warnings to support maritime situational awareness and passage planning. Active warnings are plotted on nautical charts with danger areas, safety zones, and hazard points &mdash; no login or account required.</p>',
+    '    <a class="cta-btn" href="#source-registry" aria-label="Explore all 21 NAVAREA areas and their live warnings">',
+    '      Explore the 21 NAVAREA areas &amp; warnings',
+    '      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M12 5l7 7-7 7"/></svg>',
+    '    </a>',
+    '  </section>',
+    '',
+    '  <section>',
+    '    <h2>Data Sources</h2>',
+    '    <p>Warnings are aggregated from official NAVAREA coordinators operating under the World-Wide Navigational Warning Service (WWNWS), jointly coordinated by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO). Coverage spans all 21 NAVAREA regions worldwide, including the five Arctic areas (XVII&ndash;XXI). Data is refreshed daily from verified hydrographic authority feeds such as the UKHO, NGA, SHOM, AMSA, and the Japan Coast Guard.</p>',
+    '  </section>',
+    '',
+    '  <section id="source-registry" aria-labelledby="source-registry-heading">',
+    '    <h2 id="source-registry-heading">Source Registry &mdash; the 21 NAVAREA regions</h2>',
+    '    <p class="lead">Every NAVAREA ocean region has one designated area coordinator &mdash; a national hydrographic office or maritime authority &mdash; responsible for issuing, updating and cancelling its warnings. Select any region below to open its regional page with the live in-force warnings and the original bulletins.</p>',
+    '    <p class="overview">Regions: <strong>21</strong> &middot; Automated feeds: <strong>' + nAutomated + '</strong> &middot; Not reliable / restricted: <strong>' + nRestricted + '</strong> &middot; Manual entry only: <strong>' + nManual + '</strong> &middot; Coverage: global, including the Arctic</p>',
     '    <ul class="source-grid">',
     cards,
     '    </ul>',
+    '    <p>Helm.Warning ingests each region and plots the parsed warnings on the <a href="/">live map</a>. Every card carries an ingestion status: <span class="feed-badge feed-ok">green</span> = automated ingestion from a verified official feed; <span class="feed-badge feed-warn">amber</span> = not reliable, the source does not permit automatic crawling (bot-protected portal or no accessible publication endpoint), so data may be stale; <span class="feed-badge feed-none">grey</span> = no automated feed yet, warnings entered through the reviewed admin pipeline rather than an unofficial source. Regions with a verified source portal also link to it directly below the card.</p>',
     '  </section>',
     '',
     '  <section>',
-    '    <h2>About this registry</h2>',
-    '    <p>Helm.Warning ingests each region and plots the parsed warnings on the <a href="/">live map</a>. Every card carries an ingestion status: <span class="feed-badge feed-ok">green</span> = automated ingestion from a verified official feed; <span class="feed-badge feed-warn">amber</span> = not reliable, the source does not permit automatic crawling (bot-protected portal or no accessible publication endpoint), so data may be stale; <span class="feed-badge feed-none">grey</span> = no automated feed yet, warnings entered through the reviewed admin pipeline rather than an unofficial source. Regions with a verified source portal also link to it directly below the card.</p>',
-    '    <p>Helm.Warning is a convenience copy of these broadcasts, not an official source of Maritime Safety Information. Always verify against official channels (NAVTEX, Inmarsat SafetyNET) as required by SOLAS &mdash; see the <a href="/about">about and disclaimer</a> page for the full safety notice.</p>',
+    '    <h2>Important Safety Disclaimer</h2>',
+    '    <div class="disclaimer-box">',
+    "      <p>Helm.Warning is a situational-awareness tool. It shows a convenience copy of NAVAREA and other maritime safety warnings gathered from public sources. It is not an official source of Maritime Safety Information.</p>",
+    '      <p>The map can lag behind the original broadcasts, miss warnings, or show them incorrectly. Always check the official broadcast (NAVTEX, SafetyNET, or the issuing authority) before relying on any warning.</p>',
+    "      <p>Official broadcasts and the Master's judgment take priority over anything shown here. Under SOLAS, responsibility for the safe navigation of the vessel stays with the Master. Helm.Warning must not be used as the sole or primary source for passage planning or navigation decisions.</p>",
+    '    </div>',
     '  </section>',
     '',
-    '  <p class="disclaimer-box">Situational awareness only. Not a substitute for GMDSS, NAVTEX or SafetyNET broadcasts. Official broadcasts and the Master&rsquo;s judgment always take priority.</p>',
+    '  <section>',
+    '    <h2>About the Developer</h2>',
+    '    <p>Helm.Warning is built by <strong>Alfred Panakkal Jose</strong> &mdash; a Full-Stack Developer and serving Third Officer with over 2 years of experience as Third Officer and active in the maritime field since 2019.</p>',
+    '    <p>Having worked on ocean-going oil tankers, he has first-hand experience of the real difficulties faced by seafarers &mdash; limited connectivity, high operational pressure, and the constant need for reliable tools at sea. This practical understanding shapes the way he builds software: simple, fast, offline-friendly, and focused on actual bridge and operational needs.</p>',
+    '    <p>Alongside his sea-going career, Alfred has developed several maritime and productivity web applications under the <strong>Helm</strong> series, including:</p>',
+    '    <ul>',
+    '      <li><strong>Helm Almanac</strong> &ndash; Maritime reference and vessel schedule tool</li>',
+    '      <li><strong>Helm Productivity</strong> &ndash; Watchkeeping and task management suite for seafarers</li>',
+    '      <li><strong>Helm Bond</strong> &ndash; Networking and bond store management platform</li>',
+    '      <li><strong>Helm Fasting</strong> &ndash; Health companion designed for long voyages</li>',
+    '      <li><strong>Navarea Warning Plotter</strong> and other utility tools</li>',
+    '    </ul>',
+    '    <p class="dev-links">',
+    '      <strong>Portfolio:</strong> <a href="https://alfred-panakkal.vercel.app" rel="noopener">alfred-panakkal.vercel.app</a><br>',
+    '      <strong>LinkedIn:</strong> <a href="https://www.linkedin.com/in/alfredpanakkal" rel="noopener">linkedin.com/in/alfredpanakkal</a>',
+    '    </p>',
+    '  </section>',
+    '',
+    '  <section aria-labelledby="theme-heading">',
+    '    <h2 id="theme-heading">Display &amp; Watch Themes</h2>',
+    '    <p>Helm.Warning follows the watch. Pick the theme that suits your station and time of day &mdash; your choice is saved on this device and applies across the site, including the live map.</p>',
+    '    <div class="theme-picker" role="group" aria-label="Choose theme">',
+    '      <button type="button" class="theme-option" data-theme-set="light" aria-pressed="true">',
+    '        <span class="theme-option-name">Chart paper</span>',
+    '        <span class="theme-option-desc">Light &mdash; desk &amp; passage planning</span>',
+    '      </button>',
+    '      <button type="button" class="theme-option" data-theme-set="dark" aria-pressed="false">',
+    '        <span class="theme-option-name">Bridge</span>',
+    '        <span class="theme-option-desc">Dark &mdash; the main bridge look</span>',
+    '      </button>',
+    '      <button type="button" class="theme-option" data-theme-set="night" aria-pressed="false">',
+    '        <span class="theme-option-name">Red watch</span>',
+    '        <span class="theme-option-desc">Night &mdash; dim reds to protect night vision</span>',
+    '      </button>',
+    '    </div>',
+    '    <p class="muted">Red watch is intentionally dim. These colours are calculated, not tested on a bridge display &mdash; try it at night on your own device and adjust screen brightness until it is comfortable. Severity colours keep the same meaning in every theme: a Critical warning always looks Critical.</p>',
+    '  </section>',
+    '',
+    '  <a class="backlink" href="/" aria-label="Back to the live NAVAREA warnings map">',
+    '    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
+    '    Back to the live map',
+    '  </a>',
     '</main>',
     '',
     '<footer class="site">',
     '  <p>Helm.Warning &mdash; NAVAREA Maritime Safety Information Pipeline</p>',
-    '  <p><a href="/">Live warnings map</a> &middot; <a href="/about">About &amp; Disclaimer</a></p>',
+    '  <p>For situational awareness only. Not a substitute for official MSI (SafetyNET, NAVTEX). Always verify with official channels as required by SOLAS. <a href="/">Live warnings map</a></p>',
     '</footer>',
     '',
+    themeToggleScript,
     '</body>',
     '</html>'
   ];
@@ -552,8 +681,7 @@ export function buildSourcesPageHtml() {
 export function buildSitemapXml(todayIso, detailUrls) {
   const entries = [
     { loc: SITE_URL + '/', freq: 'daily', priority: '1.0' },
-    { loc: SITE_URL + '/about', freq: 'monthly', priority: '0.6' },
-    { loc: SITE_URL + '/sources', freq: 'monthly', priority: '0.7' }
+    { loc: SITE_URL + '/about', freq: 'monthly', priority: '0.7' }
   ];
   for (const r of NAVAREA_REGIONS) {
     entries.push({ loc: SITE_URL + canonicalPath(r.id), freq: 'daily', priority: '0.8' });
@@ -566,3 +694,4 @@ export function buildSitemapXml(todayIso, detailUrls) {
   }).join('\n');
   return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls + '\n</urlset>\n';
 }
+

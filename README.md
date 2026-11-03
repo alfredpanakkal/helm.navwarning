@@ -110,7 +110,7 @@ flowchart TD
     subgraph PRESENTATION["5. Presentation Layer"]
         K & L --> M[View: nav_warnings_active_spatial<br/>Pre-computed GeoJSON Blob]
         M --> N[Public Portal: Leaflet Map & Data Bank<br/>Read-only anon client]
-        K --> P["Static SEO pages: /navarea/<RN>, /sources,<br/>warning details (prerendered per deploy)"]
+        K --> P["Static SEO pages: /navarea/<RN>, /about,<br/>warning details (prerendered per deploy)"]
         K & H --> O[Admin Console: Verification & Orchestrator<br/>Role-gated JWT authenticated]
     end
 
@@ -163,7 +163,7 @@ flowchart TD
 Beyond the interactive map, Helm.Warning publishes a fully static, crawlable public surface — all generated from one config module (`scripts/navarea-pages/navareaConfig.mjs`) with no SSR framework and no new serverless functions:
 
 - **21 NAVAREA regional pages** (`/navarea/I` … `/navarea/XXI`): prerendered landing pages per region with region overview, official WWNWS coordinator details and a hydrated live in-force warning list (the existing anon Supabase read path). Invalid region IDs are genuine 404s.
-- **Source Registry** (`/sources`): one clickable card per NAVAREA region with its waters and area coordinator, linking to every regional page. Fully static — no hydration scripts, the whole registry is in the initial HTML.
+- **About + Source Registry** (`/about`): the combined public page — what Helm.Warning is, data sources, the full 21-region Source Registry (one clickable card per NAVAREA region with its waters and area coordinator), the safety disclaimer, the developer section and watch-theme settings. Fully static — no hydration scripts, the whole registry is in the initial HTML. The retired `/sources` route permanently redirects to `/about#source-registry`.
 - **Warning detail pages** (`/navarea/<RN>/warning/<num>-<year>`): one static page per active warning carrying the **complete original bulletin text in the initial HTML**, plus region, status, validity, geometry tier and coordinator metadata. The slug derives from the warning's `canonical_id`, so `NA`/`NAVAREA` prefix variants resolve to the same URL.
 - **Per-deploy prerendering**: `npm run build` runs the generator (`scripts/navarea-pages/`) as its first step — it reads active warnings through the public anon Supabase REST endpoint (fail-open: a database error never breaks a deploy) and rewrites fresh detail pages on every deploy, deleting stale ones.
 - **No-404 shell fallback**: warnings ingested after the last deploy are served through the `/warning-shell` rewrite + client-side hydration (`noindex` until the next deploy prerenders them). The Vercel 12-function cap is respected — no new `api/**` functions.

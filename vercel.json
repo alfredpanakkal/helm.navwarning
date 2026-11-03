@@ -1,5 +1,12 @@
 {
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/sources",
+      "destination": "/about",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/navarea/:rn/warning/:slug",
@@ -35,3 +42,4 @@
     }
   ]
 }
+
