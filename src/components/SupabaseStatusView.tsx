@@ -399,7 +399,7 @@ CREATE TABLE public.raw_messages (
                   </span>
                 )}
                 {geminiResult.timestamp && (
-                  <span className="text-[10px] text-zinc-500">
+                  <span className="text-[10px] text-gw-accent">
                     {new Date(geminiResult.timestamp).toLocaleTimeString()}
                   </span>
                 )}
@@ -411,7 +411,7 @@ CREATE TABLE public.raw_messages (
                 <div className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider">
                   Model Generated Response Output:
                 </div>
-                <div className="bg-zinc-950 text-emerald-400 p-3.5 rounded-lg border border-gw-secondary leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">
+                <div className="bg-gw-primary text-gw-secondary p-3.5 rounded-lg border border-gw-secondary leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">
                   {geminiResult.response}
                 </div>
               </div>
@@ -434,7 +434,7 @@ CREATE TABLE public.raw_messages (
             )}
           </div>
         ) : (
-          <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono text-gw-accent flex items-center justify-between">
+          <div className="p-4 bg-gw-bg border border-gw-secondary rounded-xl text-xs font-mono text-gw-accent flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-indigo-500" />
               <span>Click "Test Gemini Integration" to perform a real-time server API operational check.</span>
@@ -463,7 +463,7 @@ CREATE TABLE public.raw_messages (
             </button>
           </div>
 
-          <pre className="bg-zinc-950 text-emerald-400 p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-[300px] whitespace-pre border border-gw-secondary">
+          <pre className="bg-gw-primary text-gw-secondary p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-[300px] whitespace-pre border border-gw-secondary">
             {sqlSchemaScript}
           </pre>
         </div>

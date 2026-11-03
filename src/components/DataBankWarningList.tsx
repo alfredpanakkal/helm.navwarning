@@ -1117,7 +1117,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 onClick={shiftFirstPage}
                 disabled={validPage === 1}
                 aria-label="First page"
-                className="p-1.5 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+                className="p-1.5 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-gw-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                 title="Shift to First Page"
               >
                 <ChevronsLeft className="w-3.5 h-3.5" />
@@ -1128,7 +1128,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={shiftPrevPage}
                 disabled={validPage === 1}
-                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs font-bold"
+                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-gw-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs font-bold"
                 title="Shift Previous Page (or Shift+Left)"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
@@ -1162,7 +1162,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={shiftNextPage}
                 disabled={validPage === totalPages}
-                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs font-bold"
+                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-gw-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs font-bold"
                 title="Shift Next Page (or Shift+Right)"
               >
                 <span>Next</span>
@@ -1175,7 +1175,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 onClick={shiftLastPage}
                 disabled={validPage === totalPages}
                 aria-label="Last page"
-                className="p-1.5 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+                className="p-1.5 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-gw-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                 title="Shift to Last Page"
               >
                 <ChevronsRight className="w-3.5 h-3.5" />
