@@ -190,7 +190,7 @@ export const Header: React.FC<HeaderProps> = ({
                   {section.id === 'warnings' && typeof activeCount === 'number' && (
                     <span
                       className={
-                        'badge ml-1.5 px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold tabular-nums ' +
+                        'badge ml-2.5 px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold tabular-nums ' +
                         (isActive
                           ? 'bg-gw-bg/20 text-gw-bg'
                           : 'bg-gw-secondary text-gw-accent')
@@ -273,7 +273,7 @@ export const Header: React.FC<HeaderProps> = ({
                   aria-label={view.label + ' tab'}
                   onClick={() => setActiveTab(view.id)}
                   className={
-                    'px-3 py-1 text-xs font-semibold rounded-md border transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ' +
+                    'px-3 py-1 text-xs font-semibold rounded-md border transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ' +
                     (isActive
                       ? 'bg-gw-panel text-gw-primary border-gw-secondary shadow-2xs font-bold'
                       : 'text-gw-accent border-transparent hover:text-gw-primary hover:bg-gw-secondary/50')

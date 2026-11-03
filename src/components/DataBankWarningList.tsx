@@ -1073,9 +1073,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         </div>
 
         {/* Shifting & Pagination Controls Footer */}
-        <div className="min-w-[900px] flex items-center justify-between p-3.5 bg-gw-secondary/90 border-t border-gw-secondary text-xs font-mono select-none">
-          {/* Left: Record Range Summary and Page Size Shifter */}
-          <div className="flex items-center gap-4">
+        <div className="min-w-[900px] flex flex-col gap-2.5 px-3.5 py-3 sm:px-4 sm:py-3.5 bg-gw-secondary/90 border-t border-gw-secondary text-xs font-mono select-none">
+          {/* Row 1: Record Range Summary + Page Size Shifter */}
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
             <div className="text-gw-accent font-medium">
               Showing <span className="font-bold text-gw-primary">{sortedWarnings.length === 0 ? 0 : startIndex + 1}</span>–
               <span className="font-bold text-gw-primary">{endIndex}</span> of{' '}
@@ -1104,10 +1104,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             </div>
           </div>
 
-          {/* Right: Page Shifter Navigation Controls */}
+          {/* Row 2: Page Shifter Navigation Controls */}
           {pageSize !== 'ALL' && totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <span className="text-gw-accent text-[11px] font-bold mr-2 hidden lg:inline">
+            <div className="flex flex-wrap items-center gap-2 border-t border-gw-secondary pt-2.5">
+              <span className="text-gw-accent text-[11px] font-bold mr-2">
                 Page {validPage} of {totalPages}
               </span>
 
