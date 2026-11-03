@@ -93,6 +93,8 @@ describe('NAVAREA regional routes and configuration', () => {
       expect(html).toContain('<title>NAVAREA ' + r.id + ' Navigational Warnings | Helm.Warning</title>');
       expect(html).toContain('rel="canonical" href="' + SITE_URL + '/navarea/' + r.id + '"');
       expect(html).toContain('href="/?navarea=NA%20' + r.id + '"');
+      expect(html).toContain('class="nav-tab stacked active" href="/" aria-current="page"');
+      expect(html).toContain('<span>HELM.WARNING</span>');
       expect(html).toContain('aria-label="Breadcrumb"');
       expect(html).toContain('{"id":"' + r.id + '","code":"NA ' + r.id + '"}');
       expect(html).toContain('Ingestion status: <strong>' + feedStatus(r.id).label + '</strong>');
@@ -114,6 +116,8 @@ describe('NAVAREA regional routes and configuration', () => {
     expect(html).toContain('id="source-registry"');
     // The combined page keeps the watch-theme settings.
     expect(html).toContain('class="theme-picker"');
+    expect(html).toContain('class="nav-tab stacked active" href="/?tab=info" aria-current="page"');
+    expect(html).toContain('<span>HELM.WARNING</span>');
     expect(html).toContain('data-theme-set="light"');
     expect(html).toContain("localStorage.getItem('hw-theme')");
     // And the safety disclaimer.
