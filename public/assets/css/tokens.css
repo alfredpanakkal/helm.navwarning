@@ -44,3 +44,77 @@
   --header-h: 56px;
   --bottomnav-h: 56px;
 }
+
+/* ═══════════ THEME SYSTEM — Light "Chart paper" / Dark "Bridge" / Night "Red watch" ═══════════
+   Three watch-state themes. data-theme on <html> selects the palette; an inline
+   pre-paint script in each page head applies the saved theme (localStorage key
+   "hw-theme") before first paint. Light is the default and keeps the historical
+   paper look. WCAG: text pairs >= 4.5:1, borders/status/focus >= 3:1 — enforced
+   by src/theme/themeContrast.test.ts. Severity colours are always paired with a
+   shape and a word in markup; colour is never the only signal. */
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #FAFAF7;
+  --foreground: #1D211E;
+  --muted-foreground: #5D665F;
+  --accent: #2F6B4F;
+  --accent-fill: #DDEFE0;
+  --line: #6F7770;
+  --sev-critical: #B42318;
+  --sev-high: #8C5208;
+  --sev-moderate: #2E5C8A;
+  /* Helm.Ports label-mono style */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --label-mono-size: 11px;
+  --label-mono-tracking: 0.08em;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0E1210;
+  --foreground: #E9EDE9;
+  --muted-foreground: #9FA69F;
+  --accent: #8FCBA8;
+  --accent-fill: #1C2A22;
+  --line: #6B756C;
+  --sev-critical: #F08484;
+  --sev-high: #D9A24A;
+  --sev-moderate: #8DB4E2;
+  /* legacy aliases so existing public components follow the active theme */
+  --bg: #0E1210;
+  --surface: #151A17;
+  --surface-dark: #101511;
+  --border: #6B756C;
+  --text: #E9EDE9;
+  --text-muted: #9FA69F;
+  --text-light: #6B756C;
+  --critical: #F08484;
+  --high: #D9A24A;
+}
+
+:root[data-theme="night"] {
+  color-scheme: dark;
+  /* Red watch: dim reds and browns on near-black to protect night vision.
+     Keep font weight >= 400 in this theme — thin red-on-black loses legibility. */
+  --background: #080404;
+  --foreground: #E0857A;
+  --muted-foreground: #B5786B;
+  --accent: #E0857A;
+  --accent-fill: #2A1412;
+  --line: #945E53;
+  --sev-critical: #FF6B5E;
+  --sev-high: #D08A3E;
+  --sev-moderate: #BC8577;
+  /* legacy aliases so existing public components follow the active theme */
+  --bg: #080404;
+  --surface: #120A08;
+  --surface-dark: #170D0A;
+  --border: #945E53;
+  --text: #E0857A;
+  --text-muted: #B5786B;
+  --text-light: #945E53;
+  --critical: #FF6B5E;
+  --high: #D08A3E;
+}
