@@ -64,7 +64,7 @@ export const DataBankStatusBar: React.FC<{
             <div className="stat-label">Coverage</div>
             <div className="stat-value-row">
               <span className="stat-value tabular-nums">{loadingEmpty ? '—' : `${activeNavAreasCount}/${ALL_NAVAREAS.length}`}</span>
-              <span className="stat-sub">{loadingEmpty ? 'loading' : `${coveragePercent}% global`}</span>
+              <span className="stat-sub">{loadingEmpty ? 'syncing' : `${coveragePercent}% global`}</span>
             </div>
           </div>
         </div>
@@ -101,30 +101,30 @@ export const DataBankStatusBar: React.FC<{
       {/* Operational Status Row */}
       <div
         data-databank-status-bar
-        className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3.5 py-2 bg-slate-50/80 border-b border-slate-200 text-xs rounded-t-lg"
+        className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3.5 py-2 bg-gw-bg/80 border-b border-gw-secondary text-xs rounded-t-lg"
       >
         {loadingEmpty ? (
-          <span className="font-bold text-slate-500 flex items-center gap-1.5">
-            <Loader2 className="w-3 h-3 animate-spin text-slate-400" aria-hidden="true" />
+          <span className="font-bold text-gw-accent flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin text-gw-accent" aria-hidden="true" />
             Loading live data from Supabase — counts publish when the first fetch completes
           </span>
         ) : (
           <>
-            <span className="font-bold text-slate-800 tabular-nums">
+            <span className="font-bold text-gw-primary tabular-nums">
               {model.warnings.length} Warnings
             </span>
-            <span className="text-slate-400" aria-hidden="true">·</span>
-            <span className="font-bold text-slate-800 tabular-nums">
+            <span className="text-gw-accent" aria-hidden="true">·</span>
+            <span className="font-bold text-gw-primary tabular-nums">
               {model.activeCount} Active
             </span>
-            <span className="text-slate-400" aria-hidden="true">·</span>
-            <span className="font-bold text-slate-800 tabular-nums">{model.criticalCount} High</span>
-            <span className="text-slate-400" aria-hidden="true">·</span>
-            <span className="font-bold text-slate-800 tabular-nums">
+            <span className="text-gw-accent" aria-hidden="true">·</span>
+            <span className="font-bold text-gw-primary tabular-nums">{model.criticalCount} High</span>
+            <span className="text-gw-accent" aria-hidden="true">·</span>
+            <span className="font-bold text-gw-primary tabular-nums">
               {activeNavAreasCount}/{ALL_NAVAREAS.length} NAVAREAs
             </span>
-            <span className="text-slate-400" aria-hidden="true">·</span>
-            <span className="text-slate-500 tabular-nums">
+            <span className="text-gw-accent" aria-hidden="true">·</span>
+            <span className="text-gw-accent tabular-nums">
               Last checked {formatLastChecked(model.lastCheckedAt)}
             </span>
           </>
@@ -144,7 +144,7 @@ export const DataBankStatusBar: React.FC<{
               onClick={() => onTriggerRefresh()}
               disabled={isRefreshing}
               title="Refresh live feeds now"
-              className="btn btn-sm btn-primary text-xs flex items-center gap-1.5"
+              className="btn btn-sm btn-primary text-xs flex items-center gap-1.5 ml-2"
             >
               <RotateCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span>{isRefreshing ? 'Syncing...' : 'Sync Live Feeds'}</span>

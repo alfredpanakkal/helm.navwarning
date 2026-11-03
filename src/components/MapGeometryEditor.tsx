@@ -608,7 +608,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                 key={shape}
                 type="button"
                 onClick={() => setDrawShape(shape)}
-                className={`flex items-center gap-1 px-2 py-1 rounded border font-bold uppercase ${
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded border font-bold uppercase ${
                   drawShape === shape ? 'bg-gw-primary text-gw-bg border-gw-primary' : 'bg-gw-panel text-gw-primary border-gw-secondary'
                 }`}
               >
@@ -619,7 +619,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
             <button
               type="button"
               onClick={finishDraw}
-              className="ml-auto px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold uppercase"
+              className="ml-auto px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold uppercase"
             >
               Finish shape
             </button>

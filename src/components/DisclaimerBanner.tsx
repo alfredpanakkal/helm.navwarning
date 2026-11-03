@@ -20,7 +20,7 @@ export const DisclaimerBanner: React.FC = () => {
                 Helm.Warning is an automated decision-support pipeline. Not a substitute for GMDSS or official MSI.
               </span>
             </div>
-            <span className="hidden lg:inline text-zinc-400 font-mono text-[10px] shrink-0">
+            <span className="hidden lg:inline text-gw-accent font-mono text-[10px] shrink-0">
               • {formatLastUpdated(LAST_UPDATED)}
             </span>
           </div>
@@ -47,15 +47,15 @@ export const DisclaimerBanner: React.FC = () => {
       <div className={`max-w-[1600px] mx-auto px-3 sm:px-6 md:px-8 overflow-hidden transition-all duration-300 ease-in-out ${expanded ? 'max-h-[500px] pb-4' : 'max-h-0'}`}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-dashed border-gw-accent">
             <div className="bg-gw-primary border border-gw-accent rounded-sm p-3 sm:p-4">
-            <div className="text-[10px] sm:text-xs font-bold text-gw-bg mb-1.5 sm:mb-2">01_VERIFICATION</div>
+            <div className="label-mono text-[10px] sm:text-[11px] text-gw-bg/80 mb-1.5 sm:mb-2">Verification</div>
             <div className="text-[11px] sm:text-xs text-gw-secondary leading-relaxed">An empty scraper result must never become "no warnings." Zero count publishable only with explicit empty publication.</div>
           </div>
           <div className="bg-gw-primary border border-gw-accent rounded-sm p-3 sm:p-4">
-            <div className="text-[10px] sm:text-xs font-bold text-gw-bg mb-1.5 sm:mb-2">02_RAW_IMMUTABILITY</div>
+            <div className="label-mono text-[10px] sm:text-[11px] text-gw-bg/80 mb-1.5 sm:mb-2">Raw immutability</div>
             <div className="text-[11px] sm:text-xs text-gw-secondary leading-relaxed">Original source text preserved unchanged. Extractions/translations stored alongside with distinct confidence flags.</div>
           </div>
           <div className="bg-gw-primary border border-gw-accent rounded-sm p-3 sm:p-4">
-            <div className="text-[10px] sm:text-xs font-bold text-gw-bg mb-1.5 sm:mb-2">03_ATOMIC_PUBLISHING</div>
+            <div className="label-mono text-[10px] sm:text-[11px] text-gw-bg/80 mb-1.5 sm:mb-2">Atomic publishing</div>
             <div className="text-[11px] sm:text-xs text-gw-secondary leading-relaxed">Frontend reads published generations via source pointers. Staged generations prevent partial reads during runs.</div>
           </div>
         </div>

@@ -430,7 +430,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             </div>
             <div className="text-xs font-bold text-gw-primary uppercase tracking-wider">No Navigational Warnings Found</div>
             <p className="text-xs text-gw-accent max-w-sm mx-auto">
-              No active warnings match your current search or filter criteria.
+              No active warnings match the current search and filters — clear them to see every published warning.
             </p>
             <button
               onClick={handleResetFilters}
@@ -907,7 +907,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
               </div>
               <div className="text-xs font-bold text-gw-primary uppercase tracking-wider">No Navigational Warnings Found</div>
               <p className="text-xs text-gw-accent max-w-sm mx-auto">
-                No active warnings match your current search, NAVAREA, or status filter criteria.
+                No active warnings match the current search, NAVAREA, or status filters — clear them to see every published warning.
               </p>
               <button
                 type="button"
@@ -1073,9 +1073,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         </div>
 
         {/* Shifting & Pagination Controls Footer */}
-        <div className="min-w-[900px] flex items-center justify-between p-3.5 bg-gw-secondary/90 border-t border-gw-secondary text-xs font-mono select-none">
-          {/* Left: Record Range Summary and Page Size Shifter */}
-          <div className="flex items-center gap-4">
+        <div className="min-w-[900px] flex flex-col gap-2.5 px-3.5 py-3 sm:px-4 sm:py-3.5 bg-gw-secondary/90 border-t border-gw-secondary text-xs font-mono select-none">
+          {/* Row 1: Record Range Summary + Page Size Shifter */}
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
             <div className="text-gw-accent font-medium">
               Showing <span className="font-bold text-gw-primary">{sortedWarnings.length === 0 ? 0 : startIndex + 1}</span>–
               <span className="font-bold text-gw-primary">{endIndex}</span> of{' '}
@@ -1104,10 +1104,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             </div>
           </div>
 
-          {/* Right: Page Shifter Navigation Controls */}
+          {/* Row 2: Page Shifter Navigation Controls */}
           {pageSize !== 'ALL' && totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-gw-accent text-[11px] font-bold mr-2 hidden lg:inline">
+            <div className="flex flex-wrap items-center gap-2 border-t border-gw-secondary pt-2.5">
+              <span className="text-gw-accent text-[11px] font-bold mr-2">
                 Page {validPage} of {totalPages}
               </span>
 
@@ -1136,7 +1136,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
               </button>
 
               {/* Page Number Pills */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 {pageNumbers.map((p, i) => (
                   p === '...' ? (
                     <span key={`dots-${i}`} className="px-1 text-gw-accent font-bold">...</span>
@@ -1145,7 +1145,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       key={`page-${p}`}
                       type="button"
                       onClick={() => shiftToPage(Number(p))}
-                      className={`min-w-[28px] h-7 px-1 flex items-center justify-center rounded text-xs font-bold transition-all ${
+                      className={`min-w-[32px] h-8 px-1.5 flex items-center justify-center rounded text-xs font-bold transition-all ${
                         validPage === p
                           ? 'bg-gw-primary text-gw-bg font-black shadow-xs'
                           : 'bg-gw-panel border border-gw-secondary text-gw-primary hover:bg-gw-bg'
