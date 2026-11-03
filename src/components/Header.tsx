@@ -163,7 +163,7 @@ export const Header: React.FC<HeaderProps> = ({
                 Helm.Warning
               </span>
             </a>
-            <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-sans font-medium uppercase tracking-wider text-ink-tertiary">
+            <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-sans font-medium uppercase tracking-wider text-ink-tertiary">
               Console
             </span>
           </div>
@@ -174,7 +174,7 @@ export const Header: React.FC<HeaderProps> = ({
               the chrome exactly). Sections on the left, views after the divider;
               the strip scrolls horizontally when narrow. */}
           <nav
-            className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto no-scrollbar py-2"
+            className="md:hidden flex-1 min-w-0 flex items-center gap-2 overflow-x-auto no-scrollbar py-2"
             role="tablist"
             aria-label="Console sections and views"
           >
@@ -232,7 +232,7 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <span>{view.label}</span>
                   {view.id === 'databank' && typeof activeCount === 'number' && (
-                    <span className="text-[10px] px-1 py-0.2 rounded text-ink-tertiary font-sans font-medium tabular-nums">
+                    <span className="text-[11px] px-1 py-0.2 rounded text-ink-tertiary font-sans font-medium tabular-nums">
                       {activeCount.toLocaleString()}
                     </span>
                   )}
@@ -298,6 +298,54 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </header>
 
+      {/* Desktop left rail (Phase 2): sections + views as one flat scannable
+          list. Vertical nav scales, horizontal nav doesn't; the merged strip
+          above stays as the mobile (<md) navigation. Rail top starts right
+          under the 56px bar (57px = border), matching --console-sticky-offset. */}
+      <aside
+        className="hidden md:flex fixed left-0 top-[57px] bottom-0 w-[220px] z-console-sticky bg-canvas border-r border-hairline flex-col overflow-y-auto no-scrollbar py-4 px-3"
+        aria-label="Console sections and views"
+      >
+        {sectionMeta.map((section) => {
+          const isActiveSection = activeSection === section.id;
+          return (
+            <div key={section.id} className="mb-5 last:mb-0">
+              <div
+                className={
+                  'label-mono px-3 mb-1 ' +
+                  (isActiveSection ? 'text-ink-primary' : 'text-ink-tertiary')
+                }
+              >
+                {section.label}
+              </div>
+              {SECTION_VIEWS[section.id].map((view) => {
+                const isActive = activeTab === view.id;
+                return (
+                  <button
+                    key={view.id}
+                    onClick={() => setActiveTab(view.id)}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={
+                      'w-full flex items-center justify-between gap-2 px-3 py-2 rounded text-left text-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
+                      (isActive
+                        ? 'bg-surface-subtle text-ink-primary font-medium'
+                        : 'text-ink-secondary hover:text-ink-primary hover:bg-surface-subtle')
+                    }
+                  >
+                    <span>{view.label}</span>
+                    {view.id === 'databank' && typeof activeCount === 'number' && (
+                      <span className="text-[11px] text-ink-tertiary font-sans font-medium tabular-nums">
+                        {activeCount.toLocaleString()}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
+      </aside>
+
       {/* Mobile Bottom Quick Navigation — the 4 sections */}
       <nav role="tablist" className="bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-console-chrome bg-gw-panel/95 backdrop-blur-md border-t border-gw-secondary px-2 py-1 pb-[env(safe-area-inset-bottom)] flex items-center justify-around shadow-lg" aria-label="Primary quick navigation">
         {sectionMeta.map((section) => {
@@ -331,7 +379,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Admin Unlock Modal Overlay */}
       {showAdminModal && (
         <div className="fixed inset-0 z-console-overlay bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div ref={adminModalRef} role="dialog" aria-modal="true" aria-labelledby="admin-gate-title" className="bg-gw-panel border-2 border-gw-primary rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div ref={adminModalRef} role="dialog" aria-modal="true" aria-labelledby="admin-gate-title" className="bg-gw-panel border border-gw-secondary rounded-xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-gw-secondary pb-3">
               <div className="flex items-center gap-2 font-bold text-sm sm:text-base text-gw-primary uppercase tracking-wider">
                 <Lock className="w-5 h-5 text-gw-primary" />
@@ -355,7 +403,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <form onSubmit={handleUnlockAdmin} className="space-y-3">
               <div className="space-y-1">
-                <label htmlFor="admin-gate-email" className="text-[10px] font-bold text-gw-accent uppercase tracking-wider block">
+                <label htmlFor="admin-gate-email" className="text-[11px] font-bold text-gw-accent uppercase tracking-wider block">
                   Admin Email Address
                 </label>
                 <div className="relative">
@@ -378,7 +426,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="admin-gate-password" className="text-[10px] font-bold text-gw-accent uppercase tracking-wider block">
+                <label htmlFor="admin-gate-password" className="text-[11px] font-bold text-gw-accent uppercase tracking-wider block">
                   Password
                 </label>
                 <div className="relative">

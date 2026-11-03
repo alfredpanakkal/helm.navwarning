@@ -61,6 +61,7 @@
   --fs-body:         0.9rem;
   --fs-label:        0.7rem;
   --fs-meta:         0.8rem;
+  --fs-view-title:  1.25rem;   /* console view anchor */
 
   /* Weights */
   --w-hero:          500;
@@ -314,9 +315,8 @@
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid var(--border-input, #dde2e8);
   border-radius: 9999px;
-  font: 600 12px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font: 500 12px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--ink-body, #1f2937);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   cursor: pointer;
@@ -334,11 +334,6 @@
 .map-recenter-pill-btn:hover {
   background: var(--canvas, #ffffff);
   border-color: var(--ink-secondary, #5f6b7a);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
-}
-.map-recenter-pill-btn:active {
-  transform: scale(0.97);
 }
 
 .map-focus-btn,
@@ -355,7 +350,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
@@ -366,12 +360,6 @@
 .map-gear-btn:hover {
   background: var(--canvas, #ffffff);
   border-color: var(--ink-secondary, #5f6b7a);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
-}
-.map-focus-btn:active,
-.map-gear-btn:active {
-  transform: scale(0.97);
 }
 .map-focus-btn.active,
 .map-gear-btn.active {
@@ -390,7 +378,6 @@
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   outline: none;
   display: inline-flex;
   align-items: center;
@@ -401,8 +388,6 @@
 .map-ctrl-topright .map-coord-btn:hover {
   background: var(--canvas, #ffffff);
   border-color: var(--ink-secondary, #5f6b7a);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 .map-ctrl-topright .map-coord-btn.is-active {
   background: var(--ink-primary, #0b0e11);
@@ -613,3 +598,17 @@
   color: var(--ink-primary, #0b0e11);
 }
 
+@layer utilities {
+  /* Console data-surface exception (Phase 2 type scale): table headers and
+     primary actions may use 600 inside the console. The weight-500 cap stays
+     the rule everywhere else, and for the whole public surface. */
+  .w-strong { font-weight: 600 !important; }
+
+  /* Console view anchor: one consistent title treatment per view. */
+  .view-title {
+    font-size: var(--fs-view-title, 1.25rem);
+    font-weight: 500;
+    color: var(--ink-primary, #0b0e11);
+    letter-spacing: -0.01em;
+  }
+}
