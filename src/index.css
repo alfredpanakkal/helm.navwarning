@@ -419,8 +419,7 @@
   background: var(--canvas, #ffffff);
   border: 1px solid var(--border-input, #dde2e8);
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-  width: 290px;
+  width: 320px;
   padding: 14px 16px;
   display: none;
   flex-direction: column;
@@ -439,7 +438,7 @@
 }
 .settings-title {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink-primary, #0b0e11);
   letter-spacing: -0.01em;
 }
@@ -467,12 +466,12 @@
 .settings-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
 }
 
 .settings-section-title {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--ink-secondary, #5f6b7a);
@@ -488,8 +487,8 @@
   align-items: center;
   justify-content: center;
   padding: 2px 8px;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 500;
   border-radius: 4px;
   background: var(--ink-primary, #0b0e11);
   color: #ffffff;
@@ -507,8 +506,8 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 8px 4px;
-  min-height: 44px;
+  padding: 8px 10px;
+  min-height: 40px;
   cursor: pointer;
   font-size: 14px;
   color: var(--ink-body, #1f2937);
@@ -613,3 +612,25 @@
   color: var(--ink-primary, #0b0e11);
 }
 
+/* Advanced layers disclosure (Phase 3 progressive disclosure) */
+.settings-disclosure-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  min-height: 36px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-secondary, #5f6b7a);
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--hairline, #eef1f4);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.12s;
+  outline: none;
+}
+.settings-disclosure-btn:hover {
+  color: var(--ink-primary, #0b0e11);
+}

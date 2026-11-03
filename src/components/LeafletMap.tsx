@@ -141,6 +141,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const [bottomSheetState, setBottomSheetState] = useState<'minimized' | 'normal' | 'maximized'>('normal');
   const [expandedWarningId, setExpandedWarningId] = useState<string | null>(null);
   const [isLayerSettingsOpen, setIsLayerSettingsOpen] = useState<boolean>(false);
+  // Phase 3 progressive disclosure: per-layer extras hidden behind "Advanced".
+  const [showAdvancedLayers, setShowAdvancedLayers] = useState<boolean>(false);
   const [isCoordPickerActive, setIsCoordPickerActive] = useState<boolean>(false);
   const [isTopFiltersOpen, setIsTopFiltersOpen] = useState<boolean>(false);
   const [copiedCoordNotice, setCopiedCoordNotice] = useState<boolean>(false);
@@ -1388,6 +1390,23 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               <span>Danger Areas &amp; Polygons</span>
             </label>
 
+            {/* Advanced layers disclosure (Phase 3): OpenSeaMap seamarks and
+                ESRI soundings are secondary — hidden by default so the popover
+                leads with the master toggle + the two primary hazard layers. */}
+            <button
+              type="button"
+              className="settings-disclosure-btn"
+              onClick={() => setShowAdvancedLayers((v) => !v)}
+              aria-expanded={showAdvancedLayers}
+            >
+              <span>Advanced layers</span>
+              <ChevronDown
+                className={'w-3.5 h-3.5 transition-transform ' + (showAdvancedLayers ? 'rotate-180' : '')}
+                aria-hidden="true"
+              />
+            </button>
+            {showAdvancedLayers && (
+              <>
             <label className="settings-item">
               <input
                 type="checkbox"
@@ -1405,7 +1424,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               />
               <span>Ocean Soundings (ESRI)</span>
             </label>
-          </div>
+              </>
+            )}          </div>
           <div className="settings-footer">
             <button
               type="button"
