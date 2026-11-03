@@ -8,12 +8,14 @@
 ## 1. Platform at a glance
 
 - **Maritime safety platform (NAVAREA navigational warnings).**
-  Production: https://helmwarning.vercel.app/ — public site at `/`,
-  admin console at `/console` (React 19 SPA, hash routes: `#/map`,
-  `#/databank`, `#/sources`, `#/workspace`, `#/imports`, `#/manual`,
-  `#/audit`, `#/evidence`, `#/supabase`), static login gate at `/admin`.
-- **Three entry points:** `index.html` (public, vanilla JS, tab-based),
-  `console.html` (React SPA), `admin.html` (Supabase login redirect).
+  Production: https://helmwarning.vercel.app/ — public site at `/`
+  (Map / Data Bank / Info tabs), admin console at `/console`
+  (React 19 SPA; canonical hash routes are the four sections
+  `#/warnings/…`, `#/ingest/…`, `#/trace/…`, `#/system/…`;
+  legacy aliases `#/map`, `#/databank`, `#/sources`, `#/imports`,
+  `#/audit`, `#/evidence`, `#/supabase` still resolve), static login
+  gate at `/admin`.
+- **Three entry points:** `index.html` (public, vanilla JS, tab-based), `admin.html` (Supabase login → `/console#/warnings/list`), `console.html` (React SPA).
 - **Auth:** Supabase Auth; admin = `app_metadata.role` in
   {admin, superadmin} or `is_admin`. Server boundary:
   `server/auth.ts` `verifyAdminRequest` (fail-closed, Bearer JWT).
@@ -21,12 +23,17 @@
 - **Vercel runtime:** only `api/*.ts` become serverless functions. The
   `server.ts` Express routes exist only in the self-hosted/dev runtime and
   404 in production. The frontend reads Supabase directly via PostgREST.
-- `vercel.json`: cleanUrls, tile rewrites (carto/osm/openseamap),
-  noindex on `/admin` + `/console`, daily cron `/api/scrape-navwarn` 06:00.
+- `vercel.json`: cleanUrls, `/about` + `/sources` 301 → `/?tab=info`,
+  tile rewrites (carto/osm/openseamap through the single `/api/tiles`
+  function), noindex on `/admin` + `/console`. Ingestion is
+  backend-driven (Helm.Warning.Backend); the legacy frontend scraper and
+  its daily cron were removed (PR #82).
 
 ## 2. Data lifecycle invariants (never break these)
 
-- The scraper is **upsert-only — it never deletes**; `raw_text` is immutable.
+- Ingestion is **backend-driven** (Helm.Warning.Backend sync engine);
+  this repo does not scrape. In the data it produces, upsert is the only
+  write — nothing is ever deleted by ingestion — and `raw_text` is immutable.
 - Status whitelist: active / cancelled / expired / superseded / unverified.
 - Every warning edit requires an **audit row** (`nav_warning_audits`,
   append-only, RLS no_update/no_delete). Writes are refused if the audit
@@ -92,6 +99,15 @@ an existing one or upgrading the plan.**
 destructive-action safety, sticky offsets/z-tokens, copy feedback & a11y
 naming, verify-queue workflow + Data Bank density. **Issue 13 is
 deliberately deferred** — check it is still open before re-planning it.
+
+### Design system (PRs #94–#96, #102–#104, merged)
+The UI follows the Helm.Ports constraints declared at the top of
+`src/index.css` and `public/assets/css/tokens.css`: single accent
+`#2b6e8c`, weight 500 max (enforced by CSS), no shadows, no hover
+lift/scale, Inter only, tokens over hardcoded values. Details:
+`DESIGN.md`, one-page rules `UI-DESIGN-FUNDAMENTALS.md`. Console shell
+is fluid full-width with a fixed left rail; the warning editor is a
+right-side drawer.
 
 ## 4. Required agent workflow (for every change)
 

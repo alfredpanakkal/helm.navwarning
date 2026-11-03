@@ -1,20 +1,36 @@
-# GATEWORKS Design System
+# UI Design Fundamentals
 
-## 1. Grid & Spacing
-- All spacing follows the 8px/16px scale (`sm: 1rem (16px)`, `md: 2rem (32px)`, `lg: 4rem (64px)`).
-- Use a subtle grid background (`40px` step) to convey an industrial/technical aesthetic.
+The binding design system is [DESIGN.md](DESIGN.md), verified against the shipped CSS. The token source of truth is `public/assets/css/tokens.css` (public site) and `src/index.css` (console). This file lists the hard constraints that apply everywhere.
 
-## 2. Typography
-- **Font Family**: strictly `'Courier New', Courier, monospace` for ALL text.
-- **Weights**: 400 (Regular) and 700 (Bold). No other weights.
-- **Casing**: Use UPPERCASE for labels, statuses, and headers.
+## Principles
 
-## 3. Radii
-- `sm: 4px` for interactive elements (buttons, inputs, chips).
-- `md: 8px` for inner panels and stages.
-- `lg: 16px` for structural cards and outer wrappers.
+- Information-first minimalism. The data is the design; chrome recedes.
+- Whitespace and typographic hierarchy carry structure — not cards, shadows, or decoration.
 
-## 4. Effects
-- Hard offset shadows (e.g., `4px 4px 0 var(--color-tertiary)`).
-- 2px solid borders for structural elements (`border-gw-primary`).
-- Subtle hover transforms (`translateY(-2px)`) instead of opacity changes.
+## Hard constraints
+
+| Rule | Value |
+|---|---|
+| Accent color | Exactly one: `--accent: #2b6e8c` (console `--color-accent` same). Focus halo `rgba(43,110,140,0.10)` only. |
+| Font weight | 500 is the maximum anywhere. Never 600/700/bold (`b`, `strong`, `.font-bold` etc. are forced to 500 in `src/index.css`). |
+| Font family | Inter everywhere (`'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`). Do not add a second display font. |
+| Shadows | None. All `shadow-*` classes (including `.shadow-hard`) are neutralized; the only halo allowed is the search focus ring. |
+| Motion | Micro and chromatic only, 100–150ms (`--transition: 0.12s ease`). No hover lift, `translateY`, or scale. |
+| Semantic colors | Dots only — never fills, never pills. |
+| Casing | Sentence case except tiny uppercase table labels (`--fs-label`, letter-spacing 0.06em). |
+| Radius | `--radius-btn: 6px`, `--radius-input: 12px`, `--radius-chip: 999px`. |
+| Layout width | Public reading width 1180px; the console shell is fluid full-width. |
+| z-index | Never use magic values — use the console stacking tokens (sticky 10 < chrome 50 < overlay 60 < fab 65 < overlay-raised 70). |
+| Touch targets | 44px minimum on coarse pointers (`--touch-min`). |
+
+## Spacing
+
+Scale: 4 / 8 / 12 / 16 / 24 / 40 / 64 (`--space-xs` … `--space-section`). 16px within a group, 24px between groups, 40px+ between page sections.
+
+## Themes
+
+The public site ships three themes in `tokens.css`: light (default), dark, night (`data-theme` attribute). All themes re-map the same token names — components must consume tokens, never raw hex values.
+
+## Known deviations (fix or formally accept; do not copy)
+
+Tracked in [DESIGN.md §8](DESIGN.md). The largest remaining one: the map toolbar controls in `src/index.css` still use a 600 weight and `translateY` hover motion.

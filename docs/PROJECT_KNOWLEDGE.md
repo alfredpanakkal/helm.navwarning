@@ -8,22 +8,25 @@
 ## 1. Architecture facts
 
 - Three entry points: `index.html` (public site, vanilla JS, no URL
-  routing — Map/Data/Sources are JS tabs on `/`), `console.html`
+  routing — Map/Data Bank/Info are JS tabs on `/`), `console.html`
   (React 19 SPA at `/console` with hash routes), `admin.html` (static
-  Supabase login gate → redirects to `/console#/databank`).
+  Supabase login gate → redirects to `/console#/warnings/list`).
 - Auth: Supabase Auth; admin = `app_metadata.role` ∈ {admin, superadmin}
   or `is_admin`. Server boundary: `server/auth.ts` `verifyAdminRequest`
   (fail-closed, Bearer JWT). All `api/admin/*` functions use it.
 - On Vercel only `api/*.ts` are serverless functions; `server.ts` Express
   routes (~30) exist only in the self-hosted/dev runtime and 404 in
   production. Frontend reads Supabase directly via PostgREST.
-- `vercel.json`: cleanUrls, tile rewrites (carto + osm + openseamap),
-  noindex headers on `/admin` and `/console`, cron
-  `/api/scrape-navwarn` daily 06:00.
+- `vercel.json`: cleanUrls, `/about` + `/sources` 301 → `/?tab=info`,
+  tile rewrites (carto + osm + openseamap through the single `/api/tiles`
+  function), noindex headers on `/admin` and `/console`. The daily
+  `/api/scrape-navwarn` cron was removed with the legacy frontend
+  scraper (PR #82; ingestion is backend-driven).
 - Sitemap: `public/sitemap.xml` is regenerated on every build (Vercel)
-  with every public route — `/`, `/about`, `/sources`, the 21 regional
-  pages (`/navarea/I`…`/navarea/XXI`) and one URL per active warning
-  detail page (PRs #57–#60); `/admin` and `/console` are `noindex`.
+  with every public route — `/`, `/?tab=info` (`/about` and `/sources`
+  301 here since PRs #100/#101), the 21 regional pages
+  (`/navarea/I`…`/navarea/XXI`) and one URL per active warning detail
+  page (PRs #57–#60); `/admin` and `/console` are `noindex`.
 
 ## 2. Verified security/lifecycle state (2026-10-24 audit)
 
@@ -239,3 +242,15 @@ description of the current system; live code wins.
 - **Still undecided from that era:** domain purchase (none recorded — the
   site remains on `helmwarning.vercel.app`); map-update UX (pulse the
   marker vs auto-zoom to a new warning — no decision recorded).
+
+## 6. Change history 2026-10-26 → 2026-11-03 (merged, one line each)
+
+- **#76–#80** verify-semantics docs sync; map pin pulse after admin save (#78); atomic `admin_save_nav_warning` RPC + Tier B dashed "Unverified" public rendering (#79); dedicated SSRF guard test suite (#80 — closes the old "no test" thread).
+- **#81** sources registry ingestion-reliability badges.
+- **#82** legacy frontend scraper removed — ingestion is backend-driven (Helm.Warning.Backend); the `/api/scrape-navwarn` cron is gone from vercel.json.
+- **#83–#92** brand series: unified Helm wordmark/favicon, tile mark, theme-aware README logo (`<picture>`), Cinzel 600 wordmark HELM.WARNING + docs/brand SVGs.
+- **#93** three watch-state public themes (light / dark / night) in tokens.css.
+- **#94–#96** console migrated to Helm.Ports conventions: raw palette classes → `gw-*`/ink tokens, P0 design polish; console index.css now declares the Helm.Ports hard constraints (single accent #2b6e8c, weight-500 cap enforced, shadows neutralized, Inter).
+- **#97–#99** public IA: one top nav on all pages, map control stack, sources registry merged into the combined info surface.
+- **#100/#101** `/about` merged into the Info tab at `/?tab=info` (`/about`, `/sources` → 301); info tab decluttered (fake "Sources" section removed, static registry is the single source list).
+- **#102–#104 (merged 2026-11-03)** console design critique: full-width shell + single 56px header bar (#102); 220px fixed left rail, view-title type scale, map-toolbar dialect reconciliation (#103); WarningEditModal → right-side 560px drawer, settings-popover "Advanced layers" disclosure, popover density fixes (#104). Deferred to a follow-up: Data Bank sticky columns/column-visibility + keyboard shortcuts (60KB grid component, needs runtime testing).
