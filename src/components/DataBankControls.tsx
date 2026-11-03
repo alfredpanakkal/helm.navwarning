@@ -14,8 +14,8 @@ const SMART_SORT_OPTIONS: { id: string; label: string }[] = [
 const selectClass = (active: boolean) =>
   `appearance-none rounded-lg border px-3 pr-7 py-1.5 text-xs font-semibold cursor-pointer outline-none transition-all min-h-[38px] max-w-full ${
     active
-      ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
-      : 'bg-white border-slate-200 text-slate-800 hover:border-slate-300 focus:border-slate-900 shadow-2xs'
+      ? 'bg-gw-primary text-gw-bg border-slate-900 shadow-2xs'
+      : 'bg-gw-panel border-gw-secondary text-gw-primary hover:border-gw-secondary focus:border-slate-900 shadow-2xs'
   }`;
 
 const selectChevron = (active: boolean) => (
@@ -85,12 +85,12 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
     <div className="p-3.5 flex flex-col gap-2.5">
       {/* Primary row: search + compact filters + More filters */}
       <div className="flex flex-col lg:flex-row gap-2.5">
-        <div className="flex-1 min-w-[200px] flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900 shadow-2xs">
-          <Search className="w-4 h-4 text-slate-400 shrink-0" />
+        <div className="flex-1 min-w-[200px] flex items-center gap-2 bg-gw-panel border border-gw-secondary rounded-lg px-3 py-1.5 focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-gw-primary shadow-2xs">
+          <Search className="w-4 h-4 text-gw-accent shrink-0" />
           <input
             type="text"
             placeholder="Search records by ID, text, area, coords..."
-            className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-slate-900 placeholder:text-slate-400"
+            className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-gw-primary placeholder:text-gw-accent"
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -105,7 +105,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 setCurrentPage(1);
               }}
               aria-label="Clear search text"
-              className="text-xs text-slate-400 hover:text-slate-800 font-bold p-0.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+              className="text-xs text-gw-accent hover:text-gw-primary font-bold p-0.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
               title="Clear search text"
             >
               <X className="w-3.5 h-3.5" />
@@ -184,8 +184,8 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             aria-expanded={showMoreFilters}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold tracking-wide transition-all min-h-[38px] cursor-pointer shadow-2xs ${
               showMoreFilters
-                ? 'bg-slate-900 text-white border-slate-900'
-                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                ? 'bg-gw-primary text-gw-bg border-slate-900'
+                : 'bg-gw-panel text-gw-accent border-gw-secondary hover:bg-gw-secondary hover:border-gw-secondary'
             }`}
           >
             <Filter className="w-3.5 h-3.5" />
@@ -195,22 +195,22 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
       </div>
 
       {/* Feedback strip: result count, active sort, reset */}
-      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
-        <span className="text-[11px] font-medium text-slate-500">
-          Matching: <strong className="text-slate-900 font-semibold tabular-nums">{sortedWarnings.length}</strong>
+      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gw-secondary">
+        <span className="text-[11px] font-medium text-gw-accent">
+          Matching: <strong className="text-gw-primary font-semibold tabular-nums">{sortedWarnings.length}</strong>
         </span>
 
-        <span className="text-slate-300" aria-hidden="true">·</span>
+        <span className="text-gw-secondary" aria-hidden="true">·</span>
 
-        <span className="text-[11px] font-medium text-slate-500 hidden sm:inline">
-          Sorted by <strong className="text-slate-900 font-semibold capitalize">{sortField}</strong>
+        <span className="text-[11px] font-medium text-gw-accent hidden sm:inline">
+          Sorted by <strong className="text-gw-primary font-semibold capitalize">{sortField}</strong>
         </span>
 
         {hasActiveFilters && (
           <button
             type="button"
             onClick={handleResetFilters}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-md text-xs font-semibold text-slate-700 hover:bg-slate-900 hover:text-white transition-colors min-h-[28px] cursor-pointer ml-auto"
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-gw-secondary border border-gw-secondary rounded-md text-xs font-semibold text-gw-accent hover:bg-gw-primary hover:text-white transition-colors min-h-[28px] cursor-pointer ml-auto"
             title="Reset all filters"
           >
             <X className="w-3.5 h-3.5" />
@@ -343,7 +343,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
               type="button"
               onClick={() => setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))}
               title="Toggle sort direction"
-              className="flex items-center gap-1 px-2 py-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary text-xs font-bold hover:bg-white cursor-pointer"
+              className="flex items-center gap-1 px-2 py-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary text-xs font-bold hover:bg-gw-panel cursor-pointer"
             >
               <SlidersHorizontal className="w-3 h-3 text-gw-accent shrink-0" />
               <span className="uppercase">{sortDirection === 'asc' ? 'Asc' : 'Desc'}</span>
@@ -362,7 +362,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
               onClick={handleResetFilters}
               className={`px-2 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
                 !hasActiveFilters
-                  ? 'bg-gw-primary text-white shadow-xs'
+                  ? 'bg-gw-primary text-gw-bg shadow-xs'
                   : 'bg-gw-bg border border-gw-secondary text-gw-primary hover:bg-gw-bg/80'
               }`}
             >
@@ -484,8 +484,8 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 onClick={() => applyCategory('ALL')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
                   selectedCategory === 'ALL'
-                    ? 'bg-gw-primary text-white border-gw-primary shadow-xs'
-                    : 'bg-gw-bg text-gw-primary border-gw-secondary hover:bg-white'
+                    ? 'bg-gw-primary text-gw-bg border-gw-primary shadow-xs'
+                    : 'bg-gw-bg text-gw-primary border-gw-secondary hover:bg-gw-panel'
                 }`}
               >
                 All Categories ({warnings.length})
@@ -500,7 +500,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                     onClick={() => applyCategory(catKey)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? 'bg-gw-primary text-white border-gw-primary shadow-xs'
+                        ? 'bg-gw-primary text-gw-bg border-gw-primary shadow-xs'
                         : count === 0
                           ? meta.badgeClass + ' opacity-50'
                           : meta.badgeClass + ' hover:opacity-90'
@@ -510,7 +510,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                     <span>{meta.shortLabel}</span>
                     <span
                       className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                        isSelected ? 'bg-white/20 text-white' : 'bg-white/70 text-gw-primary'
+                        isSelected ? 'bg-gw-bg/20 text-gw-bg' : 'bg-gw-panel/70 text-gw-primary'
                       }`}
                     >
                       {count}

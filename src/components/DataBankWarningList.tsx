@@ -52,19 +52,19 @@ const V2_SORT_BUTTONS: { field: SortField; label: string }[] = [
  */
 const LoadingSkeletonRows: React.FC = () => (
   <div role="status" aria-live="polite" className="p-4 sm:p-6 space-y-2.5" aria-label="Loading navigational warnings">
-    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+    <div className="flex items-center gap-1.5 text-[11px] font-bold text-gw-accent uppercase tracking-wider">
       <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
       <span>Loading navigational warnings...</span>
     </div>
     {Array.from({ length: 6 }).map((_, i) => (
-      <div key={i} aria-hidden="true" className="p-3 border border-slate-200 rounded-lg bg-white space-y-2 animate-pulse">
+      <div key={i} aria-hidden="true" className="p-3 border border-gw-secondary rounded-lg bg-gw-panel space-y-2 animate-pulse">
         <div className="flex items-center gap-2">
-          <div className="h-3 w-28 rounded bg-slate-200" />
-          <div className="h-3 w-14 rounded bg-slate-100" />
-          <div className="h-3 w-16 rounded bg-slate-100" />
+          <div className="h-3 w-28 rounded bg-gw-secondary" />
+          <div className="h-3 w-14 rounded bg-gw-secondary" />
+          <div className="h-3 w-16 rounded bg-gw-secondary" />
         </div>
-        <div className="h-3 w-3/4 rounded bg-slate-100" />
-        <div className="h-3 w-1/2 rounded bg-slate-100" />
+        <div className="h-3 w-3/4 rounded bg-gw-secondary" />
+        <div className="h-3 w-1/2 rounded bg-gw-secondary" />
       </div>
     ))}
   </div>
@@ -169,7 +169,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
     return (
       <div className="space-y-4">
         <span role="status" aria-live="polite" className="sr-only">{verifyAnnouncement}</span>
-        <div className="flex items-center justify-between p-3.5 bg-white border-2 border-gw-primary rounded-xl text-xs shadow-xs">
+        <div className="flex items-center justify-between p-3.5 bg-gw-panel border-2 border-gw-primary rounded-xl text-xs shadow-xs">
           <span className="font-bold text-gw-primary uppercase tracking-wider flex items-center gap-2">
             <Layers className="w-4 h-4 text-gw-primary" />
             Grouped View Mode: <strong className="capitalize text-gw-tertiary">{groupByMode}</strong> ({groupedAnalyzed.length} Active Groups)
@@ -182,14 +182,14 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         {groupedAnalyzed.map(group => {
           const isExpanded = expandedGroups[group.groupKey] !== false;
           return (
-            <div key={group.groupKey} className="bg-white border-2 border-gw-primary rounded-2xl overflow-hidden shadow-xs">
+            <div key={group.groupKey} className="bg-gw-panel border-2 border-gw-primary rounded-2xl overflow-hidden shadow-xs">
               {/* Group Header */}
               <div
                 onClick={() => toggleGroup(group.groupKey)}
                 className="p-4 bg-gw-bg border-b-2 border-gw-primary/30 flex items-center justify-between cursor-pointer hover:bg-gw-secondary/20 transition-colors select-none"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gw-primary text-white flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                  <div className="w-8 h-8 rounded-lg bg-gw-primary text-gw-bg flex items-center justify-center font-bold text-xs shrink-0 font-mono">
                     {group.count}
                   </div>
                   <div>
@@ -203,7 +203,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 </div>
                 <div className="flex items-center gap-2 text-xs font-bold text-gw-primary">
                   <span>{isExpanded ? 'Collapse Group' : 'Expand Group'}</span>
-                  <div className="p-1 rounded bg-white border border-gw-secondary text-gw-primary">
+                  <div className="p-1 rounded bg-gw-panel border border-gw-secondary text-gw-primary">
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </div>
                 </div>
@@ -211,7 +211,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
 
               {/* Group Content */}
               {isExpanded && (
-                <div className="p-3 sm:p-4 space-y-3 bg-white">
+                <div className="p-3 sm:p-4 space-y-3 bg-gw-panel">
                   {group.items.map((analyzedItem, gIdx) => {
                     const w = analyzedItem.warning;
                     const cardId = w.warning_id || w.source_warning_id || `group-${group.groupKey}-${gIdx}`;
@@ -227,7 +227,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         <div
                           key={cardId}
                           onClick={() => onLocate(w)}
-                          className={`p-2.5 border rounded-md bg-white hover:bg-gw-bg/40 hover:border-gw-primary transition-colors cursor-pointer group ${
+                          className={`p-2.5 border rounded-md bg-gw-panel hover:bg-gw-bg/40 hover:border-gw-primary transition-colors cursor-pointer group ${
                             isExpanded ? 'border-gw-primary' : 'border-gw-secondary'
                           }`}
                         >
@@ -239,7 +239,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                                 e.stopPropagation();
                                 onLocate(w);
                               }}
-                              className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
+                              className="flex items-center gap-1 px-2 py-1 bg-gw-panel border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
                             >
                               <Locate className="w-3 h-3" />
                               <span>View on map</span>
@@ -252,7 +252,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                               }}
                               aria-expanded={isExpanded}
                               aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
-                              className="flex items-center gap-1 px-2 py-1 bg-white border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:border-gw-primary hover:text-gw-primary transition-colors"
+                              className="flex items-center gap-1 px-2 py-1 bg-gw-panel border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:border-gw-primary hover:text-gw-primary transition-colors"
                             >
                               <span>Details</span>
                               {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -289,10 +289,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       <div
                         key={cardId}
                         onClick={() => onLocate(w)}
-                        className="p-3.5 border-2 border-gw-secondary rounded-xl bg-gw-bg/30 hover:bg-white hover:border-gw-primary transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs group"
+                        className="p-3.5 border-2 border-gw-secondary rounded-xl bg-gw-bg/30 hover:bg-gw-panel hover:border-gw-primary transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs group"
                       >
                         <div className="flex items-start sm:items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-white border border-gw-secondary flex items-center justify-center text-gw-primary shrink-0 font-bold text-xs font-mono">
+                          <div className="w-8 h-8 rounded-lg bg-gw-panel border border-gw-secondary flex items-center justify-center text-gw-primary shrink-0 font-bold text-xs font-mono">
                             {w.navarea || 'NA'}
                           </div>
                           <div className="min-w-0">
@@ -342,7 +342,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                               e.stopPropagation();
                               onLocate(w);
                             }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-primary text-white rounded-lg text-[10px] font-bold uppercase hover:bg-gw-accent transition-colors shadow-xs"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-primary text-gw-bg rounded-lg text-[10px] font-bold uppercase hover:bg-gw-accent transition-colors shadow-xs"
                           >
                             <Locate className="w-3 h-3" />
                             <span>Locate</span>
@@ -368,7 +368,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
       {/* Mobile Card List (visible on mobile < md) */}
       <div className="block md:hidden space-y-3">
         {/* Mobile Shifter & Sorting Header */}
-        <div className="flex items-center justify-between p-2.5 bg-white border-2 border-gw-primary rounded-xl text-xs font-bold">
+        <div className="flex items-center justify-between p-2.5 bg-gw-panel border-2 border-gw-primary rounded-xl text-xs font-bold">
           <div className="flex items-center gap-1.5">
             <span className="text-gw-accent text-[11px]">Sort:</span>
             <select
@@ -434,7 +434,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             </p>
             <button
               onClick={handleResetFilters}
-              className="px-3 py-1.5 bg-gw-primary text-white rounded text-xs font-bold hover:bg-gw-accent transition-colors"
+              className="px-3 py-1.5 bg-gw-primary text-gw-bg rounded text-xs font-bold hover:bg-gw-accent transition-colors"
             >
               Reset Filters
             </button>
@@ -454,7 +454,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
               return (
                 <div
                   key={cardId}
-                  className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs hover:border-slate-300 transition-all"
+                  className="bg-gw-panel border border-gw-secondary rounded-xl overflow-hidden shadow-2xs hover:border-gw-secondary transition-all"
                 >
                   <div className="p-2.5">
                     <WarningHierarchyLines warning={w} sources={sources} />
@@ -465,7 +465,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         e.stopPropagation();
                         onLocate(w);
                       }}
-                      className="btn btn-sm btn-secondary text-xs flex items-center gap-1.5 text-slate-700"
+                      className="btn btn-sm btn-secondary text-xs flex items-center gap-1.5 text-gw-accent"
                       title="Locate on Map"
                     >
                       <Locate className="w-3.5 h-3.5" />
@@ -475,7 +475,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       onClick={(e) => toggleExpand(cardId, e)}
                       aria-expanded={isExpanded}
                       aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
-                      className="btn btn-sm btn-ghost text-xs flex items-center gap-1 text-slate-600 hover:text-slate-900"
+                      className="btn btn-sm btn-ghost text-xs flex items-center gap-1 text-gw-accent hover:text-gw-primary"
                     >
                       <span>Details</span>
                       {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -510,10 +510,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             return (
               <div
                 key={cardId}
-                className="bg-white border-2 border-gw-primary rounded-xl overflow-hidden shadow-hard transition-all"
+                className="bg-gw-panel border-2 border-gw-primary rounded-xl overflow-hidden shadow-hard transition-all"
               >
                 {/* Primary Visible Header */}
-                <div className="p-3.5 flex items-center justify-between gap-2 bg-white">
+                <div className="p-3.5 flex items-center justify-between gap-2 bg-gw-panel">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="font-bold text-xs text-gw-primary truncate">
                       {w.source_warning_id}
@@ -575,7 +575,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                     <div className="grid grid-cols-2 gap-2 text-[11px]">
                       <div>
                         <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">NAVAREA Region</span>
-                        <span className="font-bold text-gw-primary inline-block px-2 py-0.5 bg-white border border-gw-secondary rounded">
+                        <span className="font-bold text-gw-primary inline-block px-2 py-0.5 bg-gw-panel border border-gw-secondary rounded">
                           NAVAREA {w.navarea}
                         </span>
                       </div>
@@ -621,7 +621,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                             {copiedKey === `${w.source_warning_id || w.warning_id}:coords` ? 'Copied!' : 'Copy Coords'}
                           </button>
                         </div>
-                        <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
+                        <div className="font-bold text-gw-primary bg-gw-panel px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-gw-accent shrink-0" />
                           <span className="truncate">{formatSpatialCoordinates(w.spatial)}</span>
                         </div>
@@ -629,7 +629,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
 
                       <div>
                         <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">Issued Date</span>
-                        <div className="font-bold text-gw-primary bg-white px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
+                        <div className="font-bold text-gw-primary bg-gw-panel px-2 py-1 border border-gw-secondary rounded flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5 text-gw-accent shrink-0" />
                           <span>{getWarningDate(w)}</span>
                         </div>
@@ -652,7 +652,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                           {copiedKey === `${w.source_warning_id || w.warning_id}:raw` ? 'Copied!' : 'Copy Raw Telemetry'}
                         </button>
                       </div>
-                      <div className="p-2.5 bg-white border border-gw-secondary rounded text-[11px] text-gw-primary font-mono leading-relaxed max-h-36 overflow-y-auto no-scrollbar">
+                      <div className="p-2.5 bg-gw-panel border border-gw-secondary rounded text-[11px] text-gw-primary font-mono leading-relaxed max-h-36 overflow-y-auto no-scrollbar">
                         {getWarningBulletinText(w)}
                       </div>
                     </div>
@@ -660,7 +660,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                     {/* Confidence Score & Audit Info */}
                     <div className="flex justify-between items-center text-[10px] pt-1">
                       <span className="text-gw-accent font-bold">Extraction Confidence:</span>
-                      <span className="font-bold text-gw-primary bg-white px-2 py-0.5 rounded border border-gw-secondary">
+                      <span className="font-bold text-gw-primary bg-gw-panel px-2 py-0.5 rounded border border-gw-secondary">
                         {(w.extraction_confidence * 100).toFixed(0)}% Match
                       </span>
                     </div>
@@ -680,9 +680,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         <div className="hidden md:block">
           <div
             id="databank-table-header"
-            className="z-console-sticky sticky top-[var(--console-sticky-offset)] flex flex-wrap items-center gap-1.5 p-2.5 bg-slate-900 text-white text-[11px] font-semibold tracking-wider uppercase select-none shadow-xs rounded-t-xl border border-slate-200 border-b-0 -mb-px"
+            className="z-console-sticky sticky top-[var(--console-sticky-offset)] flex flex-wrap items-center gap-1.5 p-2.5 bg-gw-primary text-gw-bg text-[11px] font-semibold tracking-wider uppercase select-none shadow-xs rounded-t-xl border border-gw-secondary border-b-0 -mb-px"
           >
-            <span className="px-1.5 text-slate-400 font-mono text-[10px]">SORT</span>
+            <span className="px-1.5 text-gw-accent font-mono text-[10px]">SORT</span>
             {V2_SORT_BUTTONS.map(({ field, label }) => (
               <button
                 key={field}
@@ -690,8 +690,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 onClick={() => handleSort(field)}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded transition-all font-mono cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
                   sortField === field
-                    ? 'bg-white/20 text-white font-bold ring-1 ring-white/30 shadow-xs'
-                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    ? 'bg-gw-bg/20 text-gw-bg font-bold ring-1 ring-white/30 shadow-xs'
+                    : 'text-gw-secondary hover:bg-gw-panel/10 hover:text-white'
                 }`}
                 title={getSortLabel(field, field === 'area' ? 'NAVAREA' : label)}
                 aria-sort={sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -713,7 +713,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
       )}
 
       {/* Horizontal scroller: keeps the sticky right-hand action column working. */}
-      <div className="hidden md:block bg-white border border-slate-200 rounded-xl overflow-hidden overflow-x-auto shadow-2xs">
+      <div className="hidden md:block bg-gw-panel border border-gw-secondary rounded-xl overflow-hidden overflow-x-auto shadow-2xs">
         {/* Table Header: Selected Element - Interactive Column Sorting (classic path) */}
         {legacy && (
         <div
@@ -726,8 +726,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             onClick={() => handleSort('id')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
               sortField === 'id'
-                ? 'bg-white/20 text-white font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-white/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
             }`}
             title={getSortLabel('id', 'Warning ID')}
             aria-sort={sortField === 'id' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -750,8 +750,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             onClick={() => handleSort('area')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
               sortField === 'area'
-                ? 'bg-white/20 text-white font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-white/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
             }`}
             title={getSortLabel('area', 'NAVAREA')}
             aria-sort={sortField === 'area' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -774,8 +774,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             onClick={() => handleSort('title')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
               sortField === 'title'
-                ? 'bg-white/20 text-white font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-white/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
             }`}
             title={getSortLabel('title', 'Title & Summary')}
             aria-sort={sortField === 'title' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -798,8 +798,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             onClick={() => handleSort('severity')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
               sortField === 'severity'
-                ? 'bg-white/20 text-white font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-white/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
             }`}
             title={getSortLabel('severity', 'Severity & Confidence')}
             aria-sort={sortField === 'severity' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -822,8 +822,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             onClick={() => handleSort('coords')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
               sortField === 'coords'
-                ? 'bg-white/20 text-white font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-white/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
             }`}
             title={getSortLabel('coords', 'Coordinates')}
             aria-sort={sortField === 'coords' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -846,8 +846,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             onClick={() => handleSort('issued')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
               sortField === 'issued'
-                ? 'bg-white/20 text-white font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-white/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
             }`}
             title={getSortLabel('issued', 'Issued Date')}
             aria-sort={sortField === 'issued' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -870,8 +870,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             onClick={() => handleSort('status')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
               sortField === 'status'
-                ? 'bg-white/20 text-white font-black ring-1 ring-white/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-white/10 hover:text-white'
+                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-white/40 shadow-xs'
+                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-white'
             }`}
             title={getSortLabel('status', 'Warning Status')}
             aria-sort={sortField === 'status' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -901,7 +901,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             isLoading ? (
               <LoadingSkeletonRows />
             ) : (
-            <div className="p-10 text-center bg-white space-y-3">
+            <div className="p-10 text-center bg-gw-panel space-y-3">
               <div className="w-12 h-12 rounded-full bg-gw-bg border border-gw-primary text-gw-primary flex items-center justify-center mx-auto">
                 <Search className="w-6 h-6" />
               </div>
@@ -912,7 +912,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="px-3 py-1.5 bg-gw-primary text-white rounded text-xs font-bold hover:bg-gw-accent transition-colors"
+                className="px-3 py-1.5 bg-gw-primary text-gw-bg rounded text-xs font-bold hover:bg-gw-accent transition-colors"
               >
                 Reset All Filters
               </button>
@@ -972,7 +972,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                     {w.status}
                   </span>
                 </div>
-                <div className="sticky right-0 bg-white group-hover:bg-gw-bg/60 flex justify-end gap-1 pr-1 transition-colors">
+                <div className="sticky right-0 bg-gw-panel group-hover:bg-gw-bg/60 flex justify-end gap-1 pr-1 transition-colors">
                   {onVerifyWarning && (w.status === 'unverified' || w.extraction_confidence < 1) && (
                     <button
                       aria-label={`Quick verify warning ${w.source_warning_id}`}
@@ -994,7 +994,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       e.stopPropagation();
                       onLocate(w);
                     }}
-                    className="w-7 h-7 flex items-center justify-center rounded border border-gw-secondary bg-white hover:bg-gw-primary hover:text-gw-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary shrink-0"
+                    className="w-7 h-7 flex items-center justify-center rounded border border-gw-secondary bg-gw-panel hover:bg-gw-primary hover:text-gw-bg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary shrink-0"
                   >
                     <Locate className="w-3.5 h-3.5" />
                   </button>
@@ -1014,8 +1014,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 <div
                   key={cardId}
                   onClick={() => onLocate(w)}
-                  className={`py-2 px-3 border-b border-slate-200 bg-white hover:bg-slate-50/80 transition-colors cursor-pointer group ${
-                    isExpanded ? 'bg-slate-50/60' : ''
+                  className={`py-2 px-3 border-b border-gw-secondary bg-gw-panel hover:bg-gw-secondary/80 transition-colors cursor-pointer group ${
+                    isExpanded ? 'bg-gw-secondary/60' : ''
                   }`}
                 >
                   <WarningHierarchyLines warning={w} sources={sources} />
@@ -1027,9 +1027,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         e.stopPropagation();
                         onLocate(w);
                       }}
-                      className="btn btn-sm btn-secondary text-xs flex items-center gap-1.5 text-slate-700"
+                      className="btn btn-sm btn-secondary text-xs flex items-center gap-1.5 text-gw-accent"
                     >
-                      <Locate className="w-3.5 h-3.5 text-slate-600" />
+                      <Locate className="w-3.5 h-3.5 text-gw-accent" />
                       <span>View on map</span>
                     </button>
                     <button
@@ -1040,7 +1040,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       }}
                       aria-expanded={isExpanded}
                       aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
-                      className="btn btn-sm btn-ghost text-xs flex items-center gap-1 text-slate-600 hover:text-slate-900"
+                      className="btn btn-sm btn-ghost text-xs flex items-center gap-1 text-gw-accent hover:text-gw-primary"
                     >
                       <span>Details</span>
                       {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -1073,15 +1073,15 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
         </div>
 
         {/* Shifting & Pagination Controls Footer */}
-        <div className="min-w-[900px] flex items-center justify-between p-3.5 bg-slate-50/90 border-t border-slate-200 text-xs font-mono select-none">
+        <div className="min-w-[900px] flex items-center justify-between p-3.5 bg-gw-secondary/90 border-t border-gw-secondary text-xs font-mono select-none">
           {/* Left: Record Range Summary and Page Size Shifter */}
           <div className="flex items-center gap-4">
-            <div className="text-slate-500 font-medium">
-              Showing <span className="font-bold text-slate-900">{sortedWarnings.length === 0 ? 0 : startIndex + 1}</span>–
-              <span className="font-bold text-slate-900">{endIndex}</span> of{' '}
-              <span className="font-bold text-slate-900">{sortedWarnings.length}</span> warnings
+            <div className="text-gw-accent font-medium">
+              Showing <span className="font-bold text-gw-primary">{sortedWarnings.length === 0 ? 0 : startIndex + 1}</span>–
+              <span className="font-bold text-gw-primary">{endIndex}</span> of{' '}
+              <span className="font-bold text-gw-primary">{sortedWarnings.length}</span> warnings
               {warnings.length !== sortedWarnings.length && (
-                <span className="text-[11px] text-slate-400 ml-1.5">(filtered from {warnings.length})</span>
+                <span className="text-[11px] text-gw-accent ml-1.5">(filtered from {warnings.length})</span>
               )}
             </div>
 
@@ -1093,7 +1093,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                   setPageSize(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="bg-white border border-gw-secondary rounded px-2 py-1 text-xs font-bold text-gw-primary outline-none focus:border-gw-primary cursor-pointer"
+                className="bg-gw-panel border border-gw-secondary rounded px-2 py-1 text-xs font-bold text-gw-primary outline-none focus:border-gw-primary cursor-pointer"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -1117,7 +1117,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 onClick={shiftFirstPage}
                 disabled={validPage === 1}
                 aria-label="First page"
-                className="p-1.5 rounded border border-gw-secondary bg-white text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+                className="p-1.5 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                 title="Shift to First Page"
               >
                 <ChevronsLeft className="w-3.5 h-3.5" />
@@ -1128,7 +1128,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={shiftPrevPage}
                 disabled={validPage === 1}
-                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gw-secondary bg-white text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs font-bold"
+                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs font-bold"
                 title="Shift Previous Page (or Shift+Left)"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
@@ -1147,8 +1147,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       onClick={() => shiftToPage(Number(p))}
                       className={`min-w-[28px] h-7 px-1 flex items-center justify-center rounded text-xs font-bold transition-all ${
                         validPage === p
-                          ? 'bg-gw-primary text-white font-black shadow-xs'
-                          : 'bg-white border border-gw-secondary text-gw-primary hover:bg-gw-bg'
+                          ? 'bg-gw-primary text-gw-bg font-black shadow-xs'
+                          : 'bg-gw-panel border border-gw-secondary text-gw-primary hover:bg-gw-bg'
                       }`}
                     >
                       {p}
@@ -1162,7 +1162,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={shiftNextPage}
                 disabled={validPage === totalPages}
-                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gw-secondary bg-white text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs font-bold"
+                className="flex items-center gap-1 px-2.5 py-1 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs font-bold"
                 title="Shift Next Page (or Shift+Right)"
               >
                 <span>Next</span>
@@ -1175,7 +1175,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 onClick={shiftLastPage}
                 disabled={validPage === totalPages}
                 aria-label="Last page"
-                className="p-1.5 rounded border border-gw-secondary bg-white text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+                className="p-1.5 rounded border border-gw-secondary bg-gw-panel text-gw-primary hover:bg-gw-primary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                 title="Shift to Last Page"
               >
                 <ChevronsRight className="w-3.5 h-3.5" />
@@ -1183,7 +1183,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
 
               {/* Keyboard Shortcut Hint */}
               <span className="hidden xl:inline text-[10px] text-gw-accent ml-2">
-                (<kbd className="px-1 py-0.5 bg-white border border-gw-secondary rounded text-[9px] font-mono">Shift+←/→</kbd> to shift)
+                (<kbd className="px-1 py-0.5 bg-gw-panel border border-gw-secondary rounded text-[9px] font-mono">Shift+←/→</kbd> to shift)
               </span>
             </div>
           )}
