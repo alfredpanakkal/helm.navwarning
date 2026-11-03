@@ -76,7 +76,7 @@
   --color-gw-critical: #B42318;
   --color-gw-high: #8C5208;
   --color-gw-moderate: #2E5C8A;
-
+}
 
 @layer utilities {
   .border-primary { border: var(--border-primary); }
