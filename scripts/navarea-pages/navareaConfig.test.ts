@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   NAVAREA_REGIONS, VALID_IDS, SITE_URL,
   isValidNavareaId, navareaCode, canonicalPath, navareaMapHref,
-  normalizeStoredNavarea, belongsToNavarea, buildPageHtml, buildSourcesPageHtml,
+  normalizeStoredNavarea, belongsToNavarea, buildPageHtml, buildAboutPageHtml,
   feedStatus, FEED_STATUS,
   warningSlug, warningDetailPath, buildWarningPageHtml, buildWarningShellHtml,
   buildSitemapXml,
@@ -105,12 +105,20 @@ describe('NAVAREA regional routes and configuration', () => {
     }
   });
 
-  it('renders the source registry hub with a clickable card for every region', () => {
-    const html = buildSourcesPageHtml();
+  it('renders the combined /about page with the full source registry and settings', () => {
+    const html = buildAboutPageHtml();
     expect(html.split('<h1').length - 1).toBe(1);
-    expect(html).toContain('<title>NAVAREA Source Registry | Helm.Warning</title>');
-    expect(html).toContain('rel="canonical" href="' + SITE_URL + '/sources"');
+    expect(html).toContain('<title>About Helm.Warning | NAVAREA Source Registry &amp; Maritime Safety Information</title>');
+    expect(html).toContain('rel="canonical" href="' + SITE_URL + '/about"');
     expect(html).toContain('aria-label="Breadcrumb"');
+    expect(html).toContain('id="source-registry"');
+    // The combined page keeps the watch-theme settings.
+    expect(html).toContain('class="theme-picker"');
+    expect(html).toContain('data-theme-set="light"');
+    expect(html).toContain("localStorage.getItem('hw-theme')");
+    // And the safety disclaimer.
+    expect(html).toContain('Important Safety Disclaimer');
+    expect(html).toContain('not an official source of Maritime Safety Information');
     for (const r of NAVAREA_REGIONS) {
       expect(html).toContain('class="source-card" href="/navarea/' + r.id + '"');
       expect(html).toContain('<span class="source-id">NAVAREA ' + r.id + '</span>');
@@ -121,7 +129,7 @@ describe('NAVAREA regional routes and configuration', () => {
         expect(html).toContain('<p class="source-portal">Source: <a href="' + r.sourceUrl + '" target="_blank" rel="noopener noreferrer">' + r.sourceLabel + '</a></p>');
       }
     }
-    // The hub is fully static: no client-side hydration hooks.
+    // The page is fully static: no client-side hydration hooks.
     expect(html).not.toContain('id="warningList"');
     expect(html).not.toContain('navarea-page.js');
     expect(html).not.toContain('id="navareaPageConfig"');
@@ -129,15 +137,17 @@ describe('NAVAREA regional routes and configuration', () => {
     expect(html).toContain('Automated feeds: <strong>10</strong>');
     expect(html).toContain('Not reliable / restricted: <strong>4</strong>');
     expect(html).toContain('Manual entry only: <strong>7</strong>');
+    // The merged page no longer references the retired /sources route.
+    expect(html).not.toContain('href="/sources"');
   });
 
-  it('builds a sitemap covering homepage, about, the registry and all 21 regional pages', () => {
+  it('builds a sitemap covering homepage, about and all 21 regional pages', () => {
     const xml = buildSitemapXml('2026-10-25');
     const locs = (xml.match(/<loc>/g) || []).length;
-    expect(locs).toBe(24);
+    expect(locs).toBe(23);
     expect(xml).toContain(SITE_URL + '/');
     expect(xml).toContain(SITE_URL + '/about');
-    expect(xml).toContain(SITE_URL + '/sources');
+    expect(xml).not.toContain(SITE_URL + '/sources');
     for (const r of NAVAREA_REGIONS) {
       expect(xml).toContain(SITE_URL + '/navarea/' + r.id);
     }
@@ -180,7 +190,7 @@ describe('Warning detail pages', () => {
     expect(html).not.toContain('FULL <TEXT>');
     expect(html).toContain('href="/navarea/IV"');
     expect(html).toContain('href="/?navarea=NA%20IV"');
-    expect(html).toContain('href="/sources"');
+    expect(html).toContain('href="/about#source-registry"');
     // No hydration scripts on prerendered detail pages.
     expect(html).not.toContain('supabase');
     expect(html).not.toContain('warning-detail.js');
@@ -199,8 +209,9 @@ describe('Warning detail pages', () => {
   it('includes detail URLs in the sitemap when provided', () => {
     const xml = buildSitemapXml('2026-10-25', ['/navarea/XI/warning/0451-26', '/navarea/IV/warning/1157-21']);
     const locs = (xml.match(/<loc>/g) || []).length;
-    expect(locs).toBe(26);
+    expect(locs).toBe(25); // 23 base routes (home, about, 21 regions) + 2 detail URLs
     expect(xml).toContain(SITE_URL + '/navarea/XI/warning/0451-26');
     expect(xml).toContain(SITE_URL + '/navarea/IV/warning/1157-21');
   });
 });
+
