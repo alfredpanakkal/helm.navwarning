@@ -55,6 +55,14 @@
   --space-tight:     8px;
   --space-xs:        4px;
 
+  /* Console navigation rail (Phase 2) */
+  --console-rail-w:           224px;
+  --console-rail-w-collapsed:  56px;
+
+  /* Console view header type scale (Phase 2) */
+  --fs-view-title:     1.25rem;
+  --fs-view-subtitle:  0.8rem;
+
   /* Type scale */
   --fs-hero:         clamp(2rem, 5vw, 3.25rem);
   --fs-subline:      1.05rem;
@@ -217,6 +225,30 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     background: var(--canvas);
+  }
+
+  /* Console rail layout: main content is inset by the fixed rail on md+.
+     The .console-rail-collapsed class is set on the app root and tracks
+     the persisted collapse preference. */
+  @media (min-width: 768px) {
+    .console-rail-pad { padding-left: calc(var(--console-rail-w, 224px) + 1rem); }
+    .console-rail-pad-lg { padding-left: calc(var(--console-rail-w, 224px) + 2rem); }
+    .console-rail-collapsed .console-rail-pad { padding-left: calc(var(--console-rail-w-collapsed, 56px) + 1rem); }
+    .console-rail-collapsed .console-rail-pad-lg { padding-left: calc(var(--console-rail-w-collapsed, 56px) + 2rem); }
+  }
+
+  /* View header type hierarchy (Phase 2): one consistent title treatment
+     so every console view opens with the same 'you are here' anchor. */
+  .view-title {
+    font-size: var(--fs-view-title);
+    font-weight: 500;
+    color: var(--ink-primary);
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+  .view-subtitle {
+    font-size: var(--fs-view-subtitle);
+    color: var(--ink-secondary);
   }
 
   /* Search focus halo utility (the only element allowed a halo) */
