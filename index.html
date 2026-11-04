@@ -153,6 +153,23 @@ body.is-mobile #last-updated{display:none}
 .info-section-body .disclaimer-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid #f59e0b;border-radius:8px;padding:16px 18px;margin:12px 0 0}
 .info-section-body .disclaimer-box p{margin:0 0 10px}
 .info-section-body .disclaimer-box p:last-child{margin:0}
+.info-section-body .disclaimer-full{margin:12px 0 0}
+.info-section-body .disclaimer-full summary{cursor:pointer;list-style:none;color:var(--ink-secondary);font:500 13px var(--font-family-base);min-height:36px;display:flex;align-items:center;gap:6px}
+.info-section-body .disclaimer-full summary::-webkit-details-marker{display:none}
+.info-section-body .disclaimer-full summary::before{content:'▸';font-size:11px;color:var(--ink-tertiary)}
+.info-section-body .disclaimer-full[open] summary::before{content:'▾'}
+.info-section-body .disclaimer-full[open] summary{margin-bottom:4px}
+.info-section-body .disclaimer-full p{margin:10px 0 0;padding-top:10px;border-top:1px solid var(--border)}
+.info-section-body .faq-item{border:1px solid var(--border);border-radius:8px;margin:0 0 8px}
+.info-section-body .faq-item summary{padding:11px 14px;font:500 14px var(--font-family-base);color:var(--ink-primary);cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px}
+.info-section-body .faq-item summary::-webkit-details-marker{display:none}
+.info-section-body .faq-item summary::after{content:'▾';color:var(--ink-tertiary);font-size:12px;flex-shrink:0}
+.info-section-body .faq-item[open] summary::after{content:'▴'}
+.info-section-body .faq-item p{margin:0;padding:0 14px 12px;font-size:13.5px}
+body.is-mobile .info-section summary{padding:14px 14px}
+body.is-mobile .info-section-body{padding:0 14px 14px}
+body.is-mobile .info-section-body .faq-item summary{padding:12px 12px}
+body.is-mobile .info-section-body .faq-item p{padding:0 12px 12px}
 .info-overview{font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px}
 .info-src-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;padding:0;list-style:none;margin:0 0 14px}
 body.is-mobile .info-src-grid{grid-template-columns:1fr;gap:8px}
@@ -863,24 +880,24 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
 <!-- INFO (merged with the former /about page) -->
 <div class="tab-panel" id="tab-info" role="tabpanel" aria-labelledby="tab-btn-info" hidden>
   <div class="page-header">
-    <div><h2>Info &amp; About</h2><p class="subtitle">About, sources, safety disclaimer, FAQ &amp; watch themes</p></div>
+    <div><h2>About &amp; Help</h2><p class="subtitle">About, sources, safety, FAQ &amp; themes</p></div>
   </div>
   <details class="info-section" open>
-    <summary>About Helm.Warning</summary>
+    <summary>About HELM.WARNING</summary>
     <div class="info-section-body">
-      <p>Helm.Warning is a free interactive map that displays live NAVAREA navigational warnings to support maritime situational awareness and passage planning. Active warnings are plotted on nautical charts with danger areas, safety zones, and hazard points — no login or account required.</p>
-      <p>Warnings are aggregated from official NAVAREA coordinators operating under the World-Wide Navigational Warning Service (WWNWS), jointly coordinated by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO). Coverage spans all 21 NAVAREA regions worldwide, including the five Arctic areas (XVII–XXI). Data is refreshed daily from verified hydrographic authority feeds such as the UKHO, NGA, SHOM, AMSA, and the Japan Coast Guard.</p>
+      <p>Helm.Warning is a free interactive map of live NAVAREA navigational warnings for maritime situational awareness and passage planning. Active warnings from the official NAVAREA coordinators — operating under the World-Wide Navigational Warning Service (WWNWS) — are plotted with their danger areas, safety zones and hazard points. No login or account required.</p>
+      <p>Coverage spans all 21 NAVAREA regions worldwide, including the five Arctic areas (XVII–XXI), refreshed daily from verified hydrographic authority feeds such as the UKHO, NGA, SHOM, AMSA and the Japan Coast Guard.</p>
       <p><a href="#source-registry">Explore the 21 NAVAREA areas &amp; warnings →</a></p>
     </div>
   </details>
   <details class="info-section" open>
-    <summary>Sources</summary>
+    <summary>Sources &amp; Coverage</summary>
     <div class="info-section-body">
-      <p>Live status of the verified feeds across the 21 NAVAREA regions. <a href="#source-registry">See the full source registry →</a></p>
+      <p>Live status of the verified feeds across the 21 NAVAREA regions: <strong>10</strong> automated, <strong>4</strong> not reliably crawlable, <strong>7</strong> reviewed manual entry only. <a href="#source-registry">See the full source registry →</a></p>
     </div>
     <div class="sources-grid" id="sourcesGrid"></div>
   </details>
-  <details class="info-section" open id="source-registry">
+  <details class="info-section" id="source-registry">
     <summary>Source Registry — the 21 NAVAREA regions</summary>
     <div class="info-section-body">
       <p>Every NAVAREA ocean region has one designated area coordinator — a national hydrographic office or maritime authority — responsible for issuing, updating and cancelling its warnings. Select any region below to open its regional page with the live in-force warnings and the original bulletins.</p>
@@ -911,21 +928,61 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
       <p>Helm.Warning ingests each region and plots the parsed warnings on the <a href="/">live map</a>. Every card carries an ingestion status: <span class="feed-badge feed-ok">green</span> = automated ingestion from a verified official feed; <span class="feed-badge feed-warn">amber</span> = not reliable, the source does not permit automatic crawling (bot-protected portal or no accessible publication endpoint), so data may be stale; <span class="feed-badge feed-none">grey</span> = no automated feed yet, warnings entered through the reviewed admin pipeline rather than an unofficial source. Regions with a verified source portal also link to it directly below the card.</p>
     </div>
   </details>
-  <details class="info-section">
-    <summary>Disclaimer</summary>
+  <details class="info-section" open>
+    <summary>Safety Disclaimer</summary>
     <div class="info-section-body">
       <div class="disclaimer-box">
-        <p>Helm.Warning is a situational-awareness tool. It shows a convenience copy of NAVAREA and other maritime safety warnings gathered from public sources. It is not an official source of Maritime Safety Information.</p>
-        <p>The map can lag behind the original broadcasts, miss warnings, or show them incorrectly. Always check the official broadcast (NAVTEX, SafetyNET, or the issuing authority) before relying on any warning.</p>
-        <p>Official broadcasts and the Master's judgment take priority over anything shown here. Under SOLAS, responsibility for the safe navigation of the vessel stays with the Master. Helm.Warning must not be used as the sole or primary source for passage planning or navigation decisions.</p>
+        <p><strong>Safety first:</strong> Helm.Warning is a situational-awareness tool showing a convenience copy of public maritime safety warnings — it is not an official source of Maritime Safety Information. Always check the official broadcast (NAVTEX, SafetyNET, or the issuing authority) before relying on any warning.</p>
+        <details class="disclaimer-full">
+          <summary>Read the full disclaimer</summary>
+          <p>Helm.Warning is a situational-awareness tool. It shows a convenience copy of NAVAREA and other maritime safety warnings gathered from public sources. It is not an official source of Maritime Safety Information.</p>
+          <p>The map can lag behind the original broadcasts, miss warnings, or show them incorrectly. Always check the official broadcast (NAVTEX, SafetyNET, or the issuing authority) before relying on any warning.</p>
+          <p>Official broadcasts and the Master's judgment take priority over anything shown here. Under SOLAS, responsibility for the safe navigation of the vessel stays with the Master. Helm.Warning must not be used as the sole or primary source for passage planning or navigation decisions.</p>
+        </details>
       </div>
     </div>
   </details>
-  <details class="info-section">
-    <summary id="info-developer">About the Developer</summary>
+  <details class="info-section" id="faq">
+    <summary>FAQ — common questions</summary>
     <div class="info-section-body">
-      <p>Helm.Warning is built by <strong>Alfred Panakkal Jose</strong> — a Full-Stack Developer and serving Third Officer with over 2 years of experience as Third Officer and active in the maritime field since 2019.</p>
-      <p>Having worked on ocean-going oil tankers, he has first-hand experience of the real difficulties faced by seafarers — limited connectivity, high operational pressure, and the constant need for reliable tools at sea. This practical understanding shapes the way he builds software: simple, fast, offline-friendly, and focused on actual bridge and operational needs.</p>
+      <details class="faq-item">
+        <summary>Is Helm.Warning free?</summary>
+        <p>Yes — completely. There is no account, no sign-up and no paid tier. The map, the regional pages and every warning detail page are open to everyone.</p>
+      </details>
+      <details class="faq-item">
+        <summary>What is a NAVAREA warning?</summary>
+        <p>Navigational warnings are urgent maritime safety messages about hazards to navigation — firing exercises, drifting mines or containers, subsea cable or salvage works, offshore rigs, disabled vessels and similar dangers. The world's oceans are divided into 21 <strong>NAVAREA</strong> regions, each with one national coordinator that issues, updates and cancels its warnings under the World-Wide Navigational Warning Service (WWNWS).</p>
+      </details>
+      <details class="faq-item">
+        <summary>Where does the data come from?</summary>
+        <p>Directly from the official NAVAREA coordinators — hydrographic offices and maritime authorities such as the UKHO, NGA, India's NHO, the Japan Coast Guard and AMSA. Helm.Warning ingests their published feeds, parses the coordinates and plots the hazards; the original, unmodified bulletin text is always shown with each warning.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How fresh is it?</summary>
+        <p>Verified automated feeds are ingested daily (some more often); the public pages are refreshed on every deploy. Because warnings can be cancelled or superseded at any time, always re-check against the official source before acting on a warning.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Can I use it for passage planning?</summary>
+        <p>Yes, as a situational-awareness and planning aid. But Helm.Warning is a convenience copy, not an official MSI distributor: it may be delayed or incomplete, and it is never a replacement for GMDSS broadcasts, ECDIS or the official publications issued by national authorities.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Why does my region show no warnings?</summary>
+        <p>Either the coordinator currently has no warnings in force, or the region has no verified automated feed yet (see the source registry above — some regions are ingested manually). A quiet region is normal; absence of warnings never means the waters are guaranteed clear.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Does it work at sea, on a slow connection?</summary>
+        <p>The site is deliberately lightweight: no heavy frameworks on the public pages, cached nautical tiles and a red night theme that protects night vision. It still needs a connection to fetch the live warning list — download or copy the bulletins you need before losing connectivity.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Who builds and maintains it?</summary>
+        <p>A serving deck officer, built for watchkeepers — see <a href="#info-developer">About the Developer</a> below. Feedback and source corrections are welcome.</p>
+      </details>
+    </div>
+  </details>
+  <details class="info-section" id="info-developer">
+    <summary>About the Developer</summary>
+    <div class="info-section-body">
+      <p>Helm.Warning is built by <strong>Alfred Panakkal Jose</strong> — a Full-Stack Developer and serving Third Officer, active in the maritime field since 2019. His time on ocean-going tankers shapes the way he builds software: simple, fast, offline-friendly, and focused on real bridge and operational needs.</p>
       <p>Alongside his sea-going career, Alfred has developed several maritime and productivity web applications under the <strong>Helm</strong> series, including:</p>
       <ul>
         <li><strong>Helm Almanac</strong> – Maritime reference and vessel schedule tool</li>
@@ -959,27 +1016,6 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
         </button>
       </div>
       <p>Red watch is intentionally dim. These colours are calculated, not tested on a bridge display — try it at night on your own device and adjust screen brightness until it is comfortable. Severity colours keep the same meaning in every theme: a Critical warning always looks Critical.</p>
-    </div>
-  </details>
-  <details class="info-section" open id="faq">
-    <summary>FAQ — common questions</summary>
-    <div class="info-section-body">
-      <h3>Is Helm.Warning free?</h3>
-      <p>Yes — completely. There is no account, no sign-up and no paid tier. The map, the regional pages and every warning detail page are open to everyone.</p>
-      <h3>What is a NAVAREA warning?</h3>
-      <p>Navigational warnings are urgent maritime safety messages about hazards to navigation — firing exercises, drifting mines or containers, subsea cable or salvage works, offshore rigs, disabled vessels and similar dangers. The world's oceans are divided into 21 <strong>NAVAREA</strong> regions, each with one national coordinator that issues, updates and cancels its warnings under the World-Wide Navigational Warning Service (WWNWS).</p>
-      <h3>Where does the data come from?</h3>
-      <p>Directly from the official NAVAREA coordinators — hydrographic offices and maritime authorities such as the UKHO, NGA, India's NHO, the Japan Coast Guard and AMSA. Helm.Warning ingests their published feeds, parses the coordinates and plots the hazards; the original, unmodified bulletin text is always shown with each warning.</p>
-      <h3>How fresh is it?</h3>
-      <p>Verified automated feeds are ingested daily (some more often); the public pages are refreshed on every deploy. Because warnings can be cancelled or superseded at any time, always re-check against the official source before acting on a warning.</p>
-      <h3>Can I use it for passage planning?</h3>
-      <p>Yes, as a situational-awareness and planning aid. But Helm.Warning is a convenience copy, not an official MSI distributor: it may be delayed or incomplete, and it is never a replacement for GMDSS broadcasts, ECDIS or the official publications issued by national authorities.</p>
-      <h3>Why does my region show no warnings?</h3>
-      <p>Either the coordinator currently has no warnings in force, or the region has no verified automated feed yet (see the source registry above — some regions are ingested manually). A quiet region is normal; absence of warnings never means the waters are guaranteed clear.</p>
-      <h3>Does it work at sea, on a slow connection?</h3>
-      <p>The site is deliberately lightweight: no heavy frameworks on the public pages, cached nautical tiles and a red night theme that protects night vision. It still needs a connection to fetch the live warning list — download or copy the bulletins you need before losing connectivity.</p>
-      <h3>Who builds and maintains it?</h3>
-      <p>A serving deck officer, built for watchkeepers — see <a href="#info-developer">About the Developer</a> below. Feedback and source corrections are welcome.</p>
     </div>
   </details>
 </div>
@@ -1139,6 +1175,20 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
 })();
 </script>
 <script>
+/* About & Help: open a <details> section targeted by the URL hash (e.g. #source-registry, #faq). */
+(function () {
+  function openHashTarget() {
+    var h = window.location.hash;
+    if (!h || h.length < 2) return;
+    var el;
+    try { el = document.querySelector(h); } catch (e) { return; }
+    if (!el) return;
+    var d = (el.tagName === 'DETAILS') ? el : (el.closest ? el.closest('details') : null);
+    if (d) d.open = true;
+  }
+  window.addEventListener('hashchange', openHashTarget);
+  document.addEventListener('DOMContentLoaded', openHashTarget);
+})();
 /* Watch-theme picker (merged from the former /about page): applies live + persists hw-theme. */
 (function () {
   var KEY = 'hw-theme';
@@ -1169,4 +1219,5 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
 </script>
 </body>
 </html>
+
 
