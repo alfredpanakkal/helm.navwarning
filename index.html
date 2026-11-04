@@ -256,20 +256,19 @@ body.map-focus-active .map-top-section{display:none!important}
 body.map-focus-active .main{padding:0!important;max-width:100vw!important;margin:0!important}
 body.map-focus-active .map-container{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;border-radius:0!important;border:none!important;z-index:1200!important}
 
-/* Map Controls Floating Chip — full-width status row */
-.map-controls-chip{position:absolute;top:8px;left:8px;right:8px;width:auto;z-index:520;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(255,255,255,.97);border:1px solid var(--border);border-radius:12px;font:700 13px system-ui,-apple-system,sans-serif;color:var(--text);box-shadow:0 2px 10px rgba(0,0,0,.1);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;transition:all .18s cubic-bezier(.16,1,.3,1);user-select:none;min-height:36px}
-.map-controls-chip:hover{background:#fff;border-color:var(--neutral)}
-.map-controls-chip:active{transform:scale(.99)}
-.chip-dot{width:7px;height:7px;border-radius:50%;background:var(--active);animation:pulse 2s infinite;flex-shrink:0}
-.chip-count{font-size:11px;font-weight:700;color:var(--text);background:var(--border);padding:1px 6px;border-radius:8px;flex-shrink:0}
+/* Map Controls Floating Chip — compact globe view in top-left */
+.map-controls-chip{position:absolute;top:10px;left:10px;right:auto;width:auto;max-width:max-content;z-index:520;display:inline-flex;align-items:center;gap:5px;padding:3px 8px;min-height:26px;height:26px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font:600 11.5px system-ui,-apple-system,sans-serif;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;transition:all .15s cubic-bezier(.16,1,.3,1);user-select:none}
+.map-controls-chip:hover{background:var(--canvas,#ffffff);border-color:var(--neutral)}
+.map-controls-chip:active{transform:scale(.98)}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:var(--active);animation:pulse 2s infinite;flex-shrink:0}
 .chip-chevron{transition:transform .22s ease;flex-shrink:0}
 .map-controls-chip.is-expanded .chip-chevron{transform:rotate(180deg)}
 
-/* Right-edge vertical control stack */
-.map-ctrl-topright{position:absolute;top:56px;right:8px;z-index:520;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
-.map-ctrl-topright button{width:44px;height:44px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:background .15s,border-color .15s,color .15s;padding:0}
-.map-ctrl-topright button:hover{border-color:var(--neutral)}
-.map-ctrl-topright button svg{stroke:currentColor;stroke-width:2;fill:none}
+/* Floating map toolbar — top-left below globe viewbutton */
+.map-ctrl-topright{position:absolute;top:42px;left:10px;right:auto;z-index:520;display:flex;flex-direction:row;gap:5px;align-items:center}
+.map-ctrl-topright button{width:30px;height:30px;min-width:30px;min-height:30px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:background .15s,border-color .15s,color .15s;padding:0}
+.map-ctrl-topright button:hover{border-color:var(--neutral);background:var(--canvas,#ffffff)}
+.map-ctrl-topright button svg{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none}
 #map{height:100%;width:100%}
 .leaflet-control-zoom, .leaflet-control-attribution{display:none!important}
 .leaflet-control-zoom{display:none!important}
@@ -463,8 +462,8 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
     <!-- PUBLIC NAV ONLY — no admin -->
     <nav class="main-nav" aria-label="Main navigation">
       <div role="tablist" aria-label="Main navigation views" style="display:flex;gap:2px">
-        <button class="nav-tab stacked active" data-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" id="tab-btn-map" onclick="switchTab('map')" title="Map View"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg><span class="nav-tab-label">Map</span><span class="badge" id="nav-map-badge">0</span></button>
-        <button class="nav-tab stacked" data-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" id="tab-btn-data" onclick="switchTab('data')" title="Data Bank"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg><span class="nav-tab-label">Data</span><span class="badge" id="nav-data-badge">0</span></button>
+        <button class="nav-tab stacked active" data-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" id="tab-btn-map" onclick="switchTab('map')" title="Map View"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg><span class="nav-tab-label">Map</span></button>
+        <button class="nav-tab stacked" data-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" id="tab-btn-data" onclick="switchTab('data')" title="Data Bank"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg><span class="nav-tab-label">Data</span></button>
         <button class="nav-tab stacked" data-tab="info" role="tab" aria-selected="false" aria-controls="tab-info" id="tab-btn-info" onclick="switchTab('info')" title="Sources, Disclaimer & About"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span class="nav-tab-label">Info</span></button>
       </div>
     </nav>
@@ -529,33 +528,29 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
     <button type="button" class="map-controls-chip is-expanded" id="mapControlsChip" onclick="toggleMapTopControls()" aria-label="Toggle map filter controls" title="Toggle navigation area filter and controls" aria-expanded="true" aria-controls="mapTopSection">
       <span class="chip-dot"></span>
       <span id="chipNavAreaText">Global View</span>
-      <span class="chip-count" id="chipLiveCount">0 live</span>
-      <svg class="chip-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+      <svg class="chip-chevron" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
     </button>
 
     <div class="map-ctrl-topright" role="toolbar" aria-label="Map Navigation Controls">
-      <button type="button" class="map-locate-btn" id="btnMapLocate" onclick="locateMe()" title="My position" aria-label="Show my position">
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
-      </button>
       <button type="button" class="map-recenter-pill-btn" onclick="resetMapView()" title="Fit all warnings" aria-label="Fit all warnings in view">
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M4 4h4M4 4v4M20 4h-4M20 4v4M4 20h4M4 20v-4M20 20h-4M20 20v-4"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 4h4M4 4v4M20 4h-4M20 4v4M4 20h4M4 20v-4M20 20h-4M20 20v-4"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
       <button type="button" class="map-focus-btn" id="btnMapFocus" onclick="toggleMapFocusMode()" title="Maximize Map View (Focus Mode)" aria-label="Maximize map view full screen">
-        <svg id="iconMapFocusMax" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <svg id="iconMapFocusMax" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
         </svg>
-        <svg id="iconMapFocusMin" style="display:none" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <svg id="iconMapFocusMin" style="display:none" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
         </svg>
       </button>
       <button type="button" class="map-gear-btn" id="btnMapSettings" onclick="toggleMapSettings(event)" title="Layers & Chart Type (Long-press to reset)" aria-label="Map layers and chart settings" aria-expanded="false" aria-controls="mapSettingsPopover">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
       </button>
       <button type="button" class="map-coord-btn" id="btnMapCoord" onclick="toggleCoordMode()" title="Coordinate Picker — click the map for the exact position" aria-label="Toggle coordinate picker" aria-pressed="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/><circle cx="12" cy="12" r="7"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/><circle cx="12" cy="12" r="7"/></svg>
       </button>
     </div>
 

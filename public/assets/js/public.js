@@ -2383,9 +2383,6 @@ function updateStats(){
   const live=warnings.filter(w=>w.status!=='rejected');
   const areas=new Set(live.map(w=>w.navarea)).size;
   const n=live.length;
-  ['nav-map-badge','nav-data-badge'].forEach(id => {
-    const el = document.getElementById(id); if(el) el.textContent = n;
-  });
   const mlb = document.getElementById('mapLiveBadge'); if(mlb) mlb.innerHTML=`<span class="dot"></span> ${n} live`;
   const chipCount = document.getElementById('chipLiveCount'); if(chipCount) chipCount.textContent = `${n} live`;
   const mSub = document.getElementById('mapSubtitle'); if(mSub) mSub.textContent=`${n} in-force across ${areas} NAVAREAs`;

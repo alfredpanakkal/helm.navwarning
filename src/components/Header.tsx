@@ -213,18 +213,6 @@ export const Header: React.FC<HeaderProps> = ({
                   }
                 >
                   <span>{section.label}</span>
-                  {section.id === 'warnings' && typeof activeCount === 'number' && (
-                    <span
-                      className={
-                        'badge ml-1 px-1.5 py-0.5 rounded-full text-[11px] font-sans font-medium tabular-nums ' +
-                        (isActive
-                          ? 'text-ink-primary'
-                          : 'text-ink-tertiary')
-                      }
-                    >
-                      {activeCount.toLocaleString()}
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -249,11 +237,6 @@ export const Header: React.FC<HeaderProps> = ({
                   }
                 >
                   <span>{view.label}</span>
-                  {view.id === 'databank' && typeof activeCount === 'number' && (
-                    <span className="text-[10px] px-1 py-0.5 rounded text-ink-tertiary font-sans font-medium tabular-nums">
-                      {activeCount.toLocaleString()}
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -334,11 +317,6 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <div className="relative">
                 {section.icon}
-                {section.id === 'warnings' && typeof activeCount === 'number' && (
-                  <span className="bottom-badge absolute -top-1 -right-2 text-xs bg-emerald-600 text-white font-bold px-1 rounded-full min-w-[14px] text-center tabular-nums">
-                    {activeCount.toLocaleString()}
-                  </span>
-                )}
               </div>
               <span className="text-xs mt-0.5 uppercase tracking-tight">{section.label}</span>
             </button>

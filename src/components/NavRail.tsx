@@ -117,11 +117,6 @@ export const NavRail: React.FC<NavRailProps> = ({
                 >
                   {VIEW_ICONS[view.id]}
                   <span>{view.label}</span>
-                  {view.id === 'databank' && typeof activeCount === 'number' && (
-                    <span className="ml-auto text-[11px] text-ink-tertiary font-medium tabular-nums">
-                      {activeCount.toLocaleString()}
-                    </span>
-                  )}
                 </button>
               );
             })}
