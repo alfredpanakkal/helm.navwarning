@@ -663,7 +663,7 @@ export function buildAboutPageHtml() {
     '      <li><strong>Navarea Warning Plotter</strong> and other utility tools</li>',
     '    </ul>',
     '    <p class="dev-links">',
-    '      <strong>Portfolio:</strong> <a href="https://alfred-panakkal.vercel.app" rel="noopener">alfred-panakkal.vercel.app</a><br>',
+    '      <strong>Portfolio:</strong> <a href="https://alfredpanakkal.web.app" rel="noopener">alfredpanakkal.web.app</a><br>',
     '      <strong>LinkedIn:</strong> <a href="https://www.linkedin.com/in/alfredpanakkal" rel="noopener">linkedin.com/in/alfredpanakkal</a>',
     '    </p>',
     '  </section>',
