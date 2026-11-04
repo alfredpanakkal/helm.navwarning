@@ -212,6 +212,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
     });
 
     partsRef.current.forEach((part, pi) => {
+      let radiusHandle: L.Marker | null = null;
       if (part.kind === 'polygon' && part.latlngs.length >= 3) {
         const poly = L.polygon(part.latlngs, shapeStyle('polygon') as any).addTo(group);
         poly.on('dblclick', (e) => L.DomEvent.stopPropagation(e as unknown as Event));
@@ -229,6 +230,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
           icon: vertexIcon('#f59e0b'),
           pane: DRAW_PANE,
         }).addTo(group);
+        radiusHandle = handle;
         handle.bindTooltip('Drag to set radius', { direction: 'top', offset: [0, -6] });
         handle.on('dragstart', () => pushHistory());
         handle.on('drag', (e: any) => {
@@ -252,6 +254,34 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
           setMessage(`Circle radius: ${((part.bufferNm || 1)).toFixed(2)} NM`);
           renderDraft();
         });
+        // Keyboard access (WCAG 2.1.1): arrows adjust the radius in NM (Shift = x10).
+        const rEl = handle.getElement() as HTMLElement | null;
+        if (rEl) {
+          rEl.setAttribute('role', 'button');
+          rEl.setAttribute('tabindex', '0');
+          rEl.setAttribute('aria-label', 'Circle radius — arrow keys adjust radius in NM (Shift = x10)');
+          rEl.addEventListener('keydown', (ev: KeyboardEvent) => {
+            let delta = 0;
+            if (ev.key === 'ArrowUp' || ev.key === 'ArrowRight') delta = ev.shiftKey ? 1 : 0.1;
+            else if (ev.key === 'ArrowDown' || ev.key === 'ArrowLeft') delta = ev.shiftKey ? -1 : -0.1;
+            if (delta === 0) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            pushHistory();
+            part.bufferNm = Math.max((part.bufferNm || 1) + delta, 0.1);
+            setDirty(true);
+            const radiusM = part.bufferNm * M_PER_NM;
+            const layers = (layerGroupRef.current as any)?.getLayers?.() || [];
+            layers.forEach((ly: any) => {
+              if (ly instanceof L.Circle) {
+                const cc = ly.getLatLng();
+                if (Math.abs(cc.lat - center[0]) < 1e-9 && Math.abs(cc.lng - center[1]) < 1e-9) ly.setRadius(radiusM);
+              }
+            });
+            handle.setLatLng([center[0], center[1] + (radiusM / 111320) / Math.max(Math.cos((center[0] * Math.PI) / 180), 0.01)]);
+            setMessage(`Circle radius: ${part.bufferNm.toFixed(2)} NM`);
+          });
+        }
       } else if (part.kind === 'points') {
         part.latlngs.forEach((ll) => {
           L.circleMarker(ll, { radius: 5, color: '#dc2626', fillColor: '#ef4444', fillOpacity: 0.9, weight: 1.5, pane: DRAW_PANE }).addTo(group);
@@ -288,6 +318,48 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
             setDirty(true);
             renderDraft();
           });
+          // Keyboard access (WCAG 2.1.1): Tab to a handle, arrow keys nudge
+          // (Shift = x10), Delete removes — mirroring drag/double-click.
+          const vEl = marker.getElement() as HTMLElement | null;
+          if (vEl) {
+            vEl.setAttribute('role', 'button');
+            vEl.setAttribute('tabindex', '0');
+            vEl.setAttribute('aria-label', `Vertex ${vi + 1} of ${part.latlngs.length} — arrow keys move (Shift = x10), Delete removes`);
+            vEl.addEventListener('keydown', (ev: KeyboardEvent) => {
+              const step = ev.shiftKey ? 0.01 : 0.001;
+              let nudged = false;
+              if (ev.key === 'ArrowUp') { part.latlngs[vi][0] += step; nudged = true; }
+              else if (ev.key === 'ArrowDown') { part.latlngs[vi][0] -= step; nudged = true; }
+              else if (ev.key === 'ArrowRight') { part.latlngs[vi][1] += step; nudged = true; }
+              else if (ev.key === 'ArrowLeft') { part.latlngs[vi][1] -= step; nudged = true; }
+              if (nudged) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                pushHistory();
+                marker.setLatLng(part.latlngs[vi]);
+                setDirty(true);
+                const layers = (layerGroupRef.current as any)?.getLayers?.() || [];
+                layers.forEach((ly: any) => {
+                  if (ly instanceof L.Polygon && part.kind === 'polygon') ly.setLatLngs(part.latlngs);
+                  if (ly instanceof L.Polyline && !(ly instanceof L.Polygon) && part.kind === 'line') ly.setLatLngs(part.latlngs);
+                });
+                return;
+              }
+              if (ev.key === 'Delete' || ev.key === 'Backspace') {
+                ev.preventDefault();
+                ev.stopPropagation();
+                const min = part.kind === 'polygon' ? 3 : part.kind === 'line' ? 2 : 1;
+                if (part.latlngs.length <= min) {
+                  setMessage(`A ${part.kind} needs at least ${min} vertices.`);
+                  return;
+                }
+                pushHistory();
+                part.latlngs.splice(vi, 1);
+                setDirty(true);
+                renderDraft();
+              }
+            });
+          }
         });
       } else if (part.latlngs.length === 1) {
         const center = part.latlngs[0];
@@ -300,6 +372,40 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
           setDirty(true);
           renderDraft();
         });
+        // Keyboard access (WCAG 2.1.1): arrows move the circle center (Shift = x10).
+        const cEl = centerHandle.getElement() as HTMLElement | null;
+        if (cEl) {
+          cEl.setAttribute('role', 'button');
+          cEl.setAttribute('tabindex', '0');
+          cEl.setAttribute('aria-label', 'Circle center — arrow keys move (Shift = x10)');
+          cEl.addEventListener('keydown', (ev: KeyboardEvent) => {
+            const step = ev.shiftKey ? 0.01 : 0.001;
+            const prev: [number, number] = [part.latlngs[0][0], part.latlngs[0][1]];
+            let nudged = false;
+            if (ev.key === 'ArrowUp') { part.latlngs[0][0] += step; nudged = true; }
+            else if (ev.key === 'ArrowDown') { part.latlngs[0][0] -= step; nudged = true; }
+            else if (ev.key === 'ArrowRight') { part.latlngs[0][1] += step; nudged = true; }
+            else if (ev.key === 'ArrowLeft') { part.latlngs[0][1] -= step; nudged = true; }
+            if (!nudged) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            pushHistory();
+            const c = part.latlngs[0];
+            centerHandle.setLatLng(c);
+            setDirty(true);
+            const layers = (layerGroupRef.current as any)?.getLayers?.() || [];
+            layers.forEach((ly: any) => {
+              if (ly instanceof L.Circle) {
+                const cc = ly.getLatLng();
+                if (Math.abs(cc.lat - prev[0]) < 1e-9 && Math.abs(cc.lng - prev[1]) < 1e-9) ly.setLatLng(c);
+              }
+            });
+            if (radiusHandle && part.bufferNm) {
+              const radiusM = part.bufferNm * M_PER_NM;
+              radiusHandle.setLatLng([c[0], c[1] + (radiusM / 111320) / Math.max(Math.cos((c[0] * Math.PI) / 180), 0.01)]);
+            }
+          });
+        }
       }
       void pi;
     });
@@ -629,8 +735,8 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
         {mode !== 'off' && (
           <div className="text-[10px] text-gw-accent leading-relaxed">
             {mode === 'edit'
-              ? 'Drag vertex handles to move them · double-click a handle to delete it · circle: drag center to move, drag amber handle for radius (NM). Save writes through the admin-guarded API.'
-              : 'Click the chart to place vertices (polygon ≥3, route ≥2; circle: center then radius point). Finish or double-click to complete.'}
+              ? 'Drag vertex handles to move them · double-click a handle to delete it · circle: drag center to move, drag amber handle for radius (NM). Keyboard: Tab to a handle, arrow keys nudge (Shift = x10), Delete removes; circle center and radius handles take arrows too. Save writes through the admin-guarded API.'
+              : 'Click the chart to place vertices (polygon ≥3, route ≥2; circle: center then radius point). Finish or double-click to complete. Point placement is pointer-based — for full keyboard point entry use the Edit modal Geometry tab (editable point table).'}
           </div>
         )}
 
