@@ -13,7 +13,7 @@
   --ink-primary:     #0b0e11;   /* hero, primary data */
   --ink-body:        #1f2937;   /* table body */
   --ink-secondary:   #5f6b7a;   /* subline, meta, labels */
-  --ink-tertiary:    #8b97a5;   /* table headers, placeholders, inactive */
+  --ink-tertiary:    #69737f;   /* table headers, placeholders, inactive */
   --ink-faint:       #b0bcc9;   /* inactive pagination */
 
   /* Accent (the ONLY accent) */
@@ -22,9 +22,9 @@
 
   /* Semantic (dots only — never fills, never pills) */
   --sev-critical:    #c44536;
-  --sev-high:        #c07a2b;
-  --sev-medium:      #6b8f9c;
-  --sev-low:         #9aa6b2;
+  --sev-high:        #9c611f;
+  --sev-medium:      #54707d;
+  --sev-low:         #65727e;
 
   /* Radius */
   --radius-input:    12px;
@@ -102,8 +102,8 @@
   --accent-fill:      var(--surface-subtle);
   --line:             var(--hairline);
   --sev-critical:     #c44536;
-  --sev-high:         #c07a2b;
-  --sev-moderate:     #6b8f9c;
+  --sev-high:         #9c611f;
+  --sev-moderate:     #54707d;
 }
 
 /* Dark Theme */
@@ -119,14 +119,14 @@
   --ink-primary:     #e9ede9;
   --ink-body:        #d4dad4;
   --ink-secondary:   #9fa69f;
-  --ink-tertiary:    #6b756c;
+  --ink-tertiary:    #868f87;
   --ink-faint:       #424b43;
   --accent:          #4a94b8;
   --accent-halo:     rgba(74, 148, 184, 0.15);
   --sev-critical:    #f08484;
   --sev-high:        #d9a24a;
   --sev-medium:      #8db4e2;
-  --sev-low:         #6b756c;
+  --sev-low:         #868f87;
   --background:      #0e1210;
   --foreground:      #e9ede9;
   --muted-foreground:#9fa69f;
@@ -147,14 +147,14 @@
   --ink-primary:     #e0857a;
   --ink-body:        #cc786d;
   --ink-secondary:   #b5786b;
-  --ink-tertiary:    #945e53;
+  --ink-tertiary:    #ab6d5f;
   --ink-faint:       #543029;
   --accent:          #e0857a;
   --accent-halo:     rgba(224, 133, 122, 0.15);
   --sev-critical:    #ff6b5e;
   --sev-high:        #d08a3e;
   --sev-medium:      #bc8577;
-  --sev-low:         #945e53;
+  --sev-low:         #ab6d5f;
   --background:      #080404;
   --foreground:      #e0857a;
   --muted-foreground:#b5786b;
