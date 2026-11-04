@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { NavWarning, EcdisIntermediateLayer, EcdisPointFeature, GeometryIntent } from '../types';
 import { EcdisFeatureEditor } from './EcdisFeatureEditor';
+import { useModalBehavior } from '../hooks/useModalBehavior';
 import {
   saveWarningEdit,
   WarningEditPatch,
@@ -98,7 +99,7 @@ function layerToGeometryPatches(layer: EcdisIntermediateLayer): WarningGeometryP
 }
 
 const inputCls =
-  'w-full bg-gw-panel border border-gw-secondary rounded px-3 py-2 outline-none text-sm focus:border-gw-primary transition-colors';
+  'w-full bg-gw-panel border border-gw-secondary rounded px-3 py-2 outline-none text-sm focus:border-gw-primary focus-visible:ring-2 focus-visible:ring-gw-primary/70 transition-colors';
 
 export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onClose, onSaved }) => {
   const [tab, setTab] = useState<EditTab>('classification');
@@ -120,6 +121,9 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
   const [geometryLayer, setGeometryLayer] = useState<EcdisIntermediateLayer | null>(null);
   const [includeGeometry, setIncludeGeometry] = useState(false);
   const [unplottedReason, setUnplottedReason] = useState('');
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, !!warning);
 
   useEffect(() => {
     if (!warning) return;
@@ -277,7 +281,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
   );
 
   return (
-    <div className="fixed inset-0 z-console-overlay-raised bg-black/10" role="dialog" aria-modal="true" aria-labelledby="wem-dialog-title" onClick={requestClose}>
+    <div ref={dialogRef} className="fixed inset-0 z-console-overlay-raised bg-black/10" role="dialog" aria-modal="true" aria-labelledby="wem-dialog-title" onClick={requestClose}>
       <div className="bg-gw-bg ml-auto w-full sm:w-[560px] h-full border-l border-gw-secondary overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-gw-primary text-gw-bg">
