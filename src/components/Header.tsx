@@ -174,7 +174,7 @@ export const Header: React.FC<HeaderProps> = ({
               the chrome exactly). Sections on the left, views after the divider;
               the strip scrolls horizontally when narrow. */}
           <nav
-            className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto no-scrollbar py-2"
+            className="flex-1 min-w-0 flex items-center gap-3 overflow-x-auto no-scrollbar py-2"
             role="tablist"
             aria-label="Console sections and views"
           >
@@ -188,7 +188,7 @@ export const Header: React.FC<HeaderProps> = ({
                   aria-label={section.label + ' tab'}
                   onClick={() => handleSectionSelect(section.id)}
                   className={
-                    'nav-tab flex items-center gap-1.5 px-3 py-2 rounded-full font-medium text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
+                    'nav-tab flex items-center gap-2 px-3.5 py-2 rounded-full font-medium text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
                     (isActive
                       ? 'bg-surface-subtle border border-border-chip-on text-ink-primary'
                       : 'border border-transparent text-ink-secondary hover:text-ink-primary hover:bg-surface-subtle')
@@ -198,7 +198,7 @@ export const Header: React.FC<HeaderProps> = ({
                   {section.id === 'warnings' && typeof activeCount === 'number' && (
                     <span
                       className={
-                        'badge ml-1 px-1.5 py-0.2 rounded-full text-[11px] font-sans font-medium tabular-nums ' +
+                        'badge ml-1 px-1.5 py-0.5 rounded-full text-[11px] font-sans font-medium tabular-nums ' +
                         (isActive
                           ? 'text-ink-primary'
                           : 'text-ink-tertiary')
@@ -224,7 +224,7 @@ export const Header: React.FC<HeaderProps> = ({
                   aria-label={view.label + ' tab'}
                   onClick={() => setActiveTab(view.id)}
                   className={
-                    'px-3 py-1.5 text-xs font-medium rounded border transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
+                    'px-3 py-2 text-xs font-medium rounded border transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
                     (isActive
                       ? 'bg-surface-subtle text-ink-primary border-border-chip-on'
                       : 'text-ink-secondary border-transparent hover:text-ink-primary hover:bg-surface-subtle')
@@ -232,7 +232,7 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <span>{view.label}</span>
                   {view.id === 'databank' && typeof activeCount === 'number' && (
-                    <span className="text-[10px] px-1 py-0.2 rounded text-ink-tertiary font-sans font-medium tabular-nums">
+                    <span className="text-[10px] px-1 py-0.5 rounded text-ink-tertiary font-sans font-medium tabular-nums">
                       {activeCount.toLocaleString()}
                     </span>
                   )}
@@ -331,11 +331,11 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Admin Unlock Modal Overlay */}
       {showAdminModal && (
         <div className="fixed inset-0 z-console-overlay bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div ref={adminModalRef} role="dialog" aria-modal="true" aria-labelledby="admin-gate-title" className="bg-gw-panel border-2 border-gw-primary rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div ref={adminModalRef} role="dialog" aria-modal="true" aria-labelledby="admin-gate-title" className="bg-gw-panel border border-gw-primary rounded-lg max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-gw-secondary pb-3">
-              <div className="flex items-center gap-2 font-bold text-sm sm:text-base text-gw-primary uppercase tracking-wider">
+              <div className="flex items-center gap-2 font-medium text-sm sm:text-base text-gw-primary tracking-wide">
                 <Lock className="w-5 h-5 text-gw-primary" />
-                <span id="admin-gate-title">Admin Access Gate</span>
+                <span id="admin-gate-title">Admin access gate</span>
               </div>
               <button
                 onClick={() => {
@@ -355,7 +355,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <form onSubmit={handleUnlockAdmin} className="space-y-3">
               <div className="space-y-1">
-                <label htmlFor="admin-gate-email" className="text-[10px] font-bold text-gw-accent uppercase tracking-wider block">
+                <label htmlFor="admin-gate-email" className="text-[10px] font-medium text-gw-accent uppercase tracking-wider block">
                   Admin Email Address
                 </label>
                 <div className="relative">
@@ -378,7 +378,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="admin-gate-password" className="text-[10px] font-bold text-gw-accent uppercase tracking-wider block">
+                <label htmlFor="admin-gate-password" className="text-[10px] font-medium text-gw-accent uppercase tracking-wider block">
                   Password
                 </label>
                 <div className="relative">
@@ -412,17 +412,17 @@ export const Header: React.FC<HeaderProps> = ({
                     setShowAdminModal(false);
                     setAuthErrorMessage(null);
                   }}
-                  className="px-4 py-2 border border-gw-secondary text-gw-accent hover:text-gw-primary rounded text-xs font-bold uppercase"
+                  className="px-4 py-2 border border-gw-secondary text-gw-accent hover:text-gw-primary rounded text-xs font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isLoggingIn}
-                  className="px-5 py-2 bg-gw-primary text-gw-bg font-bold text-xs uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-tertiary transition-all flex items-center gap-2 disabled:opacity-50"
+                  className="px-5 py-2 bg-gw-primary text-gw-bg font-medium text-xs tracking-wide rounded border border-gw-primary hover:bg-gw-tertiary transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
                   {isLoggingIn && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{isLoggingIn ? 'Authenticating...' : 'Unlock Admin Mode'}</span>
+                  <span>{isLoggingIn ? 'Authenticating...' : 'Unlock admin mode'}</span>
                 </button>
               </div>
             </form>
