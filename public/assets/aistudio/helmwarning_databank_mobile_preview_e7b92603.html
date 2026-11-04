@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HELM.WARNING — Data Bank UI Preview</title>
+<style>
+:root{
+  --ink:#172b3a; --muted:#64748b; --line:#e2e8f0; --paper:#fff;
+  --page:#f8fafc; --navy:#122b3a; --amber:#946323; --critical:#a33d3d;
+  --radius:16px; --shadow:0 2px 8px rgba(23,43,58,.035);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font:16px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input{font:inherit}
+button{cursor:pointer}
+.topbar{height:72px;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:5;backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:10px;color:#111827;font-size:21px;letter-spacing:-.5px;white-space:nowrap}
+.brand-mark{font-size:28px;font-weight:800;color:var(--navy);line-height:1}
+.nav{display:flex;gap:8px;align-items:center}
+.nav button{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:30px;padding:8px 15px;display:flex;gap:7px;align-items:center}
+.nav button.active{border-color:#cbd5e1;background:#f8fafc;color:var(--ink)}
+main{max-width:1050px;margin:0 auto;padding:28px 24px 48px}
+.page-title{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+h1{font-size:clamp(25px,4vw,34px);letter-spacing:-1px;margin:0;font-weight:650}
+.count{color:var(--muted);font-size:15px}
+.toolbar{display:flex;gap:10px;margin-bottom:14px}
+.action{height:44px;min-width:48px;padding:0 15px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:8px}
+.action:hover{background:#f1f5f9}
+.summary{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px}
+.summary-toggle{width:100%;border:0;background:transparent;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;color:var(--ink);text-align:left}
+.summary-main{font-weight:650}
+.summary-meta{display:flex;gap:14px;align-items:center;color:var(--muted);font-size:13px;flex-wrap:wrap}
+.chevron{transition:transform .2s}
+.summary.open .chevron{transform:rotate(180deg)}
+.stats-detail{display:none;border-top:1px solid var(--line);padding:16px;grid-template-columns:repeat(3,1fr);gap:16px}
+.summary.open .stats-detail{display:grid}
+.stat-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:650}
+.stat-value{font-size:23px;font-weight:650;letter-spacing:-.5px;margin-top:3px}
+.stat-note{font-size:12px;color:var(--muted)}
+.search-sticky{position:sticky;top:72px;z-index:4;background:var(--page);padding:8px 0 12px;margin:0 0 8px}
+.search-row{display:flex;gap:9px}
+.searchbox{height:50px;display:flex;align-items:center;gap:10px;padding:0 15px;border:1px solid var(--line);background:#fff;border-radius:14px;flex:1;min-width:0;box-shadow:var(--shadow)}
+.searchbox svg{flex:none;color:var(--muted)}
+.searchbox input{border:0;outline:0;width:100%;min-width:0;color:var(--ink);background:transparent}
+.searchbox input::placeholder{color:#8793a0}
+.filter-btn{height:50px;padding:0 15px;border:1px solid var(--line);background:#fff;border-radius:14px;color:var(--ink);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.filter-btn[aria-pressed="true"]{background:#eaf0f4;border-color:#9aabb8}
+.filters-panel{display:none;margin-top:9px;padding:12px;background:#fff;border:1px solid var(--line);border-radius:14px;gap:8px;flex-wrap:wrap}
+.filters-panel.show{display:flex}
+.chip{border:1px solid var(--line);background:white;border-radius:30px;padding:7px 12px;font-size:13px;color:var(--muted)}
+.chip.selected{background:#eaf0f4;color:var(--ink);border-color:#b7c6d1}
+.list-head{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 10px;color:var(--muted);font-size:13px}
+.warning-list{display:grid;gap:11px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow);transition:border-color .15s,transform .15s;cursor:pointer}
+.card:hover{border-color:#b8c7d2;transform:translateY(-1px)}
+.card-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:7px}
+.warning-id{font-size:15px;font-weight:680;letter-spacing:-.1px}
+.severity{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:650;white-space:nowrap;color:#5f4b2e}
+.dot{height:7px;width:7px;border-radius:50%;background:var(--amber)}
+.description{font-size:14px;font-weight:550;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:0 0 10px;color:#263746}
+.meta{display:flex;align-items:center;gap:13px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.meta-item{display:flex;align-items:center;gap:5px}
+.card-detail{display:none;border-top:1px solid var(--line);margin-top:12px;padding-top:12px;font-size:13px;color:var(--muted)}
+.card.expanded .card-detail{display:block}
+.card.expanded .description{-webkit-line-clamp:unset}
+.empty{display:none;padding:30px;text-align:center;color:var(--muted);background:white;border:1px solid var(--line);border-radius:14px}
+.footer-note{text-align:center;color:#94a3b8;font-size:12px;margin-top:24px}
+@media(min-width:760px){.warning-list{grid-template-columns:repeat(2,minmax(0,1fr))}.card{min-height:145px}}
+@media(max-width:600px){
+ .topbar{height:64px;padding:0 15px}.brand{font-size:17px;gap:7px}.brand-mark{font-size:24px}.nav{gap:2px}.nav button{padding:7px 9px;font-size:12px;gap:4px}.nav .nav-icon{font-size:16px}
+ main{padding:19px 16px 32px}.page-title{gap:8px;margin-bottom:13px}h1{font-size:27px}.count{font-size:13px}
+ .toolbar{display:none}.search-sticky{top:64px;padding:8px 0 10px}
+ .searchbox{height:48px;padding:0 12px}.filter-btn{height:48px;padding:0 12px;font-size:14px}
+ .summary{margin-bottom:12px}.summary-toggle{padding:12px}.summary-meta{gap:8px;font-size:12px}
+ .stats-detail{grid-template-columns:repeat(2,1fr);padding:13px;gap:14px}
+ .warning-list{gap:10px}.card{padding:13px 14px;border-radius:14px}.warning-id{font-size:14px}.description{font-size:13.5px;margin-bottom:9px}.meta{gap:10px;font-size:11.5px}
+}
+@media(max-width:370px){.brand{font-size:15px}.nav button{padding:7px 6px}.filter-btn{padding:0 9px}.summary-meta .optional{display:none}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">⚓</span><span>HELM.WARNING</span></div>
+  <nav class="nav" aria-label="Main navigation">
+    <button><span class="nav-icon">◫</span> Map</button>
+    <button class="active"><span class="nav-icon">▤</span> Data</button>
+    <button><span class="nav-icon">ⓘ</span> Info</button>
+  </nav>
+</header>
+<main>
+  <div class="page-title"><h1>Data Bank</h1><span class="count">423 published warnings</span></div>
+
+  <div class="toolbar">
+    <button class="action" title="Refresh" onclick="resetDemo()">↻</button>
+    <button class="action" style="flex:1" title="Export">⇩ <span>Export</span></button>
+  </div>
+
+  <section class="summary" id="summary">
+    <button class="summary-toggle" aria-expanded="false" onclick="toggleSummary()">
+      <span class="summary-main">423 <span style="font-weight:450">warnings</span></span>
+      <span class="summary-meta"><span>13 / 21 reporting</span><span>100% geo</span><span class="chevron">⌄</span></span>
+    </button>
+    <div class="stats-detail">
+      <div><div class="stat-label">In force</div><div class="stat-value">423</div><div class="stat-note">Published warnings</div></div>
+      <div><div class="stat-label">Active</div><div class="stat-value">0</div><div class="stat-note">Currently active</div></div>
+      <div><div class="stat-label">Coverage</div><div class="stat-value">13 / 21</div><div class="stat-note">NAVAREAs reporting</div></div>
+      <div><div class="stat-label">Georeferenced</div><div class="stat-value">100%</div><div class="stat-note">GPS coordinates available</div></div>
+      <div><div class="stat-label">World coverage</div><div class="stat-value">62%</div><div class="stat-note">NAVAREA coverage</div></div>
+      <div><div class="stat-label">Data quality</div><div class="stat-value">100%</div><div class="stat-note">Warnings with coordinates</div></div>
+    </div>
+  </section>
+
+  <div class="search-sticky">
+    <div class="search-row">
+      <label class="searchbox">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
+        <input id="search" type="search" placeholder="Search warnings..." aria-label="Search warnings" oninput="filterCards()">
+      </label>
+      <button class="filter-btn" id="filterBtn" aria-pressed="false" onclick="toggleFilters()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 17h16M8 3v8m8 2v8"/></svg>
+        Filters
+      </button>
+    </div>
+    <div class="filters-panel" id="filters">
+      <button class="chip selected" data-level="all" onclick="setLevel('all',this)">All severity</button>
+      <button class="chip" data-level="HIGH" onclick="setLevel('HIGH',this)">High</button>
+      <button class="chip" data-level="MODERATE" onclick="setLevel('MODERATE',this)">Moderate</button>
+      <button class="chip" data-level="CRITICAL" onclick="setLevel('CRITICAL',this)">Critical</button>
+    </div>
+  </div>
+
+  <div class="list-head"><span id="resultCount">Showing 6 sample warnings</span><span>Newest first</span></div>
+  <section class="warning-list" id="warningList">
+    <article class="card" data-level="HIGH" data-search="navarea vii 289/26 warning date not stated -29.83 40.00">
+      <div class="card-top"><div class="warning-id">NAVAREA VII 289/26</div><div class="severity"><span class="dot"></span>HIGH</div></div>
+      <p class="description">NAVAREA VII Warning</p>
+      <div class="meta"><span class="meta-item">⌖ −29.83°, 40.00°</span><span class="meta-item">▦ Date not stated</span></div>
+      <div class="card-detail">Select a warning to view its full notice, source text, coordinates, and available geometry.</div>
+    </article>
+    <article class="card" data-level="HIGH" data-search="navarea ix 420/26 strait hormuz charts ba 2851 2888 3172 oman charts om1219 om302 om509 oil tanker 26.40 56.41">
+      <div class="card-top"><div class="warning-id">NAVAREA IX 420/26</div><div class="severity"><span class="dot"></span>HIGH</div></div>
+      <p class="description">STRAIT OF HORMUZ — CHARTS BA 2851, 2888, 3172, OMAN CHARTS OM1219, OM302, OM509. OIL TANKER OPERATIONS...</p>
+      <div class="meta"><span class="meta-item">⌖ 26.40°, 56.41°</span><span class="meta-item">▦ Date not stated</span></div>
+      <div class="card-detail">Select a warning to view its full notice, source text, coordinates, and available geometry.</div>
+    </article>
+    <article class="card" data-level="HIGH" data-search="navarea ix 417/26 strait hormuz charts ba 2837 2851 2888 3172 oman chart om302 om305 dhow 26.33 56.28">
+      <div class="card-top"><div class="warning-id">NAVAREA IX 417/26</div><div class="severity"><span class="dot"></span>HIGH</div></div>
+      <p class="description">STRAIT OF HORMUZ — CHARTS BA 2837, 2851, 2888, 3172. OMAN CHART OM302, OM305. DHOW OPERATIONS...</p>
+      <div class="meta"><span class="meta-item">⌖ 26.33°, 56.28°</span><span class="meta-item">▦ Date not stated</span></div>
+      <div class="card-detail">Select a warning to view its full notice, source text, coordinates, and available geometry.</div>
+    </article>
+    <article class="card" data-level="HIGH" data-search="navarea v 0454/26 south rio de janeiro chart 21070 anchoring positioning operation -24.71 -42.41">
+      <div class="card-top"><div class="warning-id">NAVAREA V 0454/26</div><div class="severity"><span class="dot"></span>HIGH</div></div>
+      <p class="description">SOUTH OF RIO DE JANEIRO — CHART 21070 (INT 2008). ANCHORING AND POSITIONING OPERATION FOR THE...</p>
+      <div class="meta"><span class="meta-item">⌖ −24.71°, −42.41°</span><span class="meta-item">▦ Date not stated</span></div>
+      <div class="card-detail">Select a warning to view its full notice, source text, coordinates, and available geometry.</div>
+    </article>
+    <article class="card" data-level="HIGH" data-search="navarea xii 135/26 north pacific california 32.35 -118.14">
+      <div class="card-top"><div class="warning-id">NAVAREA XII 135/26</div><div class="severity"><span class="dot"></span>HIGH</div></div>
+      <p class="description">NORTH PACIFIC. CALIFORNIA.</p>
+      <div class="meta"><span class="meta-item">⌖ 32.35°, −118.14°</span><span class="meta-item">▦ Date not stated</span></div>
+      <div class="card-detail">Select a warning to view its full notice, source text, coordinates, and available geometry.</div>
+    </article>
+    <article class="card" data-level="MODERATE" data-search="navarea xii 126/26 south pacific ecuador -0.83 -81.20">
+      <div class="card-top"><div class="warning-id">NAVAREA XII 126/26</div><div class="severity"><span class="dot" style="background:#64748b"></span>MODERATE</div></div>
+      <p class="description">SOUTH PACIFIC. ECUADOR.</p>
+      <div class="meta"><span class="meta-item">⌖ −0.83°, −81.20°</span><span class="meta-item">▦ Date not stated</span></div>
+      <div class="card-detail">Select a warning to view its full notice, source text, coordinates, and available geometry.</div>
+    </article>
+  </section>
+  <div class="empty" id="empty">No warnings match your search or filter.</div>
+  <div class="footer-note">UI concept preview · Sample content · No live data connected</div>
+</main>
+<script>
+let selectedLevel='all';
+function toggleSummary(){const el=document.getElementById('summary');el.classList.toggle('open');document.querySelector('.summary-toggle').setAttribute('aria-expanded',el.classList.contains('open'))}
+function toggleFilters(){const panel=document.getElementById('filters');panel.classList.toggle('show');document.getElementById('filterBtn').setAttribute('aria-pressed',panel.classList.contains('show'))}
+function setLevel(level,button){selectedLevel=level;document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('selected',c===button));filterCards()}
+function filterCards(){const q=document.getElementById('search').value.toLowerCase().trim();let count=0;document.querySelectorAll('.card').forEach(card=>{const matchText=card.dataset.search.includes(q);const matchLevel=selectedLevel==='all'||card.dataset.level===selectedLevel;const show=matchText&&matchLevel;card.style.display=show?'':'none';if(show)count++});document.getElementById('resultCount').textContent=`Showing ${count} sample warning${count===1?'':'s'}`;document.getElementById('empty').style.display=count?'none':'block'}
+document.querySelectorAll('.card').forEach(card=>card.addEventListener('click',()=>card.classList.toggle('expanded')));
+function resetDemo(){document.getElementById('search').value='';selectedLevel='all';document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('selected',c.dataset.level==='all'));filterCards()}
+</script>
+</body>
+</html>

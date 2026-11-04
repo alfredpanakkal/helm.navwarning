@@ -227,40 +227,59 @@
     background: var(--canvas);
   }
 
-  /* Console rail & content layout:
-     Synchronized CSS custom properties drive both the dock width and
-     the content margin so content dynamically adjusts without obscuring. */
-  :root {
-    --active-rail-w: 0px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONSOLE NAVIGATION RAIL & DOCK CONTENT LAYOUT
+   The dock/rail is fixed to the left viewport edge. The content
+   frame MUST dynamically adjust its margin-left and width to exactly
+   match the dock size (56px collapsed, 224px expanded) so content is
+   never obscured. On mobile (< 768px), the rail is hidden and margin is 0.
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --active-rail-w: 0px;
+}
+
+.console-content-frame {
+  margin-left: 0 !important;
+  width: 100% !important;
+  min-width: 0;
+  transition: margin-left 0.15s ease-out, width 0.15s ease-out;
+}
+
+@media (min-width: 768px) {
+  :root,
+  .console-app-root {
+    --active-rail-w: var(--console-rail-w, 224px);
   }
-  @media (min-width: 768px) {
-    :root, .console-app-root {
-      --active-rail-w: var(--console-rail-w, 224px);
-    }
-    .console-rail-collapsed {
-      --active-rail-w: var(--console-rail-w-collapsed, 56px) !important;
-    }
-    .console-nav-rail {
-      width: var(--active-rail-w, 224px) !important;
-      transition: width 0.15s ease;
-    }
-    .console-rail-collapsed .console-nav-rail {
-      width: var(--active-rail-w, 56px) !important;
-    }
-    .console-content-frame {
-      margin-left: var(--active-rail-w, 224px) !important;
-      transition: margin-left 0.15s ease, width 0.15s ease;
-      width: calc(100% - var(--active-rail-w, 224px)) !important;
-      min-width: 0;
-    }
-    .console-rail-collapsed .console-content-frame {
-      margin-left: var(--active-rail-w, 56px) !important;
-      width: calc(100% - var(--active-rail-w, 56px)) !important;
-    }
-    /* Retain backward-compatible pad classes */
-    .console-rail-pad { padding-left: 0; }
-    .console-rail-pad-lg { padding-left: 0; }
+  .console-app-root.console-rail-collapsed,
+  .console-rail-collapsed {
+    --active-rail-w: var(--console-rail-w-collapsed, 56px) !important;
   }
+  .console-nav-rail {
+    width: var(--console-rail-w, 224px) !important;
+    transition: width 0.15s ease-out;
+  }
+  .console-app-root.console-rail-collapsed .console-nav-rail,
+  .console-rail-collapsed .console-nav-rail {
+    width: var(--console-rail-w-collapsed, 56px) !important;
+  }
+  .console-content-frame {
+    margin-left: var(--console-rail-w, 224px) !important;
+    width: calc(100% - var(--console-rail-w, 224px)) !important;
+    transition: margin-left 0.15s ease-out, width 0.15s ease-out;
+  }
+  .console-app-root.console-rail-collapsed .console-content-frame,
+  .console-rail-collapsed .console-content-frame {
+    margin-left: var(--console-rail-w-collapsed, 56px) !important;
+    width: calc(100% - var(--console-rail-w-collapsed, 56px)) !important;
+  }
+  /* Backward-compatible utility pads */
+  .console-rail-pad { padding-left: 0 !important; }
+  .console-rail-pad-lg { padding-left: 0 !important; }
+}
+
+@layer utilities {
 
   /* View header type hierarchy (Phase 2): one consistent title treatment
      so every console view opens with the same 'you are here' anchor. */

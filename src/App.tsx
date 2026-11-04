@@ -541,6 +541,9 @@ export default function App() {
       className={`console-app-root min-h-screen bg-gw-bg text-gw-primary font-sans selection:bg-gw-primary selection:text-gw-bg relative ${isRailCollapsed ? 'console-rail-collapsed ' : ''}${
         isMapView ? 'h-[100dvh] flex flex-col overflow-hidden pb-0' : 'pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-6'
       }`}
+      style={{
+        '--active-rail-w': isRailCollapsed ? 'var(--console-rail-w-collapsed, 56px)' : 'var(--console-rail-w, 224px)',
+      } as React.CSSProperties}
     >
       <a href="#main-content" className="gw-skip-link">
         Skip to main content
@@ -562,7 +565,11 @@ export default function App() {
       />
 
       {/* Content frame dynamically offsets and sizes to match dock width without obscuring */}
-      <div className={`console-content-frame flex-1 flex flex-col min-w-0 ${isMapView ? 'h-[calc(100dvh-57px)] overflow-hidden' : ''}`}>
+      <div
+        className={`console-content-frame flex-1 flex flex-col min-w-0 transition-[margin-left,width] duration-150 ease-out ${
+          isMapView ? 'h-[calc(100dvh-57px)] overflow-hidden' : ''
+        }`}
+      >
         {isLoadingData && (
           <div role="status" aria-live="polite" className="bg-surface-subtle border-b border-hairline px-4 sm:px-6 md:px-8 py-2 text-[11px] font-sans font-medium text-ink-secondary flex items-center justify-between">
             <div className="w-full flex items-center gap-2 truncate">

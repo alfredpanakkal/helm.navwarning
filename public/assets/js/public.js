@@ -2111,7 +2111,10 @@ function toggleCardDetail(w, cardEl) {
     <div class="warning-expanded-text">Loading bulletin text...</div>
     <div class="warning-expanded-actions">
       <button type="button" class="btn btn-primary" onclick="event.stopPropagation(); locateOnMapById('${encodeURIComponent(wid)}')">
-        <span>📍 View on Map</span>
+        <span>On Map →</span>
+      </button>
+      <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openWarningModalById('${encodeURIComponent(wid)}')">
+        <span>Full Notice</span>
       </button>
       <button type="button" class="btn btn-ghost" onclick="event.stopPropagation(); toggleCardDetailById('${encodeURIComponent(wid)}')">
         <span>Collapse</span>
@@ -2210,6 +2213,14 @@ window.toggleTableDetailRowById = function(rawId){
   }
 };
 
+window.openWarningModalById = function(rawId){
+  const id = decodeURIComponent(rawId);
+  const w = warnings.find(item => (item.canonical_id || item.warning_id || item.id) === id);
+  if (w && typeof window.openWarningModal === 'function') {
+    window.openWarningModal(w);
+  }
+};
+
 window.toggleCardDetailById = function(rawId){
   const id = decodeURIComponent(rawId);
   const c = Array.from(document.querySelectorAll('.warning-card')).find(el => el.dataset.warningId === id);
@@ -2302,8 +2313,8 @@ function populateCards(filtered=warnings){
         </div>
         <div class="warning-card-title">${w.title}</div>
         <div class="warning-card-meta">
-          <span>📅 ${formatWarningDate(w)}</span>
-          <span>📍 ${coordsText}</span>
+          <span class="meta-item"><span class="meta-glyph" aria-hidden="true">⌖</span> ${coordsText}</span>
+          <span class="meta-item"><span class="meta-glyph" aria-hidden="true">▦</span> ${formatWarningDate(w)}</span>
         </div>
       </div>
     `;
@@ -2388,8 +2399,13 @@ function updateStats(){
   const mSub = document.getElementById('mapSubtitle'); if(mSub) mSub.textContent=`${n} in-force across ${areas} NAVAREAs`;
   const dSub = document.getElementById('dataSubtitle'); if(dSub) dSub.textContent=`${n} published warnings`;
   const sAct = document.getElementById('statActive'); if(sAct) sAct.textContent=n;
+  const sActD = document.getElementById('statActiveDetail'); if(sActD) sActD.textContent=n;
+  const sRep = document.getElementById('statReportingCount'); if(sRep) sRep.textContent=areas;
   const sCov = document.getElementById('statCoverage'); if(sCov) sCov.textContent=areas+'/21';
+  const sCovD = document.getElementById('statCoverageDetail'); if(sCovD) sCovD.textContent=areas+'/21';
   const sCovSub = document.getElementById('statCoverageSub'); if(sCovSub) sCovSub.textContent=Math.round(areas/21*100)+'% world coverage';
+  const sGeo = document.getElementById('statGeo'); if(sGeo) sGeo.textContent='100%';
+  const sGeoD = document.getElementById('statGeoDetail'); if(sGeoD) sGeoD.textContent='100%';
 }
 window.toggleStatSummary = function(){
   const grid = document.getElementById('statGrid');

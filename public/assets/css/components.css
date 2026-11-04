@@ -115,23 +115,24 @@ button:focus-visible, a:focus-visible, select:focus-visible, summary:focus-visib
   color: var(--ink-body);
 }
 .badge-simple .dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
   display: inline-block;
 }
-.badge-high { color: var(--ink-body); }
-.badge-high .dot { background: var(--sev-high); }
+.badge-high { color: #946323; font-weight: 500; }
+.badge-high .dot { background: #946323; }
 .badge-active { color: var(--ink-body); }
 .badge-active .dot { background: var(--accent); }
 .badge-verified { color: var(--ink-body); }
 .badge-verified .dot { background: var(--accent); }
 .badge-neutral { color: var(--ink-secondary); }
 .badge-neutral .dot { background: var(--ink-tertiary); }
-.badge-moderate { color: var(--ink-body); }
-.badge-moderate .dot { background: var(--sev-medium); }
-.badge-critical .dot { background: var(--sev-critical); }
+.badge-moderate { color: #2b6e8c; font-weight: 500; }
+.badge-moderate .dot { background: #2b6e8c; }
+.badge-critical { color: #b91c1c; font-weight: 500; }
+.badge-critical .dot { background: #b91c1c; }
 
 /* Filter Chips (Transparent, 1px border, 999px radius) */
 .filter-chip {
