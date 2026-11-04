@@ -284,7 +284,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
         <div className="flex items-center gap-2 bg-gw-panel border border-gw-primary rounded p-1.5 shadow-xs">
           <span className="text-[10px] font-bold uppercase text-gw-accent">Geometry Intent:</span>
           <select
-            value={layer.geometry_intent}
+            aria-label="Geometry intent" value={layer.geometry_intent}
             onChange={(e) => handleIntentChange(e.target.value as GeometryIntent)}
             className="bg-transparent font-bold text-xs outline-none cursor-pointer text-gw-primary"
           >
@@ -337,7 +337,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
 
                     {/* Confidence Badge */}
                     <span
-                      className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border ${
+                      className={`text-[11px] px-1.5 py-0.5 rounded font-bold uppercase border ${
                         isRejected
                           ? 'bg-red-200 text-red-900 border-red-400'
                           : isPartial
@@ -349,13 +349,13 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                     </span>
 
                     {/* Inference Badge */}
-                    <span className="text-[9px] text-gw-accent bg-gw-panel px-1.5 py-0.5 rounded border border-gw-secondary">
+                    <span className="text-[11px] text-gw-accent bg-gw-panel px-1.5 py-0.5 rounded border border-gw-secondary">
                       {feat.properties.inference}
                     </span>
 
                     {/* State Badge */}
                     {feat.properties.modification_state !== 'original' && (
-                      <span className="text-[9px] bg-purple-100 text-purple-900 px-1.5 py-0.5 rounded border border-purple-400 uppercase font-bold">
+                      <span className="text-[11px] bg-purple-100 text-purple-900 px-1.5 py-0.5 rounded border border-purple-400 uppercase font-bold">
                         {feat.properties.modification_state}
                       </span>
                     )}
@@ -395,31 +395,31 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                 {/* Coordinates & Role Edit Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
-                    <label className="text-[9px] font-bold text-gw-accent uppercase block mb-0.5">Latitude (°N/S)</label>
+                    <label className="text-[11px] font-bold text-gw-accent uppercase block mb-0.5" htmlFor={`lat-${feat.id}`}>Latitude (°N/S)</label>
                     <input
                       type="number"
                       step="0.0001"
-                      value={lat}
+                      id={`lat-${feat.id}`} value={lat}
                       onChange={(e) => handleCoordinateChange(feat.id, lon.toString(), e.target.value)}
                       className="w-full bg-gw-panel border border-gw-primary rounded px-2 py-1 text-xs font-bold outline-none focus:ring-1 focus:ring-gw-primary"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[9px] font-bold text-gw-accent uppercase block mb-0.5">Longitude (°E/W)</label>
+                    <label className="text-[11px] font-bold text-gw-accent uppercase block mb-0.5" htmlFor={`lon-${feat.id}`}>Longitude (°E/W)</label>
                     <input
                       type="number"
                       step="0.0001"
-                      value={lon}
+                      id={`lon-${feat.id}`} value={lon}
                       onChange={(e) => handleCoordinateChange(feat.id, e.target.value, lat.toString())}
                       className="w-full bg-gw-panel border border-gw-primary rounded px-2 py-1 text-xs font-bold outline-none focus:ring-1 focus:ring-gw-primary"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[9px] font-bold text-gw-accent uppercase block mb-0.5">Role Hint</label>
+                    <label className="text-[11px] font-bold text-gw-accent uppercase block mb-0.5" htmlFor={`role-${feat.id}`}>Role Hint</label>
                     <select
-                      value={feat.properties.role_hint || ''}
+                      id={`role-${feat.id}`} value={feat.properties.role_hint || ''}
                       onChange={(e) =>
                         handleRoleChange(feat.id, (e.target.value || null) as FeatureRoleHint)
                       }
@@ -454,7 +454,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                     <span className="text-gw-accent font-bold">Officer User Notes:</span>
                     <input
                       type="text"
-                      placeholder="Add officer notes / remarks..."
+                      aria-label="Officer notes / remarks" placeholder="Add officer notes / remarks..."
                       value={feat.properties.user_notes}
                       onChange={(e) => handleNotesChange(feat.id, e.target.value)}
                       className="w-full bg-gw-panel border border-gw-secondary rounded px-2 py-1 outline-none text-[10px]"
