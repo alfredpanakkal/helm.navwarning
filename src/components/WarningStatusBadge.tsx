@@ -103,6 +103,7 @@ export const WarningStatusBadge: React.FC<WarningStatusBadgeProps> = ({
     >
       <Icon className={compact ? 'w-2.5 h-2.5 shrink-0' : 'w-3 h-3 shrink-0'} />
       <span>{compact ? config.shortLabel : config.label}</span>
+      <span className="sr-only">: {config.tooltip}</span>
     </span>
   );
 };
