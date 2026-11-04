@@ -89,7 +89,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
           <Search className="w-4 h-4 text-ink-tertiary shrink-0" />
           <input
             type="text"
-            placeholder="Search records by ID, text, area, coords..."
+            aria-label="Search warnings by ID, text, area, coordinates" placeholder="Search records by ID, text, area, coords..."
             className="bg-transparent border-none outline-none text-xs sm:text-[1.05rem] w-full text-ink-primary placeholder:text-ink-tertiary font-normal"
             value={searchTerm}
             onChange={(e) => {
