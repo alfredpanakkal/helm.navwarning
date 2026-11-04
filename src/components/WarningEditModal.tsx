@@ -267,7 +267,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
     <button
       type="button"
       onClick={() => setTab(id)}
-      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold uppercase tracking-wider transition-colors ${
+      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-medium tracking-wide transition-colors ${
         tab === id ? 'bg-gw-primary text-gw-bg' : 'bg-gw-panel text-gw-primary hover:bg-gw-bg'
       }`}
     >
@@ -277,13 +277,13 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
   );
 
   return (
-    <div className="fixed inset-0 z-console-overlay-raised bg-black/40" role="dialog" aria-modal="true">
-      <div className="bg-gw-bg ml-auto w-full sm:w-[560px] h-full border-l border-gw-secondary overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-console-overlay-raised bg-black/10" role="dialog" aria-modal="true" onClick={requestClose}>
+      <div className="bg-gw-bg ml-auto w-full sm:w-[560px] h-full border-l border-gw-secondary overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-gw-primary text-gw-bg">
           <div className="flex items-center gap-2">
             <Save className="w-4 h-4" />
-            <span className="font-bold text-sm uppercase tracking-wider">Edit Warning</span>
+            <span className="font-medium text-sm tracking-wide">Edit warning</span>
             <span className="text-xs opacity-80 font-mono ml-2">{identity.canonical}</span>
           </div>
           <button onClick={requestClose} aria-label="Close edit modal" className="p-1.5 rounded hover:bg-black/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" title="Close (Esc)">
@@ -311,18 +311,18 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
           {tab === 'classification' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-1">Title</label>
+                <label className="block text-xs font-medium uppercase tracking-wider mb-1">Title</label>
                 <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={255} />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-1">Categories (type)</label>
+                <label className="block text-xs font-medium uppercase tracking-wider mb-1">Categories (type)</label>
                 <div className="flex flex-wrap gap-2">
                   {CATEGORY_OPTIONS.map((c) => (
                     <button
                       key={c.id}
                       type="button"
                       onClick={() => toggleCategory(c.id)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                         categories.includes(c.id)
                           ? 'bg-gw-primary text-gw-bg border-gw-primary'
                           : 'bg-gw-panel text-gw-primary border-gw-secondary hover:border-gw-primary'
@@ -334,7 +334,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-1">Area text</label>
+                <label className="block text-xs font-medium uppercase tracking-wider mb-1">Area text</label>
                 <textarea className={inputCls + ' min-h-[80px]'} value={areaText} onChange={(e) => setAreaText(e.target.value)} maxLength={2000} />
               </div>
               <div className="text-[11px] text-gw-accent border border-gw-secondary rounded p-2 bg-gw-panel/60">
@@ -347,11 +347,11 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-1">Effective from (valid_from)</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1">Effective from (valid_from)</label>
                   <input type="datetime-local" className={inputCls} value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-1">Expiry (valid_to)</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1">Expiry (valid_to)</label>
                   <input type="datetime-local" className={inputCls} value={validTo} onChange={(e) => setValidTo(e.target.value)} />
                 </div>
               </div>
@@ -359,7 +359,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                 <button
                   type="button"
                   onClick={() => setValidTo('')}
-                  className="px-3 py-1.5 bg-gw-panel border border-gw-secondary rounded text-xs font-bold hover:border-gw-primary transition-colors"
+                  className="px-3 py-1.5 bg-gw-panel border border-gw-secondary rounded text-xs font-medium hover:border-gw-primary transition-colors"
                 >
                   No expiry (clear)
                 </button>
@@ -374,19 +374,19 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-1">Status</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1">Status</label>
                   <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}>
                     {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-1">Triage tier</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1">Triage tier</label>
                   <select className={inputCls} value={tier} onChange={(e) => setTier(e.target.value)}>
                     {TIER_OPTIONS.map((t) => <option key={t} value={t}>Tier {t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-1">Data quality</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1">Data quality</label>
                   <select className={inputCls} value={quality} onChange={(e) => setQuality(e.target.value)}>
                     {QUALITY_OPTIONS.map((q) => <option key={q} value={q}>{q}</option>)}
                   </select>
@@ -396,7 +396,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                 Tier A invariants: geometry required, EXPLICIT quality, not superseded. The server enforces them and rejects the edit otherwise.
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-1">Unplotted reason (Tier C annotation)</label>
+                <label className="block text-xs font-medium uppercase tracking-wider mb-1">Unplotted reason (Tier C annotation)</label>
                 <textarea
                   className={inputCls + ' min-h-[60px]'}
                   value={unplottedReason}
@@ -406,7 +406,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                 />
               </div>
               <div className="border-t border-gw-secondary pt-3">
-                <label className="block text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                <label className="block text-xs font-medium uppercase tracking-wider mb-1 flex items-center gap-1">
                   <History className="w-3.5 h-3.5" /> Move to another NAVAREA (supersede + recreate)
                 </label>
                 <div className="flex items-center gap-2">
@@ -428,7 +428,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                   bulletin text — edit the points, tick “include”, then Save.
                 </div>
               )}
-              <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+              <label className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider">
                 <input
                   type="checkbox"
                   checked={includeGeometry}
@@ -462,7 +462,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                   <button
                     type="button"
                     onClick={() => window.location.reload()}
-                    className="px-2 py-1 bg-red-600 text-white rounded text-[11px] font-bold uppercase"
+                    className="px-2 py-1 bg-red-600 text-white rounded text-[11px] font-medium uppercase"
                   >
                     Reload latest
                   </button>
@@ -482,7 +482,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
         )}
 
         {/* Footer */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-gw-panel border-t-2 border-gw-primary">
+        <div className="flex items-center gap-2 px-4 py-3 bg-gw-panel border-t border-gw-primary">
           <input
             className={inputCls + ' flex-1'}
             placeholder="Edit reason (stored on the audit row)"
@@ -494,7 +494,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
             type="button"
             onClick={handleVerify}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs tracking-wide rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Record an audited VERIFY action (writes a nav_warning_audits row)"
           >
             <CheckCircle2 className="w-4 h-4" />
@@ -504,7 +504,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 bg-gw-primary hover:bg-gw-accent text-gw-bg font-bold text-xs uppercase tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-4 py-2 bg-gw-primary hover:bg-gw-accent text-gw-bg font-medium text-xs tracking-wide rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             <span>{saving ? 'Saving…' : moveTarget ? 'Move + Save' : 'Save'}</span>
@@ -512,7 +512,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
           <button
             type="button"
             onClick={requestClose}
-            className="px-4 py-2 bg-gw-panel border border-gw-secondary text-gw-primary font-bold text-xs uppercase tracking-wider rounded hover:bg-gw-bg transition-colors"
+            className="px-4 py-2 bg-gw-panel border border-gw-secondary text-gw-primary font-medium text-xs tracking-wide rounded hover:bg-gw-bg transition-colors"
           >
             Cancel
           </button>
