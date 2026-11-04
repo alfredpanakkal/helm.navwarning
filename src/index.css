@@ -290,6 +290,17 @@
 .leaflet-popup-tip { background: var(--canvas) !important; border: 1px solid var(--border-input) !important; }
 .leaflet-popup-close-button { color: var(--ink-secondary) !important; }
 
+/* Target Size (WCAG 2.2 §2.5.8): every pointer target is at least 24×24
+   on all input types. The coarse-pointer layer below raises the bar to
+   44px on touch, where compact in-row controls (.touch-hit) opt out of
+   44px but still keep the 24px floor from this rule. */
+@layer base {
+  :where(button, [role="tab"], summary) {
+    min-height: 24px;
+    min-width: 24px;
+  }
+}
+
 /* Mobile Touch Layer */
 @media (pointer: coarse) {
   @layer base {
