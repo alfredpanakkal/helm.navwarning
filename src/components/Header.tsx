@@ -168,13 +168,13 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
-                    {/* Single-row navigation: the 4 sections plus the active section's views
+                    {/* Mobile navigation (Phase 2): the 4 sections plus the active section's views
               in one 56px bar (Phase 1 chrome merge — replaces the 56px header +
               38px sub-tab strip, so --console-sticky-offset: 57px now matches
               the chrome exactly). Sections on the left, views after the divider;
               the strip scrolls horizontally when narrow. */}
           <nav
-            className="flex-1 min-w-0 flex items-center gap-3 overflow-x-auto no-scrollbar py-2"
+            className="flex-1 min-w-0 flex items-center gap-3 overflow-x-auto no-scrollbar py-2 md:hidden"
             role="tablist"
             aria-label="Console sections and views"
           >

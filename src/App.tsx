@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
+import { NavRail } from './components/NavRail';
 import { DisclaimerBanner } from './components/DisclaimerBanner';
 import { Footer } from './components/Footer';
 import { LeafletMap } from './components/LeafletMap';
@@ -93,6 +94,15 @@ export default function App() {
   // Counter bumped by the access gate's "Admin Sign In" button; Header opens
   // the real Supabase login modal whenever it changes.
   const [loginPrompt, setLoginPrompt] = useState(0);
+
+  // Console navigation rail (Phase 2): desktop-only collapsible left rail;
+  // the collapse preference persists alongside the other helm_* localStorage flags.
+  const [isRailCollapsed, setIsRailCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem('helm_nav_rail_collapsed') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('helm_nav_rail_collapsed', isRailCollapsed ? '1' : '0'); } catch { /* private-mode storage can throw */ }
+  }, [isRailCollapsed]);
 
   // Purge legacy client-side authorization / UI flags left by earlier builds:
   // helm_admin_mode and helm_admin_token were trivially spoofable and hwUI
@@ -500,7 +510,7 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen bg-gw-bg text-gw-primary font-sans selection:bg-gw-primary selection:text-gw-bg relative ${
+      className={`min-h-screen bg-gw-bg text-gw-primary font-sans selection:bg-gw-primary selection:text-gw-bg relative ${isRailCollapsed ? 'console-rail-collapsed ' : ''}${
         isMapView ? 'h-[100dvh] flex flex-col overflow-hidden pb-0' : 'pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-6'
       }`}
     >
@@ -514,6 +524,13 @@ export default function App() {
         isAdminMode={isAdminMode}
         setIsAdminMode={setIsAdminMode}
         loginPrompt={loginPrompt}
+      />
+      <NavRail
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        activeCount={activeCount}
+        collapsed={isRailCollapsed}
+        onToggleCollapsed={() => setIsRailCollapsed((c) => !c)}
       />
       {isLoadingData && (
         <div role="status" aria-live="polite" className="bg-surface-subtle border-b border-hairline px-4 sm:px-6 md:px-8 py-2 text-[11px] font-sans font-medium text-ink-secondary flex items-center justify-between">
@@ -554,8 +571,8 @@ export default function App() {
         tabIndex={-1}
         className={
           isMapView
-            ? 'relative z-10 flex-1 min-h-0 w-full flex flex-col overflow-hidden focus:outline-none p-2 sm:p-3 md:p-4'
-            : 'relative z-10 w-full p-3 sm:p-6 md:px-8 md:py-8 focus:outline-none'
+            ? 'relative z-10 flex-1 min-h-0 w-full flex flex-col overflow-hidden focus:outline-none p-2 sm:p-3 console-rail-pad md:py-4 md:pr-4'
+            : 'relative z-10 w-full p-3 sm:p-6 console-rail-pad-lg md:pr-8 md:py-8 focus:outline-none'
         }
       >
         {/* Map View (admin-gated) */}
@@ -699,7 +716,9 @@ export default function App() {
         </div>
       </main>
 
-      <Footer />
+      <div className="console-rail-pad-lg">
+        <Footer />
+      </div>
 
       {/* Persistent Floating Action Button (FAB) for Data Bank verification (Admin Only) */}
       {isAdminMode && activeTab === 'databank' && unverifiedCandidates.length > 0 && !selectedWarning && !editingWarning && !isIngestionProcedureOpen && (
