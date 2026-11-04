@@ -2580,6 +2580,18 @@ Instructions:
   // Serve static files from public directory (robots.txt, sitemap.xml, og-preview.png, etc.)
   app.use(express.static(path.join(process.cwd(), 'public')));
 
+  // Rewrite /console and /admin to their entry files for dev & cleanUrl consistency
+  app.use((req, res, next) => {
+    if (req.path === '/console' || req.path === '/console/') {
+      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      req.url = '/console.html' + query;
+    } else if (req.path === '/admin' || req.path === '/admin/') {
+      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      req.url = '/admin.html' + query;
+    }
+    next();
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

@@ -135,9 +135,16 @@ export function parseHashRoute(hashStr: string): ParsedRoute {
       : undefined;
     tab = match ? match.id : DEFAULT_SECTION_TAB[section];
   } else if (first) {
-    // Legacy single-segment route - permanent alias.
+    // Legacy single-segment route - permanent alias (supports tab ID or route name).
     const candidate = first as TabType;
-    tab = VALID_TABS.includes(candidate) ? candidate : undefined;
+    if (VALID_TABS.includes(candidate)) {
+      tab = candidate;
+    } else {
+      const byRouteName = (Object.keys(ROUTE_NAME) as TabType[]).find(
+        (t) => ROUTE_NAME[t] === first
+      );
+      tab = byRouteName;
+    }
   }
 
   const params = new URLSearchParams(queryPart || '');

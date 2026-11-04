@@ -1,124 +1,162 @@
-# Implementation Plan: Map Settings & Layers Bottom Sheet Remediation (COMPLETED)
+# Implementation Plan: Helm.Warning Administrator Console Audit & Hardening
 
-Restored the missing CSS styles and interaction behavior for the **Map Navigation Toolbar** and **Layers & Chart Type Settings** (bottom sheet on mobile, popover on desktop), matching the production design (`helmwarning.vercel.app`).
-
----
-
-## Why It Was Rendering Broken in AI Studio
-
-In the user's mobile screenshot (`Screenshot 1`), the settings panel appeared as raw, unstyled text dumped at the bottom of the page beneath the bottom navigation bar.
-
-1. **Missing CSS Declarations**:
-   The HTML markup in `index.html` (lines 521–610 for the toolbar & desktop popover, and lines 908–975 for the mobile bottom sheet & scrim) defines all the necessary elements (`.map-ctrl-topright`, `.map-recenter-pill-btn`, `.map-focus-btn`, `.map-gear-btn`, `.map-settings-sheet`, `.map-settings-scrim`, `.map-settings-popover`, `.settings-item`, etc.). However, **zero CSS rules** existed for any of these classes in `public/assets/css/components.css`, `public/assets/css/tokens.css`, or `index.html`.
-2. **Document Flow Leakage**:
-   Because `.map-settings-sheet` had no CSS:
-   - The browser defaulted it to `display: block; position: static;` in normal document flow.
-   - Instead of being hidden off-screen (`transform: translateY(100%)`) and sliding up only when the gear icon is tapped, it remained permanently visible at the very end of the page body.
-   - The radio inputs and checkboxes used default raw browser form controls with no spacing or custom styling.
-3. **Missing Floating Map Toolbar**:
-   The top-right floating toolbar buttons (`Re-center`, `Focus`, `Settings Gear`, `Coordinate Picker`) lacked their floating pill and button styling, preventing the clean floating controls shown in `Screenshot 3`.
+Comprehensive roadmap for consolidating the console audit fixes and systematically hardening the 9 administrator workflows across HTML, CSS, and TypeScript.
 
 ---
 
-## 1. Overview & Target Experience
+## User Review & Critical Decisions
 
-Deliver pixel-precise parity with `helmwarning.vercel.app` (as seen in `Screenshot 2` and `Screenshot 3`):
+> [!IMPORTANT]
+> The primary tab switching blockage (caused by client-side admin-mode gating, dev server route rewrites, and z-index collisions) has been resolved. This plan defines the hardening and verification checklist for each administrator tab.
 
+- **Confirmed Architecture**: The admin console (`/console`) operates with read-only inspection by default for unauthenticated operators, while write mutations (verifying warnings, committing manual parses, and triggering ingestion procedures) are strictly guarded both on the client (`isAdminMode`) and on the server (`server/auth.ts` Bearer JWT role verification).
+- **Design System Constraint**: Pure Helm.Ports design token scale (`src/index.css`), single accent `#2b6e8c`, weight ≤ 500, no shadows, no pill shapes, Inter typography.
+
+---
+
+## 1. Overview & Core Concept
+
+**Helm.Warning** is an operational maritime safety information (MSI) decision-support platform. The administrative console provides watchstanders and hydrographic administrators with safety-critical verification, ingestion orchestration, and geometry validation tools.
+
+### Administrator Console Views
 ```
-┌────────────────────────────────────────────────────────┐
-│ HELM.WARNING                                       [≡] │
-├────────────────────────────────────────────────────────┤
-│ Live NAVAREA Warnings                                  │
-│ ...                                                    │
-├────────────────────────────────────────────────────────┤
-│ [● Global View 406]     [(⌖) Re-center] [⛶] [⚙] [⌖]    │ <- Floating Toolbar
-│                                                        │
-│                     MAP VIEW                           │
-│                                                        │
-├────────────────────────────────────────────────────────┤
-│ [Map 406]             [Data]      [Sources]     [Info] │
-└────────────────────────────────────────────────────────┘
-                          ▲
-                          │ Tapping [⚙] triggers smooth slide-up
-                          ▼
-┌────────────────────────────────────────────────────────┐
-│ [════════════════════════════════════════════════════] │ <- Dimmed Scrim
-│ ┌────────────────────────────────────────────────────┐ │
-│ │                      ━                             │ │ <- Drag Handle
-│ │ Layers & Chart Type                            [✕] │ │ <- Sheet Header
-│ │ ────────────────────────────────────────────────── │ │
-│ │ BASE MAP                                           │ │
-│ │   (•) OpenStreetMap                                │ │ <- Custom Radios
-│ │   ( ) CARTO Voyager                                │ │
-│ │   ( ) CARTO Dark Matter                            │ │
-│ │   ( ) CARTO Positron                               │ │
-│ │   ( ) ESRI Ocean Base                              │ │
-│ │ ────────────────────────────────────────────────── │ │
-│ │ MARITIME OVERLAYS                             [ON] │ │ <- Master Toggle
-│ │   [✓] Hazard Points                                │ │ <- Custom Checkboxes
-│ │   [✓] Danger Areas & Polygons                      │ │
-│ │   [✓] Safety Zones & Circles                       │ │
-│ │   [✓] Corridors & Cables                           │ │
-│ │   [✓] OpenSeaMap Seamarks                          │ │
-│ │   [ ] Ocean Soundings                              │ │
-│ │ ────────────────────────────────────────────────── │ │
-│ │ ⟲ Reset to defaults                                │ │ <- Reset Link
-│ └────────────────────────────────────────────────────┘ │
-└────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             HELM.WARNING CONSOLE                            │
+├─────────────┬───────────────────────────────────────────────────────────────┤
+│ [Nav Rail]  │  [Operator Mode Banner: Read-Only / Admin Session Active]     │
+│             ├───────────────────────────────────────────────────────────────┤
+│ • Map       │                                                               │
+│ • Data Bank │   ACTIVE TAB VIEWPORT (1 of 9 Canonical Administrator Views)  │
+│ • Sources   │                                                               │
+│ • Pipeline  │   - Map View: Spatial projection & layers popover             │
+│ • Imports   │   - Data Bank: Tier B verification queue & inline review      │
+│ • Manual    │   - Sources: Hydrographic candidate registry                  │
+│ • Audit     │   - Pipeline: Ingestion procedure orchestrator                │
+│ • Evidence  │   - Bulk Import: CSV / GPX / S-124 validator                  │
+│ • Supabase  │   - Manual Parser: Deterministic rule-first coordinate parser │
+│             │   - Audit Log: Append-only ledger & atomic generation records │
+│             │   - Evidence Locker: Raw bulletin artifact storage            │
+│             │   - Supabase Server: PostgREST & RLS connectivity diagnostics │
+└─────────────┴───────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Proposed Changes & Component Specifications
+## 2. Administrator Tabs Audit & Hardening Matrix
 
-### 2.1 Floating Top-Right Map Toolbar
-Add comprehensive CSS in `public/assets/css/components.css` (and mirrored in `src/index.css` for console parity):
-- `.map-ctrl-topright`: `position: absolute; top: 14px; right: 14px; z-index: 520; display: inline-flex; align-items: center; gap: 6px;`
-- `.map-recenter-pill-btn`: Translucent white pill (`rgba(255, 255, 255, 0.94)` / `var(--canvas)`), 38px height, 1px solid hairline border, subtle shadow `0 2px 10px rgba(0,0,0,0.08)`, SVG locate icon, 12px semibold label.
-- `.map-focus-btn`, `.map-gear-btn`, `.map-coord-btn`: 38×38px rounded-lg square buttons, translucent white background, active state transitioning to solid dark (`#0b0e11` / `var(--ink-primary)` with `#ffffff` icon).
+### Tab 1: Map View (`#/warnings/map` or `#/map`)
+- **Status**: Operational.
+- **Key Capabilities**: Leaflet maritime map, Esri Ocean Base, seamarks, cluster markers, spatial geometry overlay.
+- **Hardening Items**:
+  - Verify coordinate projection and null-island quarantine (prevent plotting `[0, 0]` on unparsed points).
+  - Synchronize map selection bidirectionally with the selected warning detail drawer.
+  - Ensure layers settings popover uses CSS design tokens with no hardcoded offsets.
 
-### 2.2 Mobile Bottom Sheet & Backdrop Scrim (`#mapSettingsSheet`, `#mapSettingsScrim`)
-- **Scrim**:
-  - `position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(3px); z-index: 3400;`
-  - Hidden by default (`opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.25s ease, visibility 0.25s;`).
-  - Active state (`.map-settings-scrim.open`): `opacity: 1; visibility: visible; pointer-events: auto;`.
-- **Bottom Sheet Container**:
-  - `position: fixed; bottom: 0; left: 0; right: 0; z-index: 3500; background: var(--canvas, #ffffff); border-radius: 20px 20px 0 0; box-shadow: 0 -8px 32px rgba(0,0,0,0.22); max-height: 85vh; overflow-y: auto; padding: 12px 20px calc(24px + var(--safe-bottom)) 20px; display: flex; flex-direction: column;`
-  - Hidden by default (`transform: translateY(100%); visibility: hidden; transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s;`).
-  - Active state (`.map-settings-sheet.open`): `transform: translateY(0); visibility: visible;`.
-- **Handle & Header**:
-  - Drag handle: `w-10 h-1 bg-slate-300 rounded-full mx-auto my-1.5`.
-  - Header: flex row with `Layers & Chart Type` (15px semibold `#0b0e11`) and close `✕` button with minimum $44 \times 44$px touch area.
-- **Section Headers & Master Toggle**:
-  - Section title: 11px uppercase bold `#5f6b7a` with `0.06em` letter spacing.
-  - Master toggle badge: `[ON]` / `[OFF]` pill badge with smooth color shift.
-- **Form Controls (Custom Radios & Checkboxes)**:
-  - Touch target: $\ge 44$px height row with centered alignment and generous hit area.
-  - Radio input: 18px circle with `#0b0e11` checked ring and inner dot.
-  - Checkbox input: 18px rounded square with `#0b0e11` fill and clean white checkmark vector.
-- **Reset Button**:
-  - "Reset to defaults" with reload SVG icon, muted secondary ink color, and subtle hover transition.
+### Tab 2: Data Bank & Verification Queue (`#/warnings/list` or `#/databank`)
+- **Status**: Operational.
+- **Key Capabilities**: Full MSI inventory, Tier A / Tier B classification, inline inspection, status filtering (active, cancelled, expired, superseded, unverified).
+- **Hardening Items**:
+  - Enforce single-fire guards (`verifyPending`, `verifyingIds`) so double-clicking verification buttons never generates duplicate audit records.
+  - Ensure the Quick Verify FAB renders only when unverified candidates exist and an authenticated administrative session is active.
+  - Verify optimistic locking via `expected_updated_at` (returns 409 on conflict).
 
-### 2.3 Desktop Settings Popover (`#mapSettingsPopover`)
-- Positioned floating at `top: 58px; right: 14px; z-index: 520;`.
-- Width: 280px–300px with 12px border radius, 1px border, and `0 8px 30px rgba(0,0,0,0.12)` shadow.
-- Displayed only when `.map-settings-popover.open` is active.
+### Tab 3: Candidate Sources Registry (`#/sources` or `#/ingest/sources`)
+- **Status**: Operational.
+- **Key Capabilities**: Hydrographic provider registry, fetch frequency, source health, and toggle controls.
+- **Hardening Items**:
+  - Verify source toggling is protected by session verification and disables the control while in flight.
+  - Maintain SSRF approved-host validation for all hydrographic endpoint configurations.
 
-### 2.4 Parity in React Console (`src/index.css`)
-- Export and harmonize the classes into `src/index.css` so `LeafletMap.tsx` in the admin console (`/console#/map`) receives identical styling for its layers popover and top-right toolbar.
+### Tab 4: Workspace Pipeline Orchestrator (`#/ingest/pipeline` or `#/workspace`)
+- **Status**: Operational.
+- **Key Capabilities**: 4-stage pipeline visualization (Fetch Sources → Parse & Normalize → Geocode Geometry → Publish Generation).
+- **Hardening Items**:
+  - Ensure Ingestion Procedure modal cannot trigger duplicate concurrent pipeline runs (`isRefreshing` guard).
+  - Verify pipeline run telemetry correctly records in `pipeline_runs` table with atomic generation pointers.
+
+### Tab 5: Bulk Import Wizard (`#/ingest/bulk` or `#/imports`)
+- **Status**: Operational.
+- **Key Capabilities**: CSV, GPX, and S-124 ZIP batch ingestion with pre-validation.
+- **Hardening Items**:
+  - Hard coordinate bounds validation (Latitude: -90° to +90°, Longitude: -180° to +180°).
+  - Never clamp invalid values (e.g. `91°N` must be marked invalid, not clamped to `90°N`).
+  - Batch commit confirmation requires active admin session.
+
+### Tab 6: Manual Warning Parser & Override (`#/ingest/manual` or `#/manual`)
+- **Status**: Operational.
+- **Key Capabilities**: Raw text input, rule-first coordinate extraction, AI escalation preview, geometry builder.
+- **Hardening Items**:
+  - Never guess hemisphere; flag ambiguous coordinates as `AMBIGUOUS`.
+  - Ensure rule-parsed coordinates are stamped `RULE_PARSED`, reserving `VERIFIED` strictly for human verification.
+  - Keep raw bulletin text immutable and untruncated.
+
+### Tab 7: Generation Audit Ledger (`#/trace/audit` or `#/audit`)
+- **Status**: Operational.
+- **Key Capabilities**: Append-only log of all warning modifications and verifications (`nav_warning_audits`).
+- **Hardening Items**:
+  - Verify that failed audit inserts persist an `AUDIT_FAILED` record and refuse un-audited state updates.
+  - Maintain human-readable timestamp and operator ID formatting.
+
+### Tab 8: Evidence Locker (`#/trace/evidence` or `#/evidence`)
+- **Status**: Operational.
+- **Key Capabilities**: Object storage inspection of raw bulletin artifacts and source payloads.
+- **Hardening Items**:
+  - Verify read-only artifact viewer with cryptographic hash checksum display.
+  - Retain raw source lineage for all extracted warnings.
+
+### Tab 9: Supabase Server Hub (`#/system/supabase` or `#/supabase`)
+- **Status**: Operational.
+- **Key Capabilities**: Real-time database connection diagnostics, schema version inspection, RLS policy verification.
+- **Hardening Items**:
+  - Verify live ping to PostgREST endpoint with latency metrics.
+  - Ensure zero authenticated write policies are exposed on public tables.
 
 ---
 
-## 3. Verification & Testing Plan
+## 3. Technical Architecture & Security Boundary
 
-1. **Compilation & Static Analysis**:
-   - Run `lint_applet` (`tsc --noEmit`).
-   - Run `compile_applet` (`npm run build`).
-2. **Unit Test Suite**:
-   - Run `npm test` to verify all 22 test suites and 220 tests pass.
-3. **Visual & Interactive Validation**:
-   - Verify on mobile viewports ($\le 768$px) that the settings sheet is completely hidden from normal page flow on initial load.
-   - Verify that tapping the gear icon on the map slides up the bottom sheet with darkened backdrop scrim.
-   - Verify that radio selections (Base Map) and checkboxes (Maritime Overlays) render with custom modern inputs matching Screenshot 2.
-   - Verify that tapping the scrim or close button smoothly dismisses the sheet.
-   - Verify that on desktop viewports (> 768px), tapping the gear icon opens the compact popover below the button.
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CLIENT BROWSER (React SPA)               │
+│                                                             │
+│  [Read-Only Operations]          [Admin Mutating Operations]│
+│  - Browse all 9 tabs             - Verify Warning           │
+│  - Filter / Search Data Bank     - Save Edited Geometry     │
+│  - Inspect Audit Ledger          - Run Ingestion Pipeline   │
+│  - View Evidence Artifacts       - Toggle Source Active     │
+│          │                                   │              │
+│          ▼ Direct PostgREST                  ▼ Bearer JWT   │
+└──────────┬───────────────────────────────────┬──────────────┘
+           │                                   │
+           │                                   ▼
+           │                     ┌───────────────────────────┐
+           │                     │   SERVERLESS API / ADMIN  │
+           │                     │   (api/admin/*.ts)        │
+           │                     │                           │
+           │                     │   verifyAdminRequest()    │
+           │                     │   (app_metadata.role in   │
+           │                     │    {admin, superadmin})   │
+           │                     └─────────────┬─────────────┘
+           │                                   │
+           ▼                                   ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     SUPABASE POSTGRESQL                     │
+│  - public.nav_warnings (RLS read-only for anon)             │
+│  - public.nav_warning_audits (append-only ledger)           │
+│  - public.pipeline_runs (atomic execution records)          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. Verification & Testing Plan
+
+1. **Static Analysis & Type Checking**:
+   - `tsc --noEmit` clean compilation (0 errors).
+   - Verify all 22 Vitest test suites (220 tests) pass.
+2. **Interactive UI Verification**:
+   - Verify instant switching across all 9 tabs via mouse click on sidebar navigation rail.
+   - Verify keyboard shortcut single-key jumps (`m`, `d`, `s`, `p`, `i`, `n`, `a`, `e`, `y`).
+   - Verify deep linking: direct navigation to `/#/warnings/list`, `/#/ingest/pipeline`, `/#/system/supabase`, etc.
+   - Verify the "Console Read-Only Mode" banner appears cleanly when signed out, and opens the login prompt upon clicking "Admin sign in".
+   - Verify all mutating actions remain disabled or gated when in read-only mode.

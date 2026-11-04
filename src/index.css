@@ -81,7 +81,7 @@
   --max-width:       1180px;
 
   /* Console Stacking Tokens */
-  --z-console-sticky: 10;
+  --z-console-sticky: 20;
   --z-console-chrome: 50;
   --z-console-overlay: 60;
   --z-console-fab: 65;

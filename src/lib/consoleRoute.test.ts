@@ -42,6 +42,10 @@ describe('consoleRoute legacy aliases and fallbacks', () => {
     expect(parseHashRoute('#/databank').tab).toBe('databank');
     expect(parseHashRoute('#databank').tab).toBe('databank');
     expect(parseHashRoute('#sources').tab).toBe('sources');
+    expect(parseHashRoute('#pipeline').tab).toBe('workspace');
+    expect(parseHashRoute('#bulk').tab).toBe('imports');
+    expect(parseHashRoute('#generations').tab).toBe('audit');
+    expect(parseHashRoute('#list').tab).toBe('databank');
   });
 
   it('is case-insensitive on segments', () => {

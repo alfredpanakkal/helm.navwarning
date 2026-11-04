@@ -112,7 +112,6 @@ export default function App() {
     try {
       localStorage.removeItem('helm_admin_mode');
       localStorage.removeItem('hwUI');
-      sessionStorage.removeItem('helm_admin_token');
     } catch { /* private-mode storage can throw */ }
   }, []);
 
@@ -507,19 +506,17 @@ export default function App() {
   };
 
   const activeCount = warnings.filter((w) => w.status === 'active').length;
-  const isMapView = isAdminMode && activeTab === 'map';
+  const isMapView = activeTab === 'map';
 
   // Phase 3 keyboard shortcuts: single-key view jumps (power users).
-  // Guards: no modifier keys, not typing in a field, no modal/drawer/procedure
-  // open, admin session active. A view switch is idempotent (same target =
-  // no-op), so there is no audited/double-fire surface here.
+  // Guards: no modifier keys, not typing in a field, no modal/drawer/procedure open.
+  // A view switch is idempotent (same target = no-op).
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
       if (selectedWarning || editingWarning || isIngestionProcedureOpen) return;
-      if (!isAdminMode) return;
       const shortcuts: Record<string, TabType> = {
         m: 'map', d: 'databank', s: 'sources', p: 'workspace',
         i: 'imports', n: 'manual', a: 'audit', e: 'evidence', y: 'supabase',
@@ -529,7 +526,7 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isAdminMode, selectedWarning, editingWarning, isIngestionProcedureOpen, setActiveTab]);
+  }, [selectedWarning, editingWarning, isIngestionProcedureOpen, setActiveTab]);
 
   return (
     <div
@@ -594,11 +591,32 @@ export default function App() {
         tabIndex={-1}
         className={
           isMapView
-            ? 'relative z-10 flex-1 min-h-0 w-full flex flex-col overflow-hidden focus:outline-none p-2 sm:p-3 console-rail-pad md:py-4 md:pr-4'
-            : 'relative z-10 w-full p-3 sm:p-6 console-rail-pad-lg md:pr-8 md:py-8 focus:outline-none'
+            ? 'relative flex-1 min-h-0 w-full flex flex-col overflow-hidden focus:outline-none p-2 sm:p-3 console-rail-pad md:py-4 md:pr-4'
+            : 'relative w-full p-3 sm:p-6 console-rail-pad-lg md:pr-8 md:py-8 focus:outline-none'
         }
       >
-        {/* Map View (admin-gated) */}
+        {/* Operator notice when session is not yet signed in as administrator */}
+        {!isAdminMode && !isMapView && (
+          <div
+            role="status"
+            className="mb-4 bg-surface-subtle border border-hairline rounded p-3 text-xs text-ink-secondary flex flex-wrap items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-accent shrink-0" />
+              <span>
+                <strong className="font-medium text-ink-primary">Console Read-Only Mode</strong> — Administrative session not active. Sign in with your Supabase Administrator account to commit edits, verify warnings, or run pipeline jobs.
+              </span>
+            </div>
+            <button
+              onClick={() => setLoginPrompt((n) => n + 1)}
+              className="btn btn-sm btn-secondary text-xs shrink-0"
+            >
+              Admin sign in
+            </button>
+          </div>
+        )}
+
+        {/* Map View */}
         <div className={isMapView ? 'flex-1 min-h-0 flex flex-col h-full w-full' : 'hidden'}>
           <LeafletMap
             warnings={warnings}
@@ -623,8 +641,8 @@ export default function App() {
           />
         </div>
 
-        {/* Data Bank (admin-gated) */}
-        <div className={isAdminMode && activeTab === 'databank' ? 'block' : 'hidden'}>
+        {/* Data Bank */}
+        <div className={activeTab === 'databank' ? 'block' : 'hidden'}>
           {isAdminMode && (
             <div className="mb-3">
               <AdminDataBankTools warnings={warnings} onRefresh={() => loadData()} />
@@ -653,8 +671,8 @@ export default function App() {
           />
         </div>
 
-        {/* Candidate Sources Registry (admin-gated) */}
-        <div className={isAdminMode && activeTab === 'sources' ? 'block' : 'hidden'}>
+        {/* Candidate Sources Registry */}
+        <div className={activeTab === 'sources' ? 'block' : 'hidden'}>
           <SourceRegistryView
             sources={sources}
             initialFilter={sourcesFilterStatus}
@@ -664,36 +682,8 @@ export default function App() {
           />
         </div>
 
-        {/* Admin Access Gate: the whole console requires an authenticated admin
-            session. No tab renders content until Header's server-verified
-            session bootstrap or an explicit adminLogin() succeeds. */}
-        {!isAdminMode && (
-          <div className="bg-gw-panel border border-gw-secondary rounded-lg p-8 sm:p-12 text-center max-w-xl mx-auto my-12 space-y-4">
-            <div className="w-12 h-12 rounded-full bg-gw-secondary border border-gw-secondary text-gw-primary flex items-center justify-center mx-auto shadow-2xs">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-              </svg>
-            </div>
-            <div className="space-y-1">
-              <h2 className="text-lg font-medium text-gw-primary tracking-wide">Administrative gate active</h2>
-              <p className="text-xs text-gw-accent leading-relaxed">
-                This console is restricted to administrative sessions. Sign in with your Supabase Administrator account to access the map view, data bank, source registry, pipeline ingestion, manual parsing, bulk imports, audit logs, and Supabase server settings.
-              </p>
-            </div>
-            <div className="pt-2 flex justify-center">
-              <button
-                onClick={() => setLoginPrompt((n) => n + 1)}
-                className="btn btn-primary px-6 py-2.5 text-xs font-medium tracking-wide"
-              >
-                Admin sign in
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Workspace Ingestion Pipeline */}
-        <div className={isAdminMode && activeTab === 'workspace' ? 'block' : 'hidden'}>
+        <div className={activeTab === 'workspace' ? 'block' : 'hidden'}>
           <WorkspaceView
             sources={sources}
             warnings={warnings}
@@ -708,12 +698,12 @@ export default function App() {
         </div>
 
         {/* Bulk CSV / GPX / S-124 ZIP Import */}
-        <div className={isAdminMode && activeTab === 'imports' ? 'block' : 'hidden'}>
+        <div className={activeTab === 'imports' ? 'block' : 'hidden'}>
           <CsvUploaderView onCommitWarnings={handleCommitWarnings} />
         </div>
 
         {/* Manual Warning Parser & Override */}
-        <div className={isAdminMode && activeTab === 'manual' ? 'block' : 'hidden'}>
+        <div className={activeTab === 'manual' ? 'block' : 'hidden'}>
           <ManualParserView
             onParseManual={handleParseManual}
             onSelectWarning={(w) => {
@@ -724,17 +714,17 @@ export default function App() {
         </div>
 
         {/* Generation Audit Log & Atomic Pointers */}
-        <div className={isAdminMode && activeTab === 'audit' ? 'block' : 'hidden'}>
+        <div className={activeTab === 'audit' ? 'block' : 'hidden'}>
           <GenerationInspectorView generations={generations} sources={sources} />
         </div>
 
         {/* Evidence Locker Object Storage */}
-        <div className={isAdminMode && activeTab === 'evidence' ? 'block' : 'hidden'}>
+        <div className={activeTab === 'evidence' ? 'block' : 'hidden'}>
           <EvidenceLockerView artifacts={artifacts} />
         </div>
 
         {/* Supabase Server Database Hub */}
-        <div className={isAdminMode && activeTab === 'supabase' ? 'block' : 'hidden'}>
+        <div className={activeTab === 'supabase' ? 'block' : 'hidden'}>
           <SupabaseStatusView warnings={warnings} artifacts={artifacts} generations={generations} />
         </div>
       </main>

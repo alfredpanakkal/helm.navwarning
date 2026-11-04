@@ -39,39 +39,46 @@ export const EvidenceLockerView: React.FC<EvidenceLockerViewProps> = ({ artifact
           </div>
 
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
-            {artifacts.map((art) => {
-              const isSelected = selectedArtifact?.artifact_id === art.artifact_id;
-              return (
-                <div
-                  key={art.artifact_id}
-                  onClick={() => setSelectedArtifact(art)}
-                  className={`p-3 rounded-lg border-2 transition-all cursor-pointer text-xs space-y-1.5 ${
-                    isSelected
-                      ? 'bg-gw-bg border-gw-primary text-gw-primary shadow-sm'
-                      : 'bg-gw-panel border-gw-secondary hover:border-gw-primary text-gw-primary'
-                  }`}
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setSelectedArtifact(art);
-                    }
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-gw-primary">{art.source_id}</span>
-                    <span className="text-[10px] bg-gw-primary text-gw-secondary px-2 py-0.5 rounded font-mono uppercase font-bold">{art.content_type.split('/')[1]}</span>
-                  </div>
+            {artifacts.length === 0 ? (
+              <div className="py-8 text-center text-xs text-gw-accent space-y-1">
+                <p className="font-medium text-gw-primary">No stored raw artifacts</p>
+                <p>Ingestion pipeline captures will populate this evidence locker.</p>
+              </div>
+            ) : (
+              artifacts.map((art) => {
+                const isSelected = selectedArtifact?.artifact_id === art.artifact_id;
+                return (
+                  <div
+                    key={art.artifact_id}
+                    onClick={() => setSelectedArtifact(art)}
+                    className={`p-3 rounded-lg border-2 transition-all cursor-pointer text-xs space-y-1.5 ${
+                      isSelected
+                        ? 'bg-gw-bg border-gw-primary text-gw-primary shadow-sm'
+                        : 'bg-gw-panel border-gw-secondary hover:border-gw-primary text-gw-primary'
+                    }`}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedArtifact(art);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-gw-primary">{art.source_id}</span>
+                      <span className="text-[10px] bg-gw-primary text-gw-secondary px-2 py-0.5 rounded font-mono uppercase font-bold">{art.content_type.split('/')[1]}</span>
+                    </div>
 
-                  <div className="font-mono text-[11px] text-gw-accent truncate">{art.path}</div>
+                    <div className="font-mono text-[11px] text-gw-accent truncate">{art.path}</div>
 
-                  <div className="flex items-center justify-between text-[10px] text-gw-accent pt-1 border-t border-gw-secondary">
-                    <span>{art.timestamp.replace('T', ' ').slice(0, 19)}</span>
-                    <span className="font-bold">{art.size_bytes} bytes</span>
+                    <div className="flex items-center justify-between text-[10px] text-gw-accent pt-1 border-t border-gw-secondary">
+                      <span>{art.timestamp.replace('T', ' ').slice(0, 19)}</span>
+                      <span className="font-bold">{art.size_bytes} bytes</span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 

@@ -77,10 +77,22 @@ export const Header: React.FC<HeaderProps> = ({
         }
       } catch {}
 
-      // No client-storage trust fallback: helm_admin_mode / helm_admin_token flags
-      // were trivially spoofable and conveyed no real authorization. Admin mode
-      // is only granted by the live server-verified Supabase session above
-      // (app_metadata.role) or an explicit adminLogin() success.
+      // Server-side verification for token stored by adminLogin
+      const token = typeof window !== 'undefined' ? sessionStorage.getItem('helm_admin_token') : null;
+      if (token) {
+        try {
+          const res = await fetch('/api/admin/verify', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.authenticated) {
+              setIsAdminMode(true);
+              return;
+            }
+          }
+        } catch {}
+      }
     }
     checkInitialAdminSession();
   }, [setIsAdminMode]);
@@ -99,10 +111,16 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'system', label: 'System', icon: <Database className="w-5 h-5" /> },
   ];
 
-  // Switching section keeps the current view when it belongs to that section
-  // (the Warnings Map/List toggle), else lands on the section default.
+  // Switching section lands on the section default, or cycles between sub-views when tapped repeatedly
   const handleSectionSelect = (section: SectionType) => {
-    setActiveTab(SECTION_OF[activeTab] === section ? activeTab : DEFAULT_SECTION_TAB[section]);
+    const views = SECTION_VIEWS[section];
+    if (SECTION_OF[activeTab] === section && views.length > 1) {
+      const currentIndex = views.findIndex((v) => v.id === activeTab);
+      const nextIndex = (currentIndex + 1) % views.length;
+      setActiveTab(views[nextIndex].id);
+    } else {
+      setActiveTab(DEFAULT_SECTION_TAB[section]);
+    }
   };
 
   const [isLoggingIn, setIsLoggingIn] = useState(false);
