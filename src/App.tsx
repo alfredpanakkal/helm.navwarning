@@ -104,27 +104,6 @@ export default function App() {
     try { localStorage.setItem('helm_nav_rail_collapsed', isRailCollapsed ? '1' : '0'); } catch { /* private-mode storage can throw */ }
   }, [isRailCollapsed]);
 
-  // Phase 3 keyboard shortcuts: single-key view jumps (power users).
-  // Guards: no modifier keys, not typing in a field, no modal/drawer/procedure
-  // open, admin session active. A view switch is idempotent (same target =
-  // no-op), so there is no audited/double-fire surface here.
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
-      if (selectedWarning || editingWarning || isIngestionProcedureOpen) return;
-      if (!isAdminMode) return;
-      const shortcuts: Record<string, TabType> = {
-        m: 'map', d: 'databank', s: 'sources', p: 'workspace',
-        i: 'imports', n: 'manual', a: 'audit', e: 'evidence', y: 'supabase',
-      };
-      const tab = shortcuts[e.key.toLowerCase()];
-      if (tab) setActiveTab(tab);
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isAdminMode, selectedWarning, editingWarning, isIngestionProcedureOpen, setActiveTab]);
 
   // Purge legacy client-side authorization / UI flags left by earlier builds:
   // helm_admin_mode and helm_admin_token were trivially spoofable and hwUI
@@ -529,6 +508,28 @@ export default function App() {
 
   const activeCount = warnings.filter((w) => w.status === 'active').length;
   const isMapView = isAdminMode && activeTab === 'map';
+
+  // Phase 3 keyboard shortcuts: single-key view jumps (power users).
+  // Guards: no modifier keys, not typing in a field, no modal/drawer/procedure
+  // open, admin session active. A view switch is idempotent (same target =
+  // no-op), so there is no audited/double-fire surface here.
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      if (selectedWarning || editingWarning || isIngestionProcedureOpen) return;
+      if (!isAdminMode) return;
+      const shortcuts: Record<string, TabType> = {
+        m: 'map', d: 'databank', s: 'sources', p: 'workspace',
+        i: 'imports', n: 'manual', a: 'audit', e: 'evidence', y: 'supabase',
+      };
+      const tab = shortcuts[e.key.toLowerCase()];
+      if (tab) setActiveTab(tab);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isAdminMode, selectedWarning, editingWarning, isIngestionProcedureOpen, setActiveTab]);
 
   return (
     <div
