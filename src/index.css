@@ -28,7 +28,7 @@
   --ink-body:        #1f2937;   /* table body */
   --ink-secondary:   #5f6b7a;   /* subline, meta, labels */
   --ink-tertiary:    #8b97a5;   /* table headers, placeholders, inactive */
-  --ink-faint:       #b0bcc9;   /* inactive pagination */
+  --ink-faint:       #6c7682;   /* inactive pagination */
 
   /* Accent (the ONLY accent) */
   --accent:          #2b6e8c;
@@ -119,7 +119,7 @@
   --color-ink-body: #1f2937;
   --color-ink-secondary: #5f6b7a;
   --color-ink-tertiary: #8b97a5;
-  --color-ink-faint: #b0bcc9;
+  --color-ink-faint: #6c7682;
 
   /* Strict Inter font stack */
   --font-mono: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -667,4 +667,16 @@
 }
 .settings-disclosure-btn:hover {
   color: var(--ink-primary, #0b0e11);
+}
+
+/* Reduced Motion (WCAG 2.2 §2.3.3): users who opt out get instant state
+   changes — micro chromatic fades, spinners and pulses collapse to ~0ms. */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
 }

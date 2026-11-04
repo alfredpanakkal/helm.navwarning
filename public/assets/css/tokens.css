@@ -14,7 +14,7 @@
   --ink-body:        #1f2937;   /* table body */
   --ink-secondary:   #5f6b7a;   /* subline, meta, labels */
   --ink-tertiary:    #69737f;   /* table headers, placeholders, inactive */
-  --ink-faint:       #b0bcc9;   /* inactive pagination */
+  --ink-faint:       #6c7682;   /* inactive pagination */
 
   /* Accent (the ONLY accent) */
   --accent:          #2b6e8c;
@@ -120,7 +120,7 @@
   --ink-body:        #d4dad4;
   --ink-secondary:   #9fa69f;
   --ink-tertiary:    #868f87;
-  --ink-faint:       #424b43;
+  --ink-faint:       #7c857e;
   --accent:          #4a94b8;
   --accent-halo:     rgba(74, 148, 184, 0.15);
   --sev-critical:    #f08484;
@@ -148,7 +148,7 @@
   --ink-body:        #cc786d;
   --ink-secondary:   #b5786b;
   --ink-tertiary:    #ab6d5f;
-  --ink-faint:       #543029;
+  --ink-faint:       #9c6c5e;
   --accent:          #e0857a;
   --accent-halo:     rgba(224, 133, 122, 0.15);
   --sev-critical:    #ff6b5e;
