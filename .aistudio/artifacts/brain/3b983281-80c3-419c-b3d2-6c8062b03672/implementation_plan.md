@@ -160,3 +160,16 @@ Comprehensive roadmap for consolidating the console audit fixes and systematical
    - Verify deep linking: direct navigation to `/#/warnings/list`, `/#/ingest/pipeline`, `/#/system/supabase`, etc.
    - Verify the "Console Read-Only Mode" banner appears cleanly when signed out, and opens the login prompt upon clicking "Admin sign in".
    - Verify all mutating actions remain disabled or gated when in read-only mode.
+
+---
+
+## 5. Console Dock & Content Frame Dynamic Reflow (COMPLETED)
+
+Remediated the layout defect where the fixed navigation dock obscured the left 32px–200px of content across console tabs.
+
+- **Root Cause**: `<main>` had `sm:p-6` (`padding: 1.5rem = 24px`), which clobbered `.console-rail-pad-lg` in the cascade. The fixed dock (56px collapsed or 224px expanded) therefore sat directly on top of the left side of the content.
+- **Solution**:
+  - Bound `--active-rail-w` to `224px` by default and `56px` when `.console-rail-collapsed`.
+  - Introduced `.console-content-frame` with `margin-left: var(--active-rail-w) !important` and `width: calc(100% - var(--active-rail-w)) !important`.
+  - Synchronized CSS transitions (`transition: margin-left 0.15s ease, width 0.15s ease`) with the dock width transition (`transition: width 0.15s ease`), allowing content to automatically and smoothly adjust as the dock size changes.
+

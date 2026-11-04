@@ -59,7 +59,7 @@ export const NavRail: React.FC<NavRailProps> = ({
   return (
     <nav
       aria-label="Console sections and views"
-      className="hidden md:flex flex-col fixed top-[57px] bottom-0 left-0 z-console-sticky border-r border-hairline bg-canvas"
+      className="console-nav-rail hidden md:flex flex-col fixed top-[57px] bottom-0 left-0 z-console-sticky border-r border-hairline bg-canvas transition-[width] duration-150 ease-out"
       style={{ width: collapsed ? 'var(--console-rail-w-collapsed, 56px)' : 'var(--console-rail-w, 224px)' }}
     >
       <div className="flex-1 min-h-0 overflow-y-auto py-3 px-2 flex flex-col gap-4">

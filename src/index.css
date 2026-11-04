@@ -227,14 +227,39 @@
     background: var(--canvas);
   }
 
-  /* Console rail layout: main content is inset by the fixed rail on md+.
-     The .console-rail-collapsed class is set on the app root and tracks
-     the persisted collapse preference. */
+  /* Console rail & content layout:
+     Synchronized CSS custom properties drive both the dock width and
+     the content margin so content dynamically adjusts without obscuring. */
+  :root {
+    --active-rail-w: 0px;
+  }
   @media (min-width: 768px) {
-    .console-rail-pad { padding-left: calc(var(--console-rail-w, 224px) + 1rem); }
-    .console-rail-pad-lg { padding-left: calc(var(--console-rail-w, 224px) + 2rem); }
-    .console-rail-collapsed .console-rail-pad { padding-left: calc(var(--console-rail-w-collapsed, 56px) + 1rem); }
-    .console-rail-collapsed .console-rail-pad-lg { padding-left: calc(var(--console-rail-w-collapsed, 56px) + 2rem); }
+    :root, .console-app-root {
+      --active-rail-w: var(--console-rail-w, 224px);
+    }
+    .console-rail-collapsed {
+      --active-rail-w: var(--console-rail-w-collapsed, 56px) !important;
+    }
+    .console-nav-rail {
+      width: var(--active-rail-w, 224px) !important;
+      transition: width 0.15s ease;
+    }
+    .console-rail-collapsed .console-nav-rail {
+      width: var(--active-rail-w, 56px) !important;
+    }
+    .console-content-frame {
+      margin-left: var(--active-rail-w, 224px) !important;
+      transition: margin-left 0.15s ease, width 0.15s ease;
+      width: calc(100% - var(--active-rail-w, 224px)) !important;
+      min-width: 0;
+    }
+    .console-rail-collapsed .console-content-frame {
+      margin-left: var(--active-rail-w, 56px) !important;
+      width: calc(100% - var(--active-rail-w, 56px)) !important;
+    }
+    /* Retain backward-compatible pad classes */
+    .console-rail-pad { padding-left: 0; }
+    .console-rail-pad-lg { padding-left: 0; }
   }
 
   /* View header type hierarchy (Phase 2): one consistent title treatment
