@@ -277,13 +277,13 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
   );
 
   return (
-    <div className="fixed inset-0 z-console-overlay-raised bg-black/10" role="dialog" aria-modal="true" onClick={requestClose}>
+    <div className="fixed inset-0 z-console-overlay-raised bg-black/10" role="dialog" aria-modal="true" aria-labelledby="wem-dialog-title" onClick={requestClose}>
       <div className="bg-gw-bg ml-auto w-full sm:w-[560px] h-full border-l border-gw-secondary overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-gw-primary text-gw-bg">
           <div className="flex items-center gap-2">
             <Save className="w-4 h-4" />
-            <span className="font-medium text-sm tracking-wide">Edit warning</span>
+            <span id="wem-dialog-title" className="font-medium text-sm tracking-wide">Edit warning</span>
             <span className="text-xs opacity-80 font-mono ml-2">{identity.canonical}</span>
           </div>
           <button onClick={requestClose} aria-label="Close edit modal" className="p-1.5 rounded hover:bg-black/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" title="Close (Esc)">
@@ -311,12 +311,12 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
           {tab === 'classification' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider mb-1">Title</label>
-                <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={255} />
+                <label className="block text-xs font-medium uppercase tracking-wider mb-1" htmlFor="wem-title">Title</label>
+                <input id="wem-title" className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={255} />
               </div>
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider mb-1">Categories (type)</label>
-                <div className="flex flex-wrap gap-2">
+                <label className="block text-xs font-medium uppercase tracking-wider mb-1" id="wem-categories-label">Categories (type)</label>
+                <div role="group" aria-labelledby="wem-categories-label" className="flex flex-wrap gap-2">
                   {CATEGORY_OPTIONS.map((c) => (
                     <button
                       key={c.id}
@@ -334,8 +334,8 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider mb-1">Area text</label>
-                <textarea className={inputCls + ' min-h-[80px]'} value={areaText} onChange={(e) => setAreaText(e.target.value)} maxLength={2000} />
+                <label className="block text-xs font-medium uppercase tracking-wider mb-1" htmlFor="wem-area-text">Area text</label>
+                <textarea id="wem-area-text" className={inputCls + ' min-h-[80px]'} value={areaText} onChange={(e) => setAreaText(e.target.value)} maxLength={2000} />
               </div>
               <div className="text-[11px] text-gw-accent border border-gw-secondary rounded p-2 bg-gw-panel/60">
                 <strong>Raw bulletin text is read-only</strong> — it is the evidence anchor. Edits apply to derived fields only.
@@ -347,12 +347,12 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider mb-1">Effective from (valid_from)</label>
-                  <input type="datetime-local" className={inputCls} value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1" htmlFor="wem-valid-from">Effective from (valid_from)</label>
+                  <input id="wem-valid-from" type="datetime-local" className={inputCls} value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider mb-1">Expiry (valid_to)</label>
-                  <input type="datetime-local" className={inputCls} value={validTo} onChange={(e) => setValidTo(e.target.value)} />
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1" htmlFor="wem-valid-to">Expiry (valid_to)</label>
+                  <input id="wem-valid-to" type="datetime-local" className={inputCls} value={validTo} onChange={(e) => setValidTo(e.target.value)} />
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -374,20 +374,20 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider mb-1">Status</label>
-                  <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}>
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1" htmlFor="wem-status">Status</label>
+                  <select id="wem-status" className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}>
                     {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider mb-1">Triage tier</label>
-                  <select className={inputCls} value={tier} onChange={(e) => setTier(e.target.value)}>
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1" htmlFor="wem-tier">Triage tier</label>
+                  <select id="wem-tier" className={inputCls} value={tier} onChange={(e) => setTier(e.target.value)}>
                     {TIER_OPTIONS.map((t) => <option key={t} value={t}>Tier {t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider mb-1">Data quality</label>
-                  <select className={inputCls} value={quality} onChange={(e) => setQuality(e.target.value)}>
+                  <label className="block text-xs font-medium uppercase tracking-wider mb-1" htmlFor="wem-quality">Data quality</label>
+                  <select id="wem-quality" className={inputCls} value={quality} onChange={(e) => setQuality(e.target.value)}>
                     {QUALITY_OPTIONS.map((q) => <option key={q} value={q}>{q}</option>)}
                   </select>
                 </div>
@@ -396,9 +396,9 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                 Tier A invariants: geometry required, EXPLICIT quality, not superseded. The server enforces them and rejects the edit otherwise.
               </div>
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider mb-1">Unplotted reason (Tier C annotation)</label>
+                <label className="block text-xs font-medium uppercase tracking-wider mb-1" htmlFor="wem-unplotted-reason">Unplotted reason (Tier C annotation)</label>
                 <textarea
-                  className={inputCls + ' min-h-[60px]'}
+                  id="wem-unplotted-reason" className={inputCls + ' min-h-[60px]'}
                   value={unplottedReason}
                   onChange={(e) => setUnplottedReason(e.target.value)}
                   maxLength={500}
@@ -406,11 +406,11 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                 />
               </div>
               <div className="border-t border-gw-secondary pt-3">
-                <label className="block text-xs font-medium uppercase tracking-wider mb-1 flex items-center gap-1">
+                <label className="block text-xs font-medium uppercase tracking-wider mb-1 flex items-center gap-1" htmlFor="wem-move-target">
                   <History className="w-3.5 h-3.5" /> Move to another NAVAREA (supersede + recreate)
                 </label>
                 <div className="flex items-center gap-2">
-                  <select className={inputCls + ' max-w-xs'} value={moveTarget} onChange={(e) => setMoveTarget(e.target.value)}>
+                  <select id="wem-move-target" className={inputCls + ' max-w-xs'} value={moveTarget} onChange={(e) => setMoveTarget(e.target.value)}>
                     <option value="">— keep in {identity.navarea} —</option>
                     {NAVAREA_OPTIONS.map((n) => <option key={n} value={n}>NAVAREA {n}</option>)}
                   </select>
@@ -428,10 +428,10 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                   bulletin text — edit the points, tick “include”, then Save.
                 </div>
               )}
-              <label className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider">
+              <label className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider" htmlFor="wem-include-geometry">
                 <input
                   type="checkbox"
-                  checked={includeGeometry}
+                  id="wem-include-geometry" checked={includeGeometry}
                   onChange={(e) => setIncludeGeometry(e.target.checked)}
                   className="accent-gw-primary w-4 h-4"
                 />
@@ -485,7 +485,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
         <div className="flex items-center gap-2 px-4 py-3 bg-gw-panel border-t border-gw-primary">
           <input
             className={inputCls + ' flex-1'}
-            placeholder="Edit reason (stored on the audit row)"
+            aria-label="Edit reason (stored on the audit row)" placeholder="Edit reason (stored on the audit row)"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             maxLength={500}
