@@ -155,6 +155,21 @@ flowchart TD
   2. **Ingest**: manual paste, CSV/import wizards, scraper + pipeline orchestration, pipeline-run ledger
   3. **Trace**: raw messages, generations, evidence, QA triage queue
   4. **System**: Supabase status/sync, AI connectivity (Gemini), source registry
+- **Desktop navigation rail**: all four sections and their nine views sit in one flat, collapsible left rail (224px, collapsing to a 56px icon rail — the preference persists per browser). Mobile keeps the horizontal pill nav and bottom quick-nav.
+- **Map-visible edit drawer**: editing a warning opens a right-side drawer over a light wash instead of a centered modal, so the operator keeps the hazard geometry in view while editing. The backdrop, Escape, X and Cancel all pass through the same dirty-form confirm + in-flight-save guard.
+- **Keyboard shortcuts (admin console only)**: single-key view jumps for signed-in admins. They are inert while typing in any field and while a modal, drawer or procedure is open. Documented here only — never on the public site.
+
+  | Key | View |
+  |---|---|
+  | `m` | Warnings → Map |
+  | `d` | Warnings → Data Bank |
+  | `s` | Ingest → Sources |
+  | `p` | Ingest → Pipeline |
+  | `i` | Ingest → Bulk Import |
+  | `n` | Ingest → Manual Parser |
+  | `a` | Trace → Audit Log |
+  | `e` | Trace → Evidence |
+  | `y` | System → Supabase |
 - **Legacy hash aliases keep resolving**: old deep links (`#/map`, `#/databank`, `#/sources`, `#/imports`, `#/audit`, …) redirect to their canonical sections.
 - **Role-Gated Supabase Authentication**: validates unalterable administrative JWT roles (`app_metadata.role`), verified server-side (`server/auth.ts`, fail-closed Bearer).
 - **Hardened Defense-in-Depth**: `X-Frame-Options: DENY`, `noindex, nofollow, noarchive` robots directives, and CSP policies on both `/admin` and `/console`.
@@ -164,7 +179,7 @@ flowchart TD
 Beyond the interactive map, Helm.Warning publishes a fully static, crawlable public surface — all generated from one config module (`scripts/navarea-pages/navareaConfig.mjs`) with no SSR framework and no new serverless functions:
 
 - **21 NAVAREA regional pages** (`/navarea/I` … `/navarea/XXI`): prerendered landing pages per region with region overview, official WWNWS coordinator details and a hydrated live in-force warning list (the existing anon Supabase read path). Invalid region IDs are genuine 404s.
-- **Info tab** (`/?tab=info`): the single info surface — what Helm.Warning is, the deduplicated source list (21-region Source Registry, one clickable card per NAVAREA region with its waters and area coordinator), the safety disclaimer, the developer section and watch-theme settings. The retired `/about` and `/sources` routes permanently redirect here.
+- **Info tab** (`/?tab=info`): the single info surface — what Helm.Warning is, the deduplicated source list (21-region Source Registry, one clickable card per NAVAREA region with its waters and area coordinator), the safety disclaimer, the developer section, watch-theme settings, and a plain-language **FAQ** (`/?tab=info#faq`). The retired `/about` and `/sources` routes permanently redirect here.
 - **Warning detail pages** (`/navarea/<RN>/warning/<num>-<year>`): one static page per active warning carrying the **complete original bulletin text in the initial HTML**, plus region, status, validity, geometry tier and coordinator metadata. The slug derives from the warning's `canonical_id`, so `NA`/`NAVAREA` prefix variants resolve to the same URL.
 - **Per-deploy prerendering**: `npm run build` runs the generator (`scripts/navarea-pages/`) as its first step — it reads active warnings through the public anon Supabase REST endpoint (fail-open: a database error never breaks a deploy) and rewrites fresh detail pages on every deploy, deleting stale ones.
 - **No-404 shell fallback**: warnings ingested after the last deploy are served through the `/warning-shell` rewrite + client-side hydration (`noindex` until the next deploy prerenders them). The Vercel 12-function cap is respected — no new `api/**` functions.
@@ -306,6 +321,12 @@ CARTO_API_KEY=your-optional-carto-key
 <details>
 <summary><b>Click to expand recent milestones and engine updates</b></summary>
 <br/>
+
+### Console UX Overhaul — Phases 1–3 (2026-11-04)
+- **Phase 1 (#106) — breathing room**: spacing-rhythm sweep + design-system dialect reconciliation (map-toolbar shadows, hover-lift and press-scale removed; admin gate modal and FABs to hairline borders, weight 500, sentence case).
+- **Phase 2 (#107) — navigation rail**: desktop console navigation moved from the top bar into a collapsible left rail (224px → 56px icon mode, persisted per browser); mobile unchanged; view-title type tokens added.
+- **Phase 3 (#108) — drawer finish + shortcuts**: the warning edit drawer now keeps the map visible (light wash backdrop, guarded click-to-close) and admins get single-key view shortcuts (documented in the Admin Console section above).
+- **Public FAQ**: the Info tab (`/?tab=info`) gained a plain-language FAQ section.
 
 ### Phase 2 — Search-Friendly Public Surface (2026-10-25)
 - **Static public pages shipped**: 21 prerendered NAVAREA regional pages (`/navarea/I`…`/navarea/XXI`), the Source Registry hub (`/sources`), and one static page per active warning (`/navarea/<RN>/warning/<num>-<year>`) whose **complete original bulletin text ships in the initial HTML** — individual warnings are now crawlable, not just the region indexes.

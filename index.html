@@ -841,7 +841,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
 <!-- INFO (merged with the former /about page) -->
 <div class="tab-panel" id="tab-info" role="tabpanel" aria-labelledby="tab-btn-info" hidden>
   <div class="page-header">
-    <div><h2>Info &amp; About</h2><p class="subtitle">About, sources, safety disclaimer &amp; watch themes</p></div>
+    <div><h2>Info &amp; About</h2><p class="subtitle">About, sources, safety disclaimer, FAQ &amp; watch themes</p></div>
   </div>
   <details class="info-section" open>
     <summary>About Helm.Warning</summary>
@@ -900,7 +900,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
     </div>
   </details>
   <details class="info-section">
-    <summary>About the Developer</summary>
+    <summary id="info-developer">About the Developer</summary>
     <div class="info-section-body">
       <p>Helm.Warning is built by <strong>Alfred Panakkal Jose</strong> — a Full-Stack Developer and serving Third Officer with over 2 years of experience as Third Officer and active in the maritime field since 2019.</p>
       <p>Having worked on ocean-going oil tankers, he has first-hand experience of the real difficulties faced by seafarers — limited connectivity, high operational pressure, and the constant need for reliable tools at sea. This practical understanding shapes the way he builds software: simple, fast, offline-friendly, and focused on actual bridge and operational needs.</p>
@@ -937,6 +937,27 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
         </button>
       </div>
       <p>Red watch is intentionally dim. These colours are calculated, not tested on a bridge display — try it at night on your own device and adjust screen brightness until it is comfortable. Severity colours keep the same meaning in every theme: a Critical warning always looks Critical.</p>
+    </div>
+  </details>
+  <details class="info-section" open id="faq">
+    <summary>FAQ — common questions</summary>
+    <div class="info-section-body">
+      <h3>Is Helm.Warning free?</h3>
+      <p>Yes — completely. There is no account, no sign-up and no paid tier. The map, the regional pages and every warning detail page are open to everyone.</p>
+      <h3>What is a NAVAREA warning?</h3>
+      <p>Navigational warnings are urgent maritime safety messages about hazards to navigation — firing exercises, drifting mines or containers, subsea cable or salvage works, offshore rigs, disabled vessels and similar dangers. The world's oceans are divided into 21 <strong>NAVAREA</strong> regions, each with one national coordinator that issues, updates and cancels its warnings under the World-Wide Navigational Warning Service (WWNWS).</p>
+      <h3>Where does the data come from?</h3>
+      <p>Directly from the official NAVAREA coordinators — hydrographic offices and maritime authorities such as the UKHO, NGA, India's NHO, the Japan Coast Guard and AMSA. Helm.Warning ingests their published feeds, parses the coordinates and plots the hazards; the original, unmodified bulletin text is always shown with each warning.</p>
+      <h3>How fresh is it?</h3>
+      <p>Verified automated feeds are ingested daily (some more often); the public pages are refreshed on every deploy. Because warnings can be cancelled or superseded at any time, always re-check against the official source before acting on a warning.</p>
+      <h3>Can I use it for passage planning?</h3>
+      <p>Yes, as a situational-awareness and planning aid. But Helm.Warning is a convenience copy, not an official MSI distributor: it may be delayed or incomplete, and it is never a replacement for GMDSS broadcasts, ECDIS or the official publications issued by national authorities.</p>
+      <h3>Why does my region show no warnings?</h3>
+      <p>Either the coordinator currently has no warnings in force, or the region has no verified automated feed yet (see the source registry above — some regions are ingested manually). A quiet region is normal; absence of warnings never means the waters are guaranteed clear.</p>
+      <h3>Does it work at sea, on a slow connection?</h3>
+      <p>The site is deliberately lightweight: no heavy frameworks on the public pages, cached nautical tiles and a red night theme that protects night vision. It still needs a connection to fetch the live warning list — download or copy the bulletins you need before losing connectivity.</p>
+      <h3>Who builds and maintains it?</h3>
+      <p>A serving deck officer, built for watchkeepers — see <a href="#info-developer">About the Developer</a> below. Feedback and source corrections are welcome.</p>
     </div>
   </details>
 </div>
