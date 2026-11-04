@@ -116,6 +116,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const jumpBeaconRef = useRef<L.Marker | null>(null);
   const savedPulseRef = useRef<L.Marker | null>(null);
   const hoverHaloLayerRef = useRef<L.Circle | null>(null);
+  // WCAG 1.4.13: the currently open hover tooltip, so Escape can dismiss
+  // it without moving the pointer.
+  const openTooltipRef = useRef<L.Tooltip | null>(null);
 
   // Layer configuration and dynamic styling state
   const {
@@ -177,6 +180,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         if (isQuickJumpExpanded) setIsQuickJumpExpanded(false);
         if (isLayerSettingsOpen) setIsLayerSettingsOpen(false);
         if (isTopFiltersOpen) setIsTopFiltersOpen(false);
+        if (openTooltipRef.current && leafletInstance.current) {
+          leafletInstance.current.closeTooltip(openTooltipRef.current);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -329,6 +335,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       leafletInstance.current = map;
       setMapReady(map);
+
+      map.on('tooltipopen', (e: L.TooltipEvent) => { openTooltipRef.current = e.tooltip; });
+      map.on('tooltipclose', () => { openTooltipRef.current = null; });
     }
 
     return () => {
