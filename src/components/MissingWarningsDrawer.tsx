@@ -126,7 +126,7 @@ export const MissingWarningsDrawer: React.FC<MissingWarningsDrawerProps> = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Filter missing warning IDs (e.g. 364/24)..."
-            className="w-full px-3 py-1.5 text-xs bg-gw-bg border border-gw-secondary rounded-lg font-mono text-gw-primary focus:outline-none focus:border-gw-primary"
+            className="w-full px-3 py-1.5 text-xs bg-gw-bg border border-gw-secondary rounded-lg font-mono text-gw-primary focus:outline-none focus:border-gw-primary focus-visible:ring-2 focus-visible:ring-gw-primary/70"
           />
         </div>
 
