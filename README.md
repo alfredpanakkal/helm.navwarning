@@ -83,7 +83,7 @@ The pipeline continuously cycles through hydrographic feed ingestion, rule-based
 ```mermaid
 flowchart TD
     subgraph INGESTION["1. Ingestion & Crawling"]
-        A[Global Hydrographic Feeds<br/>UKHO, NGA, Kaiho, Baltic, AMSA] --> B[Crawler Worker<br/>Vercel Cron / Cheerio / Scrapling]
+        A[Global Hydrographic Feeds<br/>UKHO, NGA, Kaiho, Baltic, AMSA] --> B[Backend Ingestion<br/>Helm.Warning.Backend sync engine]
         B --> C[Raw Bulletins Archive<br/>raw_messages table]
     end
 
@@ -110,7 +110,7 @@ flowchart TD
     subgraph PRESENTATION["5. Presentation Layer"]
         K & L --> M[View: nav_warnings_active_spatial<br/>Pre-computed GeoJSON Blob]
         M --> N[Public Portal: Leaflet Map & Data Bank<br/>Read-only anon client]
-        K --> P["Static SEO pages: /navarea/<RN>, /about,<br/>warning details (prerendered per deploy)"]
+        K --> P["Static SEO pages: /navarea/<RN>, /?tab=info,<br/>warning details (prerendered per deploy)"]
         K & H --> O[Admin Console: Verification & Orchestrator<br/>Role-gated JWT authenticated]
     end
 
@@ -143,7 +143,8 @@ flowchart TD
 - **Bidirectional Geo-Synchronization**:
   - Click **📍 Focus on Map** inside any warning to pan, center, and smoothly fit map bounds to the hazard envelope.
   - Click any map pin or geometry on the water to auto-scroll and highlight its corresponding card in the drawer.
-- **Executive Data Bank Metrics Strip**: Real-time count of active in-force bulletins, NAVAREA coverage percentage, critical hazard tallies, and GPS georeferencing rate.
+- **Data Bank Metrics Strip**: Live count of active in-force bulletins, NAVAREA coverage percentage, critical hazard tallies, and georeferencing rate.
+- **Watch themes**: Light / dark / night themes for watchkeeping conditions, persisted per user.
 - **NAVAREA Data Bank**: Searchable and filterable by NAVAREA region (`NAVAREA I` through `XXI`, `BALTIC`), status, and category (`military`, `drifting`, `aton`, `subsea`, `offshore`, `electronic`, `general`).
 - **Zero-Admin Decoupling**: Strictly read-only public bundle containing zero administrative endpoints, write handlers, or internal schemas.
 
@@ -163,7 +164,7 @@ flowchart TD
 Beyond the interactive map, Helm.Warning publishes a fully static, crawlable public surface — all generated from one config module (`scripts/navarea-pages/navareaConfig.mjs`) with no SSR framework and no new serverless functions:
 
 - **21 NAVAREA regional pages** (`/navarea/I` … `/navarea/XXI`): prerendered landing pages per region with region overview, official WWNWS coordinator details and a hydrated live in-force warning list (the existing anon Supabase read path). Invalid region IDs are genuine 404s.
-- **About + Source Registry** (`/about`): the combined public page — what Helm.Warning is, data sources, the full 21-region Source Registry (one clickable card per NAVAREA region with its waters and area coordinator), the safety disclaimer, the developer section and watch-theme settings. Fully static — no hydration scripts, the whole registry is in the initial HTML. The retired `/sources` route permanently redirects to `/about#source-registry`.
+- **Info tab** (`/?tab=info`): the single info surface — what Helm.Warning is, the deduplicated source list (21-region Source Registry, one clickable card per NAVAREA region with its waters and area coordinator), the safety disclaimer, the developer section and watch-theme settings. The retired `/about` and `/sources` routes permanently redirect here.
 - **Warning detail pages** (`/navarea/<RN>/warning/<num>-<year>`): one static page per active warning carrying the **complete original bulletin text in the initial HTML**, plus region, status, validity, geometry tier and coordinator metadata. The slug derives from the warning's `canonical_id`, so `NA`/`NAVAREA` prefix variants resolve to the same URL.
 - **Per-deploy prerendering**: `npm run build` runs the generator (`scripts/navarea-pages/`) as its first step — it reads active warnings through the public anon Supabase REST endpoint (fail-open: a database error never breaks a deploy) and rewrites fresh detail pages on every deploy, deleting stale ones.
 - **No-404 shell fallback**: warnings ingested after the last deploy are served through the `/warning-shell` rewrite + client-side hydration (`noindex` until the next deploy prerenders them). The Vercel 12-function cap is respected — no new `api/**` functions.
@@ -175,8 +176,8 @@ Beyond the interactive map, Helm.Warning publishes a fully static, crawlable pub
 |---|---|---|
 | **[React](https://react.dev/)** | `19.0.1` | Component architecture for reactive map overlays, drawer controllers, and Data Bank table |
 | **[TypeScript](https://www.typescriptlang.org/)** | `5.9.3` | End-to-end type safety across WWNWS warning schemas, PostGIS geometry types, and API payloads |
-| **[Vite](https://vitejs.dev/)** | `6.2.3` | Ultra-fast client bundler configured for multi-page builds (`index.html` + `admin.html`) |
-| **[Tailwind CSS](https://tailwindcss.com/)** | `4.1.14` | High-performance styling system utilizing strict design tokens for maritime status codes |
+| **[Vite](https://vitejs.dev/)** | `6.2.3` | Client bundler configured for multi-page builds (`index.html` + `admin.html` + `console.html`) |
+| **[Tailwind CSS](https://tailwindcss.com/)** | `4.1.14` | Utility styling with strict design tokens (Helm.Ports system) |
 | **[Leaflet](https://leafletjs.com/)** | `1.9.4` | Interactive hydrographic map renderer with custom vector layers, marker clustering, and bounds animation |
 | **[Express](https://expressjs.com/)** | `4.21.2` | Full-stack server providing SSRF-guarded proxies, rate limiting, and dev middleware |
 | **[Supabase](https://supabase.com/)** | `2.116.0` | PostgreSQL with PostGIS extension for spatial queries, RLS policies, and real-time subscriptions |
@@ -240,10 +241,12 @@ Live state as of 2026-10-24 (post-hardening; RLS enabled on all tables):
 
 | Document | Focus & Purpose |
 |---|---|
-| 📋 [**PRD.md**](PRD.md) | Product Requirements Document, user personas, operational scope, and acceptance criteria |
-| 📐 [**DESIGN.md**](DESIGN.md) | Technical architecture, component boundaries, state flow, and design tokens |
+| 📋 [**PRD.md**](PRD.md) | What the product does today: capabilities per surface, data pipeline, explicit gaps |
+| 📐 [**DESIGN.md**](DESIGN.md) | Design system verified against shipped CSS: tokens, themes, component patterns, known deviations |
+| 🧩 [**UI-DESIGN-FUNDAMENTALS.md**](UI-DESIGN-FUNDAMENTALS.md) | The hard design constraints in one page (weights, accent, shadows, motion) |
 | 🗄️ [**docs/supabase-backend-contract.md**](docs/supabase-backend-contract.md) | Authoritative database schema contract, column specifications, and query cheat-sheet |
-| 🛡️ [**AGENTS.md**](AGENTS.md) | Operational rules, design tokens, non-negotiables, and security conventions |
+| 🛡️ [**AGENTS.md**](AGENTS.md) | Agent/contributor working guide: architecture, hard conventions, required workflow |
+| 📚 [**docs/PROJECT_KNOWLEDGE.md**](docs/PROJECT_KNOWLEDGE.md) | Durable project knowledge and merged-PR change history with root causes |
 | 🧪 [**docs/archive/UI_UX_AUDIT_REPORT.md**](docs/archive/UI_UX_AUDIT_REPORT.md) | Archived visual audit report (2026-10-17; superseded snapshot) |
 | 💾 [**docs/supabase_setup.sql**](docs/supabase_setup.sql) | DDL migrations, PostGIS indexes, and RLS policies for PostgreSQL |
 | 📝 [**docs/archive/CODE_REVIEW.md**](docs/archive/CODE_REVIEW.md) | Archived code review (2026-10-06; findings resolved by roadmap #6) |

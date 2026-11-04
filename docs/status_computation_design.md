@@ -1,10 +1,8 @@
 # Phase 5: In-Force Status Computation Design
 
-## 1. Executive Summary & Objective
+## 1. Objective
 
-In maritime safety information (MSI), NAVAREA coordinators periodically broadcast **In-Force Lists** (also known as Lists of Effective Warnings or Bulletins). These lists enumerate all navigational warnings that remain legally active and operational within a designated sea area at a given time.
-
-While Phases 1–4 implemented deterministic parsing, AI fallback, snapshot database persistence, and ingestion pipeline capture, **Phase 5 (In-Force Status Computation)** bridges the stored snapshots with the live database of navigational warnings. It provides a real-time, deterministic computation of:
+NAVAREA coordinators periodically broadcast **In-Force Lists** (Lists of Effective Warnings) — all warnings that remain legally active in a sea area at a given time. Phase 5 compares the stored in-force snapshots against the live warning database and computes, deterministically:
 1. **Coverage Rate**: What fraction of legally active warnings does our database hold?
 2. **Missing Warnings**: Which in-force notices are missing from our database?
 3. **Extra/Orphaned Warnings**: Which active warnings are stored in our database that the coordinator did not list (indicating missed cancellations or delays)?
@@ -91,9 +89,9 @@ The `normalizeWarningId(warningId: string, defaultNavarea?: string)` engine hand
 
 ---
 
-## 5. Performance, Invalidation & Caching Strategy
+## 5. Performance, invalidation & caching
 
-Computing coverage across thousands of notices involves join and lookup operations. To preserve a 60fps UI experience:
+Coverage is computed over thousands of notices, so results are cached and invalidated precisely:
 
 1. **Module-Level Status Cache**:
    - In-memory cache keyed by NAVAREA ID: `Map<string, CacheEntry>`.
@@ -120,9 +118,8 @@ When a NAVAREA has not yet published an in-force list or the snapshot table is b
 
 ---
 
-## 7. Feature Flag Integration
+## 7. Feature flags
 
-All UI rendering and computations respect the feature flag system:
 - `FEATURE_FLAGS.inForceUIDisplay`: Master switch for in-force coverage UI indicators.
 - `FEATURE_FLAGS.inForceFallbackToLifecycle`: Governs whether empty snapshots fall back to active database records.
 - Flags dynamically evaluate `process.env.FEATURE_FLAGS` in tests and runtime overrides without restarting the application.

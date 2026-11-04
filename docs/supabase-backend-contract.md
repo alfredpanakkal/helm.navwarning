@@ -7,30 +7,19 @@
 > `shared/sync_engine.py` / `shared/models.py`.
 > This document is the frontend integration contract for `helm.navwarning`.
 
-## 1. Why the frontend currently shows nothing
+## 1. Migration history (resolved)
 
-The backend was migrated to the **20261019/20 schema**. The frontend
-(`server.ts` `hydrateDatabaseFromSupabase()`, `src/services/api.ts`
-`mapSupabaseRowToNavWarning()`, `src/lib/supabaseServer.ts`) still reads the
-**old flat schema**. The rows ARE in Supabase; the frontend drops or
-mis-maps them:
+The backend was migrated to the **20261019/20 schema** in October 2026. At the time the frontend still read the old flat schema and the map rendered blank; the table below records that mismatch and its resolution. All of the §4 integration rules have since been implemented: the frontend reads the `nav_warnings_active_spatial` view (`geojson_blob`), keys identity on `canonical_id`, uses `categories`, and renders only Tier A on the map.
 
-| Frontend expects | New backend reality | Effect |
+| Old frontend expectation | New backend reality | Effect at the time |
 |---|---|---|
-| `row.latitude`, `row.longitude`, `row.spatial` | Removed. Geometry lives in `nav_warning_geometries` (PostGIS) / `geojson_blob` in the `nav_warnings_active_spatial` view | Map has no points → blank map |
-| `row.warning_id` (text) | No such column. Keys are `id` (uuid) + `canonical_id` (e.g. `NAVAREA XI 0451/26`) | Warning ids come back undefined → `warn-1792491234776` junk ids |
-| `row.issued_date`, `row.issued_text` | Removed. Dates are `issued_at` / `valid_from` / `valid_to` (timestamptz, nullable) | Dates blank; `issued_iso` falls back to created_at |
-| `row.category` / `severity` / `risk_level` / `hazard_category` | Removed. Single `categories TEXT[]` (lowercase: military, aton, subsea, drifting, offshore, electronic, general) | Category/severity filters find nothing |
-| `row.navarea` values like `'I'`, `'XI'`, `'Baltic'` | Backend stores full names: `'NAVAREA I'`, `'NAVAREA XI'`, `'NAVAREA BALTIC'` | Navarea dropdown filters match nothing |
-| `sources_registry`, `ingestion_generations`, `raw_artifacts`, `in_force_snapshots` | **These tables are NOT written by the new backend at all**. Audit lives in `raw_messages` | Health check shows errors; Sources/Evidence/Audit tabs empty |
-| per-navarea schemas (`getNavareaSchemaName` → `navarea_11` etc.) | Does not exist. Everything is in `public.nav_warnings` | Any per-schema query 404s |
-
-Additional mapping hazards in `mapSupabaseRowToNavWarning`:
-- `warning_year` is an INTEGER now, not embedded in `warning_id` strings.
-- `warning_number` is INTEGER; string splits like `.split('-')` produce NaN.
-- `valid_until` / `validity` do not exist; use `valid_to`.
-- `status` now has CHECK values: active, cancelled, expired, superseded,
-  unverified. Frontend `validity: 'cancelled'` logic must read `status`.
+| `row.latitude`, `row.longitude`, `row.spatial` | Removed. Geometry lives in `nav_warning_geometries` (PostGIS) / `geojson_blob` in the `nav_warnings_active_spatial` view | Map had no points → blank map |
+| `row.warning_id` (text) | No such column. Keys are `id` (uuid) + `canonical_id` (e.g. `NAVAREA XI 0451/26`) | Junk ids like `warn-1792491234776` |
+| `row.issued_date`, `row.issued_text` | Removed. Dates are `issued_at` / `valid_from` / `valid_to` (timestamptz, nullable) | Dates blank |
+| `row.category` / `severity` / `risk_level` / `hazard_category` | Removed. Single `categories TEXT[]` (lowercase: military, aton, subsea, drifting, offshore, electronic, general) | Category/severity filters found nothing |
+| `row.navarea` values like `'I'`, `'XI'`, `'Baltic'` | Backend stores full names: `'NAVAREA I'`, `'NAVAREA XI'`, `'NAVAREA BALTIC'` | Navarea filters matched nothing |
+| `sources_registry`, `ingestion_generations`, `raw_artifacts`, `in_force_snapshots` | These tables are NOT written by the new backend. Audit lives in `raw_messages` | Sources/Evidence/Audit tabs empty |
+| per-navarea schemas (`getNavareaSchemaName` → `navarea_11` etc.) | Does not exist. Everything is in `public.nav_warnings` | Per-schema queries 404'd |
 
 ## 2. What the backend writes (and only this)
 
@@ -118,7 +107,7 @@ geojson_blob   -- JSONB from ST_AsGeoJSON, ready for Leaflet
 - One row **per geometry** — group by `canonical_id` when rendering.
 - `geojson_blob` is a JSON object of type Point/Polygon/LineString etc.,
   coordinates `[lng, lat]`. Feed directly to Leaflet GeoJSON layers.
-- Also use it for databank listing? Prefer §3.2 for full text.
+- Do not use this view for the Data Bank listing — §3.2 carries the full text.
 
 ### 3.2 Secondary: `public.nav_warnings_review_queue` view
 
@@ -138,7 +127,7 @@ duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at`.
   (`.from('nav_warnings_active_spatial')`). Views expose `geojson_blob`
   as JSONB — no PostGIS parsing needed client-side.
 
-## 4. Required frontend fixes (helm.navwarning)
+## 4. Integration rules (all implemented; keep holding them)
 
 1. **Map geometry:** replace `row.latitude/longitude/spatial` mapping with a
    query against `nav_warnings_active_spatial`; render `geojson_blob` per
