@@ -98,7 +98,7 @@ export const WarningStatusBadge: React.FC<WarningStatusBadgeProps> = ({
       data-status={effectiveStatus || 'needs_review'}
       title={config.tooltip}
       className={`inline-flex items-center gap-1 font-mono font-bold uppercase rounded border transition-all cursor-help select-none ${
-        compact ? 'px-1.5 py-0.5 text-[9px]' : 'px-2 py-0.5 text-[10px]'
+        compact ? 'px-1.5 py-0.5 text-[11px]' : 'px-2 py-0.5 text-[10px]'
       } ${config.containerClass} ${className}`}
     >
       <Icon className={compact ? 'w-2.5 h-2.5 shrink-0' : 'w-3 h-3 shrink-0'} />

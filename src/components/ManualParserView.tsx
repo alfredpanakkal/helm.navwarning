@@ -569,7 +569,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                             <div className="flex items-center gap-1.5">
                               <span>{w.source_warning_id}</span>
                               <span
-                                className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                                className={`text-[11px] px-1.5 py-0.5 rounded font-bold uppercase ${
                                   w.status === 'active'
                                     ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                                     : 'bg-red-100 text-red-900 border border-red-300'
@@ -640,7 +640,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                               </span>
                             )}
                             {w.ambiguous_positions && w.ambiguous_positions.length > 0 && (
-                              <div className="text-[9px] font-mono font-bold text-rose-700 mt-1">
+                              <div className="text-[11px] font-mono font-bold text-rose-700 mt-1">
                                 {w.ambiguous_positions[0].reason === 'PARTIAL_HEMISPHERE' ? '⚠️ Partial Hemi' : '⚠️ Missing Hemi'}
                                 <span className="text-[8px] text-gw-accent block font-normal">
                                   Lat: {w.ambiguous_positions[0].has_lat_hem ? '✓' : '✗'} | Lon: {w.ambiguous_positions[0].has_lon_hem ? '✓' : '✗'}

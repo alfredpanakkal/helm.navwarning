@@ -301,14 +301,14 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                                 {w.source_warning_id}
                               </span>
                               <WarningStatusBadge warning={w} compact />
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${analyzedItem.categoryMeta.badgeClass}`}>
+                              <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded text-white ${analyzedItem.categoryMeta.badgeClass}`}>
                                 {analyzedItem.categoryMeta.shortLabel}
                               </span>
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${isCritical ? 'bg-gw-primary' : 'bg-gw-tertiary'}`}>
+                              <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded text-white ${isCritical ? 'bg-gw-primary' : 'bg-gw-tertiary'}`}>
                                 {isCritical ? 'CRITICAL' : 'HIGH'}
                               </span>
                               {positionCount > 1 && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                                <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
                                   Positions: {positionCount}
                                 </span>
                               )}
@@ -520,7 +520,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                     </span>
 
                     {/* Severity Badge */}
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-gw-bg shrink-0 ${isCritical ? 'bg-gw-primary' : 'bg-gw-tertiary'}`}>
+                    <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded text-gw-bg shrink-0 ${isCritical ? 'bg-gw-primary' : 'bg-gw-tertiary'}`}>
                       {isCritical ? 'CRITICAL' : 'HIGH'}
                     </span>
                   </div>
@@ -889,7 +889,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
           </button>
 
           {/* ACTION Column Header */}
-          <div className="sticky right-0 bg-gw-primary text-right pr-3 text-gw-bg/80 font-mono tracking-widest text-[9px] font-bold">
+          <div className="sticky right-0 bg-gw-primary text-right pr-3 text-gw-bg/80 font-mono tracking-widest text-[11px] font-bold">
             ACTION
           </div>
         </div>
@@ -928,7 +928,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                   <span className="truncate">{w.source_warning_id}</span>
                   <WarningStatusBadge warning={w} compact />
                   {getWarningPositionCount(w) > 1 && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 shrink-0 font-mono">
+                    <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 shrink-0 font-mono">
                       Pos: {getWarningPositionCount(w)}
                     </span>
                   )}
@@ -940,7 +940,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 </div>
                 <div className="truncate text-gw-primary font-medium">{w.issued_text.substring(0, 70)}...</div>
                 <div>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${
+                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded text-white ${
                     w.extraction_confidence === 1 ? 'bg-gw-primary' : 'bg-gw-tertiary'
                   }`}>
                     {w.extraction_confidence === 1 ? 'HIGH' : 'MOD'}

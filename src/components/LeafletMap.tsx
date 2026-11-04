@@ -1510,7 +1510,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <div className="p-2.5 bg-gw-bg/60 border-b border-gw-secondary">
             <div className="text-[10px] text-gw-accent uppercase font-bold flex items-center justify-between">
               <span>Anchor Coordinates</span>
-              <span className="text-[9px] font-mono bg-gw-panel px-1 py-0.5 border border-gw-secondary rounded font-bold">
+              <span className="text-[11px] font-mono bg-gw-panel px-1 py-0.5 border border-gw-secondary rounded font-bold">
                 DMM
               </span>
             </div>
@@ -1746,7 +1746,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                               · NA {w.navarea}
                             </span>
                             {coastal && (
-                              <span className="text-[9px] font-mono font-bold px-1 rounded bg-sky-50 text-sky-700 border border-sky-200">
+                              <span className="text-[11px] font-mono font-bold px-1 rounded bg-sky-50 text-sky-700 border border-sky-200">
                                 COASTAL
                               </span>
                             )}
