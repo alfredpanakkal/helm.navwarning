@@ -628,7 +628,7 @@ export default function App() {
             session. No tab renders content until Header's server-verified
             session bootstrap or an explicit adminLogin() succeeds. */}
         {!isAdminMode && (
-          <div className="bg-gw-panel border border-gw-secondary rounded-2xl p-8 sm:p-12 text-center max-w-xl mx-auto my-12 shadow-xs space-y-4">
+          <div className="bg-gw-panel border border-gw-secondary rounded-lg p-8 sm:p-12 text-center max-w-xl mx-auto my-12 space-y-4">
             <div className="w-12 h-12 rounded-full bg-gw-secondary border border-gw-secondary text-gw-primary flex items-center justify-center mx-auto shadow-2xs">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -636,7 +636,7 @@ export default function App() {
               </svg>
             </div>
             <div className="space-y-1">
-              <h2 className="text-lg font-bold text-gw-primary uppercase tracking-wider">Administrative Gate Active</h2>
+              <h2 className="text-lg font-medium text-gw-primary tracking-wide">Administrative gate active</h2>
               <p className="text-xs text-gw-accent leading-relaxed">
                 This console is restricted to administrative sessions. Sign in with your Supabase Administrator account to access the map view, data bank, source registry, pipeline ingestion, manual parsing, bulk imports, audit logs, and Supabase server settings.
               </p>
@@ -644,9 +644,9 @@ export default function App() {
             <div className="pt-2 flex justify-center">
               <button
                 onClick={() => setLoginPrompt((n) => n + 1)}
-                className="btn btn-primary px-6 py-2.5 text-xs uppercase font-bold tracking-wider"
+                className="btn btn-primary px-6 py-2.5 text-xs font-medium tracking-wide"
               >
-                Admin Sign In
+                Admin sign in
               </button>
             </div>
           </div>
@@ -703,10 +703,10 @@ export default function App() {
 
       {/* Persistent Floating Action Button (FAB) for Data Bank verification (Admin Only) */}
       {isAdminMode && activeTab === 'databank' && unverifiedCandidates.length > 0 && !selectedWarning && !editingWarning && !isIngestionProcedureOpen && (
-        <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-console-fab flex items-center gap-2 bg-gw-primary/95 text-gw-bg p-1.5 rounded-full shadow-2xl border-2 border-gw-accent backdrop-blur-md">
+        <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-console-fab flex items-center gap-2 bg-gw-primary/95 text-gw-bg p-1.5 rounded-full border border-gw-accent backdrop-blur-md">
           <button
             onClick={() => setSelectedWarning(unverifiedCandidates[0])}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
             title="Open next unverified warning for review"
           >
             <ShieldCheck className="w-4 h-4" />
@@ -722,7 +722,7 @@ export default function App() {
         <div className="hidden md:block fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-console-fab">
           <button
             onClick={() => setEditingWarning(selectedWarning)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gw-primary hover:bg-gw-accent text-gw-bg rounded-full text-xs font-bold uppercase tracking-wider transition-all shadow-2xl border-2 border-gw-accent active:scale-95"
+            className="flex items-center gap-2 px-4 py-2.5 bg-gw-primary hover:bg-gw-accent text-gw-bg rounded-full text-xs font-medium tracking-wide transition-colors border border-gw-accent"
             title="Edit this warning (admin) — type, time/expiry, status, tier, geometry, NAVAREA move"
           >
             <Edit3 className="w-4 h-4" />
