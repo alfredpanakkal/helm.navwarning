@@ -73,19 +73,31 @@ export async function saveWarningEdit(args: {
     }
   })();
 
-  const res = await fetch('/api/admin/warning-edit', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      warning_id: args.warningId,
-      canonical_id: args.canonicalId,
-      expected_updated_at: args.expectedUpdatedAt ?? undefined,
-      patch: args.patch,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch('/api/admin/warning-edit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        warning_id: args.warningId,
+        canonical_id: args.canonicalId,
+        expected_updated_at: args.expectedUpdatedAt ?? undefined,
+        patch: args.patch,
+      }),
+    });
+  } catch {
+    // Network failure: nothing reached the server, so nothing was saved.
+    // Return a normal failed result so the caller can reset its saving state.
+    return {
+      ok: false,
+      status: 0,
+      error: 'Network error. Nothing was saved. Your edit is still on screen; try again when the connection is back.',
+      code: 'NETWORK_ERROR',
+    };
+  }
 
   const data = await res.json().catch(() => ({} as any));
   if (!res.ok) {

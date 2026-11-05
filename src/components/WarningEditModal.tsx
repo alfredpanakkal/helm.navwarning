@@ -465,7 +465,11 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                   <span>Changed at {new Date(conflict.updated_at).toLocaleString()} by another operator.</span>
                   <button
                     type="button"
-                    onClick={() => window.location.reload()}
+                    onClick={() => {
+                      if (window.confirm('Reloading discards your unsaved edits in this modal. Write down or copy anything you need first.\n\nReload the latest version now?')) {
+                        window.location.reload();
+                      }
+                    }}
                     className="px-2 py-1 bg-red-600 text-white rounded text-[11px] font-medium uppercase"
                   >
                     Reload latest
