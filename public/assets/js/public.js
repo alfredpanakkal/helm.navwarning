@@ -2576,7 +2576,7 @@ window.showToast = function(m){
 
 
 // ═══════════ MAP INTERROGATE (right-click / toolbar button) ═══════════
-// Right-click the chart → "Interrogate here" drops a fixed square centred
+// Right-click the chart to interrogate directly: a fixed square centred
 // on the cursor and lists every in-scope warning whose geometry intersects
 // it. Clicking a result opens the standard warning details modal (the same
 // window a map marker opens). Interrogation is client-side: the page
@@ -2586,7 +2586,7 @@ window.showToast = function(m){
 
 const INTERROGATE_SQUARE_NM = 10; // full width & height: a 10 NM × 10 NM box
 let interrogateBox = null;
-let interrogateMenu = null;
+let interrogateSetupDone = false;
 let interrogatePopup = null;
 
 // Toolbar mode (btnInterrogate, mirrors toggleCoordMode): while active, a
@@ -2652,14 +2652,9 @@ function warningIntersectsBounds(w, box) {
   return false;
 }
 
-function closeInterrogateMenu() {
-  if (interrogateMenu) { interrogateMenu.remove(); interrogateMenu = null; }
-}
-
 function clearInterrogate() {
   if (interrogateBox) { interrogateBox.remove(); interrogateBox = null; }
   if (interrogatePopup) { interrogatePopup.remove(); interrogatePopup = null; }
-  closeInterrogateMenu();
 }
 
 function runInterrogate(latlng) {
@@ -2760,61 +2755,51 @@ function showInterrogatePopup(latlng, hits) {
   leafletMap.once('movestart', clearInterrogate);
 }
 
-function showInterrogateMenu(containerPoint, latlng) {
-  closeInterrogateMenu();
-  const container = document.querySelector('.map-container');
-  if (!container) return;
-  const menu = document.createElement('div');
-  menu.className = 'interrogate-menu';
-  menu.setAttribute('role', 'menu');
-  menu.setAttribute('aria-label', 'Map actions');
-  const item = document.createElement('button');
-  item.type = 'button';
-  item.className = 'interrogate-menu-item';
-  item.setAttribute('role', 'menuitem');
-  item.textContent = 'Interrogate here (' + INTERROGATE_SQUARE_NM + ' NM box)';
-  item.addEventListener('click', () => { closeInterrogateMenu(); runInterrogate(latlng); });
-  menu.appendChild(item);
-  container.appendChild(menu);
-  const maxLeft = Math.max(8, container.clientWidth - menu.offsetWidth - 8);
-  const maxTop = Math.max(8, container.clientHeight - menu.offsetHeight - 8);
-  menu.style.left = Math.min(Math.max(8, containerPoint.x), maxLeft) + 'px';
-  menu.style.top = Math.min(Math.max(8, containerPoint.y), maxTop) + 'px';
-  interrogateMenu = menu;
-  item.focus();
-}
-
 function setupInterrogate(map) {
-  map.on('contextmenu', (e) => {
-    if (e.originalEvent) {
-      if (typeof L.DomEvent !== 'undefined') L.DomEvent.preventDefault(e.originalEvent);
-      else if (e.originalEvent.preventDefault) e.originalEvent.preventDefault();
-    }
-    showInterrogateMenu(e.containerPoint, e.latlng);
-  });
+  if (interrogateSetupDone || !map) return;
+  interrogateSetupDone = true;
+
+  // Right-click anywhere on the chart = interrogate directly (no menu
+  // step). A native contextmenu listener on the map container in the
+  // CAPTURE phase fires before Leaflet's own handlers, even over markers
+  // and tiles, and suppresses the browser's context menu. Right-clicks
+  // aimed at real UI controls (buttons, links, popovers) are left alone.
+  map.getContainer().addEventListener('contextmenu', (ev) => {
+    const t = ev.target;
+    if (t && t.closest && t.closest('button, a, input, select, .interrogate-popup, .map-settings-popover, .map-settings-sheet, .map-settings-scrim')) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    let latlng = null;
+    try { latlng = map.mouseEventToLatLng(ev); } catch (err) { latlng = null; }
+    if (latlng) runInterrogate(latlng);
+  }, true);
+
+  // Toolbar mode (btnInterrogate): while active, a plain left-click on the
+  // chart interrogates the 10 NM box centred on the cursor. The coordinate
+  // picker keeps priority when both are somehow active.
   map.on('click', (e) => {
-    closeInterrogateMenu();
-    // Toolbar mode: every plain click interrogates at the cursor. The
-    // coordinate picker keeps priority when both are somehow active.
     if (interrogateModeActive && !coordModeActive) runInterrogate(e.latlng);
   });
-  map.on('movestart', closeInterrogateMenu);
-  document.addEventListener('click', (ev) => {
-    if (interrogateMenu && !interrogateMenu.contains(ev.target)) closeInterrogateMenu();
-  });
+
+  // Escape exits interrogation mode (the results popup handles its own
+  // Escape first, with stopPropagation, so this fires for the bare map).
   document.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Escape') return;
-    if (interrogateMenu) closeInterrogateMenu();
-    // Escape exits interrogation mode (the results popup handles its own
-    // Escape first, with stopPropagation, so this fires for the bare map).
     if (interrogateModeActive) toggleInterrogateMode(false);
   });
 }
 
-// Runs after the main init handler (listener order): the map exists by then.
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.leafletMap) setupInterrogate(window.leafletMap);
-});
+// The Leaflet instance is created inside the main init handler further down
+// this file. A DOMContentLoaded listener registered HERE would fire BEFORE
+// the main init one (registration order decides, not source position), so a
+// same-tick lookup would miss it — that dead hookup was why interrogation
+// never wired up. Poll until the map exists, then attach exactly once.
+(function setupInterrogateWhenReady(attempt) {
+  if (window.leafletMap) { setupInterrogate(window.leafletMap); return; }
+  if (attempt > 100) return; // ~10s: give up quietly; the site still works
+  setTimeout(() => setupInterrogateWhenReady(attempt + 1), 100);
+})(0);
+
 // ═══════════ INIT ═══════════
 // Shows when the warning database was last updated (max nav_warnings.updated_at).
 async function updateDataFreshness() {
