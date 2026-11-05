@@ -504,6 +504,24 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
   body.is-mobile .map-warning-list{max-height:160px}
   body.is-mobile .stat-grid{grid-template-columns:repeat(4,1fr)}
 }
+
+/* ── Map Interrogate (right-click) ───────────────────────────── */
+.interrogate-menu{position:absolute;z-index:1100;min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);overflow:hidden}
+.interrogate-menu-item{display:block;width:100%;text-align:left;padding:8px 12px;background:none;border:none;font:600 12.5px/1.3 system-ui,-apple-system,sans-serif;color:var(--text);cursor:pointer}
+.interrogate-menu-item:hover,.interrogate-menu-item:focus-visible{background:var(--canvas,#f6f7f9);outline:none}
+.interrogate-popup{position:absolute;z-index:1100;width:min(320px,calc(100% - 16px));max-height:min(300px,60%);display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 22px rgba(0,0,0,.22);overflow:hidden}
+.interrogate-popup-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px 7px;border-bottom:1px solid var(--border)}
+.interrogate-popup-head strong{font:700 12.5px/1.3 system-ui,-apple-system,sans-serif;color:var(--text)}
+.interrogate-popup-close{background:none;border:none;font-size:14px;line-height:1;color:var(--text-muted,#5b6472);cursor:pointer;padding:2px 4px;border-radius:4px}
+.interrogate-popup-close:hover,.interrogate-popup-close:focus-visible{background:var(--canvas,#f6f7f9);outline:none}
+.interrogate-popup-pos{padding:5px 10px 0;font:500 11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text-muted,#5b6472)}
+.interrogate-popup-list{overflow-y:auto;padding:4px}
+.interrogate-popup-item{display:flex;align-items:flex-start;gap:8px;width:100%;text-align:left;padding:7px 8px;background:none;border:none;border-radius:7px;cursor:pointer}
+.interrogate-popup-item:hover,.interrogate-popup-item:focus-visible{background:var(--canvas,#f6f7f9);outline:none}
+.interrogate-popup-dot{flex:0 0 auto;width:9px;height:9px;margin-top:4px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
+.interrogate-popup-area{flex:0 0 auto;font:700 10px/1.6 system-ui,-apple-system,sans-serif;letter-spacing:.03em;color:var(--text-muted,#5b6472);text-transform:uppercase}
+.interrogate-popup-title{font:500 12px/1.45 system-ui,-apple-system,sans-serif;color:var(--text);overflow-wrap:anywhere}
+.interrogate-popup-empty{padding:14px 12px;font:500 12px/1.5 system-ui,-apple-system,sans-serif;color:var(--text-muted,#5b6472)}
 </style>
 </head>
 <body class="tab-map-active">

@@ -2574,6 +2574,213 @@ window.showToast = function(m){
   clearTimeout(toastTimeout); toastTimeout=setTimeout(()=>t.classList.remove('show'),2600);
 };
 
+
+// ═══════════ MAP INTERROGATE (right-click) ═══════════
+// Right-click the chart → "Interrogate here" drops a fixed square centred
+// on the cursor and lists every in-scope warning whose geometry intersects
+// it. Clicking a result opens the standard warning details modal (the same
+// window a map marker opens). Interrogation is client-side: the page
+// already holds all active rows with geometries, so the result is instant.
+// Desktop interaction for now — touch devices have no context menu; a
+// toolbar entry can follow later.
+
+const INTERROGATE_SQUARE_NM = 10; // full width & height: a 10 NM × 10 NM box
+let interrogateBox = null;
+let interrogateMenu = null;
+let interrogatePopup = null;
+
+function interrogateBoundsAt(latlng) {
+  const halfLatDeg = (INTERROGATE_SQUARE_NM / 2) / 60;
+  const cosLat = Math.max(0.2, Math.cos((latlng.lat * Math.PI) / 180));
+  const halfLngDeg = ((INTERROGATE_SQUARE_NM / 2) / 60) / cosLat;
+  return L.latLngBounds(
+    [latlng.lat - halfLatDeg, latlng.lng - halfLngDeg],
+    [latlng.lat + halfLatDeg, latlng.lng + halfLngDeg]
+  );
+}
+
+// Flattens a GeoJSON blob into a list of [lat, lng] vertices.
+function interrogateVertices(blob, out) {
+  if (!blob || !Array.isArray(blob.coordinates)) return;
+  const walk = (node) => {
+    if (!Array.isArray(node)) return;
+    if (typeof node[0] === 'number' && typeof node[1] === 'number') {
+      out.push([node[1], node[0]]); // GeoJSON stores [lng, lat]
+      return;
+    }
+    for (const child of node) walk(child);
+  };
+  walk(blob.coordinates);
+}
+
+// A warning matches when any geometry vertex lies inside the box, or the
+// box contains its representative position. Per-geometry vertex testing
+// (not just the envelope) keeps false positives out of dense areas.
+function warningIntersectsBounds(w, box) {
+  const geoms = (Array.isArray(w.geometries) && w.geometries.length > 0 && w.geometries) ||
+    (w.spatial && Array.isArray(w.spatial.geometries) && w.spatial.geometries) || [];
+  for (const g of geoms) {
+    const blob = g.geojson_blob || (g.coordinates ? { type: g.type, coordinates: g.coordinates } : null);
+    const verts = [];
+    interrogateVertices(blob, verts);
+    for (const v of verts) {
+      if (box.contains(L.latLng(v[0], v[1]))) return true;
+    }
+  }
+  const lat = Number(w.latitude ?? w.lat);
+  const lng = Number(w.longitude ?? w.lng);
+  if (!isNaN(lat) && !isNaN(lng) && box.contains(L.latLng(lat, lng))) return true;
+  return false;
+}
+
+function closeInterrogateMenu() {
+  if (interrogateMenu) { interrogateMenu.remove(); interrogateMenu = null; }
+}
+
+function clearInterrogate() {
+  if (interrogateBox) { interrogateBox.remove(); interrogateBox = null; }
+  if (interrogatePopup) { interrogatePopup.remove(); interrogatePopup = null; }
+  closeInterrogateMenu();
+}
+
+function runInterrogate(latlng) {
+  clearInterrogate();
+  const box = interrogateBoundsAt(latlng);
+  interrogateBox = L.rectangle(box, {
+    color: '#dc2626',
+    weight: 2,
+    dashArray: '6, 4',
+    fillColor: '#dc2626',
+    fillOpacity: 0.06,
+    interactive: false
+  }).addTo(leafletMap);
+  // Same in-scope rule as filterMapByNavArea: the region filter (plus
+  unscoped warnings) decides what the chart shows, so it decides what
+  interrogation reports. #dc2626 mirrors the --critical token.
+  const inScope = warnings.filter(w => w.status !== 'rejected' && (matchesNavArea(w.navarea, currentSelectedNavArea) || isNavAreaUnscoped(w.navarea)));
+  const hits = inScope.filter(w => warningIntersectsBounds(w, box));
+  showInterrogatePopup(latlng, hits);
+}
+
+function showInterrogatePopup(latlng, hits) {
+  const container = document.querySelector('.map-container');
+  if (!container) return;
+  if (interrogatePopup) { interrogatePopup.remove(); interrogatePopup = null; }
+  const popup = document.createElement('div');
+  popup.className = 'interrogate-popup';
+  popup.setAttribute('role', 'dialog');
+  popup.setAttribute('aria-label', 'Navigational warnings in interrogated area');
+
+  const header = document.createElement('div');
+  header.className = 'interrogate-popup-head';
+  const title = document.createElement('strong');
+  title.textContent = (hits.length === 1 ? '1 warning' : hits.length + ' warnings') + ' within ' + INTERROGATE_SQUARE_NM + ' NM';
+  header.appendChild(title);
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'interrogate-popup-close';
+  closeBtn.setAttribute('aria-label', 'Close interrogation results');
+  closeBtn.textContent = '\u2715';
+  closeBtn.addEventListener('click', clearInterrogate);
+  header.appendChild(closeBtn);
+  popup.appendChild(header);
+
+  const posLine = document.createElement('div');
+  posLine.className = 'interrogate-popup-pos';
+  posLine.textContent = formatDMD(latlng.lat, latlng.lng);
+  popup.appendChild(posLine);
+
+  if (hits.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'interrogate-popup-empty';
+    empty.textContent = 'No navigational warnings inside this area.';
+    popup.appendChild(empty);
+  } else {
+    const list = document.createElement('div');
+    list.className = 'interrogate-popup-list';
+    list.setAttribute('role', 'list');
+    hits.forEach((w) => {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'interrogate-popup-item';
+      row.setAttribute('role', 'listitem');
+      const dot = document.createElement('span');
+      dot.className = 'interrogate-popup-dot';
+      dot.style.background = getWarningColor(w);
+      row.appendChild(dot);
+      const area = document.createElement('span');
+      area.className = 'interrogate-popup-area';
+      area.textContent = w.navarea || '';
+      row.appendChild(area);
+      const name = document.createElement('span');
+      name.className = 'interrogate-popup-title';
+      name.textContent = (w.canonical_id || w.warning_id || '') + (w.title ? ' \u2014 ' + w.title : '');
+      row.appendChild(name);
+      row.addEventListener('click', () => openWarningDetails(w));
+      list.appendChild(row);
+    });
+    popup.appendChild(list);
+  }
+  container.appendChild(popup);
+  interrogatePopup = popup;
+
+  // Position beside the interrogation point, clamped inside the container.
+  const point = leafletMap.latLngToContainerPoint(latlng);
+  const maxLeft = Math.max(8, container.clientWidth - popup.offsetWidth - 8);
+  const maxTop = Math.max(8, container.clientHeight - popup.offsetHeight - 8);
+  popup.style.left = Math.min(Math.max(8, point.x + 14), maxLeft) + 'px';
+  popup.style.top = Math.min(Math.max(8, point.y - popup.offsetHeight - 14), maxTop) + 'px';
+
+  closeBtn.focus();
+  popup.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') { ev.stopPropagation(); clearInterrogate(); }
+  });
+  leafletMap.once('movestart', clearInterrogate);
+}
+
+function showInterrogateMenu(containerPoint, latlng) {
+  closeInterrogateMenu();
+  const container = document.querySelector('.map-container');
+  if (!container) return;
+  const menu = document.createElement('div');
+  menu.className = 'interrogate-menu';
+  menu.setAttribute('role', 'menu');
+  menu.setAttribute('aria-label', 'Map actions');
+  const item = document.createElement('button');
+  item.type = 'button';
+  item.className = 'interrogate-menu-item';
+  item.setAttribute('role', 'menuitem');
+  item.textContent = 'Interrogate here (' + INTERROGATE_SQUARE_NM + ' NM box)';
+  item.addEventListener('click', () => { closeInterrogateMenu(); runInterrogate(latlng); });
+  menu.appendChild(item);
+  container.appendChild(menu);
+  const maxLeft = Math.max(8, container.clientWidth - menu.offsetWidth - 8);
+  const maxTop = Math.max(8, container.clientHeight - menu.offsetHeight - 8);
+  menu.style.left = Math.min(Math.max(8, containerPoint.x), maxLeft) + 'px';
+  menu.style.top = Math.min(Math.max(8, containerPoint.y), maxTop) + 'px';
+  interrogateMenu = menu;
+  item.focus();
+}
+
+function setupInterrogate(map) {
+  map.on('contextmenu', (e) => {
+    if (e.originalEvent && typeof L.DomEvent !== 'undefined') L.DomEvent.preventDefault(e.originalEvent);
+    showInterrogateMenu(e.containerPoint, e.latlng);
+  });
+  map.on('click', closeInterrogateMenu);
+  map.on('movestart', closeInterrogateMenu);
+  document.addEventListener('click', (ev) => {
+    if (interrogateMenu && !interrogateMenu.contains(ev.target)) closeInterrogateMenu();
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && interrogateMenu) closeInterrogateMenu();
+  });
+}
+
+// Runs after the main init handler (listener order): the map exists by then.
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.leafletMap) setupInterrogate(window.leafletMap);
+});
 // ═══════════ INIT ═══════════
 // Shows when the warning database was last updated (max nav_warnings.updated_at).
 async function updateDataFreshness() {
