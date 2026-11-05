@@ -757,6 +757,29 @@ window.openNavAreaPicker = function () {
   }, 250);
 };
 
+// ═══════════ NAVAREA PICKER HINT (one-time tooltip) ═══════════
+let navAreaHintEl = null, navAreaHintTimer = null;
+function dismissNavAreaHint() {
+  if (navAreaHintTimer) { clearTimeout(navAreaHintTimer); navAreaHintTimer = null; }
+  if (navAreaHintEl) { navAreaHintEl.remove(); navAreaHintEl = null; }
+  try { localStorage.setItem('hw-navarea-hint', '1'); } catch (e) { /* private mode */ }
+}
+function maybeShowNavAreaHint() {
+  try { if (localStorage.getItem('hw-navarea-hint')) return; } catch (e) { return; }
+  const chip = document.getElementById('mapControlsChip');
+  const container = document.querySelector('.map-container');
+  if (!chip || !container) return;
+  navAreaHintEl = document.createElement('div');
+  navAreaHintEl.className = 'navarea-hint';
+  navAreaHintEl.setAttribute('role', 'status');
+  navAreaHintEl.textContent = 'Tap to switch NAVAREA';
+  container.appendChild(navAreaHintEl);
+  const r = chip.getBoundingClientRect(), c = container.getBoundingClientRect();
+  navAreaHintEl.style.left = Math.max(8, r.left - c.left) + 'px';
+  navAreaHintEl.style.top = (r.bottom - c.top + 6) + 'px';
+  navAreaHintTimer = setTimeout(dismissNavAreaHint, 6000);
+}
+
 window.toggleMapTopControls = function(forceState) {
   const topSec = document.getElementById('mapTopSection');
   const chip = document.getElementById('mapControlsChip');
@@ -2909,6 +2932,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   populateSources();
   attachGearLongPress();
   await loadWarnings();
+  maybeShowNavAreaHint();
 });
 
 // Click outside to dismiss desktop settings popover
