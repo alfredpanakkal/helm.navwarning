@@ -2584,7 +2584,7 @@ window.showToast = function(m){
 // Desktop interaction for now — touch devices have no context menu; a
 // toolbar entry can follow later.
 
-const INTERROGATE_SQUARE_NM = 10; // full width & height: a 10 NM × 10 NM box
+const INTERROGATE_SQUARE_PX = 100; // full width & height: a 100 × 100 px box on screen, zoom-independent
 let interrogateBox = null;
 let interrogateSetupDone = false;
 let interrogatePopup = null;
@@ -2609,12 +2609,15 @@ function toggleInterrogateMode(force) {
 window.toggleInterrogateMode = toggleInterrogateMode;
 
 function interrogateBoundsAt(latlng) {
-  const halfLatDeg = (INTERROGATE_SQUARE_NM / 2) / 60;
-  const cosLat = Math.max(0.2, Math.cos((latlng.lat * Math.PI) / 180));
-  const halfLngDeg = ((INTERROGATE_SQUARE_NM / 2) / 60) / cosLat;
+  // Pixel-sized interrogation box: a 100 × 100 px square on screen, centred
+  // on the cursor. The geographic footprint follows the current zoom —
+  // tighter when zoomed in, wider when zoomed out — which matches how the
+  // user "sees" the chart at that moment.
+  const center = leafletMap.latLngToContainerPoint(latlng);
+  const half = INTERROGATE_SQUARE_PX / 2;
   return L.latLngBounds(
-    [latlng.lat - halfLatDeg, latlng.lng - halfLngDeg],
-    [latlng.lat + halfLatDeg, latlng.lng + halfLngDeg]
+    leafletMap.containerPointToLatLng([center.x - half, center.y - half]),
+    leafletMap.containerPointToLatLng([center.x + half, center.y + half])
   );
 }
 
@@ -2688,7 +2691,7 @@ function showInterrogatePopup(latlng, hits) {
   const header = document.createElement('div');
   header.className = 'interrogate-popup-head';
   const title = document.createElement('strong');
-  title.textContent = (hits.length === 1 ? '1 warning' : hits.length + ' warnings') + ' within ' + INTERROGATE_SQUARE_NM + ' NM';
+  title.textContent = (hits.length === 1 ? '1 warning' : hits.length + ' warnings') + ' within ' + INTERROGATE_SQUARE_PX + ' px';
   header.appendChild(title);
   const closeBtn = document.createElement('button');
   closeBtn.type = 'button';
