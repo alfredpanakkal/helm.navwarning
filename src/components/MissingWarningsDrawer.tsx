@@ -27,6 +27,7 @@ export const MissingWarningsDrawer: React.FC<MissingWarningsDrawerProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Explicit prop only — the spoofable storage-token fallback is gone.
+  const userIsAdmin = isAdmin === true;
 
   // Handle escape key listener
   useEffect(() => {

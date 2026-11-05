@@ -484,9 +484,6 @@ export async function adminLogin(
 export async function adminLogout(): Promise<void> {
   try {
     const { supabase } = await import('../lib/supabaseClient');
-    if (supabase) {
-      await supabase.auth.signOut().catch(() => {});
-    }
 
     // /api/admin/logout exists in the dev Express runtime only (404 on
     // Vercel). It must receive the live Supabase session token — the
