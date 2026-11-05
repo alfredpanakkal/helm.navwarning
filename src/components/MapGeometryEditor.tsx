@@ -633,7 +633,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
     <button
       type="button"
       onClick={() => (mode === m ? exitMode() : enterMode(m))}
-      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border transition-colors ${
+      className={`flex items-center gap-1.5 px-3 py-2 rounded text-[10px] font-bold uppercase border transition-colors ${
         mode === m ? 'bg-gw-primary text-gw-bg border-gw-primary' : 'bg-gw-panel text-gw-primary border-gw-secondary hover:border-gw-primary'
       }`}
     >
@@ -644,13 +644,13 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
 
   return (
     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[480] w-[calc(100%-24px)] max-w-lg pointer-events-auto">
-      <div className="bg-gw-panel/95 border-2 border-gw-primary rounded-xl shadow-2xl backdrop-blur-xs p-2.5 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-gw-primary truncate">
+      <div className="bg-gw-panel/95 border-2 border-gw-primary rounded-xl shadow-2xl backdrop-blur-xs p-3 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="flex items-center gap-2 min-w-0 text-[11px] font-bold uppercase tracking-wider text-gw-primary truncate">
             <PenTool className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">Geometry — {canonical}</span>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
             {modeBtn('edit', <MousePointerClick className="w-3.5 h-3.5" />, 'Edit vertices')}
             {modeBtn('draw', <PenTool className="w-3.5 h-3.5" />, 'Draw new')}
             {mode !== 'off' && (
@@ -658,7 +658,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                 <button
                   type="button"
                   onClick={() => { pushHistory(); partsRef.current = buildPartsFromWarning(selectedWarning); drawPtsRef.current = []; markDirtyIfChanged(); setMessage('Draft reset to the stored geometry.'); setMessageKind('info'); renderDraft(); }}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-gw-panel border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:text-gw-primary transition-colors"
+                  className="flex items-center gap-1 p-2 bg-gw-panel border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:text-gw-primary transition-colors"
                   title="Reset draft to stored geometry"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -667,7 +667,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                   type="button"
                   onClick={undo}
                   disabled={histLen.undo === 0}
-                  className="p-1.5 bg-gw-panel border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="p-2 bg-gw-panel border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Undo (Ctrl+Z)"
                   aria-label="Undo"
                 >
@@ -677,7 +677,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                   type="button"
                   onClick={redo}
                   disabled={histLen.redo === 0}
-                  className="p-1.5 bg-gw-panel border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="p-2 bg-gw-panel border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Redo (Ctrl+Y)"
                   aria-label="Redo"
                 >
@@ -687,7 +687,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                   type="button"
                   onClick={handleSave}
                   disabled={saving || !dirty}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gw-primary hover:bg-gw-accent text-gw-bg rounded text-[10px] font-bold uppercase transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-gw-primary hover:bg-gw-accent text-gw-bg rounded text-[10px] font-bold uppercase transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                   <span>Save</span>
@@ -696,7 +696,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                   type="button"
                   onClick={exitMode}
                   aria-label="Cancel geometry edits"
-                  className="p-1.5 bg-gw-panel border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+                  className="p-2 bg-gw-panel border border-gw-secondary text-gw-accent rounded hover:text-gw-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                   title="Cancel"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -707,14 +707,14 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
         </div>
 
         {mode === 'draw' && (
-          <div className="flex items-center gap-1.5 text-[10px] text-gw-accent flex-wrap">
+          <div className="flex items-center gap-2 text-[10px] text-gw-accent flex-wrap">
             <span className="font-bold uppercase">Shape:</span>
             {([['polygon', Square], ['line', Route], ['point', MousePointerClick], ['circle', CircleIcon]] as const).map(([shape, Icon]) => (
               <button
                 key={shape}
                 type="button"
                 onClick={() => setDrawShape(shape)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded border font-bold uppercase ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded border font-bold uppercase ${
                   drawShape === shape ? 'bg-gw-primary text-gw-bg border-gw-primary' : 'bg-gw-panel text-gw-primary border-gw-secondary'
                 }`}
               >
@@ -725,7 +725,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
             <button
               type="button"
               onClick={finishDraw}
-              className="ml-auto px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold uppercase"
+              className="ml-auto px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold uppercase"
             >
               Finish shape
             </button>
@@ -741,14 +741,14 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
         )}
 
         {mode !== 'off' && dirty && diffSummary && (
-          <div className="text-[10px] font-mono px-2 py-1 rounded border bg-sky-50 text-sky-900 border-sky-300 flex items-center gap-1.5">
+          <div className="text-[10px] font-mono px-2.5 py-1.5 rounded border bg-sky-50 text-sky-900 border-sky-300 flex items-center gap-1.5">
             <FileDiff className="w-3 h-3 shrink-0" />
             <span>Proposed change vs stored geometry: {diffSummary}</span>
           </div>
         )}
 
         {message && (
-          <div className={`text-[10px] font-mono px-2 py-1 rounded border ${
+          <div className={`text-[10px] font-mono px-2.5 py-1.5 rounded border ${
             messageKind === 'success'
               ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
               : messageKind === 'error'

@@ -82,7 +82,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
   };
 
   return (
-    <div className="p-3.5 flex flex-col gap-3">
+    <div className="p-4 flex flex-col gap-4">
       {/* Primary row: search (~640px wrapper, 12px radius, accent focus halo) + compact filters */}
       <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
         <div className="w-full max-w-[640px] flex items-center gap-2 bg-canvas border border-border-input rounded-[12px] px-3.5 py-2.5 focus-within:border-accent focus-within:ring-3 focus-within:ring-[var(--accent-halo)] transition-all">
@@ -113,7 +113,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex items-center">
             <select
               id="databank-navarea-filter"
@@ -195,7 +195,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
       </div>
 
       {/* Feedback strip: result count, active sort, reset */}
-      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-hairline">
+      <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-hairline">
         <span className="text-[11px] font-medium text-ink-secondary">
           Matching: <strong className="text-ink-primary font-medium tabular-nums">{sortedWarnings.length}</strong>
         </span>
@@ -210,7 +210,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
           <button
             type="button"
             onClick={handleResetFilters}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-surface-subtle border border-border-input rounded text-xs font-medium text-ink-secondary hover:text-ink-primary transition-colors cursor-pointer ml-auto"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-subtle border border-border-input rounded text-xs font-medium text-ink-secondary hover:text-ink-primary transition-colors cursor-pointer ml-auto"
             title="Reset all filters"
           >
             <X className="w-3.5 h-3.5" />
@@ -221,7 +221,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
 
       {/* Active filter pills */}
       {hasActiveFilters && (
-        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
+        <div className="flex flex-wrap items-center gap-2 pt-2 text-[11px]">
           <span className="text-[10px] font-medium uppercase text-ink-tertiary mr-1 tracking-[0.06em]">
             Active filters:
           </span>
@@ -233,7 +233,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 setSearchTerm('');
                 setCurrentPage(1);
               }}
-              className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-surface-subtle border border-border-chip-on rounded-full text-ink-primary font-medium cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-subtle border border-border-chip-on rounded-full text-ink-primary font-medium cursor-pointer"
               title="Remove text search"
             >
               <span>Search: &quot;{searchTerm}&quot;</span>
@@ -245,7 +245,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             <button
               type="button"
               onClick={() => applyNavArea('ALL')}
-              className="inline-flex items-center gap-1 px-2 py-0.5 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
               title="Clear NAVAREA filter"
             >
               <span>NAVAREA: {selectedNavArea}</span>
@@ -260,7 +260,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 setSelectedSeverity('ALL');
                 setCurrentPage(1);
               }}
-              className="inline-flex items-center gap-1 px-2 py-0.5 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
               title="Clear severity filter"
             >
               <span>Severity: {selectedSeverity}</span>
@@ -272,7 +272,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             <button
               type="button"
               onClick={() => applyStatus('ALL')}
-              className="inline-flex items-center gap-1 px-2 py-0.5 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
               title="Clear status filter"
             >
               <span>Status: {selectedStatus}</span>
@@ -284,7 +284,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             <button
               type="button"
               onClick={() => applyCategory('ALL')}
-              className="inline-flex items-center gap-1 px-2 py-0.5 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
               title="Clear category filter"
             >
               <span>Category: {HAZARD_CATEGORIES[selectedCategory]?.shortLabel ?? selectedCategory}</span>
@@ -299,7 +299,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 setCoordFilter('ALL' as CoordFilterType);
                 setCurrentPage(1);
               }}
-              className="inline-flex items-center gap-1 px-2 py-0.5 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
               title="Clear coordinates filter"
             >
               <span>{coordFilter === 'with_coords' ? 'Mapped Geometry' : 'Text Only'}</span>
@@ -313,7 +313,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
       {showMoreFilters && (
         <div className="pt-2 border-t border-subtle flex flex-col gap-3">
           {/* Sort controls (secondary): dropdown + direction */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex items-center gap-1.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-gw-accent">
                 Sort:
@@ -343,7 +343,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
               type="button"
               onClick={() => setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))}
               title="Toggle sort direction"
-              className="flex items-center gap-1 px-2 py-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary text-xs font-bold hover:bg-gw-panel cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary text-xs font-bold hover:bg-gw-panel cursor-pointer"
             >
               <SlidersHorizontal className="w-3 h-3 text-gw-accent shrink-0" />
               <span className="uppercase">{sortDirection === 'asc' ? 'Asc' : 'Desc'}</span>
@@ -352,7 +352,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
           </div>
 
           {/* Quick filter presets (secondary) */}
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-gw-accent mr-1">
               Quick:
             </span>
@@ -411,7 +411,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex items-center">
               <select
                 aria-label="Filter by severity"
@@ -478,7 +478,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 </button>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => applyCategory('ALL')}

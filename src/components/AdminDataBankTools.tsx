@@ -318,7 +318,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {checked.size > 0 && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent font-medium text-xs">
               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -328,7 +328,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border-input hover:border-hairline hover:bg-surface text-ink-secondary hover:text-ink-primary font-medium text-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-input hover:border-hairline hover:bg-surface text-ink-secondary hover:text-ink-primary font-medium text-xs transition-colors cursor-pointer"
             aria-expanded={isExpanded}
           >
             <span>{isExpanded ? 'Hide Tools' : 'Open Tools'}</span>
@@ -349,11 +349,11 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
             <button
               type="button"
               onClick={selectAllStale}
-              className="px-2.5 py-1 rounded-md bg-amber-600 text-white hover:bg-amber-700 font-medium text-xs transition-colors shadow-2xs cursor-pointer"
+              className="px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 font-medium text-xs transition-colors shadow-2xs cursor-pointer"
             >
               Select All {staleWarnings.length} Stale
             </button>
@@ -373,11 +373,11 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
                   Bulk Actions {checked.size > 0 ? `(${checked.size} selected)` : '(0 selected)'}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-3 text-xs">
                 <button
                   type="button"
                   onClick={toggleAll}
-                  className="px-2 py-1 rounded border border-border-input hover:bg-surface-subtle text-ink-secondary hover:text-ink-primary font-medium transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded border border-border-input hover:bg-surface-subtle text-ink-secondary hover:text-ink-primary font-medium transition-colors cursor-pointer"
                 >
                   {allChecked ? 'Deselect All' : `Select All Filtered (${filtered.length})`}
                 </button>
@@ -385,7 +385,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
                   <button
                     type="button"
                     onClick={clearSelection}
-                    className="px-2 py-1 rounded border border-border-input hover:bg-surface-subtle text-ink-secondary hover:text-ink-primary font-medium transition-colors cursor-pointer"
+                    className="px-3 py-1.5 rounded border border-border-input hover:bg-surface-subtle text-ink-secondary hover:text-ink-primary font-medium transition-colors cursor-pointer"
                   >
                     Clear Selection
                   </button>
@@ -393,7 +393,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-3">
               <select
                 value={bulkStatus}
                 onChange={(e) => setBulkStatus(e.target.value)}

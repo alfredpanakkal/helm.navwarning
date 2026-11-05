@@ -64,7 +64,7 @@ export const NavRail: React.FC<NavRailProps> = ({
     >
       <div className="flex-1 min-h-0 overflow-y-auto py-3 px-2 flex flex-col gap-4">
         {SECTION_ORDER.map((section) => (
-          <div key={section} className="flex flex-col gap-1">
+          <div key={section} className="flex flex-col gap-1.5">
             {collapsed ? (
               <span
                 aria-hidden="true"
