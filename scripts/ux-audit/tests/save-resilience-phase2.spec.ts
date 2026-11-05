@@ -64,7 +64,7 @@ test.describe('geometry draft recovery (authenticated)', () => {
     await page.getByRole('button', { name: /Vertex 1 of/ }).first().focus();
     await page.keyboard.press('ArrowUp');
     await expect(page.getByText(/Proposed change vs stored geometry/)).toBeVisible();
-    const draftKeys = await page.evaluate('Object.keys(sessionStorage).filter(k => k.startsWith(' + JSON.stringify(DRAFT_PREFIX) + '))');
+    const draftKeys = await page.evaluate<string[]>('Object.keys(sessionStorage).filter(k => k.startsWith(' + JSON.stringify(DRAFT_PREFIX) + '))');
     expect(draftKeys.length).toBe(1);
 
     // Reload (crash equivalent): sessionStorage survives in the same tab.
@@ -77,7 +77,7 @@ test.describe('geometry draft recovery (authenticated)', () => {
 
     // Leaving edit mode on purpose clears the draft.
     await page.getByRole('button', { name: /Cancel geometry edits/ }).click();
-    const after = await page.evaluate('Object.keys(sessionStorage).filter(k => k.startsWith(' + JSON.stringify(DRAFT_PREFIX) + '))');
+    const after = await page.evaluate<string[]>('Object.keys(sessionStorage).filter(k => k.startsWith(' + JSON.stringify(DRAFT_PREFIX) + '))');
     expect(after).toEqual([]);
   });
 
@@ -101,7 +101,7 @@ test.describe('geometry draft recovery (authenticated)', () => {
     await page.getByRole('button', { name: /Edit vertices/ }).click();
     await expect(page.getByText('A stored draft was discarded because this warning changed since it was made.')).toBeVisible();
     expect(dialogSeen).toBe(false);
-    const after = await page.evaluate('Object.keys(sessionStorage).filter(k => k.startsWith(' + JSON.stringify(DRAFT_PREFIX) + '))');
+    const after = await page.evaluate<string[]>('Object.keys(sessionStorage).filter(k => k.startsWith(' + JSON.stringify(DRAFT_PREFIX) + '))');
     expect(after).toEqual([]);
   });
 });
