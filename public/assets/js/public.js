@@ -732,6 +732,31 @@ function initMap(){
 let mapControlsAutoCollapseTimer = null;
 let controlsIdleTimer = null;
 
+window.openNavAreaPicker = function () {
+  dismissNavAreaHint();                       // user found it, so hide the tooltip
+  const s = document.getElementById('mapNavAreaSelect');
+  const section = document.getElementById('mapTopSection');
+  if (!s || !section) return;
+
+  const wasCollapsed = section.classList.contains('collapsed');
+  toggleMapTopControls(true);                 // expand so the select is rendered
+
+  // If it started collapsed, collapse it again once the user picks or leaves
+  const restore = () => {
+    s.removeEventListener('change', restore);
+    s.removeEventListener('blur', restore);
+    if (wasCollapsed) toggleMapTopControls(false);
+  };
+  s.addEventListener('change', restore);
+  s.addEventListener('blur', restore);
+
+  // Wait for the expand transition, or the picker can open in the wrong place
+  setTimeout(() => {
+    try { s.showPicker(); }
+    catch (err) { s.focus(); }               // older browsers: select is visible and focused
+  }, 250);
+};
+
 window.toggleMapTopControls = function(forceState) {
   const topSec = document.getElementById('mapTopSection');
   const chip = document.getElementById('mapControlsChip');
@@ -3055,4 +3080,5 @@ function setupCoordinatePicker(map) {
     setCoordReadout(dmd, 'Selected');
   });
 }
+
 
