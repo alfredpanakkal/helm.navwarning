@@ -318,12 +318,12 @@ export const Header: React.FC<HeaderProps> = ({
       </nav>
 
       {/* Admin Unlock Modal Overlay */}
+      {/* Above the edit drawer (z-console-overlay-raised, 70) AND the map
+         geometry editor bar (z-[480]): no stacking token exceeds 480, so
+         the arbitrary-value pattern already used by the editor bar is
+         reused here. */}
       {showAdminModal && (
-        {/* Above the edit drawer (z-console-overlay-raised, 70) AND the map
-          geometry editor bar (z-[480]): no stacking token exceeds 480, so
-          the arbitrary-value pattern already used by the editor bar is
-          reused here. */}
-      <div className="fixed inset-0 z-[490] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[490] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div ref={adminModalRef} role="dialog" aria-modal="true" aria-labelledby="admin-gate-title" className="bg-gw-panel border border-gw-primary rounded-lg max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-gw-secondary pb-3">
               <div className="flex items-center gap-2 font-medium text-sm sm:text-base text-gw-primary tracking-wide">
