@@ -8,7 +8,7 @@
     },
     {
       "source": "/sources",
-      "destination": "/?tab=info",
+      "destination": "/?tab=sources",
       "permanent": true
     }
   ],

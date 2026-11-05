@@ -10,6 +10,7 @@
 (function () {
   try {
     var t = localStorage.getItem('hw-theme');
+    if (t === 'system') t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
     if (t === 'dark' || t === 'night') {
       document.documentElement.setAttribute('data-theme', t);
       var m = document.querySelector('meta[name="theme-color"]');
@@ -176,6 +177,34 @@ body.is-mobile .info-src-grid{grid-template-columns:1fr;gap:8px}
 .theme-option[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
 .theme-option-name{font-weight:500;font-size:14px}
 .theme-option-desc{font-size:12px;color:var(--ink-tertiary)}
+/* More menu — compact dropdown (desktop) / bottom sheet (mobile) */
+.more-menu{position:absolute;top:calc(100% + 4px);right:16px;min-width:230px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px;display:flex;flex-direction:column;gap:2px;z-index:1001}
+.more-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid transparent;background:transparent;border-radius:8px;font:500 14px var(--font-family-base);color:var(--ink-body);cursor:pointer;min-height:var(--touch-min,44px);text-align:left;transition:background var(--transition),color var(--transition)}
+.more-item:hover{background:var(--surface-subtle);color:var(--ink-primary)}
+.more-item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.more-item svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;flex-shrink:0}
+body.is-mobile .more-menu{position:fixed;top:auto;left:0;right:0;bottom:0;min-width:0;border-radius:14px 14px 0 0;padding:8px 10px calc(10px + var(--safe-bottom,0px));z-index:1200}
+body.is-mobile .more-item{padding:14px 16px;font-size:15px}
+.more-scrim{display:none}
+body.is-mobile.more-menu-open .more-scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:999}
+/* Compact selectable theme rows (Appearance panel) */
+.theme-picker.rows{flex-direction:column;gap:6px;margin:14px 0 4px}
+.theme-picker.rows .theme-option{flex:1 1 auto;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px}
+/* FAQ accordion */
+.faq-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+.faq-item summary{padding:12px 16px;font:500 14px var(--font-family-base);color:var(--ink-primary);cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:var(--touch-min,44px)}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::after{content:'▾';color:var(--ink-tertiary);font-size:12px}
+.faq-item[open] summary::after{content:'▴'}
+.faq-item .faq-answer{padding:0 16px 14px;color:var(--ink-body);font-size:14px;line-height:1.6}
+.faq-item .faq-answer p{margin:0 0 10px}
+.faq-item .faq-answer p:last-child{margin:0}
+/* Nested expandable block inside an info section */
+.info-sub{margin-top:10px}
+.info-sub summary{font:500 14px var(--font-family-base);color:var(--accent,#0e7490);cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;min-height:var(--touch-min,44px)}
+.info-sub summary::-webkit-details-marker{display:none}
+.info-sub[open] summary{margin-bottom:8px}
+.info-sub .info-sub-body{border-top:1px solid var(--hairline);padding-top:12px}
 
 .bottom-badge{position:absolute;top:4px;right:50%;transform:translateX(18px);color:var(--sev-high);font-size:10px;font-weight:500}
 
@@ -486,9 +515,15 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
       <div role="tablist" aria-label="Main navigation views" style="display:flex;gap:2px">
         <button class="nav-tab stacked active" data-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" id="tab-btn-map" onclick="switchTab('map')" title="Map View"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg><span class="nav-tab-label">Map</span></button>
         <button class="nav-tab stacked" data-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" id="tab-btn-data" onclick="switchTab('data')" title="Data Bank"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg><span class="nav-tab-label">Data</span></button>
-        <button class="nav-tab stacked" data-tab="info" role="tab" aria-selected="false" aria-controls="tab-info" id="tab-btn-info" onclick="switchTab('info')" title="Sources, Disclaimer & About"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span class="nav-tab-label">Info</span></button>
+        <button class="nav-tab stacked" type="button" id="tab-btn-more" onclick="toggleMoreMenu()" aria-expanded="false" aria-haspopup="true" aria-controls="moreMenu" title="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg><span class="nav-tab-label">More</span></button>
       </div>
     </nav>
+    <div class="more-scrim" id="moreScrim" onclick="toggleMoreMenu(false)" aria-hidden="true"></div>
+    <div class="more-menu" id="moreMenu" role="menu" aria-label="More" hidden>
+      <button type="button" class="more-item" role="menuitem" id="more-item-about" onclick="switchTab('info');toggleMoreMenu(false);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>About &amp; Help</span></button>
+      <button type="button" class="more-item" role="menuitem" id="more-item-sources" onclick="switchTab('sources');toggleMoreMenu(false);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg><span>Sources &amp; Coverage</span></button>
+      <button type="button" class="more-item" role="menuitem" id="more-item-appearance" onclick="switchTab('appearance');toggleMoreMenu(false);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.126 2.36-.3-.66-1.25-1.36-2.94-1.36-4.7 0-2.42 1.58-4.7 4-4.7 1.07 0 2.14.45 3 1 .23-1.5.64-7-8-12.3z"/></svg><span>Appearance</span></button>
+    </div>
   </div>
 </header>
 
@@ -861,25 +896,116 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
 </div>
 
 <!-- INFO (merged with the former /about page) -->
-<div class="tab-panel" id="tab-info" role="tabpanel" aria-labelledby="tab-btn-info" hidden>
+<div class="tab-panel" id="tab-info" role="tabpanel" aria-labelledby="more-item-about" hidden>
   <div class="page-header">
-    <div><h2>Info &amp; About</h2><p class="subtitle">About, sources, safety disclaimer, FAQ &amp; watch themes</p></div>
+    <div><h2>About &amp; Help</h2><p class="subtitle">Essential information about HELM.WARNING, its data sources, and safe use of navigational warnings.</p></div>
   </div>
   <details class="info-section" open>
-    <summary>About Helm.Warning</summary>
+    <summary>About HELM.WARNING</summary>
     <div class="info-section-body">
-      <p>Helm.Warning is a free interactive map that displays live NAVAREA navigational warnings to support maritime situational awareness and passage planning. Active warnings are plotted on nautical charts with danger areas, safety zones, and hazard points — no login or account required.</p>
-      <p>Warnings are aggregated from official NAVAREA coordinators operating under the World-Wide Navigational Warning Service (WWNWS), jointly coordinated by the International Maritime Organization (IMO) and the International Hydrographic Organization (IHO). Coverage spans all 21 NAVAREA regions worldwide, including the five Arctic areas (XVII–XXI). Data is refreshed daily from verified hydrographic authority feeds such as the UKHO, NGA, SHOM, AMSA, and the Japan Coast Guard.</p>
-      <p><a href="#source-registry">Explore the 21 NAVAREA areas &amp; warnings →</a></p>
+      <p>HELM.WARNING is a free interactive map of maritime navigational warnings, built to support situational awareness and passage planning.</p>
+      <p>Warnings from official NAVAREA coordinators are plotted on a map to help watchkeepers identify potential hazards, including danger areas, firing exercises, drifting hazards, and subsea operations.</p>
+      <p>Explore warnings across all 21 NAVAREA regions, including the Arctic. No account is required.</p>
+      <p><a href="/?tab=sources" onclick="event.preventDefault();switchTab('sources')">Explore NAVAREA regions →</a></p>
     </div>
   </details>
   <details class="info-section" open>
-    <summary>Sources</summary>
+    <summary>Sources &amp; Coverage</summary>
     <div class="info-section-body">
-      <p>Live status of the verified feeds across the 21 NAVAREA regions. <a href="#source-registry">See the full source registry →</a></p>
+      <p>HELM.WARNING collects navigational warnings from official maritime and hydrographic authorities.</p>
+      <p>Coverage includes 21 NAVAREA regions worldwide. Feed availability varies by region, and some warnings require reviewed manual entry.</p>
+      <p><a href="/?tab=sources" onclick="event.preventDefault();switchTab('sources')">View all 21 NAVAREA regions →</a></p>
     </div>
-    <div class="sources-grid" id="sourcesGrid"></div>
   </details>
+  <details class="info-section" open>
+    <summary>Safety Disclaimer</summary>
+    <div class="info-section-body">
+      <p>HELM.WARNING is a situational-awareness tool, not an official source of Maritime Safety Information (MSI).</p>
+      <p>Warnings may be delayed, incomplete, or incorrectly plotted. Always verify warnings against official NAVTEX, SafetyNET, or issuing-authority broadcasts before acting.</p>
+      <p>Official broadcasts and the Master's judgment take priority. HELM.WARNING must not be used as the sole or primary source for navigation or passage planning.</p>
+      <details class="info-sub">
+        <summary>Read the full safety disclaimer →</summary>
+        <div class="info-sub-body">
+          <div class="disclaimer-box">
+            <p>Helm.Warning is a situational-awareness tool. It shows a convenience copy of NAVAREA and other maritime safety warnings gathered from public sources. It is not an official source of Maritime Safety Information.</p>
+            <p>The map can lag behind the original broadcasts, miss warnings, or show them incorrectly. Always check the official broadcast (NAVTEX, SafetyNET, or the issuing authority) before relying on any warning.</p>
+            <p>Official broadcasts and the Master's judgment take priority over anything shown here. Under SOLAS, responsibility for the safe navigation of the vessel stays with the Master. Helm.Warning must not be used as the sole or primary source for passage planning or navigation decisions.</p>
+          </div>
+        </div>
+      </details>
+    </div>
+  </details>
+  <details class="info-section" open id="faq">
+    <summary>Frequently Asked Questions</summary>
+    <div class="info-section-body">
+      <p>Answers to common questions about navigational warnings, data coverage, and using HELM.WARNING.</p>
+      <details class="faq-item">
+        <summary>Is HELM.WARNING free?</summary>
+        <div class="faq-answer"><p>Yes. HELM.WARNING is completely free. There is no account, sign-up, or paid tier. The map, regional pages, and warning details are available to everyone.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>What is a NAVAREA warning?</summary>
+        <div class="faq-answer"><p>A navigational warning is a maritime safety message about hazards or activities that may affect safe navigation.</p><p>Examples include firing exercises, drifting hazards, subsea operations, offshore installations, and disabled vessels.</p><p>The world's oceans are divided into 21 NAVAREA regions, each with a designated coordinator responsible for issuing, updating, and cancelling warnings under the World-Wide Navigational Warning Service (WWNWS).</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>Where does the data come from?</summary>
+        <div class="faq-answer"><p>HELM.WARNING collects publicly available warnings from official NAVAREA coordinators and maritime authorities.</p><p>Sources include the UK Hydrographic Office (UKHO), National Geospatial-Intelligence Agency (NGA), India's hydrographic authorities, Japan Coast Guard, and Australian Maritime Safety Authority (AMSA).</p><p>Original bulletin text is preserved alongside parsed warning information.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>How fresh is the data?</summary>
+        <div class="faq-answer"><p>Verified automated feeds are updated according to their ingestion schedules. Many are checked daily, while some may be updated more frequently.</p><p>Warnings can be cancelled or superseded at any time. Always check the issuing authority for the latest information.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>Can I use it for passage planning?</summary>
+        <div class="faq-answer"><p>HELM.WARNING can support situational awareness and passage planning, but it is not an official MSI distributor.</p><p>It may contain delayed, incomplete, or incorrectly plotted warnings. It does not replace official broadcasts, ECDIS, or required navigational publications.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>Why does my region show no warnings?</summary>
+        <div class="faq-answer"><p>The coordinator may have no warnings currently in force, or the region may not have a verified automated feed.</p><p>Some regions rely on reviewed manual entry. A region with no displayed warnings is not necessarily free of navigational hazards.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>Does it work at sea, on a slow connection?</summary>
+        <div class="faq-answer"><p>HELM.WARNING is designed to remain lightweight and usable on limited connections.</p><p>However, retrieving live warnings requires an internet connection. Save or copy the official bulletins you need before losing connectivity.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>Who builds and maintains it?</summary>
+        <div class="faq-answer"><p>HELM.WARNING is built by Alfred Panakkal Jose, a serving deck officer and Full-Stack Developer.</p><p>Learn more in the <a href="#info-developer" onclick="event.preventDefault();document.getElementById('info-developer').open=true;document.getElementById('info-developer').scrollIntoView()">About the Developer</a> section.</p></div>
+      </details>
+    </div>
+  </details>
+  <details class="info-section">
+    <summary id="info-developer">About the Developer</summary>
+    <div class="info-section-body">
+      <p>HELM.WARNING is built by <strong>Alfred Panakkal Jose</strong>, a Full-Stack Developer and serving Third Officer.</p>
+      <p>With maritime experience since 2019, Alfred builds practical digital tools for watchkeepers, navigators, and seafarers.</p>
+      <p>HELM.WARNING is part of the Helm series of maritime and productivity applications.</p>
+      <p class="dev-links">
+        <strong>Portfolio:</strong> <a href="https://alfredpanakkal.web.app" rel="noopener">alfredpanakkal.web.app</a><br>
+        <strong>LinkedIn:</strong> <a href="https://www.linkedin.com/in/alfredpanakkal" rel="noopener">linkedin.com/in/alfredpanakkal</a>
+      </p>
+      <details class="info-sub">
+        <summary>Full biography &amp; Helm applications →</summary>
+        <div class="info-sub-body">
+          <p>Helm.Warning is built by <strong>Alfred Panakkal Jose</strong> — a Full-Stack Developer and serving Third Officer with over 2 years of experience as Third Officer and active in the maritime field since 2019.</p>
+          <p>Having worked on ocean-going oil tankers, he has first-hand experience of the real difficulties faced by seafarers — limited connectivity, high operational pressure, and the constant need for reliable tools at sea. This practical understanding shapes the way he builds software: simple, fast, offline-friendly, and focused on actual bridge and operational needs.</p>
+          <p>Alongside his sea-going career, Alfred has developed several maritime and productivity web applications under the <strong>Helm</strong> series, including:</p>
+          <ul>
+            <li><strong>Helm Almanac</strong> – Maritime reference and vessel schedule tool</li>
+            <li><strong>Helm Productivity</strong> – Watchkeeping and task management suite for seafarers</li>
+            <li><strong>Helm Bond</strong> – Networking and bond store management platform</li>
+            <li><strong>Helm Fasting</strong> – Health companion designed for long voyages</li>
+            <li><strong>Navarea Warning Plotter</strong> and other utility tools</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+  </details>
+</div>
+
+<div class="tab-panel" id="tab-sources" role="tabpanel" aria-labelledby="more-item-sources" hidden>
+  <div class="page-header">
+    <div><h2>Sources &amp; Coverage</h2><p class="subtitle">The complete registry of the 21 NAVAREA regions, their coordinators and feed status.</p></div>
+  </div>
   <details class="info-section" open id="source-registry">
     <summary>Source Registry — the 21 NAVAREA regions</summary>
     <div class="info-section-body">
@@ -911,75 +1037,36 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
       <p>Helm.Warning ingests each region and plots the parsed warnings on the <a href="/">live map</a>. Every card carries an ingestion status: <span class="feed-badge feed-ok">green</span> = automated ingestion from a verified official feed; <span class="feed-badge feed-warn">amber</span> = not reliable, the source does not permit automatic crawling (bot-protected portal or no accessible publication endpoint), so data may be stale; <span class="feed-badge feed-none">grey</span> = no automated feed yet, warnings entered through the reviewed admin pipeline rather than an unofficial source. Regions with a verified source portal also link to it directly below the card.</p>
     </div>
   </details>
-  <details class="info-section">
-    <summary>Disclaimer</summary>
+</div>
+
+<div class="tab-panel" id="tab-appearance" role="tabpanel" aria-labelledby="more-item-appearance" hidden>
+  <div class="page-header">
+    <div><h2>Appearance</h2><p class="subtitle">Choose a display theme for your station and time of day.</p></div>
+  </div>
+  <details class="info-section" open>
+    <summary>Display Theme</summary>
     <div class="info-section-body">
-      <div class="disclaimer-box">
-        <p>Helm.Warning is a situational-awareness tool. It shows a convenience copy of NAVAREA and other maritime safety warnings gathered from public sources. It is not an official source of Maritime Safety Information.</p>
-        <p>The map can lag behind the original broadcasts, miss warnings, or show them incorrectly. Always check the official broadcast (NAVTEX, SafetyNET, or the issuing authority) before relying on any warning.</p>
-        <p>Official broadcasts and the Master's judgment take priority over anything shown here. Under SOLAS, responsibility for the safe navigation of the vessel stays with the Master. Helm.Warning must not be used as the sole or primary source for passage planning or navigation decisions.</p>
-      </div>
-    </div>
-  </details>
-  <details class="info-section">
-    <summary id="info-developer">About the Developer</summary>
-    <div class="info-section-body">
-      <p>Helm.Warning is built by <strong>Alfred Panakkal Jose</strong> — a Full-Stack Developer and serving Third Officer with over 2 years of experience as Third Officer and active in the maritime field since 2019.</p>
-      <p>Having worked on ocean-going oil tankers, he has first-hand experience of the real difficulties faced by seafarers — limited connectivity, high operational pressure, and the constant need for reliable tools at sea. This practical understanding shapes the way he builds software: simple, fast, offline-friendly, and focused on actual bridge and operational needs.</p>
-      <p>Alongside his sea-going career, Alfred has developed several maritime and productivity web applications under the <strong>Helm</strong> series, including:</p>
-      <ul>
-        <li><strong>Helm Almanac</strong> – Maritime reference and vessel schedule tool</li>
-        <li><strong>Helm Productivity</strong> – Watchkeeping and task management suite for seafarers</li>
-        <li><strong>Helm Bond</strong> – Networking and bond store management platform</li>
-        <li><strong>Helm Fasting</strong> – Health companion designed for long voyages</li>
-        <li><strong>Navarea Warning Plotter</strong> and other utility tools</li>
-      </ul>
-      <p class="dev-links">
-        <strong>Portfolio:</strong> <a href="https://alfredpanakkal.web.app" rel="noopener">alfredpanakkal.web.app</a><br>
-        <strong>LinkedIn:</strong> <a href="https://www.linkedin.com/in/alfredpanakkal" rel="noopener">linkedin.com/in/alfredpanakkal</a>
-      </p>
-    </div>
-  </details>
-  <details class="info-section" aria-labelledby="info-theme-heading">
-    <summary id="info-theme-heading">Display &amp; Watch Themes</summary>
-    <div class="info-section-body">
-      <p>Helm.Warning follows the watch. Pick the theme that suits your station and time of day — your choice is saved on this device and applies across the site, including the live map.</p>
-      <div class="theme-picker" role="group" aria-label="Choose theme">
+      <p>Your preference is saved on this device and applies across HELM.WARNING, including the live map.</p>
+      <div class="theme-picker rows" role="group" aria-label="Choose theme">
         <button type="button" class="theme-option" data-theme-set="light" aria-pressed="true">
-          <span class="theme-option-name">Chart paper</span>
-          <span class="theme-option-desc">Light — desk &amp; passage planning</span>
+          <span class="theme-option-name">Chart Paper</span>
+          <span class="theme-option-desc">Light · Daytime</span>
         </button>
         <button type="button" class="theme-option" data-theme-set="dark" aria-pressed="false">
           <span class="theme-option-name">Bridge</span>
-          <span class="theme-option-desc">Dark — the main bridge look</span>
+          <span class="theme-option-desc">Dark · Main bridge</span>
         </button>
         <button type="button" class="theme-option" data-theme-set="night" aria-pressed="false">
-          <span class="theme-option-name">Red watch</span>
-          <span class="theme-option-desc">Night — dim reds to protect night vision</span>
+          <span class="theme-option-name">Red Watch</span>
+          <span class="theme-option-desc">Night · Reduced brightness</span>
+        </button>
+        <button type="button" class="theme-option" data-theme-set="system" aria-pressed="false">
+          <span class="theme-option-name">System</span>
+          <span class="theme-option-desc">Follow device preference</span>
         </button>
       </div>
-      <p>Red watch is intentionally dim. These colours are calculated, not tested on a bridge display — try it at night on your own device and adjust screen brightness until it is comfortable. Severity colours keep the same meaning in every theme: a Critical warning always looks Critical.</p>
-    </div>
-  </details>
-  <details class="info-section" open id="faq">
-    <summary>FAQ — common questions</summary>
-    <div class="info-section-body">
-      <h3>Is Helm.Warning free?</h3>
-      <p>Yes — completely. There is no account, no sign-up and no paid tier. The map, the regional pages and every warning detail page are open to everyone.</p>
-      <h3>What is a NAVAREA warning?</h3>
-      <p>Navigational warnings are urgent maritime safety messages about hazards to navigation — firing exercises, drifting mines or containers, subsea cable or salvage works, offshore rigs, disabled vessels and similar dangers. The world's oceans are divided into 21 <strong>NAVAREA</strong> regions, each with one national coordinator that issues, updates and cancels its warnings under the World-Wide Navigational Warning Service (WWNWS).</p>
-      <h3>Where does the data come from?</h3>
-      <p>Directly from the official NAVAREA coordinators — hydrographic offices and maritime authorities such as the UKHO, NGA, India's NHO, the Japan Coast Guard and AMSA. Helm.Warning ingests their published feeds, parses the coordinates and plots the hazards; the original, unmodified bulletin text is always shown with each warning.</p>
-      <h3>How fresh is it?</h3>
-      <p>Verified automated feeds are ingested daily (some more often); the public pages are refreshed on every deploy. Because warnings can be cancelled or superseded at any time, always re-check against the official source before acting on a warning.</p>
-      <h3>Can I use it for passage planning?</h3>
-      <p>Yes, as a situational-awareness and planning aid. But Helm.Warning is a convenience copy, not an official MSI distributor: it may be delayed or incomplete, and it is never a replacement for GMDSS broadcasts, ECDIS or the official publications issued by national authorities.</p>
-      <h3>Why does my region show no warnings?</h3>
-      <p>Either the coordinator currently has no warnings in force, or the region has no verified automated feed yet (see the source registry above — some regions are ingested manually). A quiet region is normal; absence of warnings never means the waters are guaranteed clear.</p>
-      <h3>Does it work at sea, on a slow connection?</h3>
-      <p>The site is deliberately lightweight: no heavy frameworks on the public pages, cached nautical tiles and a red night theme that protects night vision. It still needs a connection to fetch the live warning list — download or copy the bulletins you need before losing connectivity.</p>
-      <h3>Who builds and maintains it?</h3>
-      <p>A serving deck officer, built for watchkeepers — see <a href="#info-developer">About the Developer</a> below. Feedback and source corrections are welcome.</p>
+      <p>Red Watch is designed for reduced-light viewing. Its colours have not been tested or certified for bridge displays. Adjust your device brightness for comfortable viewing.</p>
+      <p>Severity colours retain the same meaning across all themes.</p>
     </div>
   </details>
 </div>
@@ -1144,9 +1231,22 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
   var KEY = 'hw-theme';
   var META = { light: '#FAFAF7', dark: '#0E1210', night: '#080404' };
   var btns = Array.prototype.slice.call(document.querySelectorAll('[data-theme-set]'));
-  function current() {
-    try { var t = localStorage.getItem(KEY); return (t === 'dark' || t === 'night') ? t : 'light'; }
+  function stored() {
+    try { var t = localStorage.getItem(KEY); return (t === 'dark' || t === 'night' || t === 'system') ? t : 'light'; }
     catch (e) { return 'light'; }
+  }
+  function resolve(t) {
+    if (t === 'dark' || t === 'night') return t;
+    if (t === 'system') {
+      try { return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'; }
+      catch (e) { return 'light'; }
+    }
+    return 'light';
+  }
+  function apply(t) {
+    document.documentElement.setAttribute('data-theme', resolve(t));
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', META[resolve(t)] || META.light);
   }
   function paint(t) {
     btns.forEach(function (b) {
@@ -1156,16 +1256,21 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
   btns.forEach(function (b) {
     b.addEventListener('click', function () {
       var t = b.getAttribute('data-theme-set');
-      if (t !== 'dark' && t !== 'night') t = 'light';
+      if (t !== 'dark' && t !== 'night' && t !== 'system') t = 'light';
       try { localStorage.setItem(KEY, t); } catch (e) { /* private mode: not persisted */ }
-      document.documentElement.setAttribute('data-theme', t);
-      var m = document.querySelector('meta[name="theme-color"]');
-      if (m) m.setAttribute('content', META[t]);
+      apply(t);
       paint(t);
     });
   });
-  paint(current());
+  paint(stored());
+  try {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    var onChange = function () { if (stored() === 'system') apply('system'); };
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  } catch (e) { /* matchMedia unavailable: System resolves once at load */ }
 })();
+
 </script>
 </body>
 </html>
