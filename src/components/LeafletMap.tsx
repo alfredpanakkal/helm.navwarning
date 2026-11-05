@@ -32,7 +32,7 @@ import {
 import { getLeafletLatLng } from '../utils/coordinateParser';
 import { useMapNavigation } from '../hooks/useMapNavigation';
 import { useMapFocus } from '../hooks/useMapFocus';
-import { formatDecimalCoordinates, type CoordinateParseError } from '../utils/coordinateConversion';
+import { formatDecimalCoordinates, formatPositionDisplay, type CoordinateParseError } from '../utils/coordinateConversion';
 import { NAVAREA_ZONE_LIST, NAVAREA_ZONES_BY_ID } from '../utils/navareaZones';
 import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
 import { useMapLayers, WarningSeverityLevel } from '../hooks/useMapLayers';
@@ -1048,7 +1048,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       setJumpFeedback({
         lat: result.lat,
         lng: result.lng,
-        nautical: result.nauticalFormatted,
+        nautical: formatPositionDisplay(result.lat, result.lng),
         format: result.format,
       });
 

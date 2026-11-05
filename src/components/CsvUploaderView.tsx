@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { NavWarning, NavAreaId } from '../types';
 import { parseCoordinatesDeterministic, NAVAREA_BOUNDS } from '../utils/coordinateParser';
+import { formatPositionDisplay } from '../utils/coordinateConversion';
 import {
   parseMarkdownToWarnings,
   SAMPLE_MARKDOWN_TABLE,
@@ -1637,8 +1638,8 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                   parsedWarnings.map((warn, i) => {
                     const hasGps = (warn.latitude != null && warn.longitude != null) || (warn.spatial?.geometries?.length > 0);
                     const firstGeomCoords = warn.spatial?.geometries?.[0]?.coordinates as number[] | undefined;
-                    const latDisplay = warn.latitude != null ? warn.latitude.toFixed(4) : firstGeomCoords?.[1]?.toFixed(4);
-                    const lngDisplay = warn.longitude != null ? warn.longitude.toFixed(4) : firstGeomCoords?.[0]?.toFixed(4);
+                    const latDisplay = warn.latitude != null ? warn.latitude : firstGeomCoords?.[1];
+                    const lngDisplay = warn.longitude != null ? warn.longitude : firstGeomCoords?.[0];
                     const isAiAssessed = Boolean(warn.ai_triage);
 
                     return (
@@ -1709,7 +1710,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                               <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2.5 py-1 rounded uppercase">
                                 <Compass className="w-3.5 h-3.5 text-emerald-600" />
                                 <span>
-                                  {latDisplay && lngDisplay ? `${latDisplay}°, ${lngDisplay}°` : 'GPS Position Validated'}
+                                  {latDisplay != null && lngDisplay != null ? formatPositionDisplay(latDisplay, lngDisplay) : 'GPS Position Validated'}
                                 </span>
                               </span>
                             ) : (

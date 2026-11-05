@@ -14,6 +14,7 @@ import {
   AmbiguousPosition,
   RadiusSpecification,
 } from '../types.js';
+import { formatPositionDisplay } from './coordinateConversion.js';
 
 export const NAVAREA_BOUNDS: Record<NavAreaId, BoundingBox> = {
   I: { minLat: 48, maxLat: 75, minLng: -30, maxLng: 30 },
@@ -929,14 +930,14 @@ export function formatSpatialCoordinates(spatial: SpatialData | undefined | null
   if (spatial.circles && spatial.circles.length > 0 && Array.isArray(spatial.circles[0].center)) {
     const [lng, lat] = spatial.circles[0].center;
     if (typeof lng === 'number' && typeof lat === 'number') {
-      return `${lng.toFixed(2)}, ${lat.toFixed(2)}`;
+      return formatPositionDisplay(lat, lng);
     }
   }
   if (spatial.geometries && spatial.geometries.length > 0) {
     for (const g of spatial.geometries) {
       const pt = findFirstPoint(g?.coordinates);
       if (pt && typeof pt[0] === 'number' && typeof pt[1] === 'number') {
-        return `${pt[0].toFixed(2)}, ${pt[1].toFixed(2)}`;
+        return formatPositionDisplay(pt[1], pt[0]);
       }
     }
   }

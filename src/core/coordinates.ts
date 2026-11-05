@@ -414,7 +414,7 @@ export function parseDriftVector(
 }
 
 /**
- * Formats a coordinate pair into clean nautical WGS84 string (e.g., 58°12.34'N 011°15.67'E).
+ * Formats a coordinate pair into the site-wide display standard (e.g., 58° 12.34' N 011° 15.67' E).
  */
 export function formatWgs84Dms(lat: number, lng: number): string {
   if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
@@ -433,8 +433,8 @@ export function formatWgs84Dms(lat: number, lng: number): string {
   const lngDeg = Math.floor(absLng);
   const lngMin = (absLng - lngDeg) * 60;
 
-  const latStr = `${latDeg.toString().padStart(2, '0')}°${latMin.toFixed(2).padStart(5, '0')}'${latHem}`;
-  const lngStr = `${lngDeg.toString().padStart(3, '0')}°${lngMin.toFixed(2).padStart(5, '0')}'${lngHem}`;
+  const latStr = `${latDeg.toString().padStart(2, '0')}° ${latMin.toFixed(2)}' ${latHem}`;
+  const lngStr = `${lngDeg.toString().padStart(3, '0')}° ${latMin.toFixed(2)}' ${lngHem}`;
 
   return `${latStr} ${lngStr}`;
 }

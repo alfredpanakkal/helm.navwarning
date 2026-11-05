@@ -65,6 +65,28 @@ export function formatNauticalCoordinates(lat: number, lng: number): string {
 }
 
 /**
+ * Site-wide display standard (matches the public site):
+ * degrees + decimal minutes, spaced style — e.g. 25° 54.71' N 065° 52.02' E
+ * Latitude degrees padded to 2 digits, longitude to 3; minutes to 2 decimals.
+ */
+export function formatPositionDisplay(lat: number, lng: number): string {
+  if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+    return 'N/A';
+  }
+  const fmt = (value: number, pos: string, neg: string, pad: number) => {
+    const abs = Math.abs(value);
+    let deg = Math.floor(abs);
+    let min = (abs - deg) * 60;
+    if (Number(min.toFixed(2)) >= 60) {
+      deg += 1;
+      min = 0;
+    }
+    return `${String(deg).padStart(pad, '0')}° ${min.toFixed(2)}' ${value >= 0 ? pos : neg}`;
+  };
+  return `${fmt(lat, 'N', 'S', 2)} ${fmt(lng, 'E', 'W', 3)}`;
+}
+
+/**
  * Formats coordinates into standard decimal degree string: e.g. "55.3983, 003.8116"
  */
 export function formatDecimalCoordinates(lat: number, lng: number, decimals: number = 4): string {

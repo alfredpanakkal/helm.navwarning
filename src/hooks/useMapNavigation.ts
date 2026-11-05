@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import L from 'leaflet';
 import {
-  formatNauticalCoordinates,
+  formatPositionDisplay,
   formatDecimalCoordinates,
   parseCoordinatesFlexible,
   copyToClipboard,
@@ -10,7 +10,7 @@ import {
 import { NavWarning } from '../types';
 
 export interface CursorCoordinateState {
-  /** Nautical DMM notation: "DD-MM.MM'N DDD-MM.MM'E" */
+  /** Display standard: 25° 54.71' N 065° 52.02' E */
   nauticalString: string;
   /** Raw decimal coordinates: [lat, lng] */
   rawDecimal: [number, number] | null;
@@ -61,7 +61,7 @@ export function useMapNavigation(
 
       // Normalize longitude within -180..180 for display
       const normalizedLng = L.Util.wrapNum(lng, [-180, 180]);
-      const nautical = formatNauticalCoordinates(lat, normalizedLng);
+      const nautical = formatPositionDisplay(lat, normalizedLng);
 
       setCursorState((prev) => ({
         ...prev,
@@ -178,7 +178,7 @@ export function useMapNavigation(
 
       const lat = customAnchor ? customAnchor[0] : (e.latlng ? e.latlng.lat : (warning.latitude || 0));
       const lng = customAnchor ? customAnchor[1] : (e.latlng ? e.latlng.lng : (warning.longitude || 0));
-      const nautical = formatNauticalCoordinates(lat, lng);
+      const nautical = formatPositionDisplay(lat, lng);
 
       setContextMenu({
         isOpen: true,
