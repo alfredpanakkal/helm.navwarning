@@ -689,7 +689,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
 
   return (
     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[480] w-[calc(100%-24px)] max-w-lg pointer-events-auto">
-      <div className="bg-gw-panel/95 border-2 border-gw-primary rounded-xl shadow-2xl backdrop-blur-xs p-3 space-y-3">
+      <div className="bg-gw-panel/95 border-2 border-gw-primary rounded-xl backdrop-blur-xs p-3 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex items-center gap-2 min-w-0 text-[11px] font-bold uppercase tracking-wider text-gw-primary truncate">
             <PenTool className="w-3.5 h-3.5 shrink-0" />

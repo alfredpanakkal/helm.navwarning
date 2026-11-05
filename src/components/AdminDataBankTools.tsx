@@ -353,7 +353,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
             <button
               type="button"
               onClick={selectAllStale}
-              className="px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 font-medium text-xs transition-colors shadow-2xs cursor-pointer"
+              className="px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 font-medium text-xs transition-colors cursor-pointer"
             >
               Select All {staleWarnings.length} Stale
             </button>
@@ -428,7 +428,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
                 type="button"
                 onClick={runBulkEdit}
                 disabled={bulkRunning || checked.size === 0}
-                className="px-4 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-1.5 min-h-[36px] shadow-2xs cursor-pointer shrink-0"
+                className="px-4 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-1.5 min-h-[36px] cursor-pointer shrink-0"
               >
                 {bulkRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                 <span>{bulkRunning ? 'Applying Changes…' : `Apply to ${checked.size} Selected`}</span>
