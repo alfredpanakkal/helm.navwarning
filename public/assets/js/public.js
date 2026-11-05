@@ -376,6 +376,12 @@ window.switchTab = function(tab){
     mainTab.classList.add('active');
     mainTab.setAttribute('aria-selected', 'true');
   }
+  // More menu stays highlighted while any of its destinations is active
+  const moreBtn = document.getElementById('tab-btn-more');
+  if(moreBtn){
+    const inMoreGroup = (tab === 'info' || tab === 'sources' || tab === 'appearance');
+    moreBtn.classList.toggle('active', inMoreGroup);
+  }
 
   const isMap = (tab === 'map');
   document.body.classList.toggle('tab-map-active', isMap);
@@ -392,6 +398,17 @@ window.switchTab = function(tab){
   } else {
     window.scrollTo({top:0,behavior:'smooth'});
   }
+};
+
+// More menu — compact dropdown (desktop) / bottom sheet (mobile)
+window.toggleMoreMenu = function(force){
+  const menu = document.getElementById('moreMenu');
+  const btn = document.getElementById('tab-btn-more');
+  if(!menu) return;
+  const open = (typeof force === 'boolean') ? force : menu.hidden;
+  menu.hidden = !open;
+  if(btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  document.body.classList.toggle('more-menu-open', open);
 };
 
 window.toggleAdvancedFilters = function(explicitState){
@@ -2416,15 +2433,9 @@ window.toggleStatSummary = function(){
   btn.setAttribute('aria-expanded', show ? 'true' : 'false');
 };
 function populateSources(){
-  const g=document.getElementById('sourcesGrid');
-  if(!g) return;
-  g.innerHTML='';
-  [["I","UK Hydrographic Office","msi.admiralty.co.uk",4],["Baltic","Swedish Maritime Admin","sjofartsverket.se",2],["II","SHOM (France)","diffusion.shom.fr",3],["III","IHM (Spain)","armada.defensa.gob.es",3],["IV, XII","NGA (USA)","msi.nga.mil",5],["V","CHM (Brazil)","marinha.mil.br",2],["VI","SHN (Argentina)","hidro.gov.ar",1],["VII","SANHO (South Africa)","sanho.co.za",2],["VIII","INHO (India)","hydrobharat.gov.in",3],["IX","Pakistan Hydro Dept","hydrography.paknavy.gov.pk",2],["X","AMSA (Australia)","amsa.gov.au",4],["XI","Japan Coast Guard","kaiho.mlit.go.jp",3],["XIV","Maritime New Zealand","maritimenz.govt.nz",2],["XV","SHOA (Chile)","shoa.cl",2]].forEach(([r,p,u,n])=>{
-    const un=["V","VI","XV"].includes(r);
-    const d=document.createElement('div'); d.className='source-card';
-    d.innerHTML=`<div class="source-header"><div><div class="source-name">${r}</div><div class="source-region">${p}</div></div>${un?badge('neutral','⋯'):badge('verified','✓')}</div><div class="source-count">${n} active warnings</div><a href="https://${u}" target="_blank" rel="noopener" class="source-url">${u}</a>`;
-    g.appendChild(d);
-  });
+  // Removed with the Info-page refactor: the preview grid moved to the
+  // Sources & Coverage registry panel (see /?tab=sources). Kept as a no-op
+  // so any legacy deep link or bookmark calling it stays harmless.
 }
 window.refreshData = async function(){
   await loadWarnings();
@@ -2579,7 +2590,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   // (linked from the prerendered /about, /navarea and warning pages).
   try {
     const wantedTab = new URLSearchParams(window.location.search).get('tab');
-    if (wantedTab === 'data' || wantedTab === 'info') switchTab(wantedTab);
+    if (wantedTab === 'data' || wantedTab === 'info' || wantedTab === 'sources' || wantedTab === 'appearance') switchTab(wantedTab);
   } catch (tabLinkErr) { /* ignore malformed query strings */ }
   const isMap = document.getElementById('tab-map')?.classList.contains('active') ?? true;
   document.body.classList.toggle('tab-map-active', isMap);
@@ -2598,6 +2609,14 @@ document.addEventListener('click', (e) => {
   if (popover && popover.classList.contains('open')) {
     if (!popover.contains(e.target) && !btn?.contains(e.target)) {
       closeMapSettings();
+    }
+  }
+  // Click outside to dismiss the More menu
+  const moreMenu = document.getElementById('moreMenu');
+  const moreBtn = document.getElementById('tab-btn-more');
+  if (moreMenu && !moreMenu.hidden) {
+    if (!moreMenu.contains(e.target) && !moreBtn?.contains(e.target)) {
+      window.toggleMoreMenu(false);
     }
   }
 });
@@ -2619,6 +2638,11 @@ document.addEventListener('keydown', (e) => {
     const sheet = document.getElementById('mapSettingsSheet');
     if ((popover && popover.classList.contains('open')) || (sheet && sheet.classList.contains('open'))) {
       closeMapSettings();
+      return;
+    }
+    const moreMenu = document.getElementById('moreMenu');
+    if (moreMenu && !moreMenu.hidden) {
+      window.toggleMoreMenu(false);
       return;
     }
     if (document.body.classList.contains('map-focus-active')) {
