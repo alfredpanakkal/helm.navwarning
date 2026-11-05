@@ -61,6 +61,15 @@ export const Header: React.FC<HeaderProps> = ({
     }
   }, [loginPrompt, isAdminMode]);
 
+  // Re-auth on expiry: a save that returned 401 asks for the sign-in modal.
+  // Deliberately does NOT touch isAdminMode (that would gate the console
+  // and unmount any open editor, losing the unsaved edit).
+  useEffect(() => {
+    const open = () => setShowAdminModal(true);
+    window.addEventListener('hw:reauth-required', open);
+    return () => window.removeEventListener('hw:reauth-required', open);
+  }, []);
+
   // Synchronize initial session state on component mount
   useEffect(() => {
     async function checkInitialAdminSession() {
@@ -326,7 +335,11 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Admin Unlock Modal Overlay */}
       {showAdminModal && (
-        <div className="fixed inset-0 z-console-overlay bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+        {/* Above the edit drawer (z-console-overlay-raised, 70) AND the map
+          geometry editor bar (z-[480]): no stacking token exceeds 480, so
+          the arbitrary-value pattern already used by the editor bar is
+          reused here. */}
+      <div className="fixed inset-0 z-[490] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div ref={adminModalRef} role="dialog" aria-modal="true" aria-labelledby="admin-gate-title" className="bg-gw-panel border border-gw-primary rounded-lg max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-gw-secondary pb-3">
               <div className="flex items-center gap-2 font-medium text-sm sm:text-base text-gw-primary tracking-wide">

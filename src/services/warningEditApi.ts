@@ -101,10 +101,18 @@ export async function saveWarningEdit(args: {
 
   const data = await res.json().catch(() => ({} as any));
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      // Session expired or missing. Ask the console to open the sign-in
+      // modal. Never navigate: the editor must stay mounted so the
+      // unsaved edit is kept.
+      window.dispatchEvent(new CustomEvent('hw:reauth-required'));
+    }
     return {
       ok: false,
       status: res.status,
-      error: data?.error || `Edit failed (HTTP ${res.status})`,
+      error: res.status === 401
+        ? 'Session expired. Sign in again, then press Save. Your edit is kept.'
+        : data?.error || `Edit failed (HTTP ${res.status})`,
       code: data?.code,
       conflict: res.status === 409 ? data?.current : undefined,
     };
