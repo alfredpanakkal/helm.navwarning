@@ -2574,6 +2574,235 @@ window.showToast = function(m){
   clearTimeout(toastTimeout); toastTimeout=setTimeout(()=>t.classList.remove('show'),2600);
 };
 
+
+// ═══════════ MAP INTERROGATE (right-click / toolbar button) ═══════════
+// Right-click the chart to interrogate directly: a fixed square centred
+// on the cursor and lists every in-scope warning whose geometry intersects
+// it. Clicking a result opens the standard warning details modal (the same
+// window a map marker opens). Interrogation is client-side: the page
+// already holds all active rows with geometries, so the result is instant.
+// Desktop interaction for now — touch devices have no context menu; a
+// toolbar entry can follow later.
+
+const INTERROGATE_SQUARE_PX = 100; // full width & height: a 100 × 100 px box on screen, zoom-independent
+let interrogateBox = null;
+let interrogateSetupDone = false;
+let interrogatePopup = null;
+
+// Toolbar mode (btnInterrogate, mirrors toggleCoordMode): while active, a
+// plain left-click on the chart interrogates the 10 NM box centred on the
+// cursor. Only one cursor tool at a time — enabling interrogation switches
+// the coordinate picker off. Escape or the button itself exits the mode.
+let interrogateModeActive = false;
+
+function toggleInterrogateMode(force) {
+  interrogateModeActive = (typeof force === 'boolean') ? force : !interrogateModeActive;
+  document.body.classList.toggle('interrogate-mode-active', interrogateModeActive);
+  const btn = document.getElementById('btnInterrogate');
+  if (btn) {
+    btn.classList.toggle('is-active', interrogateModeActive);
+    btn.setAttribute('aria-pressed', String(interrogateModeActive));
+  }
+  if (interrogateModeActive && typeof coordModeActive !== 'undefined' && coordModeActive) toggleCoordMode(false);
+  if (!interrogateModeActive) clearInterrogate();
+}
+window.toggleInterrogateMode = toggleInterrogateMode;
+
+function interrogateBoundsAt(latlng) {
+  // Pixel-sized interrogation box: a 100 × 100 px square on screen, centred
+  // on the cursor. The geographic footprint follows the current zoom —
+  // tighter when zoomed in, wider when zoomed out — which matches how the
+  // user "sees" the chart at that moment.
+  const center = leafletMap.latLngToContainerPoint(latlng);
+  const half = INTERROGATE_SQUARE_PX / 2;
+  return L.latLngBounds(
+    leafletMap.containerPointToLatLng([center.x - half, center.y - half]),
+    leafletMap.containerPointToLatLng([center.x + half, center.y + half])
+  );
+}
+
+// Flattens a GeoJSON blob into a list of [lat, lng] vertices.
+function interrogateVertices(blob, out) {
+  if (!blob || !Array.isArray(blob.coordinates)) return;
+  const walk = (node) => {
+    if (!Array.isArray(node)) return;
+    if (typeof node[0] === 'number' && typeof node[1] === 'number') {
+      out.push([node[1], node[0]]); // GeoJSON stores [lng, lat]
+      return;
+    }
+    for (const child of node) walk(child);
+  };
+  walk(blob.coordinates);
+}
+
+// A warning matches when any geometry vertex lies inside the box, or the
+// box contains its representative position. Per-geometry vertex testing
+// (not just the envelope) keeps false positives out of dense areas.
+function warningIntersectsBounds(w, box) {
+  const geoms = (Array.isArray(w.geometries) && w.geometries.length > 0 && w.geometries) ||
+    (w.spatial && Array.isArray(w.spatial.geometries) && w.spatial.geometries) || [];
+  for (const g of geoms) {
+    const blob = g.geojson_blob || (g.coordinates ? { type: g.type, coordinates: g.coordinates } : null);
+    const verts = [];
+    interrogateVertices(blob, verts);
+    for (const v of verts) {
+      if (box.contains(L.latLng(v[0], v[1]))) return true;
+    }
+  }
+  const lat = Number(w.latitude ?? w.lat);
+  const lng = Number(w.longitude ?? w.lng);
+  if (!isNaN(lat) && !isNaN(lng) && box.contains(L.latLng(lat, lng))) return true;
+  return false;
+}
+
+function clearInterrogate() {
+  if (interrogateBox) { interrogateBox.remove(); interrogateBox = null; }
+  if (interrogatePopup) { interrogatePopup.remove(); interrogatePopup = null; }
+}
+
+function runInterrogate(latlng) {
+  clearInterrogate();
+  const box = interrogateBoundsAt(latlng);
+  interrogateBox = L.rectangle(box, {
+    color: '#dc2626',
+    weight: 2,
+    dashArray: '6, 4',
+    fillColor: '#dc2626',
+    fillOpacity: 0.06,
+    interactive: false
+  }).addTo(leafletMap);
+  // Same in-scope rule as filterMapByNavArea: the region filter (plus
+  // unscoped warnings) decides what the chart shows, so it decides what
+  // interrogation reports. #dc2626 mirrors the --critical token.
+  const inScope = warnings.filter(w => w.status !== 'rejected' && (matchesNavArea(w.navarea, currentSelectedNavArea) || isNavAreaUnscoped(w.navarea)));
+  const hits = inScope.filter(w => warningIntersectsBounds(w, box));
+  showInterrogatePopup(latlng, hits);
+}
+
+function showInterrogatePopup(latlng, hits) {
+  const container = document.querySelector('.map-container');
+  if (!container) return;
+  if (interrogatePopup) { interrogatePopup.remove(); interrogatePopup = null; }
+  const popup = document.createElement('div');
+  popup.className = 'interrogate-popup';
+  popup.setAttribute('role', 'dialog');
+  popup.setAttribute('aria-label', 'Navigational warnings in interrogated area');
+
+  const header = document.createElement('div');
+  header.className = 'interrogate-popup-head';
+  const title = document.createElement('strong');
+  title.textContent = (hits.length === 1 ? '1 warning' : hits.length + ' warnings') + ' within ' + INTERROGATE_SQUARE_PX + ' px';
+  header.appendChild(title);
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'interrogate-popup-close';
+  closeBtn.setAttribute('aria-label', 'Close interrogation results');
+  closeBtn.textContent = '\u2715';
+  closeBtn.addEventListener('click', clearInterrogate);
+  header.appendChild(closeBtn);
+  popup.appendChild(header);
+
+  const posLine = document.createElement('div');
+  posLine.className = 'interrogate-popup-pos';
+  posLine.textContent = formatDMD(latlng.lat, latlng.lng);
+  popup.appendChild(posLine);
+
+  if (hits.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'interrogate-popup-empty';
+    empty.textContent = 'No navigational warnings inside this area.';
+    popup.appendChild(empty);
+  } else {
+    const list = document.createElement('div');
+    list.className = 'interrogate-popup-list';
+    list.setAttribute('role', 'list');
+    hits.forEach((w) => {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'interrogate-popup-item';
+      row.setAttribute('role', 'listitem');
+      const dot = document.createElement('span');
+      dot.className = 'interrogate-popup-dot';
+      dot.style.background = getWarningColor(w);
+      row.appendChild(dot);
+      const area = document.createElement('span');
+      area.className = 'interrogate-popup-area';
+      area.textContent = w.navarea || '';
+      row.appendChild(area);
+      const name = document.createElement('span');
+      name.className = 'interrogate-popup-title';
+      name.textContent = (w.canonical_id || w.warning_id || '') + (w.title ? ' \u2014 ' + w.title : '');
+      row.appendChild(name);
+      row.addEventListener('click', () => openWarningDetails(w));
+      list.appendChild(row);
+    });
+    popup.appendChild(list);
+  }
+  container.appendChild(popup);
+  interrogatePopup = popup;
+
+  // Position beside the interrogation point, clamped inside the container.
+  const point = leafletMap.latLngToContainerPoint(latlng);
+  const maxLeft = Math.max(8, container.clientWidth - popup.offsetWidth - 8);
+  const maxTop = Math.max(8, container.clientHeight - popup.offsetHeight - 8);
+  popup.style.left = Math.min(Math.max(8, point.x + 14), maxLeft) + 'px';
+  popup.style.top = Math.min(Math.max(8, point.y - popup.offsetHeight - 14), maxTop) + 'px';
+
+  closeBtn.focus();
+  popup.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') { ev.stopPropagation(); clearInterrogate(); }
+  });
+  // Re-arm cleanly: drop any earlier pending once-handler before adding
+  // a new one, so repeated interrogations without a pan don't stack.
+  leafletMap.off('movestart', clearInterrogate);
+  leafletMap.once('movestart', clearInterrogate);
+}
+
+function setupInterrogate(map) {
+  if (interrogateSetupDone || !map) return;
+  interrogateSetupDone = true;
+
+  // Right-click anywhere on the chart = interrogate directly (no menu
+  // step). A native contextmenu listener on the map container in the
+  // CAPTURE phase fires before Leaflet's own handlers, even over markers
+  // and tiles, and suppresses the browser's context menu. Right-clicks
+  // aimed at real UI controls (buttons, links, popovers) are left alone.
+  map.getContainer().addEventListener('contextmenu', (ev) => {
+    const t = ev.target;
+    if (t && t.closest && t.closest('button, a, input, select, .interrogate-popup, .map-settings-popover, .map-settings-sheet, .map-settings-scrim')) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    let latlng = null;
+    try { latlng = map.mouseEventToLatLng(ev); } catch (err) { latlng = null; }
+    if (latlng) runInterrogate(latlng);
+  }, true);
+
+  // Toolbar mode (btnInterrogate): while active, a plain left-click on the
+  // chart interrogates the 10 NM box centred on the cursor. The coordinate
+  // picker keeps priority when both are somehow active.
+  map.on('click', (e) => {
+    if (interrogateModeActive && !coordModeActive) runInterrogate(e.latlng);
+  });
+
+  // Escape exits interrogation mode (the results popup handles its own
+  // Escape first, with stopPropagation, so this fires for the bare map).
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
+    if (interrogateModeActive) toggleInterrogateMode(false);
+  });
+}
+
+// The Leaflet instance is created inside the main init handler further down
+// this file. A DOMContentLoaded listener registered HERE would fire BEFORE
+// the main init one (registration order decides, not source position), so a
+// same-tick lookup would miss it — that dead hookup was why interrogation
+// never wired up. Poll until the map exists, then attach exactly once.
+(function setupInterrogateWhenReady(attempt) {
+  if (window.leafletMap) { setupInterrogate(window.leafletMap); return; }
+  if (attempt > 100) return; // ~10s: give up quietly; the site still works
+  setTimeout(() => setupInterrogateWhenReady(attempt + 1), 100);
+})(0);
+
 // ═══════════ INIT ═══════════
 // Shows when the warning database was last updated (max nav_warnings.updated_at).
 async function updateDataFreshness() {
