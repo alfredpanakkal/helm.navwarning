@@ -497,6 +497,23 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                     {warning.status_basis || 'In-force feed'}
                   </div>
                 </div>
+                <div className="col-span-2 sm:col-span-4">
+                  <div className="text-gw-accent uppercase font-bold text-[10px]">Supabase Row ID (nav_warnings.id)</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const uuid = (warning as any).db_uuid;
+                      if (uuid) handleCopy(uuid, 'uuid');
+                    }}
+                    disabled={!(warning as any).db_uuid}
+                    title={(warning as any).db_uuid ? 'Copy Supabase row id' : 'No Supabase row id on this record'}
+                    className={`max-w-full truncate inline-block px-2 py-0.5 bg-gw-panel border rounded font-bold ${
+                      copiedType === 'uuid' ? 'text-emerald-700 border-emerald-300' : 'text-gw-primary border-gw-secondary hover:text-gw-accent'
+                    }`}
+                  >
+                    {(warning as any).db_uuid ? (copiedType === 'uuid' ? 'Copied!' : (warning as any).db_uuid) : '—'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
