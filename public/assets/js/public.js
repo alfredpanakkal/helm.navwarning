@@ -582,6 +582,13 @@ function matchesNavArea(warnArea, targetArea) {
   return normWarn === normTarget;
 }
 
+// A warning is "unscoped" when its navarea is not a real NAVAREA I..XXI
+// (blank, Baltic, etc.). It is shown in every NAVAREA view, never hidden.
+function isNavAreaUnscoped(warnArea) {
+  const n = String(warnArea ?? '').trim().toUpperCase().replace(/^NAVAREA\s+/, '').replace(/^NA\s+/, '');
+  return !/^(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV|XVI|XVII|XVIII|XIX|XX|XXI)$/.test(n);
+}
+
 // ═══════════ CARTOGRAPHIC MATH HELPERS ═══════════
 function computePolygonAreaSqNm(latLngs) {
   if (!Array.isArray(latLngs) || latLngs.length < 3) return 0;
@@ -1571,6 +1578,7 @@ function addMarker(w) {
 
 window.filterMapByNavArea = function(navArea) {
   currentSelectedNavArea = navArea || '';
+  try { localStorage.setItem('hw-navarea', currentSelectedNavArea || 'ALL'); } catch (e) { /* private mode: ignore */ }
 
   const mapSelect = document.getElementById('mapNavAreaSelect');
   if (mapSelect && mapSelect.value !== currentSelectedNavArea) {
@@ -1584,7 +1592,7 @@ window.filterMapByNavArea = function(navArea) {
     }
   }
 
-  const filtered = warnings.filter(w => w.status !== 'rejected' && matchesNavArea(w.navarea, currentSelectedNavArea));
+  const filtered = warnings.filter(w => w.status !== 'rejected' && (matchesNavArea(w.navarea, currentSelectedNavArea) || isNavAreaUnscoped(w.navarea)));
 
   // Clear all vector layers
   if (pointsLayer) pointsLayer.clearLayers();
@@ -1614,11 +1622,29 @@ window.filterMapByNavArea = function(navArea) {
     chipCount.textContent = `${filtered.length} live`;
   }
 
+  // Filter-aware subtitle: keeps the honest global count visible with a
+  // one-tap escape hatch back to the Global View.
+  const mSub = document.getElementById('mapSubtitle');
+  if (mSub) {
+    const live = warnings.filter(w => w.status !== 'rejected');
+    const showAll = document.getElementById('mapShowAll');
+    if (!currentSelectedNavArea) {
+      const areas = new Set(live.map(w => w.navarea)).size;
+      mSub.textContent = `${live.length} in-force across ${areas} NAVAREAs`;
+      if (showAll) showAll.setAttribute('hidden', '');
+    } else {
+      const opt = mapSelect?.options[mapSelect.selectedIndex]?.text;
+      const label = opt ? opt.split('·')[0].trim() : currentSelectedNavArea;
+      mSub.textContent = `Showing ${label}: ${filtered.length} of ${live.length} in-force`;
+      if (showAll) showAll.removeAttribute('hidden');
+    }
+  }
+
   const m = getLeafletMap();
   if (m) {
     if (currentSelectedNavArea) {
       const allCoords = [];
-      filtered.forEach(w => {
+      filtered.filter(w => matchesNavArea(w.navarea, currentSelectedNavArea)).forEach(w => {
         if (w._bounds && w._bounds.isValid()) {
           allCoords.push(w._bounds.getSouthWest(), w._bounds.getNorthEast());
         } else if (!isNaN(Number(w.latitude)) && !isNaN(Number(w.longitude))) {
@@ -1758,7 +1784,7 @@ function rebuildMapList(items = null){
   list.querySelectorAll('.warning-item, .warning-item-empty').forEach(e=>e.remove());
   const activeItems = items !== null
     ? items
-    : warnings.filter(w=>w.status!=='rejected' && matchesNavArea(w.navarea, currentSelectedNavArea));
+    : warnings.filter(w=>w.status!=='rejected' && (matchesNavArea(w.navarea, currentSelectedNavArea) || isNavAreaUnscoped(w.navarea)));
 
   if (activeItems.length === 0) {
     const emptyEl = document.createElement('div');
@@ -1959,7 +1985,7 @@ window.locateOnMap = function(){
   const m = getLeafletMap();
   if(currentWarning && m){
     switchTab('map');
-    if(currentWarning.navarea && !matchesNavArea(currentWarning.navarea, currentSelectedNavArea)){
+    if(currentWarning.navarea && !isNavAreaUnscoped(currentWarning.navarea) && !matchesNavArea(currentWarning.navarea, currentSelectedNavArea)){
       filterMapByNavArea(currentWarning.navarea);
     }
 
@@ -2194,7 +2220,7 @@ window.locateOnMapById = function(rawId){
   const w = warnings.find(item => (item.canonical_id || item.warning_id || item.id) === id);
   if (!w) return;
   switchTab('map');
-  if(w.navarea && !matchesNavArea(w.navarea, currentSelectedNavArea)){
+  if(w.navarea && !isNavAreaUnscoped(w.navarea) && !matchesNavArea(w.navarea, currentSelectedNavArea)){
     filterMapByNavArea(w.navarea);
   }
   const m = getLeafletMap();
@@ -2375,7 +2401,7 @@ function getFilteredWarnings(){
 
   return warnings.filter(w=>{
     if(w.status==='rejected') return false;
-    if(na && !matchesNavArea(w.navarea, na)) return false;
+    if(na && !matchesNavArea(w.navarea, na) && !isNavAreaUnscoped(w.navarea)) return false;
     if(sv && w.severity!==sv) return false;
     if(ca && w.category!==ca) return false;
     if(q){
@@ -2404,11 +2430,12 @@ window.applyFilters = function(){
 
   if (na !== undefined && na !== currentSelectedNavArea) {
     currentSelectedNavArea = na || '';
+    try { localStorage.setItem('hw-navarea', currentSelectedNavArea || 'ALL'); } catch (e) { /* private mode: ignore */ }
     const mapSelect = document.getElementById('mapNavAreaSelect');
     if (mapSelect && mapSelect.value !== currentSelectedNavArea) {
       mapSelect.value = currentSelectedNavArea;
     }
-    const filtered = warnings.filter(w=>w.status!=='rejected' && matchesNavArea(w.navarea, currentSelectedNavArea));
+    const filtered = warnings.filter(w=>w.status!=='rejected' && (matchesNavArea(w.navarea, currentSelectedNavArea) || isNavAreaUnscoped(w.navarea)));
     if (markerLayer) {
       markerLayer.clearLayers();
       filtered.forEach(addMarker);
@@ -2597,6 +2624,23 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       }
     }
   } catch (deepLinkErr) { /* ignore malformed query strings */ }
+  // Default view: NAVAREA VIII (Indian waters, India-coordinated) on a first
+  // visit; restore the last choice afterwards. Deep links (?navarea=) above
+  // still take precedence. Stored 'ALL' = Global View; a missing or unknown
+  // value falls back to NA VIII.
+  if (!currentSelectedNavArea) {
+    try {
+      const saved = localStorage.getItem('hw-navarea');
+      const mapSelect = document.getElementById('mapNavAreaSelect');
+      const isKnown = function (v) { return mapSelect && Array.prototype.some.call(mapSelect.options, function (o) { return o.value === v; }); };
+      if (saved === 'ALL') {
+        currentSelectedNavArea = '';
+      } else {
+        currentSelectedNavArea = (saved !== null && saved !== undefined && isKnown(saved)) ? saved : 'NA VIII';
+      }
+      if (mapSelect && mapSelect.value !== currentSelectedNavArea) mapSelect.value = currentSelectedNavArea;
+    } catch (navPrefErr) { currentSelectedNavArea = 'NA VIII'; }
+  }
   // Static-page top-nav deep link: /?tab=data or /?tab=info opens that tab
   // (linked from the prerendered /about, /navarea and warning pages).
   try {
