@@ -71,7 +71,7 @@ silently killed the daily cron once.
 
 ### z-index (PR #65)
 Never introduce magic z values. Use the CSS token scale in `index.css`:
-`--z-console-sticky: 10` < chrome `50` (header/bottom-nav) < overlay `60`
+`--z-console-sticky: 10` < chrome `50` (header) < overlay `60`
 (detail/ingestion/drawer/login scrims) < `fab: 65` < `overlay-raised: 70`
 (edit modal). Sticky strips use `top-[var(--console-sticky-offset)]` (57px).
 Leaflet's internal z-scale is untouched.

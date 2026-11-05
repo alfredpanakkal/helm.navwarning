@@ -543,7 +543,7 @@ export default function App() {
   return (
     <div
       className={`console-app-root min-h-screen bg-gw-bg text-gw-primary font-sans selection:bg-gw-primary selection:text-gw-bg relative ${isRailCollapsed ? 'console-rail-collapsed ' : ''}${
-        isMapView ? 'h-[100dvh] flex flex-col overflow-hidden pb-0' : 'pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-6'
+        isMapView ? 'h-[100dvh] flex flex-col overflow-hidden pb-0' : 'pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6'
       }`}
       style={{
         '--active-rail-w': isRailCollapsed ? 'var(--console-rail-w-collapsed, 56px)' : 'var(--console-rail-w, 224px)',
@@ -757,7 +757,7 @@ export default function App() {
 
       {/* Persistent Floating Action Button (FAB) for Data Bank verification (Admin Only) */}
       {isAdminMode && activeTab === 'databank' && unverifiedCandidates.length > 0 && !selectedWarning && !editingWarning && !isIngestionProcedureOpen && (
-        <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-console-fab flex items-center gap-2 bg-gw-primary/95 text-gw-bg p-1.5 rounded-full border border-gw-accent backdrop-blur-md">
+        <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-6 right-4 sm:right-6 z-console-fab flex items-center gap-2 bg-gw-primary/95 text-gw-bg p-1.5 rounded-full border border-gw-accent backdrop-blur-md">
           <button
             onClick={() => setSelectedWarning(unverifiedCandidates[0])}
             className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
