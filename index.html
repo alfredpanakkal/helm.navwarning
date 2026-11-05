@@ -522,6 +522,7 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
 .interrogate-popup-area{flex:0 0 auto;font:700 10px/1.6 system-ui,-apple-system,sans-serif;letter-spacing:.03em;color:var(--text-muted,#5b6472);text-transform:uppercase}
 .interrogate-popup-title{font:500 12px/1.45 system-ui,-apple-system,sans-serif;color:var(--text);overflow-wrap:anywhere}
 .interrogate-popup-empty{padding:14px 12px;font:500 12px/1.5 system-ui,-apple-system,sans-serif;color:var(--text-muted,#5b6472)}
+body.interrogate-mode-active .leaflet-container{cursor:crosshair}
 </style>
 </head>
 <body class="tab-map-active">
@@ -629,6 +630,9 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
       </button>
       <button type="button" class="map-coord-btn" id="btnMapCoord" onclick="toggleCoordMode()" title="Coordinate Picker — click the map for the exact position" aria-label="Toggle coordinate picker" aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/><circle cx="12" cy="12" r="7"/></svg>
+      </button>
+      <button type="button" class="map-coord-btn" id="btnInterrogate" onclick="toggleInterrogateMode()" title="Interrogate Area — toggle, then click the chart to list warnings within a 10 NM box" aria-label="Toggle area interrogation mode" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8V5a1 1 0 0 1 1-1h3m12-0v3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><path d="M12 9.5v-1M12 15.5v-1M9.5 12h-1M15.5 12h-1"/></svg>
       </button>
     </div>
 
