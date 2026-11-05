@@ -38,6 +38,8 @@ export interface DataBankProps {
   isOfflineMode?: boolean;
   /** True while the initial collection fetch is in flight (honest loading UI). */
   isLoading?: boolean;
+  /** Explicit admin flag threaded to the MissingWarningsDrawer fetch actions. */
+  isAdmin?: boolean;
   onOpenConsole?: () => void;
   onNavigate?: (tab: any) => void;
 }

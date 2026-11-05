@@ -26,16 +26,8 @@ export const MissingWarningsDrawer: React.FC<MissingWarningsDrawerProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Check admin mode dynamically from prop or local session token
-  const userIsAdmin = useMemo(() => {
-    if (typeof isAdmin === 'boolean') return isAdmin;
-    if (typeof window !== 'undefined') {
-      return Boolean(
-        sessionStorage.getItem('helm_admin_token') || localStorage.getItem('helm_admin_token')
-      );
-    }
-    return false;
-  }, [isAdmin]);
+  // Explicit prop only — the spoofable storage-token fallback is gone.
+  const userIsAdmin = isAdmin === true;
 
   // Handle escape key listener
   useEffect(() => {

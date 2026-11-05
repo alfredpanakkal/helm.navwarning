@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { NavWarning } from '../types';
 import { saveWarningEdit, WarningGeometryPatch } from '../services/warningEditApi';
+import { clearDraft, loadDraft, saveDraft } from '../lib/geometryDraft';
 import { PenTool, Save, X, RotateCcw, Loader2, MousePointerClick, Circle as CircleIcon, Square, Route, Undo2, Redo2, FileDiff } from 'lucide-react';
 
 /**
@@ -30,7 +31,7 @@ interface MapGeometryEditorProps {
 type EditKind = 'polygon' | 'line' | 'points' | 'circle';
 type DrawShape = 'polygon' | 'line' | 'point' | 'circle';
 
-interface EditablePart {
+export interface EditablePart {
   kind: EditKind;
   /** [lat, lng] pairs; for circles this holds exactly the center. */
   latlngs: [number, number][];
@@ -162,6 +163,8 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
   const originalPartsRef = useRef<EditablePart[]>([]);
 
   const active = isAdminMode && !!selectedWarning && !!map && mode !== 'off';
+  // Crash/reload draft key: prefer the DB uuid, fall back to the canonical id.
+  const warningKey = selectedWarning ? ((selectedWarning as any).db_uuid || selectedWarning.warning_id) : null;
   const canonical = selectedWarning?.source_warning_id || selectedWarning?.warning_id || '—';
 
   /** Clear all draft layers from the map. */
@@ -190,8 +193,22 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
 
   /** Recompute the dirty flag against the stored (original) geometry. */
   const markDirtyIfChanged = useCallback(() => {
-    setDirty(JSON.stringify(partsRef.current) !== JSON.stringify(originalPartsRef.current));
-  }, []);
+    const changed = JSON.stringify(partsRef.current) !== JSON.stringify(originalPartsRef.current);
+    setDirty(changed);
+    // Persist the crash draft on every real change; clear it when the draft
+    // is back to the stored geometry. Storage failures are silent (lib guard).
+    if (!warningKey) return;
+    if (changed) {
+      saveDraft(warningKey, {
+        v: 1,
+        baseUpdatedAt: (selectedWarning as any)?.updated_at ?? null,
+        savedAt: new Date().toISOString(),
+        parts: partsRef.current,
+      });
+    } else {
+      clearDraft(warningKey);
+    }
+  }, [warningKey, selectedWarning]);
 
   /** Re-render the current draft (parts + in-progress draw points) imperatively. */
   const renderDraft = useCallback(() => {
@@ -252,6 +269,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
         });
         handle.on('dragend', () => {
           setMessage(`Circle radius: ${((part.bufferNm || 1)).toFixed(2)} NM`);
+          markDirtyIfChanged();
           renderDraft();
         });
         // Keyboard access (WCAG 2.1.1): arrows adjust the radius in NM (Shift = x10).
@@ -269,7 +287,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
             ev.stopPropagation();
             pushHistory();
             part.bufferNm = Math.max((part.bufferNm || 1) + delta, 0.1);
-            setDirty(true);
+            markDirtyIfChanged();
             const radiusM = part.bufferNm * M_PER_NM;
             const layers = (layerGroupRef.current as any)?.getLayers?.() || [];
             layers.forEach((ly: any) => {
@@ -305,7 +323,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
               if (ly instanceof L.Polyline && !(ly instanceof L.Polygon) && part.kind === 'line') ly.setLatLngs(part.latlngs);
             });
           });
-          marker.on('dragend', () => renderDraft());
+          marker.on('dragend', () => { markDirtyIfChanged(); renderDraft(); });
           marker.on('dblclick', (e: any) => {
             L.DomEvent.stopPropagation(e);
             const min = part.kind === 'polygon' ? 3 : part.kind === 'line' ? 2 : 1;
@@ -315,7 +333,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
             }
             pushHistory();
             part.latlngs.splice(vi, 1);
-            setDirty(true);
+            markDirtyIfChanged();
             renderDraft();
           });
           // Keyboard access (WCAG 2.1.1): Tab to a handle, arrow keys nudge
@@ -337,7 +355,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                 ev.stopPropagation();
                 pushHistory();
                 marker.setLatLng(part.latlngs[vi]);
-                setDirty(true);
+                markDirtyIfChanged();
                 const layers = (layerGroupRef.current as any)?.getLayers?.() || [];
                 layers.forEach((ly: any) => {
                   if (ly instanceof L.Polygon && part.kind === 'polygon') ly.setLatLngs(part.latlngs);
@@ -355,7 +373,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                 }
                 pushHistory();
                 part.latlngs.splice(vi, 1);
-                setDirty(true);
+                markDirtyIfChanged();
                 renderDraft();
               }
             });
@@ -372,6 +390,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
           setDirty(true);
           renderDraft();
         });
+        centerHandle.on('dragend', () => markDirtyIfChanged());
         // Keyboard access (WCAG 2.1.1): arrows move the circle center (Shift = x10).
         const cEl = centerHandle.getElement() as HTMLElement | null;
         if (cEl) {
@@ -392,7 +411,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
             pushHistory();
             const c = part.latlngs[0];
             centerHandle.setLatLng(c);
-            setDirty(true);
+            markDirtyIfChanged();
             const layers = (layerGroupRef.current as any)?.getLayers?.() || [];
             layers.forEach((ly: any) => {
               if (ly instanceof L.Circle) {
@@ -425,7 +444,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
           .addTo(group);
       });
     }
-  }, [map, mode, drawShape, clearDraftLayers, pushHistory]);
+  }, [map, mode, drawShape, clearDraftLayers, pushHistory, markDirtyIfChanged]);
 
   const vertexIcon = (color: string) =>
     L.divIcon({
@@ -456,6 +475,30 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
     setDirty(false);
     setMessage(null);
     setMode(next);
+
+    // Crash/reload draft recovery (console save resilience). The draft is
+    // restored only against the same warning version — a stale draft is
+    // discarded loudly, never applied silently.
+    if (warningKey) {
+      const d = loadDraft(warningKey);
+      if (d) {
+        if (d.baseUpdatedAt === ((selectedWarning as any).updated_at ?? null)) {
+          const when = new Date(d.savedAt).toLocaleString();
+          if (window.confirm('An unsaved geometry draft from ' + when + ' exists for this warning. Restore it?')) {
+            partsRef.current = cloneParts(d.parts);
+            markDirtyIfChanged();
+            setMessage('Draft restored. Not saved yet.');
+            setMessageKind('info');
+          } else {
+            clearDraft(warningKey);
+          }
+        } else {
+          clearDraft(warningKey);
+          setMessage('A stored draft was discarded because this warning changed since it was made.');
+          setMessageKind('error');
+        }
+      }
+    }
   };
 
   const undo = useCallback(() => {
@@ -481,6 +524,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
   }, [cloneParts, syncHistState, markDirtyIfChanged, renderDraft]);
 
   const exitMode = () => {
+    if (warningKey) clearDraft(warningKey);
     setMode('off');
     setDirty(false);
     setMessage(null);
@@ -570,7 +614,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
     pushHistory();
     partsRef.current = [part]; // Draw-new replaces the existing geometry on save.
     drawPtsRef.current = [];
-    setDirty(true);
+    markDirtyIfChanged();
     setMessage('Draft created from drawn points. Adjust vertices, then Save.');
     renderDraft();
   };
@@ -613,6 +657,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
     if (res.ok) {
       setMessageKind('success');
       setMessage(`Saved (${res.geometry || 'replaced'}${skipped ? `, ${skipped} empty shape(s) skipped` : ''}). Geometry updated and audit row written.`);
+      if (warningKey) clearDraft(warningKey);
       setDirty(false);
       exitMode();
       onGeometrySaved?.();

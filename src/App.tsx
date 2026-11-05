@@ -115,11 +115,15 @@ export default function App() {
 
   // Purge legacy client-side authorization / UI flags left by earlier builds:
   // helm_admin_mode and helm_admin_token were trivially spoofable and hwUI
-  // forced the retired classic UI path.
+  // forced the retired classic UI path. The token is no longer written at
+  // login (the Supabase client owns the session); this scrubs both storage
+  // surfaces of any legacy copy.
   useEffect(() => {
     try {
       localStorage.removeItem('helm_admin_mode');
       localStorage.removeItem('hwUI');
+      sessionStorage.removeItem('helm_admin_token');
+      localStorage.removeItem('helm_admin_token');
     } catch { /* private-mode storage can throw */ }
   }, []);
 
@@ -668,6 +672,7 @@ export default function App() {
           )}
           <DataBankV2
             warnings={warnings}
+            isAdmin={isAdminMode}
             archivedWarnings={archivedWarnings}
             isLoading={isLoadingData}
             initialStatusFilter={dataBankStatusFilter}
