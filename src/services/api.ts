@@ -1,3 +1,4 @@
+import { clearAllDrafts } from '../lib/geometryDraft';
 import {
   NavWarning,
   SourceRegistryItem,
@@ -504,6 +505,8 @@ export async function adminLogout(): Promise<void> {
       sessionStorage.removeItem('helm_admin_token');
       localStorage.removeItem('helm_admin_passcode');
     }
+    // Shared machines must not keep unsaved edits after sign-out.
+    clearAllDrafts();
   }
 }
 
