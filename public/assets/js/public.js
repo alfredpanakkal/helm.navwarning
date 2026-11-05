@@ -2575,7 +2575,7 @@ window.showToast = function(m){
 };
 
 
-// ═══════════ MAP INTERROGATE (right-click) ═══════════
+// ═══════════ MAP INTERROGATE (right-click / toolbar button) ═══════════
 // Right-click the chart → "Interrogate here" drops a fixed square centred
 // on the cursor and lists every in-scope warning whose geometry intersects
 // it. Clicking a result opens the standard warning details modal (the same
@@ -2588,6 +2588,25 @@ const INTERROGATE_SQUARE_NM = 10; // full width & height: a 10 NM × 10 NM box
 let interrogateBox = null;
 let interrogateMenu = null;
 let interrogatePopup = null;
+
+// Toolbar mode (btnInterrogate, mirrors toggleCoordMode): while active, a
+// plain left-click on the chart interrogates the 10 NM box centred on the
+// cursor. Only one cursor tool at a time — enabling interrogation switches
+// the coordinate picker off. Escape or the button itself exits the mode.
+let interrogateModeActive = false;
+
+function toggleInterrogateMode(force) {
+  interrogateModeActive = (typeof force === 'boolean') ? force : !interrogateModeActive;
+  document.body.classList.toggle('interrogate-mode-active', interrogateModeActive);
+  const btn = document.getElementById('btnInterrogate');
+  if (btn) {
+    btn.classList.toggle('is-active', interrogateModeActive);
+    btn.setAttribute('aria-pressed', String(interrogateModeActive));
+  }
+  if (interrogateModeActive && typeof coordModeActive !== 'undefined' && coordModeActive) toggleCoordMode(false);
+  if (!interrogateModeActive) clearInterrogate();
+}
+window.toggleInterrogateMode = toggleInterrogateMode;
 
 function interrogateBoundsAt(latlng) {
   const halfLatDeg = (INTERROGATE_SQUARE_NM / 2) / 60;
@@ -2735,6 +2754,9 @@ function showInterrogatePopup(latlng, hits) {
   popup.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape') { ev.stopPropagation(); clearInterrogate(); }
   });
+  // Re-arm cleanly: drop any earlier pending once-handler before adding
+  // a new one, so repeated interrogations without a pan don't stack.
+  leafletMap.off('movestart', clearInterrogate);
   leafletMap.once('movestart', clearInterrogate);
 }
 
@@ -2764,16 +2786,28 @@ function showInterrogateMenu(containerPoint, latlng) {
 
 function setupInterrogate(map) {
   map.on('contextmenu', (e) => {
-    if (e.originalEvent && typeof L.DomEvent !== 'undefined') L.DomEvent.preventDefault(e.originalEvent);
+    if (e.originalEvent) {
+      if (typeof L.DomEvent !== 'undefined') L.DomEvent.preventDefault(e.originalEvent);
+      else if (e.originalEvent.preventDefault) e.originalEvent.preventDefault();
+    }
     showInterrogateMenu(e.containerPoint, e.latlng);
   });
-  map.on('click', closeInterrogateMenu);
+  map.on('click', (e) => {
+    closeInterrogateMenu();
+    // Toolbar mode: every plain click interrogates at the cursor. The
+    // coordinate picker keeps priority when both are somehow active.
+    if (interrogateModeActive && !coordModeActive) runInterrogate(e.latlng);
+  });
   map.on('movestart', closeInterrogateMenu);
   document.addEventListener('click', (ev) => {
     if (interrogateMenu && !interrogateMenu.contains(ev.target)) closeInterrogateMenu();
   });
   document.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape' && interrogateMenu) closeInterrogateMenu();
+    if (ev.key !== 'Escape') return;
+    if (interrogateMenu) closeInterrogateMenu();
+    // Escape exits interrogation mode (the results popup handles its own
+    // Escape first, with stopPropagation, so this fires for the bare map).
+    if (interrogateModeActive) toggleInterrogateMode(false);
   });
 }
 
