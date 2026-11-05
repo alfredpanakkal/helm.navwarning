@@ -2655,8 +2655,8 @@ function runInterrogate(latlng) {
     interactive: false
   }).addTo(leafletMap);
   // Same in-scope rule as filterMapByNavArea: the region filter (plus
-  unscoped warnings) decides what the chart shows, so it decides what
-  interrogation reports. #dc2626 mirrors the --critical token.
+  // unscoped warnings) decides what the chart shows, so it decides what
+  // interrogation reports. #dc2626 mirrors the --critical token.
   const inScope = warnings.filter(w => w.status !== 'rejected' && (matchesNavArea(w.navarea, currentSelectedNavArea) || isNavAreaUnscoped(w.navarea)));
   const hits = inScope.filter(w => warningIntersectsBounds(w, box));
   showInterrogatePopup(latlng, hits);
