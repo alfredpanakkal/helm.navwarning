@@ -1849,6 +1849,9 @@ function rebuildMapList(items = null){
   activeItems.forEach(w=>{
     const item=document.createElement('div');
     const wid = w.canonical_id || w.warning_id || w.id;
+    const unscopedHere = currentSelectedNavArea
+      && !isNavAreaUnscoped(currentSelectedNavArea)
+      && isNavAreaUnscoped(w.navarea);
     item.className='warning-item';
     item.dataset.warningId = wid;
     item.onclick=()=>toggleInlineWarning(w, item);
@@ -1857,7 +1860,7 @@ function rebuildMapList(items = null){
       <div class="warning-item-header">
         <span class="severity-dot" style="background:${c}"></span>
         <div class="warning-item-title-col">
-          <div class="warning-id">${wid} · ${w.navarea}</div>
+          <div class="warning-id">${wid} · ${w.navarea}${unscopedHere ? '<span title="This warning has no NAVAREA number, so it appears in every area." style="display:inline-block;margin:2px 0 0 6px;padding:0 6px;border:1px solid var(--border);border-radius:999px;font-size:11px;font-weight:500;color:var(--text-muted)">No NAVAREA · shown in all areas</span>' : ''}</div>
           <div class="warning-meta">${w.title}</div>
           <div class="warning-meta">${formatWarningDate(w)}</div>
         </div>
