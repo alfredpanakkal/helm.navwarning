@@ -1,4 +1,5 @@
 import { NavWarning, NavAreaId } from '../types';
+import { formatPositionDisplay } from './coordinateConversion';
 
 export type HazardCategory =
   | 'aton'
@@ -323,14 +324,14 @@ export function formatCoordinatesDisplay(warning: NavWarning): string {
   // Direct circular zone
   if (warning.spatial?.circles?.length > 0) {
     const c = warning.spatial.circles[0];
-    return `${c.radius_nm} NM circle around ${c.center[1].toFixed(3)}°N, ${c.center[0].toFixed(3)}°E`;
+    return `${c.radius_nm} NM circle around ${formatPositionDisplay(c.center[1], c.center[0])}`;
   }
 
   // Geometry circles
   const circleGeom = warning.spatial?.geometries?.find((g) => g.type === 'Circle' && g.radius_nm);
   if (circleGeom && Array.isArray(circleGeom.coordinates)) {
     const coords = circleGeom.coordinates as number[];
-    return `${circleGeom.radius_nm} NM exclusion zone at ${coords[1]?.toFixed(3)}°, ${coords[0]?.toFixed(3)}°`;
+    return `${circleGeom.radius_nm} NM exclusion zone at ${formatPositionDisplay(Number(coords[1]), Number(coords[0]))}`;
   }
 
   // Single Point
@@ -342,9 +343,7 @@ export function formatCoordinatesDisplay(warning: NavWarning): string {
   ) {
     const lat = Number(warning.latitude);
     const lng = Number(warning.longitude);
-    const latDir = lat >= 0 ? 'N' : 'S';
-    const lngDir = lng >= 0 ? 'E' : 'W';
-    return `${Math.abs(lat).toFixed(3)}°${latDir}, ${Math.abs(lng).toFixed(3)}°${lngDir}`;
+    return formatPositionDisplay(lat, lng);
   }
 
   if (warning.spatial?.raw_coordinate_text?.length > 0) {
