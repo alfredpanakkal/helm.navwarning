@@ -27,7 +27,8 @@ export const DataBankV2: React.FC<DataBankProps> = ({
   initialNavAreaFilter,
   routeState,
   onRouteStateChange,
-  isLoading
+  isLoading,
+  isAdmin = false,
 }) => {
   const [showMissingDrawer, setShowMissingDrawer] = React.useState(false);
   const model = useDataBankModel({ warnings, archivedWarnings, initialStatusFilter, initialNavAreaFilter, routeState, onRouteStateChange });
@@ -83,6 +84,7 @@ export const DataBankV2: React.FC<DataBankProps> = ({
         missingIds={model.inForceStatus?.missingWarningIds || []}
         onFetchMissing={onTriggerRefresh ? () => onTriggerRefresh() : undefined}
         isFetching={isRefreshing}
+        isAdmin={isAdmin}
       />
 
       <IngestionProcedureModal

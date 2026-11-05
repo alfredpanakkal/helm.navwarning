@@ -86,22 +86,6 @@ export const Header: React.FC<HeaderProps> = ({
         }
       } catch {}
 
-      // Server-side verification for token stored by adminLogin
-      const token = typeof window !== 'undefined' ? sessionStorage.getItem('helm_admin_token') : null;
-      if (token) {
-        try {
-          const res = await fetch('/api/admin/verify', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.authenticated) {
-              setIsAdminMode(true);
-              return;
-            }
-          }
-        } catch {}
-      }
     }
     checkInitialAdminSession();
   }, [setIsAdminMode]);

@@ -448,9 +448,8 @@ export async function adminLogin(
         }
 
         const token = data.session.access_token;
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('helm_admin_token', token);
-        }
+        // The Supabase client already persists the session; no second
+        // storage copy of the access token is written.
         return { success: true, token };
       }
     }
@@ -472,9 +471,7 @@ export async function adminLogin(
     }
 
     if (data.token) {
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('helm_admin_token', data.token);
-      }
+      // No storage copy of the token (the Supabase client owns the session).
       return { success: true, token: data.token };
     }
 
@@ -491,7 +488,18 @@ export async function adminLogout(): Promise<void> {
       await supabase.auth.signOut().catch(() => {});
     }
 
-    const token = typeof window !== 'undefined' ? sessionStorage.getItem('helm_admin_token') : null;
+    // /api/admin/logout exists in the dev Express runtime only (404 on
+    // Vercel). It must receive the live Supabase session token — the
+    // storage copy is gone — and it must be captured BEFORE signOut,
+    // which invalidates the session.
+    let token: string | null = null;
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        token = session?.access_token ?? null;
+      } catch {}
+      await supabase.auth.signOut().catch(() => {});
+    }
     if (token) {
       await fetch('/api/admin/logout', {
         method: 'POST',
@@ -528,11 +536,6 @@ export async function getAdminHeaders(): Promise<Record<string, string>> {
         }
       }
     } catch {}
-
-    // 2. Fall back to stored session token
-    if (!token) {
-      token = sessionStorage.getItem('helm_admin_token');
-    }
   }
 
   const headers: Record<string, string> = {
