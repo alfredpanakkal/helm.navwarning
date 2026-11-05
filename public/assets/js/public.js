@@ -1,6 +1,18 @@
 // ═══════════ STATE ═══════════
 let warnings = [];
 
+// ═══════════ POSITION FORMAT (site-wide standard) ═══════════
+// Every coordinate displayed on the site uses degrees + decimal minutes,
+// e.g. 25° 54.71' N 065° 52.02' E (formatDMD is hoisted; defined near the
+// coordinate picker below). Falls back to the stored text, then `fallback`.
+function warningPositionText(w, fallback) {
+  const lat = Number(w.latitude ?? w.lat);
+  const lng = Number(w.longitude ?? w.lng);
+  if (!isNaN(lat) && !isNaN(lng)) return formatDMD(lat, lng);
+  return w.coordinates || w.coords || (fallback || 'N/A');
+}
+
+
 // Seed fallback data if Supabase is empty or offline (demonstrating points, polygons, circles, corridors)
 const SEED_WARNINGS = [
   {
@@ -1116,7 +1128,7 @@ window.openWarningDetails = function(w) {
       </div>
       <div>
         <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Coordinates</div>
-        <div style="font-weight:600;color:var(--text);font-family:ui-monospace,monospace">${w.coordinates || w.coords || (w.latitude && w.longitude ? `${Number(w.latitude).toFixed(2)}°, ${Number(w.longitude).toFixed(2)}°` : 'Spatial Vector')}</div>
+        <div style="font-weight:600;color:var(--text);font-family:ui-monospace,monospace">${warningPositionText(w, 'Spatial Vector')}</div>
       </div>
     </div>
 
@@ -1669,7 +1681,7 @@ async function toggleInlineWarning(w, itemEl){
   expBody.className = 'warning-expanded-body';
   expBody.onclick = (e) => e.stopPropagation();
 
-  const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}, ${lng.toFixed(2)}` : 'N/A');
+  const coordsText = warningPositionText(w);
   const issuedText = formatWarningIssuedText(w);
   const wid = w.canonical_id || w.warning_id || w.id;
 
@@ -2015,7 +2027,7 @@ function toggleTableDetailRow(w, tr) {
 
   const lat = Number(w.latitude ?? w.lat);
   const lng = Number(w.longitude ?? w.lng);
-  const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}, ${lng.toFixed(2)}` : 'N/A');
+  const coordsText = warningPositionText(w);
   const issuedText = formatWarningIssuedText(w);
   const sevClass = w.severity === 'critical' ? 'critical' : w.severity === 'high' ? 'high' : 'moderate';
   const verClass = w.is_verified ? 'verified' : 'neutral';
@@ -2108,7 +2120,7 @@ function toggleCardDetail(w, cardEl) {
 
   const lat = Number(w.latitude ?? w.lat);
   const lng = Number(w.longitude ?? w.lng);
-  const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}°, ${lng.toFixed(2)}°` : 'Spatial Vector');
+  const coordsText = warningPositionText(w, 'Spatial Vector');
   const issuedText = formatWarningIssuedText(w);
   const verClass = w.is_verified ? 'verified' : 'neutral';
   const verLabel = w.is_verified ? 'VERIFIED' : 'UNVERIFIED';
@@ -2275,7 +2287,7 @@ function populateTable(filtered=warnings){
     const sevLabel = (w.severity || 'moderate').toUpperCase();
     tr.innerHTML=`<td><strong>${wid}</strong> <svg class="row-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"/></svg></td><td>${w.navarea}</td><td>${w.title}</td>
     <td>${badge(sevClass, sevLabel)}</td>
-    <td>${formatWarningDate(w)}</td><td>${w.coordinates || w.coords || 'N/A'}</td><td>${statusBadge(w)}</td>`;
+    <td>${formatWarningDate(w)}</td><td>${warningPositionText(w)}</td><td>${statusBadge(w)}</td>`;
     tb.appendChild(tr);
 
     if (expandedTableWarningId === wid) {
@@ -2318,7 +2330,7 @@ function populateCards(filtered=warnings){
     const sevLabel = (w.severity || 'HIGH').toUpperCase();
     const lat = Number(w.latitude ?? w.lat);
     const lng = Number(w.longitude ?? w.lng);
-    const coordsText = w.coordinates || w.coords || (!isNaN(lat) && !isNaN(lng) ? `${lat.toFixed(2)}°, ${lng.toFixed(2)}°` : 'Spatial Vector');
+    const coordsText = warningPositionText(w, 'Spatial Vector');
 
     const idLabel = /^NAVAREA/i.test(String(wid)) ? String(wid) : `${wid} · ${w.navarea}`;
     c.innerHTML=`
@@ -2478,7 +2490,7 @@ window.openWarningModal = async function(w){
   document.getElementById('modalBody').innerHTML=`
     <div class="detail-row"><div class="detail-label">Severity</div><div class="detail-value">${badge(w.severity==='high'?'high':w.severity==='critical'?'critical':'moderate',w.severity.toUpperCase())}</div></div>
     <div class="detail-row"><div class="detail-label">Issued</div><div class="detail-value">${formatWarningIssuedText(w)}</div></div>
-    <div class="detail-row"><div class="detail-label">Coordinates</div><div class="detail-value">${w.coordinates || w.coords || 'N/A'}</div></div>
+    <div class="detail-row"><div class="detail-label">Coordinates</div><div class="detail-value">${warningPositionText(w)}</div></div>
     <div class="detail-row"><div class="detail-label">Status</div><div class="detail-value">${statusBadge(w)}</div></div>
     <div class="warning-text" id="modalTextContainer"></div>`;
   if(modalOverlay){
@@ -2664,11 +2676,11 @@ document.addEventListener('keydown', (e) => {
 //  - the cursor position is shown live in the readout panel
 //    (bottom-left on desktop, below the controls chip on mobile)
 //  - clicking/tapping the map drops a pin with the exact position in
-//    degrees and decimal minutes, e.g. 56°11.400'N 003°12.600'E
+//    degrees and decimal minutes, e.g. 56° 11.40' N 003° 12.60' E
 // The readout sits in an unobstructed corner (attribution is bottom-right,
 // the warning list docks top-right on desktop / bottom on mobile).
 
-const COORD_MINUTE_DECIMALS = 3;
+const COORD_MINUTE_DECIMALS = 2;
 
 function formatDMD(lat, lng) {
   const fmt = (value, pos, neg, pad) => {
@@ -2676,7 +2688,7 @@ function formatDMD(lat, lng) {
     const deg = Math.floor(abs);
     const min = (abs - deg) * 60;
     const dir = value >= 0 ? pos : neg;
-    return String(deg).padStart(pad, '0') + '°' + min.toFixed(COORD_MINUTE_DECIMALS) + "'" + dir;
+    return String(deg).padStart(pad, '0') + '° ' + min.toFixed(COORD_MINUTE_DECIMALS) + "' " + dir;
   };
   // Latitude is padded to 2 digits, longitude to 3 (standard nautical notation)
   return fmt(lat, 'N', 'S', 2) + ' ' + fmt(lng, 'E', 'W', 3);
