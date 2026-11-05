@@ -1913,6 +1913,14 @@ window.toggleMinimizeWarningList = function(){
   }
 };
 
+// Tap anywhere on the minimized header bar to restore the list (buttons excepted)
+window.onWarningListHeaderClick = function(ev){
+  const el = document.getElementById('mapWarningList');
+  if(!el || !el.classList.contains('is-minimized')) return;
+  if(ev && ev.target && ev.target.closest && ev.target.closest('.panel-actions')) return;
+  window.toggleMinimizeWarningList();
+};
+
 window.toggleMaximizeWarningList = function(){
   const el = document.getElementById('mapWarningList');
   if(!el) return;
@@ -2195,17 +2203,8 @@ window.locateOnMapById = function(rawId){
     }
   }
 
-  // Ensure bottom Active Warnings sheet / drawer is expanded if collapsed
-  const sheet = document.getElementById('mapWarningList');
-  if (sheet && sheet.classList.contains('is-minimized')) {
-    sheet.classList.remove('is-minimized');
-    const minBtn = document.getElementById('btnMinWarningList');
-    if (minBtn) {
-      minBtn.title = 'Minimize';
-      minBtn.setAttribute('aria-label', 'Minimize active warnings list');
-      minBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-    }
-  }
+  // The list intentionally stays minimized here if the user minimized it:
+  // selecting a marker opens details without re-expanding the panel.
 
   // Find matching warning card in bottom sheet
   const itemEl = Array.from(document.querySelectorAll('.warning-item')).find(el => el.dataset.warningId === id);
