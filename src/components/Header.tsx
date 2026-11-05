@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TabType, SectionType, SECTION_OF, SECTION_VIEWS, DEFAULT_SECTION_TAB } from '../App';
-import { Map, Database, Upload, FileText, X, Lock, Unlock, Key, Mail, Loader2 } from 'lucide-react';
+import { Map, Database, Upload, FileText, X, Lock, Unlock, Key, Mail, Loader2, ChevronDown } from 'lucide-react';
 import { adminLogin, adminLogout } from '../services/api';
 import { useModalBehavior } from '../hooks/useModalBehavior';
 
@@ -28,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
   // Two-tap sign-out confirmation: first tap arms, second tap confirms.
   const [signOutConfirm, setSignOutConfirm] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const adminModalRef = useRef<HTMLDivElement>(null);
   useModalBehavior(adminModalRef, showAdminModal);
   useEffect(() => {
@@ -35,6 +36,14 @@ export const Header: React.FC<HeaderProps> = ({
     const t = window.setTimeout(() => setSignOutConfirm(false), 4000);
     return () => window.clearTimeout(t);
   }, [signOutConfirm]);
+
+  // Mobile console menu: Escape closes it.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
 
   // Handle Escape key dismissal for Admin Modal
   useEffect(() => {
@@ -104,6 +113,9 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'system', label: 'System', icon: <Database className="w-5 h-5" /> },
   ];
 
+  const activeSectionLabel = sectionMeta.find((s) => s.id === activeSection)?.label ?? '';
+  const activeViewLabel = sectionViews.find((v) => v.id === activeTab)?.label ?? '';
+
   // Switching section lands on the section default, or cycles between sub-views when tapped repeatedly
   const handleSectionSelect = (section: SectionType) => {
     const views = SECTION_VIEWS[section];
@@ -170,70 +182,70 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="logo-badge w-7 h-7 rounded border border-border-input text-ink-primary font-medium flex items-center justify-center text-xs select-none" aria-hidden="true">
                 HW
               </span>
-              <span className="font-medium text-base text-ink-primary tracking-tight">
-                Helm.Warning
-              </span>
             </a>
             <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-sans font-medium uppercase tracking-wider text-ink-tertiary">
               Console
             </span>
           </div>
 
-                    {/* Mobile navigation (Phase 2): the 4 sections plus the active section's views
-              in one 56px bar (Phase 1 chrome merge — replaces the 56px header +
-              38px sub-tab strip, so --console-sticky-offset: 57px now matches
-              the chrome exactly). Sections on the left, views after the divider;
-              the strip scrolls horizontally when narrow. */}
-          <nav
-            className="flex-1 min-w-0 flex items-center gap-3 overflow-x-auto no-scrollbar py-2 md:hidden"
-            role="tablist"
-            aria-label="Console sections and views"
-          >
-            {sectionMeta.map((section) => {
-              const isActive = activeSection === section.id;
-              return (
+          {/* Mobile navigation: one menu button, full section/view list on tap */}
+          <div className="flex-1 min-w-0 md:hidden">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label="Open console menu"
+              className="w-full min-h-[44px] flex items-center justify-between gap-2 px-3 rounded border border-border-input text-xs font-medium text-ink-primary cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+            >
+              <span className="truncate">{activeSectionLabel} · {activeViewLabel}</span>
+              <ChevronDown className={'w-4 h-4 shrink-0 transition-transform ' + (menuOpen ? 'rotate-180' : '')} aria-hidden="true" />
+            </button>
+            {menuOpen && (
+              <>
                 <button
-                  key={section.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-label={section.label + ' tab'}
-                  onClick={() => handleSectionSelect(section.id)}
-                  className={
-                    'nav-tab flex items-center gap-2 px-3.5 py-2 rounded-full font-medium text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
-                    (isActive
-                      ? 'bg-surface-subtle border border-border-chip-on text-ink-primary'
-                      : 'border border-transparent text-ink-secondary hover:text-ink-primary hover:bg-surface-subtle')
-                  }
+                  type="button"
+                  tabIndex={-1}
+                  aria-label="Close console menu"
+                  onClick={() => setMenuOpen(false)}
+                  className="fixed inset-x-0 bottom-0 top-[57px] z-console-chrome bg-black/30 cursor-default"
+                />
+                <div
+                  role="menu"
+                  aria-label="Console menu"
+                  className="fixed inset-x-0 top-[57px] z-console-chrome max-h-[calc(100dvh-57px)] overflow-y-auto bg-canvas border-b border-hairline p-3 space-y-3"
                 >
-                  <span>{section.label}</span>
-                </button>
-              );
-            })}
-
-            {/* Divider between the section level and the active section's views */}
-            <span aria-hidden="true" className="w-px h-5 bg-hairline shrink-0" />
-
-            {sectionViews.map((view) => {
-              const isActive = activeTab === view.id;
-              return (
-                <button
-                  key={view.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-label={view.label + ' tab'}
-                  onClick={() => setActiveTab(view.id)}
-                  className={
-                    'px-3 py-2 text-xs font-medium rounded border transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
-                    (isActive
-                      ? 'bg-surface-subtle text-ink-primary border-border-chip-on'
-                      : 'text-ink-secondary border-transparent hover:text-ink-primary hover:bg-surface-subtle')
-                  }
-                >
-                  <span>{view.label}</span>
-                </button>
-              );
-            })}
-          </nav>
+                  {sectionMeta.map((section) => (
+                    <div key={section.id} className="space-y-1">
+                      <div className="px-2 text-[0.7rem] font-medium uppercase tracking-[0.06em] text-ink-tertiary">
+                        {section.label}
+                      </div>
+                      {SECTION_VIEWS[section.id].map((view) => {
+                        const isActive = activeTab === view.id;
+                        return (
+                          <button
+                            key={view.id}
+                            type="button"
+                            role="menuitem"
+                            aria-current={isActive ? 'page' : undefined}
+                            onClick={() => { setActiveTab(view.id); setMenuOpen(false); }}
+                            className={
+                              'w-full min-h-[44px] flex items-center px-3 rounded-md text-sm font-medium text-left cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
+                              (isActive
+                                ? 'bg-surface-subtle text-ink-primary'
+                                : 'text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary')
+                            }
+                          >
+                            {view.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Header Right Meta & Admin Controls */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -275,7 +287,7 @@ export const Header: React.FC<HeaderProps> = ({
                 title="Admin session active (app_metadata.role === 'admin'). Click to sign out."
               >
                 <Lock className="w-3.5 h-3.5 text-accent" />
-                <span>{signOutConfirm ? 'Confirm sign out?' : 'Sign out'}</span>
+                <span className={signOutConfirm ? '' : 'hidden sm:inline'}>{signOutConfirm ? 'Confirm sign out?' : 'Sign out'}</span>
               </button>
             ) : (
               <button
@@ -292,30 +304,6 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </header>
 
-      {/* Mobile Bottom Quick Navigation — the 4 sections */}
-      <nav role="tablist" className="bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-console-chrome bg-gw-panel/95 backdrop-blur-md border-t border-gw-secondary px-2 py-1 pb-[env(safe-area-inset-bottom)] flex items-center justify-around shadow-lg" aria-label="Primary quick navigation">
-        {sectionMeta.map((section) => {
-          const isActive = activeSection === section.id;
-          return (
-            <button
-              key={section.id}
-              role="tab"
-              aria-selected={isActive}
-              aria-label={section.label + ' tab'}
-              onClick={() => handleSectionSelect(section.id)}
-              className={
-                'bottom-nav-item flex flex-col items-center justify-center py-1 px-2 rounded min-w-[64px] min-h-[44px] transition-all relative ' +
-                (isActive ? 'active text-gw-primary font-bold' : 'text-gw-accent hover:text-gw-primary')
-              }
-            >
-              <div className="relative">
-                {section.icon}
-              </div>
-              <span className="text-xs mt-0.5 uppercase tracking-tight">{section.label}</span>
-            </button>
-          );
-        })}
-      </nav>
 
       {/* Admin Unlock Modal Overlay */}
       {/* Above the edit drawer (z-console-overlay-raised, 70) AND the map

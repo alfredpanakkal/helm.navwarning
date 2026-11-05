@@ -413,15 +413,11 @@ test.describe('admin gate (mobile)', () => {
     const errors = watchPageErrors(page);
     await openApp(page);
 
-    const quickNav = page.locator('nav[aria-label="Primary quick navigation"]');
-    for (const label of ['Warnings', 'Ingest', 'Trace', 'System'] as const) {
-      await quickNav.getByText(label, { exact: true }).click();
+    for (const label of ['Map View', 'Pipeline', 'Audit Log', 'Supabase Server'] as const) {
+      await page.getByRole('button', { name: 'Open console menu' }).click();
+      await page.getByRole('menuitem', { name: label, exact: true }).click();
       await expect(page.getByText('Administrative Gate Active')).toBeVisible();
     }
-
-    // Sub-tabs of the active section also stay gated while signed out.
-    await page.getByRole('tab', { name: /^Supabase Server/i }).click();
-    await expect(page.getByText('Administrative Gate Active')).toBeVisible();
 
     // The only recovery path is the real login modal.
     await page.getByRole('button', { name: /^Admin Sign In$/ }).click();
@@ -482,10 +478,10 @@ test.describe('mobile', () => {
     const errors = watchPageErrors(page);
     await openApp(page);
 
-    const quickNav = page.locator('nav[aria-label="Primary quick navigation"]');
-
-    for (const label of ['Warnings', 'Ingest', 'Trace', 'System'] as const) {
-      await quickNav.getByText(label, { exact: true }).click();
+    const menuButton = page.getByRole('button', { name: 'Open console menu' });
+    for (const label of ['Map View', 'Pipeline', 'Audit Log', 'Supabase Server'] as const) {
+      await menuButton.click();
+      await page.getByRole('menuitem', { name: label, exact: true }).click();
       await page.waitForTimeout(500);
       const overflow = (await page.evaluate(
         'JSON.stringify({ s: document.documentElement.scrollWidth, c: document.documentElement.clientWidth })',
@@ -494,17 +490,16 @@ test.describe('mobile', () => {
       expect(s, `no horizontal overflow on ${label}`).toBeLessThanOrEqual(c);
     }
 
-    const navButtons = quickNav.locator('button');
-    const count = await navButtons.count();
-    expect(count).toBeGreaterThan(0);
+    await menuButton.click();
+    const items = page.getByRole('menuitem');
+    const count = await items.count();
+    expect(count).toBe(9);
     for (let i = 0; i < count; i++) {
-      const button = navButtons.nth(i);
-      const label = (await button.innerText()).trim().replace(/\s+/g, ' ').slice(0, 20);
-      const box = await button.boundingBox();
-      expect(box, `touch target "${label}" has a box`).not.toBeNull();
-      expect(box!.width, `touch target width for "${label}"`).toBeGreaterThanOrEqual(60);
-      expect(box!.height, `touch target height for "${label}"`).toBeGreaterThanOrEqual(40);
+      const box = await items.nth(i).boundingBox();
+      expect(box, `menu item ${i} has a box`).not.toBeNull();
+      expect(box!.height, `menu item ${i} height`).toBeGreaterThanOrEqual(40);
     }
+    await expect(page.locator('nav[aria-label="Primary quick navigation"]')).toHaveCount(0);
 
     expect(errors, 'no uncaught page errors').toEqual([]);
   });
