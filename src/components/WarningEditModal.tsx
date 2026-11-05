@@ -296,14 +296,14 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
         </div>
 
         {/* Identity strip (read-only: raw_text + canonical id are evidence) */}
-        <div className="px-4 py-2 bg-gw-panel border-b border-gw-secondary flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+        <div className="px-4 py-2 bg-gw-panel border-b border-gw-secondary flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px]">
           <span><strong>NAVAREA:</strong> {identity.navarea} <em>(change via Lifecycle → Move)</em></span>
           <span><strong>Canonical ID:</strong> <span className="font-mono">{identity.canonical}</span></span>
           {identity.updatedAt && <span><strong>Version:</strong> {new Date(identity.updatedAt).toLocaleString()}</span>}
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 px-4 pt-2 bg-gw-panel border-b border-gw-secondary">
+        <div className="flex gap-1.5 px-4 pt-3 overflow-x-auto no-scrollbar bg-gw-panel border-b border-gw-secondary">
           {tabBtn('classification', <Tag className="w-3.5 h-3.5" />, 'Type / Text')}
           {tabBtn('time', <Clock className="w-3.5 h-3.5" />, 'Time / Expiry')}
           {tabBtn('lifecycle', <LifeBuoy className="w-3.5 h-3.5" />, 'Status / Tier')}
@@ -490,9 +490,9 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
         )}
 
         {/* Footer */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-gw-panel border-t border-gw-primary">
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-gw-panel border-t border-gw-primary">
           <input
-            className={inputCls + ' flex-1'}
+            className={inputCls + ' flex-1 min-w-[12rem]'}
             aria-label="Edit reason (stored on the audit row)" placeholder="Edit reason (stored on the audit row)"
             value={note}
             onChange={(e) => setNote(e.target.value)}

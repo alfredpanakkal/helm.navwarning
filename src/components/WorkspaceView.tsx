@@ -109,7 +109,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
       {/* 2. Compressed Status Strip & Quick Actions */}
       <div className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 shadow-2xs">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-xs font-medium text-ink-primary">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-xs font-medium text-ink-primary">
           <button
             onClick={() => onNavigateWithFilter ? onNavigateWithFilter('sources', 'unverified') : onNavigate?.('sources')}
             title="View sources (filtered to unverified if any)"
@@ -167,7 +167,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
           <button
             onClick={() => onNavigate?.('sources')}
             className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"

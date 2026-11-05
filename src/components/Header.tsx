@@ -162,7 +162,7 @@ export const Header: React.FC<HeaderProps> = ({
     <>
       {/* Top Main Navigation Bar */}
       <header className="site-header sticky top-0 z-console-chrome bg-canvas border-b border-hairline">
-        <div className="w-full px-4 sm:px-6 md:px-8 flex justify-between items-center py-2 md:py-0 min-h-[56px] gap-2 md:gap-6">
+        <div className="w-full px-4 sm:px-6 md:px-8 flex justify-between items-center py-2 md:py-0 min-h-[56px] gap-3 md:gap-6">
           
           {/* Logo & Console Title */}
           <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
