@@ -14,31 +14,9 @@
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Surfaces */
-  --canvas:          #ffffff;
-  --surface-subtle:  #fafbfc;   /* only for current-page, hover, active-chip */
-  --hairline:        #eef1f4;   /* table header underline */
-  --hairline-alt:    #f2f5f8;   /* row dividers */
-  --border-input:    #dde2e8;
-  --border-chip:     #e3e8ee;
-  --border-chip-on:  #b0bcc9;
-
-  /* Ink */
-  --ink-primary:     #0b0e11;   /* hero, primary data */
-  --ink-body:        #1f2937;   /* table body */
-  --ink-secondary:   #5f6b7a;   /* subline, meta, labels */
-  --ink-tertiary:    #8b97a5;   /* table headers, placeholders, inactive */
-  --ink-faint:       #6c7682;   /* inactive pagination */
-
-  /* Accent (the ONLY accent) */
-  --accent:          #2b6e8c;
-  --accent-halo:     rgba(43, 110, 140, 0.10);
-
-  /* Semantic (dots only — never fills, never pills) */
-  --sev-critical:    #c44536;
-  --sev-high:        #c07a2b;
-  --sev-medium:      #6b8f9c;
-  --sev-low:         #9aa6b2;
+  /* Colour tokens are NOT redefined here: public/assets/css/tokens.css is
+     the single source (shared with / and /admin), and its data-theme blocks
+     can therefore recolour the console. Console-only vars below. */
 
   /* Radius */
   --radius-input:    12px;
@@ -97,30 +75,6 @@
 .z-console-overlay-raised { z-index: var(--z-console-overlay-raised); }
 
 @theme {
-  /* Re-map gw-* tokens to Helm.Ports single accent and minimal palette */
-  --color-gw-primary: #0b0e11;
-  --color-gw-secondary: #dde2e8;
-  --color-gw-tertiary: #fafbfc;
-  --color-gw-bg: #ffffff;
-  --color-gw-accent: #5f6b7a;
-  --color-gw-accent-on-dark: #8b97a5;
-  --color-gw-panel: #ffffff;
-
-  --color-accent: #2b6e8c;
-  --color-canvas: #ffffff;
-  --color-surface-subtle: #fafbfc;
-  --color-hairline: #eef1f4;
-  --color-hairline-alt: #f2f5f8;
-  --color-border-input: #dde2e8;
-  --color-border-chip: #e3e8ee;
-  --color-border-chip-on: #b0bcc9;
-
-  --color-ink-primary: #0b0e11;
-  --color-ink-body: #1f2937;
-  --color-ink-secondary: #5f6b7a;
-  --color-ink-tertiary: #8b97a5;
-  --color-ink-faint: #6c7682;
-
   /* Strict Inter font stack */
   --font-mono: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -132,12 +86,43 @@
 
   --border-primary: 1px solid var(--hairline);
   --border-subtle: 1px solid var(--hairline-alt);
-  --bg-secondary: #ffffff;
   --space-compact: 0.5rem;
+}
 
-  --color-gw-critical: #c44536;
-  --color-gw-high: #c07a2b;
-  --color-gw-moderate: #6b8f9c;
+/* Colour tokens read the live custom properties defined in
+   public/assets/css/tokens.css (single source, shared with / and /admin),
+   so data-theme recolours every Tailwind colour utility. `inline` keeps the
+   var() references instead of baking hex values at build time. */
+@theme inline {
+  /* Re-map gw-* tokens to Helm.Ports single accent and minimal palette */
+  --color-gw-primary: var(--ink-primary);
+  --color-gw-secondary: var(--border-input);
+  --color-gw-tertiary: var(--surface-subtle);
+  --color-gw-bg: var(--canvas);
+  --color-gw-accent: var(--ink-secondary);
+  --color-gw-accent-on-dark: var(--ink-tertiary);
+  --color-gw-panel: var(--canvas);
+
+  --color-accent: var(--accent);
+  --color-canvas: var(--canvas);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-hairline: var(--hairline);
+  --color-hairline-alt: var(--hairline-alt);
+  --color-border-input: var(--border-input);
+  --color-border-chip: var(--border-chip);
+  --color-border-chip-on: var(--border-chip-on);
+
+  --color-ink-primary: var(--ink-primary);
+  --color-ink-body: var(--ink-body);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-ink-faint: var(--ink-faint);
+
+  --bg-secondary: var(--canvas);
+
+  --color-gw-critical: var(--sev-critical);
+  --color-gw-high: var(--sev-high);
+  --color-gw-moderate: var(--sev-medium);
 }
 
 @layer utilities {
