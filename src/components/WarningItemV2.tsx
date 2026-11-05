@@ -202,8 +202,8 @@ export interface WarningItemDetailsProps {
  */
 export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning: w }) => {
   const conf = w.extraction_confidence;
-  const [copiedKey, setCopiedKey] = useState<'coords' | 'raw' | null>(null);
-  const handleCopy = (key: 'coords' | 'raw', text: string) => {
+  const [copiedKey, setCopiedKey] = useState<'coords' | 'raw' | 'uuid' | null>(null);
+  const handleCopy = (key: 'coords' | 'raw' | 'uuid', text: string) => {
     copyToClipboard(text).then((success) => {
       if (!success) return;
       setCopiedKey(key);
@@ -219,6 +219,23 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
           <span className="font-bold text-gw-primary inline-block px-2 py-0.5 bg-gw-panel border border-gw-secondary rounded">
             NAVAREA {w.navarea}
           </span>
+        </div>
+        <div>
+          <span className="text-[10px] font-bold uppercase text-gw-accent block mb-0.5">Supabase ID</span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (w.db_uuid) handleCopy('uuid', w.db_uuid);
+            }}
+            disabled={!w.db_uuid}
+            title={w.db_uuid ? 'Copy Supabase row id (nav_warnings.id)' : 'No Supabase row id on this record'}
+            className={`touch-hit max-w-full truncate inline-block px-2 py-0.5 bg-gw-panel border border-gw-secondary rounded font-mono text-[10px] ${
+              copiedKey === 'uuid' ? 'text-emerald-700 border-emerald-300' : 'text-gw-primary hover:text-gw-accent'
+            }`}
+          >
+            {w.db_uuid ? (copiedKey === 'uuid' ? 'Copied!' : w.db_uuid) : '—'}
+          </button>
         </div>
         <div>
           <div className="flex justify-between items-center mb-0.5">
