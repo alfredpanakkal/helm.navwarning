@@ -503,6 +503,14 @@ test.describe('mobile', () => {
 
     expect(errors, 'no uncaught page errors').toEqual([]);
   });
+
+  test('console content keeps its padding (Tailwind utilities not overridden)', async ({ page }) => {
+    await openApp(page);
+    const padLeft = await page.evaluate(
+      "parseFloat(getComputedStyle(document.querySelector('#main-content')).paddingLeft)",
+    );
+    expect(padLeft, '#main-content must keep p-2/p-3 padding at 375px').toBeGreaterThanOrEqual(8);
+  });
 });
 
 test.describe('tablet 768', () => {
