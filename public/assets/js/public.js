@@ -732,6 +732,54 @@ function initMap(){
 let mapControlsAutoCollapseTimer = null;
 let controlsIdleTimer = null;
 
+window.openNavAreaPicker = function () {
+  dismissNavAreaHint();                       // user found it, so hide the tooltip
+  const s = document.getElementById('mapNavAreaSelect');
+  const section = document.getElementById('mapTopSection');
+  if (!s || !section) return;
+
+  const wasCollapsed = section.classList.contains('collapsed');
+  toggleMapTopControls(true);                 // expand so the select is rendered
+
+  // If it started collapsed, collapse it again once the user picks or leaves
+  const restore = () => {
+    s.removeEventListener('change', restore);
+    s.removeEventListener('blur', restore);
+    if (wasCollapsed) toggleMapTopControls(false);
+  };
+  s.addEventListener('change', restore);
+  s.addEventListener('blur', restore);
+
+  // Wait for the expand transition, or the picker can open in the wrong place
+  setTimeout(() => {
+    try { s.showPicker(); }
+    catch (err) { s.focus(); }               // older browsers: select is visible and focused
+  }, 250);
+};
+
+// ═══════════ NAVAREA PICKER HINT (one-time tooltip) ═══════════
+let navAreaHintEl = null, navAreaHintTimer = null;
+function dismissNavAreaHint() {
+  if (navAreaHintTimer) { clearTimeout(navAreaHintTimer); navAreaHintTimer = null; }
+  if (navAreaHintEl) { navAreaHintEl.remove(); navAreaHintEl = null; }
+  try { localStorage.setItem('hw-navarea-hint', '1'); } catch (e) { /* private mode */ }
+}
+function maybeShowNavAreaHint() {
+  try { if (localStorage.getItem('hw-navarea-hint')) return; } catch (e) { return; }
+  const chip = document.getElementById('mapControlsChip');
+  const container = document.querySelector('.map-container');
+  if (!chip || !container) return;
+  navAreaHintEl = document.createElement('div');
+  navAreaHintEl.className = 'navarea-hint';
+  navAreaHintEl.setAttribute('role', 'status');
+  navAreaHintEl.textContent = 'Tap to switch NAVAREA';
+  container.appendChild(navAreaHintEl);
+  const r = chip.getBoundingClientRect(), c = container.getBoundingClientRect();
+  navAreaHintEl.style.left = Math.max(8, r.left - c.left) + 'px';
+  navAreaHintEl.style.top = (r.bottom - c.top + 6) + 'px';
+  navAreaHintTimer = setTimeout(dismissNavAreaHint, 6000);
+}
+
 window.toggleMapTopControls = function(forceState) {
   const topSec = document.getElementById('mapTopSection');
   const chip = document.getElementById('mapControlsChip');
@@ -1801,6 +1849,9 @@ function rebuildMapList(items = null){
   activeItems.forEach(w=>{
     const item=document.createElement('div');
     const wid = w.canonical_id || w.warning_id || w.id;
+    const unscopedHere = currentSelectedNavArea
+      && !isNavAreaUnscoped(currentSelectedNavArea)
+      && isNavAreaUnscoped(w.navarea);
     item.className='warning-item';
     item.dataset.warningId = wid;
     item.onclick=()=>toggleInlineWarning(w, item);
@@ -1809,7 +1860,7 @@ function rebuildMapList(items = null){
       <div class="warning-item-header">
         <span class="severity-dot" style="background:${c}"></span>
         <div class="warning-item-title-col">
-          <div class="warning-id">${wid} · ${w.navarea}</div>
+          <div class="warning-id">${wid} · ${w.navarea}${unscopedHere ? '<span title="This warning has no NAVAREA number, so it appears in every area." style="display:inline-block;margin:2px 0 0 6px;padding:0 6px;border:1px solid var(--border);border-radius:999px;font-size:11px;font-weight:500;color:var(--text-muted)">No NAVAREA · shown in all areas</span>' : ''}</div>
           <div class="warning-meta">${w.title}</div>
           <div class="warning-meta">${formatWarningDate(w)}</div>
         </div>
@@ -2884,6 +2935,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   populateSources();
   attachGearLongPress();
   await loadWarnings();
+  maybeShowNavAreaHint();
 });
 
 // Click outside to dismiss desktop settings popover
@@ -3055,4 +3107,5 @@ function setupCoordinatePicker(map) {
     setCoordReadout(dmd, 'Selected');
   });
 }
+
 

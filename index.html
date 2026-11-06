@@ -308,9 +308,10 @@ body.map-focus-active .map-container{position:fixed!important;inset:0!important;
 .map-controls-chip{position:absolute;top:10px;left:10px;right:auto;width:auto;max-width:max-content;z-index:520;display:inline-flex;align-items:center;gap:5px;padding:3px 8px;min-height:26px;height:26px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font:600 11.5px system-ui,-apple-system,sans-serif;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;transition:all .15s cubic-bezier(.16,1,.3,1);user-select:none}
 .map-controls-chip:hover{background:var(--canvas,#ffffff);border-color:var(--neutral)}
 .map-controls-chip:active{transform:scale(.98)}
-.chip-dot{width:6px;height:6px;border-radius:50%;background:var(--active);animation:pulse 2s infinite;flex-shrink:0}
+.chip-icon{flex-shrink:0;color:var(--accent)}
+.chip-caption{font:600 11px system-ui,-apple-system,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);flex-shrink:0}
+.navarea-hint{position:absolute;z-index:540;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:500 11px system-ui,-apple-system,sans-serif;color:var(--text);box-shadow:0 2px 6px rgba(0,0,0,.12);pointer-events:none}
 .chip-chevron{transition:transform .22s ease;flex-shrink:0}
-.map-controls-chip.is-expanded .chip-chevron{transform:rotate(180deg)}
 
 /* Floating map toolbar — top-left below globe viewbutton */
 .map-ctrl-topright{position:absolute;top:42px;left:10px;right:auto;z-index:520;display:flex;flex-direction:row;gap:5px;align-items:center}
@@ -601,8 +602,16 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
     <div id="map"></div>
 
     <!-- Floating Map Controls Toggle Chip (reveals / collapses top controls) -->
-    <button type="button" class="map-controls-chip is-expanded" id="mapControlsChip" onclick="toggleMapTopControls()" aria-label="Toggle map filter controls" title="Toggle navigation area filter and controls" aria-expanded="true" aria-controls="mapTopSection">
-      <span class="chip-dot"></span>
+    <button type="button" class="map-controls-chip is-expanded" id="mapControlsChip"
+            onclick="openNavAreaPicker()" aria-label="Select navigation area"
+            title="Select a NAVAREA region">
+      <!-- globe icon replaces the pulsing dot, because a dot looks like a status light -->
+      <svg class="chip-icon" viewBox="0 0 24 24" width="14" height="14" fill="none"
+           stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+      <span class="chip-caption">REGION</span>
       <span id="chipNavAreaText">Global View</span>
       <svg class="chip-chevron" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
     </button>
@@ -1296,4 +1305,5 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
 </script>
 </body>
 </html>
+
 
