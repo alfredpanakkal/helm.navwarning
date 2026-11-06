@@ -447,6 +447,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('resize', invalidate);
     window.addEventListener('orientationchange', invalidate);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', invalidate);
+    }
 
     // Multiple staggered invalidation ticks upon mount or visibility transition
     const t0 = requestAnimationFrame(invalidate);
@@ -466,6 +469,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('resize', invalidate);
       window.removeEventListener('orientationchange', invalidate);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', invalidate);
+      }
       cancelAnimationFrame(t0);
       clearTimeout(t1);
       clearTimeout(t2);
