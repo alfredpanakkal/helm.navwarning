@@ -728,7 +728,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
       </div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
         <span class="nw-title-card-hint" id="titleCardHint">Tap for details →</span>
-        <button type="button" class="nw-title-card-close" onclick="event.stopPropagation(); hideTitleCard(true);" aria-label="Dismiss warning card" title="Dismiss">✕</button>
+        <button type="button" class="nw-title-card-close" onclick="event.stopPropagation(); clearActiveFeatureHighlight(); hideTitleCard(true);" aria-label="Dismiss warning card" title="Dismiss">✕</button>
       </div>
     </div>
 
