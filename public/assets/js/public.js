@@ -780,6 +780,15 @@ function maybeShowNavAreaHint() {
   navAreaHintTimer = setTimeout(dismissNavAreaHint, 6000);
 }
 
+// Store the visible screen height in a CSS variable, so the mobile map fits above browser toolbars.
+function setAppHeight() {
+  // visualViewport is the area the user can actually see; fall back to the window height.
+  const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty('--app-h', h + 'px');
+}
+setAppHeight();
+if (window.visualViewport) window.visualViewport.addEventListener('resize', setAppHeight);
+window.addEventListener('resize', setAppHeight);
 window.toggleMapTopControls = function(forceState) {
   const topSec = document.getElementById('mapTopSection');
   const chip = document.getElementById('mapControlsChip');
