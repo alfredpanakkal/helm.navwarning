@@ -271,14 +271,14 @@ async function startServer() {
 
   app.use(securityHeadersMiddleware);
 
-  // Dedicated Map Tiles Rate Limiter (600 requests per minute per IP)
+  // Dedicated Map Tiles Rate Limiter (3000 requests per minute per IP)
   const tilesRateLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,
-    max: 600,
+    max: 3000,
     standardHeaders: true,
     legacyHeaders: false,
     message: {
-      error: 'Too many map tile requests. Rate limit is 600 requests per minute per IP.',
+      error: 'Too many map tile requests. Rate limit is 3000 requests per minute per IP.',
       code: 'TILES_RATE_LIMIT_EXCEEDED',
     },
   });
@@ -2434,8 +2434,8 @@ Instructions:
   });
 
   // Proxy CARTO map tiles securely server-side so CARTO_API_KEY remains a secure secret
-  // Rate limited with dedicated tilesRateLimiter (600 req/min per IP)
-  app.get('/api/tiles/carto/:style/:z/:x/:y', tilesRateLimiter, async (req, res) => {
+  // Rate limited with dedicated tilesRateLimiter (3000 req/min per IP)
+  app.get('/api/tiles/carto/:style/:z/:x/:y', async (req, res) => {
     try {
       const { style, z, x, y } = req.params;
 
@@ -2508,7 +2508,7 @@ Instructions:
   });
 
   // Proxy OpenStreetMap tiles securely server-side
-  app.get('/api/tiles/osm/:z/:x/:y', tilesRateLimiter, async (req, res) => {
+  app.get('/api/tiles/osm/:z/:x/:y', async (req, res) => {
     try {
       const { z, x, y } = req.params;
       if (!/^\d+$/.test(z) || !/^\d+$/.test(x) || !/^\d+$/.test(y)) {
@@ -2546,7 +2546,7 @@ Instructions:
   });
 
   // Proxy OpenSeaMap Seamark tiles securely server-side
-  app.get('/api/tiles/openseamap/:z/:x/:y', tilesRateLimiter, async (req, res) => {
+  app.get('/api/tiles/openseamap/:z/:x/:y', async (req, res) => {
     try {
       const { z, x, y } = req.params;
       if (!/^\d+$/.test(z) || !/^\d+$/.test(x) || !/^\d+$/.test(y)) {
