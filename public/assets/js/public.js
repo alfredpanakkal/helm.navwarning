@@ -692,6 +692,8 @@ function initMap(){
   currentBaseLayer = L.tileLayer(baseDef.url, {
     maxZoom: baseDef.maxZoom,
     attribution: baseDef.attribution
+    keepBuffer: 4,
+    updateWhenZooming: false,
   }).addTo(leafletMap);
   currentBaseLayer.on('tileerror', logTileError('base:' + currentBaseMapId));
   osmBaseLayer = currentBaseLayer;
@@ -700,6 +702,8 @@ function initMap(){
   openSeaMapLayer = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
     maxZoom: 18,
     opacity: 1.0,
+    keepBuffer: 4,
+    updateWhenZooming: false,
     attribution: 'Map style: &copy; <a href="http://www.openseamap.org">OpenSeaMap</a>'
   });
   openSeaMapLayer.on('tileerror', logTileError('seamarks'));
@@ -710,7 +714,9 @@ function initMap(){
   // Ocean soundings overlay
   soundingsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',{
     attribution: 'Tiles &copy; Esri &mdash; NOAA, GEBCO',
-    maxZoom: 13
+    maxZoom: 13,
+    keepBuffer: 4,
+    updateWhenZooming: false
   });
   soundingsLayer.on('tileerror', logTileError('soundings'));
   if (mapPreferences.overlays.soundings) {
@@ -1927,6 +1933,8 @@ window.selectBaseMap = function(id){
   currentBaseLayer = L.tileLayer(def.url, {
     maxZoom: def.maxZoom,
     attribution: def.attribution
+    keepBuffer: 4,
+    updateWhenZooming: false,
   });
   currentBaseLayer.on('tileerror', logTileError('base:' + id));
   currentBaseLayer.addTo(m);
@@ -2003,6 +2011,8 @@ window.toggleLayer = function(name, vis){
       openSeaMapLayer = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
         maxZoom: 18,
         opacity: 1.0,
+        keepBuffer: 4,
+        updateWhenZooming: false,
         attribution: 'Map style: &copy; OpenSeaMap'
       });
       openSeaMapLayer.on('tileerror', logTileError('seamarks'));
@@ -2013,7 +2023,9 @@ window.toggleLayer = function(name, vis){
       if(!soundingsLayer){
         soundingsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',{
           attribution: 'Tiles &copy; Esri &mdash; NOAA, GEBCO',
-          maxZoom: 13
+          maxZoom: 13,
+          keepBuffer: 4,
+          updateWhenZooming: false,
         });
         soundingsLayer.on('tileerror', logTileError('soundings'));
       }
