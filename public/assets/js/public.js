@@ -550,6 +550,24 @@ const BASE_MAP_DEFS = {
   }
 };
 
+// ---- TILE ERROR DIAGNOSTICS (temporary - mobile zoom flicker investigation) ----
+// Logs the first TILE_ERROR_LOG_LIMIT failing tile URLs per layer to the console,
+// then suppresses detail so a flood of empty-sea 404s cannot spam mobile logs.
+const TILE_ERROR_LOG_LIMIT = 20;
+const tileErrorCounts = {};
+function logTileError(layerName) {
+  return function (ev) {
+    tileErrorCounts[layerName] = (tileErrorCounts[layerName] || 0) + 1;
+    const count = tileErrorCounts[layerName];
+    if (count <= TILE_ERROR_LOG_LIMIT) {
+      const url = (ev && ev.tile && ev.tile.src) ? ev.tile.src : 'unknown';
+      console.warn('[tileerror] ' + layerName + ' #' + count + ': ' + url);
+    } else if (count === TILE_ERROR_LOG_LIMIT + 1) {
+      console.warn('[tileerror] ' + layerName + ': over ' + TILE_ERROR_LOG_LIMIT + ' errors, further detail suppressed');
+    }
+  };
+}
+
 const NAVAREA_CENTERS = {
   'NA I': { center: [56.0, 3.0], zoom: 5 },
   'NA II': { center: [28.0, -15.0], zoom: 4 },
@@ -675,6 +693,7 @@ function initMap(){
     maxZoom: baseDef.maxZoom,
     attribution: baseDef.attribution
   }).addTo(leafletMap);
+  currentBaseLayer.on('tileerror', logTileError('base:' + currentBaseMapId));
   osmBaseLayer = currentBaseLayer;
 
   // OpenSeaMap nautical seamarks overlay
@@ -683,7 +702,7 @@ function initMap(){
     opacity: 1.0,
     attribution: 'Map style: &copy; <a href="http://www.openseamap.org">OpenSeaMap</a>'
   });
-  openSeaMapLayer.on('tileerror', function() {});
+  openSeaMapLayer.on('tileerror', logTileError('seamarks'));
   if (mapPreferences.overlays.seamarks) {
     openSeaMapLayer.addTo(leafletMap);
   }
@@ -693,6 +712,7 @@ function initMap(){
     attribution: 'Tiles &copy; Esri &mdash; NOAA, GEBCO',
     maxZoom: 13
   });
+  soundingsLayer.on('tileerror', logTileError('soundings'));
   if (mapPreferences.overlays.soundings) {
     soundingsLayer.addTo(leafletMap);
   }
@@ -1908,6 +1928,7 @@ window.selectBaseMap = function(id){
     maxZoom: def.maxZoom,
     attribution: def.attribution
   });
+  currentBaseLayer.on('tileerror', logTileError('base:' + id));
   currentBaseLayer.addTo(m);
   if(typeof currentBaseLayer.bringToBack === 'function'){
     currentBaseLayer.bringToBack();
@@ -1984,7 +2005,7 @@ window.toggleLayer = function(name, vis){
         opacity: 1.0,
         attribution: 'Map style: &copy; OpenSeaMap'
       });
-      openSeaMapLayer.on('tileerror', function() {});
+      openSeaMapLayer.on('tileerror', logTileError('seamarks'));
     }
     vis ? openSeaMapLayer.addTo(m) : m.removeLayer(openSeaMapLayer);
   } else if(name === 'soundings'){
@@ -1994,6 +2015,7 @@ window.toggleLayer = function(name, vis){
           attribution: 'Tiles &copy; Esri &mdash; NOAA, GEBCO',
           maxZoom: 13
         });
+        soundingsLayer.on('tileerror', logTileError('soundings'));
       }
       soundingsLayer.addTo(m);
     } else if(soundingsLayer){
