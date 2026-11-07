@@ -583,10 +583,23 @@ function matchesNavArea(warnArea, targetArea) {
 }
 
 // A warning is "unscoped" when its navarea is not a real NAVAREA I..XXI
-// (blank, Baltic, etc.). It is shown in every NAVAREA view, never hidden.
+// (blank, Baltic, etc.). Unscoped warnings are scoped to the NAVAREA I
+// view (the Baltic Sea lies in NAVAREA I waters) plus the Global view,
+// instead of appearing in every regional view.
 function isNavAreaUnscoped(warnArea) {
   const n = String(warnArea ?? '').trim().toUpperCase().replace(/^NAVAREA\s+/, '').replace(/^NA\s+/, '');
   return !/^(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV|XVI|XVII|XVIII|XIX|XX|XXI)$/.test(n);
+}
+
+// Region-scope rule (maintainer decision 2026-11-07, supersedes the PR #133
+// every-area rule): a warning belongs to the selected view when its
+// navarea matches, or when it is unscoped AND the view is NAVAREA I.
+// Baltic/blank warnings carry no NAVAREA numeral and the Baltic Sea lies
+// in NAVAREA I waters, so they appear under NAVAREA I (and Global).
+function inRegionScope(warnArea, targetArea) {
+  if (!targetArea || targetArea === 'ALL' || targetArea === '') return true;
+  if (matchesNavArea(warnArea, targetArea)) return true;
+  return isNavAreaUnscoped(warnArea) && matchesNavArea('NA I', targetArea);
 }
 
 // ═══════════ CARTOGRAPHIC MATH HELPERS ═══════════
@@ -1649,7 +1662,7 @@ window.filterMapByNavArea = function(navArea) {
     }
   }
 
-  const filtered = warnings.filter(w => w.status !== 'rejected' && (matchesNavArea(w.navarea, currentSelectedNavArea) || isNavAreaUnscoped(w.navarea)));
+  const filtered = warnings.filter(w => w.status !== 'rejected' && inRegionScope(w.navarea, currentSelectedNavArea));
 
   // Clear all vector layers
   if (pointsLayer) pointsLayer.clearLayers();
@@ -1841,7 +1854,7 @@ function rebuildMapList(items = null){
   list.querySelectorAll('.warning-item, .warning-item-empty').forEach(e=>e.remove());
   const activeItems = items !== null
     ? items
-    : warnings.filter(w=>w.status!=='rejected' && (matchesNavArea(w.navarea, currentSelectedNavArea) || isNavAreaUnscoped(w.navarea)));
+    : warnings.filter(w=>w.status!=='rejected' && inRegionScope(w.navarea, currentSelectedNavArea));
 
   if (activeItems.length === 0) {
     const emptyEl = document.createElement('div');
@@ -1869,7 +1882,7 @@ function rebuildMapList(items = null){
       <div class="warning-item-header">
         <span class="severity-dot" style="background:${c}"></span>
         <div class="warning-item-title-col">
-          <div class="warning-id">${wid} · ${w.navarea}${unscopedHere ? '<span title="This warning has no NAVAREA number, so it appears in every area." style="display:inline-block;margin:2px 0 0 6px;padding:0 6px;border:1px solid var(--border);border-radius:999px;font-size:11px;font-weight:500;color:var(--text-muted)">No NAVAREA · shown in all areas</span>' : ''}</div>
+          <div class="warning-id">${wid} · ${w.navarea}${unscopedHere ? '<span title="This warning has no NAVAREA number, so it is shown with NAVAREA I (the Baltic Sea lies in NAVAREA I waters)." style="display:inline-block;margin:2px 0 0 6px;padding:0 6px;border:1px solid var(--border);border-radius:999px;font-size:11px;font-weight:500;color:var(--text-muted)">No NAVAREA · shown with NAVAREA I</span>' : ''}</div>
           <div class="warning-meta">${w.title}</div>
           <div class="warning-meta">${formatWarningDate(w)}</div>
         </div>
@@ -2461,7 +2474,7 @@ function getFilteredWarnings(){
 
   return warnings.filter(w=>{
     if(w.status==='rejected') return false;
-    if(na && !matchesNavArea(w.navarea, na) && !isNavAreaUnscoped(w.navarea)) return false;
+    if(na && !inRegionScope(w.navarea, na)) return false;
     if(sv && w.severity!==sv) return false;
     if(ca && w.category!==ca) return false;
     if(q){
@@ -2495,7 +2508,7 @@ window.applyFilters = function(){
     if (mapSelect && mapSelect.value !== currentSelectedNavArea) {
       mapSelect.value = currentSelectedNavArea;
     }
-    const filtered = warnings.filter(w=>w.status!=='rejected' && (matchesNavArea(w.navarea, currentSelectedNavArea) || isNavAreaUnscoped(w.navarea)));
+    const filtered = warnings.filter(w=>w.status!=='rejected' && inRegionScope(w.navarea, currentSelectedNavArea));
     if (markerLayer) {
       markerLayer.clearLayers();
       filtered.forEach(addMarker);
@@ -2731,10 +2744,10 @@ function runInterrogate(latlng) {
     fillOpacity: 0.06,
     interactive: false
   }).addTo(leafletMap);
-  // Same in-scope rule as filterMapByNavArea: the region filter (plus
-  // unscoped warnings) decides what the chart shows, so it decides what
-  // interrogation reports. #dc2626 mirrors the --critical token.
-  const inScope = warnings.filter(w => w.status !== 'rejected' && (matchesNavArea(w.navarea, currentSelectedNavArea) || isNavAreaUnscoped(w.navarea)));
+  // Same in-scope rule as filterMapByNavArea: the region filter (unscoped
+  // warnings count as NAVAREA I) decides what the chart shows, so it decides
+  // what interrogation reports. #dc2626 mirrors the --critical token.
+  const inScope = warnings.filter(w => w.status !== 'rejected' && inRegionScope(w.navarea, currentSelectedNavArea));
   const hits = inScope.filter(w => warningIntersectsBounds(w, box));
   showInterrogatePopup(latlng, hits);
 }
