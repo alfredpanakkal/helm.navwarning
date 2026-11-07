@@ -1188,6 +1188,10 @@ window.handleTitleCardClick = function() {
   }
 };
 
+// C4: remember the element that opened the details drawer so focus can
+// be restored to it when the drawer closes.
+let drawerTriggerElement = null;
+
 window.openWarningDetails = function(w) {
   currentDrawerWarning = w;
   currentWarning = w;
@@ -1250,6 +1254,9 @@ window.openWarningDetails = function(w) {
 
   drawer.classList.add('open');
   drawer.setAttribute('aria-hidden', 'false');
+  drawerTriggerElement = document.activeElement;
+  const drawerCloseBtn = drawer.querySelector('.settings-close-btn') || drawer.querySelector('button');
+  if (drawerCloseBtn) setTimeout(() => drawerCloseBtn.focus(), 50);
 };
 
 window.closeWarningDrawer = function() {
@@ -1258,6 +1265,10 @@ window.closeWarningDrawer = function() {
     drawer.classList.remove('open');
     drawer.setAttribute('aria-hidden', 'true');
   }
+  if (drawerTriggerElement && typeof drawerTriggerElement.focus === 'function') {
+    drawerTriggerElement.focus();
+  }
+  drawerTriggerElement = null;
 };
 
 window.copyCurrentWarningText = function() {
@@ -3030,6 +3041,27 @@ document.addEventListener('click', (e) => {
 
 // Keyboard navigation (Escape to dismiss modal/drawer/settings/focus mode)
 document.addEventListener('keydown', (e) => {
+  // C4: keep Tab focus inside the open warning modal (wrap-around), so
+  // keyboard users cannot escape behind the overlay. If focus has already
+  // leaked outside, the next Tab pulls it back in.
+  if (e.key === 'Tab') {
+    const openModal = document.getElementById('warningModal');
+    if (openModal && openModal.classList.contains('open')) {
+      const focusables = openModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (focusables.length) {
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const inside = openModal.contains(document.activeElement);
+        if (e.shiftKey && (!inside || document.activeElement === first)) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && (!inside || document.activeElement === last)) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+  }
   if (e.key === 'Escape') {
     const modal = document.getElementById('warningModal');
     if (modal && modal.classList.contains('open')) {
