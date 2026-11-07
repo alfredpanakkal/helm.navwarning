@@ -364,6 +364,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       attribution: cfg.attribution,
       maxZoom: cfg.maxZoom,
       maxNativeZoom: cfg.maxNativeZoom,
+      keepBuffer: 4,              // keep more tiles around the screen so edges don't go grey
+      updateWhenZooming: false,   // wait until the zoom ends before loading new tiles
       subdomains: cfg.subdomains || 'abc',
       pane: cfg.pane, // 'basePane'
     }).addTo(map);
@@ -384,6 +386,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           attribution: esriLabelsConfig.attribution,
           maxZoom: esriLabelsConfig.maxZoom,
           maxNativeZoom: esriLabelsConfig.maxNativeZoom,
+          keepBuffer: 4,              // keep more tiles around the screen so edges don't go grey
+          updateWhenZooming: false,   // wait until the zoom ends before loading new tiles
           pane: esriLabelsConfig.pane,
           opacity: 0.95,
         }).addTo(map);
