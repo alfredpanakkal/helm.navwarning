@@ -516,6 +516,10 @@ function saveMapPreferences(prefs) {
 let mapPreferences = loadMapPreferences();
 let currentBaseMapId = mapPreferences.baseMap || 'osm';
 let currentSelectedNavArea = ''; // Default to Global View (All NAVAREAs)
+// Map auto-fit state: the first data-driven fit must not animate, and data
+// refreshes must never reposition a map the user is already looking at.
+let mapFirstFitPending = true;
+let lastFittedNavArea = null;
 
 const BASE_MAP_DEFS = {
   'osm': {
@@ -675,9 +679,12 @@ function initMap(){
   const mapEl = document.getElementById('map');
   if (!mapEl || typeof L === 'undefined') return;
   const isMob = document.body.classList.contains('is-mobile');
+  // Start already positioned on the deep-linked / default NAVAREA: no
+  // global-to-region jump on first load.
+  const initArea = NAVAREA_CENTERS[currentSelectedNavArea];
   leafletMap = L.map('map', {
-    center: [20, 0],
-    zoom: isMob ? 2 : 3,
+    center: initArea ? initArea.center : [20, 0],
+    zoom: initArea ? initArea.zoom : (isMob ? 2 : 3),
     worldCopyJump: true,
     zoomControl: false,
     attributionControl: false,
@@ -1666,7 +1673,7 @@ function addMarker(w) {
   plotWarning(w);
 }
 
-window.filterMapByNavArea = function(navArea) {
+window.filterMapByNavArea = function(navArea, opts) {
   currentSelectedNavArea = navArea || '';
   try { localStorage.setItem('hw-navarea', currentSelectedNavArea || 'ALL'); } catch (e) { /* private mode: ignore */ }
 
@@ -1731,7 +1738,9 @@ window.filterMapByNavArea = function(navArea) {
   }
 
   const m = getLeafletMap();
-  if (m) {
+  const shouldRefit = mapFirstFitPending || (navArea || '') !== lastFittedNavArea || !!(opts && opts.forceRefit);
+  const animateFit = !mapFirstFitPending;
+  if (m && shouldRefit) {
     if (currentSelectedNavArea) {
       const allCoords = [];
       filtered.filter(w => matchesNavArea(w.navarea, currentSelectedNavArea)).forEach(w => {
@@ -1743,16 +1752,22 @@ window.filterMapByNavArea = function(navArea) {
       });
 
       if (allCoords.length > 1) {
-        m.fitBounds(allCoords, { maxZoom: 6, padding: [40, 40], animate: true });
+        m.fitBounds(allCoords, { maxZoom: 6, padding: [40, 40], animate: animateFit });
       } else if (allCoords.length === 1) {
-        m.setView(allCoords[0], 6, { animate: true });
+        m.setView(allCoords[0], 6, { animate: animateFit });
       } else if (NAVAREA_CENTERS[currentSelectedNavArea]) {
         const c = NAVAREA_CENTERS[currentSelectedNavArea];
-        m.setView(c.center, c.zoom, { animate: true });
+        m.setView(c.center, c.zoom, { animate: animateFit });
       }
     } else {
       const isMob = document.body.classList.contains('is-mobile');
-      m.setView([20, 0], isMob ? 2 : 3, { animate: true });
+      m.setView([20, 0], isMob ? 2 : 3, { animate: animateFit });
+    }
+    // Consume the first fit (and mark the region fitted) only once real
+    // warning data exists; the pre-data initMap call must not lock it in.
+    if (warnings.length > 0) {
+      mapFirstFitPending = false;
+      lastFittedNavArea = navArea || '';
     }
   }
 };
@@ -1949,7 +1964,7 @@ window.selectBaseMap = function(id){
 };
 
 window.resetMapView = function(){
-  filterMapByNavArea(currentSelectedNavArea);
+  filterMapByNavArea(currentSelectedNavArea, { forceRefit: true });
 };
 window.locateMapView = window.resetMapView;
 
