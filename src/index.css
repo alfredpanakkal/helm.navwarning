@@ -708,4 +708,10 @@
     transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
+  /* Leaflet zoom animation relies on its CSS transitions; collapsing them
+     to ~0ms under prefers-reduced-motion makes pinch-zoom snap. */
+  .leaflet-container,
+  .leaflet-container * {
+    transition-duration: revert-layer !important;
+  }
 }
