@@ -691,7 +691,7 @@ function initMap(){
   const baseDef = BASE_MAP_DEFS[currentBaseMapId] || BASE_MAP_DEFS['osm'];
   currentBaseLayer = L.tileLayer(baseDef.url, {
     maxZoom: baseDef.maxZoom,
-    attribution: baseDef.attribution
+    attribution: baseDef.attribution,
     keepBuffer: 4,
     updateWhenZooming: false,
   }).addTo(leafletMap);
@@ -1932,7 +1932,7 @@ window.selectBaseMap = function(id){
   const def = BASE_MAP_DEFS[id];
   currentBaseLayer = L.tileLayer(def.url, {
     maxZoom: def.maxZoom,
-    attribution: def.attribution
+    attribution: def.attribution,
     keepBuffer: 4,
     updateWhenZooming: false,
   });
