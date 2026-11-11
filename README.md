@@ -9,7 +9,7 @@
 
 **Global NAVAREA Maritime Safety Information (MSI) Ingestion Pipeline & Chart Plotter**
 
-[![Live App](https://img.shields.io/badge/Live-helmwarning.vercel.app-00C7B7?style=for-the-badge&logo=vercel&logoColor=white)](https://helmwarning.vercel.app)
+[![Live App](https://img.shields.io/badge/Live-navarea.helmology.com-00C7B7?style=for-the-badge&logo=vercel&logoColor=white)](https://navarea.helmology.com)
 
 [![CI](https://github.com/alfredpanakkal/helm.navwarning/actions/workflows/ci.yml/badge.svg)](https://github.com/alfredpanakkal/helm.navwarning/actions/workflows/ci.yml)
 [![Last Commit](https://img.shields.io/github/last-commit/alfredpanakkal/helm.navwarning)](https://github.com/alfredpanakkal/helm.navwarning/commits)

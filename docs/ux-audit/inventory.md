@@ -14,7 +14,7 @@ if a task changes an element's location or fate, update the row and say so in th
 | --- | --- |
 | Tooling | Playwright 1.63 (Chromium), `playwright.config.ts`, `scripts/ux-audit/capture.ts` |
 | Local driver | `npm run dev:audit` (`scripts/ux-audit/dev-server.ts`, `DISABLE_HMR=true`) |
-| Live driver | `npm run ux:capture:live` → `https://helmwarning.vercel.app` |
+| Live driver | `npm run ux:capture:live` → `https://navarea.helmology.com` |
 | Smoke suite | `npm run ux:smoke` → `scripts/ux-audit/tests/do-not-break.spec.ts` (12 tests, green) |
 | Captured states | 19 local + 3 live baseline = 22 (screenshots ≤ 25 budget, 6 MB total) |
 | Data baseline | No `.env` present → in-memory seed: **5 warnings, 19 sources** (matches live site today) |

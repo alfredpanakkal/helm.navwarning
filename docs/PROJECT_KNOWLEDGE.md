@@ -240,7 +240,7 @@ description of the current system; live code wins.
   the vitest port (#46/#47). The unfinished Parser v3 files are the ones
   covered by the keep-decision (§4 item 8).
 - **Still undecided from that era:** domain purchase (none recorded — the
-  site remains on `helmwarning.vercel.app`); map-update UX (pulse the
+  site remains on `navarea.helmology.com`); map-update UX (pulse the
   marker vs auto-zoom to a new warning — no decision recorded).
 
 ## 6. Change history 2026-10-26 → 2026-11-03 (merged, one line each)

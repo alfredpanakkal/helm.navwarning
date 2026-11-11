@@ -15,7 +15,7 @@
 - Chrome is resolved from `CHROME_PATH`, then platform-standard paths. Linux CI runners have Google Chrome preinstalled; do not add an install step.
 - Scripts must run on Windows (user's machine) and Linux (CI). No `date`, `rm`, or other shell-only constructs.
 - The basemap tile pane is `.leaflet-base-pane` (custom pane), **not** `.leaflet-tile-pane`. A check that queries the wrong pane always reports zero tiles and looks like a CSP failure.
-- Production URL is `https://helmwarning.vercel.app` (repo `homepageUrl`). Do not guess other URLs.
+- Production URL is `https://navarea.helmology.com` (repo `homepageUrl`). Do not guess other URLs.
 - Never stage or commit `graphify-out/`.
 - Script exit code: `0` only when every `fail`-severity check passes. `warn` never fails the run.
 
@@ -414,7 +414,7 @@ In `package.json`, add to `scripts`:
 
 ```json
     "verify:dev": "node scripts/verify-deployment.mjs --url http://localhost:3000 --expect-headers present",
-    "verify:prod": "node scripts/verify-deployment.mjs --url https://helmwarning.vercel.app --expect-headers any",
+    "verify:prod": "node scripts/verify-deployment.mjs --url https://navarea.helmology.com --expect-headers any",
     "verify:selftest": "node scripts/fixtures/csp-blocked-fixture.mjs"
 ```
 
@@ -485,7 +485,7 @@ Create `docs/operations/production-verification.md` containing:
 ```markdown
 # Production verification
 
-Production: https://helmwarning.vercel.app
+Production: https://navarea.helmology.com
 Checker: `npm run verify:prod` (exit 0 = all fail-severity checks passed)
 
 ## How to verify a deployment
@@ -494,7 +494,7 @@ Checker: `npm run verify:prod` (exit 0 = all fail-severity checks passed)
 2. `gh api "repos/alfredpanakkal/helm.navwarning/deployments?per_page=10" --jq '.[] | select(.environment=="Production") | "\(.created_at) \(.sha)"'`
    — confirm the newest Production deployment is that commit.
 3. `npm run verify:prod` — expect exit 0.
-4. On failure, keep the evidence: `node scripts/verify-deployment.mjs --url https://helmwarning.vercel.app --expect-headers any --json verify.json --screenshot verify.png`.
+4. On failure, keep the evidence: `node scripts/verify-deployment.mjs --url https://navarea.helmology.com --expect-headers any --json verify.json --screenshot verify.png`.
 
 ## Deployment shape (verified 2026-10-05)
 
@@ -549,7 +549,7 @@ on:
       url:
         description: 'Deployment URL to verify'
         required: false
-        default: 'https://helmwarning.vercel.app'
+        default: 'https://navarea.helmology.com'
 
 permissions:
   contents: read
@@ -565,7 +565,7 @@ jobs:
       - name: Verify deployment
         run: |
           node scripts/verify-deployment.mjs \
-            --url "${{ inputs.url || 'https://helmwarning.vercel.app' }}" \
+            --url "${{ inputs.url || 'https://navarea.helmology.com' }}" \
             --expect-headers any \
             --json verify.json \
             --screenshot verify.png
