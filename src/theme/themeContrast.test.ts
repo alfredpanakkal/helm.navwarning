@@ -5,8 +5,9 @@
  * per WCAG 2.1 and require text pairs >= 4.5:1 and non-text pairs
  * (borders, status colours, focus rings) >= 3:1, for every theme.
  */
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CONSOLE_TOKEN_MAP, THEME_NAMES, THEME_PALETTES, type ThemePalette } from './themeTokens';
+import { CONSOLE_TOKEN_MAP, THEME_NAMES, THEME_PALETTES, type ThemeName, type ThemePalette } from './themeTokens';
 
 function channel(c: number): number {
   const v = c / 255;
@@ -146,5 +147,64 @@ describe('console gw-token mapping', () => {
     // Light hairline is a pre-existing decorative convention (~1.2:1), kept
     // unchanged on purpose; no console theme switcher ships before the
     // raw-palette migration, so this never regresses a themed surface.
+  });
+});
+
+describe('CSS token sync (public/assets/css/tokens.css)', () => {
+  // public/assets/css/tokens.css is the single CSS source of truth shared by
+  // the public portal, /admin and the console. These checks keep it in
+  // lockstep with THEME_PALETTES and pin WCAG thresholds for pairs that only
+  // exist in the CSS dialect (ink tiers, severity dots, inverse controls).
+  const css = readFileSync(new URL('../../public/assets/css/tokens.css', import.meta.url), 'utf8');
+
+  function blockFor(selector: string): string {
+    const at = css.indexOf(selector);
+    if (at === -1) throw new Error('missing CSS block for ' + selector);
+    const open = css.indexOf('{', at);
+    const close = css.indexOf('}', open);
+    return css.slice(open + 1, close);
+  }
+
+  function token(block: string, name: string): string {
+    const m = block.match(new RegExp('--' + name + ':\\s*([^;]+);'));
+    if (!m) throw new Error('missing --' + name + ' in CSS block');
+    return m[1].trim();
+  }
+
+  const cssBlocks: Record<ThemeName, string> = {
+    light: blockFor(':root {'),
+    dark: blockFor(':root[data-theme="dark"]'),
+    night: blockFor(':root[data-theme="night"]'),
+  };
+
+  it('core CSS tokens stay in sync with THEME_PALETTES in every theme', () => {
+    for (const name of THEME_NAMES) {
+      const p = THEME_PALETTES[name];
+      const b = cssBlocks[name];
+      const expectSynced = (cssToken: string, paletteValue: string) =>
+        expect(token(b, cssToken).toUpperCase(), name + ' --' + cssToken).toBe(paletteValue.toUpperCase());
+      expectSynced('canvas', p.background);
+      expectSynced('ink-primary', p.foreground);
+      expectSynced('ink-secondary', p.mutedForeground);
+      expectSynced('accent', p.accent);
+      expectSynced('sev-critical', p.sevCritical);
+      expectSynced('sev-high', p.sevHigh);
+      expectSynced('sev-medium', p.sevModerate);
+    }
+  });
+
+  it('CSS-only ink tiers and severity dots meet their thresholds (light)', () => {
+    const light = cssBlocks.light;
+    // ink-tertiary carries table headers and placeholders: text, >= 4.5:1.
+    expect(contrast(token(light, 'ink-tertiary'), token(light, 'canvas'))).toBeGreaterThanOrEqual(4.5);
+    // ink-faint is inactive pagination: non-essential UI text, >= 3:1.
+    expect(contrast(token(light, 'ink-faint'), token(light, 'canvas'))).toBeGreaterThanOrEqual(3);
+    // Severity dots are non-text status edges: >= 3:1.
+    expect(contrast(token(light, 'sev-low'), token(light, 'canvas'))).toBeGreaterThanOrEqual(3);
+  });
+
+  it('canvas text on the accent stays readable for inverse controls (light/dark)', () => {
+    expect(contrast(token(cssBlocks.light, 'canvas'), token(cssBlocks.light, 'accent'))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(token(cssBlocks.dark, 'canvas'), token(cssBlocks.dark, 'accent'))).toBeGreaterThanOrEqual(4.5);
   });
 });

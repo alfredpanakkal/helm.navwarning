@@ -1,6 +1,7 @@
 # Design System — Helm.Ports conventions
 
 > Verified 2026-11-03 against `public/assets/css/tokens.css` and `src/index.css` on `main` (post PR #104).
+> Moss palette sync verified 2026-11-11 (paper `#FAFAF7`, ink `#1D211E`, accent `#2F6B4F`).
 > This document describes what the shipped code actually does. Hard constraints are summarized in [UI-DESIGN-FUNDAMENTALS.md](UI-DESIGN-FUNDAMENTALS.md).
 
 ## 1. Surfaces & Entry Points
@@ -15,9 +16,12 @@ All three are Vite build inputs (`vite.config.ts` rollupOptions.input). The gate
 
 ## 2. Public tokens (`tokens.css`)
 
-Both surfaces share one palette: Helm.Ports tokens (canvas white, hairline borders, ink scale, single accent `#2b6e8c`). Semantic severity tokens are for dots only:
+Both surfaces share one palette: the Helm.Ports moss palette (paper canvas `#FAFAF7`, ink `#1D211E`, hairline borders on a black-alpha ramp, single accent `#2F6B4F` with focus halo `rgba(47,107,79,0.10)`; the dark theme re-tints the accent to moss mint `#8FCBA8`). Semantic severity tokens are for dots only:
 
-- `--sev-critical: #c44536`, `--sev-high: #c07a2b`, `--sev-medium: #6b8f9c`, `--sev-low: #9aa6b2`
+- `--sev-critical: #B42318`, `--sev-high: #8C5208`, `--sev-medium: #2E5C8A`, `--sev-low: #65727e`
+- `--sev-high-halo` backs warn status pills (light `rgba(140,82,8,0.10)`, dark `rgba(217,162,74,0.15)`, night `rgba(208,138,62,0.15)`)
+
+Two deliberate departures from raw moss values: `--ink-tertiary: #687169` is moss `--input` (#6F7770) darkened to pass 4.5:1 on paper, and `--sev-high: #8C5208` is chosen over moss `#A16207` because `#A16207` fails 4.5:1 on the mint accent fill. Both are regression-guarded in `src/theme/themeContrast.test.ts`, which also asserts `tokens.css` stays in sync with `src/theme/themeTokens.ts`.
 
 Legacy aliases (`--bg`, `--text`, `--critical`, …) are mapped onto the new tokens for older public CSS; do not use them in new code.
 
@@ -32,7 +36,7 @@ Three public themes via `data-theme`: light (default), dark, night. Each re-maps
 
 ## 3. Console tokens (`src/index.css`)
 
-- The `gw-*` Tailwind theme tokens are re-mapped onto the Helm.Ports palette (`--color-gw-primary: #0b0e11`, `--color-gw-secondary: #dde2e8`, `--color-gw-bg/panel: #ffffff`, `--color-gw-accent: #5f6b7a`; severity `--color-gw-critical/high/moderate` mirror `--sev-*`). Existing `gw-*` class usage keeps working; new work should prefer the ink/accent token names.
+- The `gw-*` Tailwind theme tokens are re-mapped onto the moss palette through live custom properties (`--color-gw-primary: var(--ink-primary)`, `--color-gw-secondary: var(--border-input)`, `--color-gw-bg/panel: var(--canvas)`, `--color-gw-accent: var(--ink-secondary)`; severity `--color-gw-critical/high/moderate` mirror `--sev-*`). Existing `gw-*` class usage keeps working; new work should prefer the ink/accent token names.
 - Hard constraints enforced in `@layer base`: all `b/strong/.font-bold/.font-semibold/…` forced to weight 500; every `shadow-*` class (including `.shadow-hard`) neutralized; `:focus-visible` = 1.5px accent outline.
 - Console stacking tokens: `--z-console-sticky: 10` < chrome `50` < overlay `60` < fab `65` < overlay-raised `70`; sticky strips use `top-[var(--console-sticky-offset)]` (57px, matching the single 56px header bar + border).
 - Console shell is fluid full-width (1180px cap applies to the public site only).
@@ -68,7 +72,16 @@ Three public themes via `data-theme`: light (default), dark, night. Each re-maps
 
 Rule: tokens only — no hardcoded colors/fonts. Tracked deviations (fix or formally accept, do not copy):
 
-- `admin.html` gateway inline `<style>` uses hardcoded colors (`#eff6ff`, `#1d4ed8`, `rgba(0,0,0,.4)`) instead of tokens.
-- Map toolbar controls in `src/index.css` (`.map-recenter-pill-btn`, `.map-focus-btn`, `.map-gear-btn`, `.map-coord-btn`) still use `font: 600`, `translateY`/`scale` hover motion, and rgba shadows — a residual pre-Helm.Ports dialect.
-- Map decoration colors (jump beacon, vertex pins, terminus, drift arrow) were hardcoded as of the 2026-10-24 audit; re-verify before relying on that list.
-- `console.html` sets `theme-color: #0f172a` (a pre-Helm.Ports dark surface, not `--ink-primary #0b0e11`).
+Fixed with the moss palette sync (2026-11-11):
+
+- Map toolbar controls (`.map-recenter-pill-btn`, `.map-focus-btn`, `.map-gear-btn`, `.map-coord-btn` in `public/assets/css/components.css`, mirrored in `src/index.css`) lost their 600/700 weights, `translateY`/`scale` hover motion and rgba shadows; glass backgrounds and the scrim are moss-tinted.
+- `index.html` and `console.html` theme-color metas sit on moss paper `#FAFAF7`; the dead Cinzel webfont link and its preconnects are gone.
+- The stale `admin.html` `#eff6ff`/`#1d4ed8` deviation entry is retired: the gateway is already tokenized (remaining old-hex `var()` fallbacks are inert).
+
+Remaining, formally accepted (do not widen):
+
+- Dark/night override blocks in `components.css` use intentional literal neutrals (inverted whites/blacks) rather than tokens; they only apply on `data-theme="dark|night"` chrome.
+- React components and `admin.html` carry old-hex `var()` fallbacks; `tokens.css` always loads first, so the fallbacks are inert.
+- Map decoration colors (jump beacon, vertex pins, terminus, drift arrow) remain hardcoded; re-verify before relying on that list.
+- Brand assets (favicon, logos, the `#0f172a` brand mark) and `og-preview.svg` intentionally stay off-palette.
+- Committed static snapshots (`public/about.html`, `public/navarea/*/index.html`) regenerate from `navareaConfig.mjs` at the next `generate:navarea` run and deploy.
