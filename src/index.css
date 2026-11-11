@@ -6,7 +6,7 @@
    - Information-first minimalism. The data IS the design.
    - Chrome recedes; content leads. No cards, no shadows, no zebra striping, no filled buttons.
    - Whitespace is the primary hierarchy tool.
-   - Exactly ONE accent color: #2b6e8c (with focus halo rgba(43,110,140,0.10)).
+   - Exactly ONE accent color: #2F6B4F (with focus halo rgba(47,107,79,0.10)).
    - Weight 500 is the maximum anywhere. Never use 600/700/bold.
    - Sentence case everywhere except tiny uppercase table labels.
    - Motion is micro chromatic only (100–150ms). No spatial animation, hover lift, or scale.
@@ -383,7 +383,7 @@
   padding: 0 14px;
   height: 38px;
   min-height: 38px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(250, 250, 247, 0.94);
   border: 1px solid var(--border-input, #dde2e8);
   border-radius: 9999px;
   font: 500 12px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -418,7 +418,7 @@
   min-height: 38px;
   border-radius: 10px;
   border: 1px solid var(--border-input, #dde2e8);
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(250, 250, 247, 0.94);
   color: var(--ink-body, #1f2937);
   cursor: pointer;
   display: inline-flex;
@@ -442,7 +442,7 @@
 .map-focus-btn.active,
 .map-gear-btn.active {
   background: var(--ink-primary, #0b0e11);
-  color: #ffffff;
+  color: var(--canvas, #FAFAF7);
   border-color: var(--ink-primary, #0b0e11);
 }
 
@@ -453,7 +453,7 @@
   min-height: 38px;
   border-radius: 10px;
   border: 1px solid var(--border-input, #dde2e8);
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(250, 250, 247, 0.94);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   outline: none;
@@ -469,7 +469,7 @@
 }
 .map-ctrl-topright .map-coord-btn.is-active {
   background: var(--ink-primary, #0b0e11);
-  color: #ffffff;
+  color: var(--canvas, #FAFAF7);
   border-color: var(--ink-primary, #0b0e11);
 }
 
@@ -554,7 +554,7 @@
   font-weight: 500;
   border-radius: 4px;
   background: var(--ink-primary, #0b0e11);
-  color: #ffffff;
+  color: var(--canvas, #FAFAF7);
   border: none;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -590,7 +590,7 @@
   height: 20px;
   min-width: 20px;
   min-height: 20px;
-  border: 2px solid #94a3b8;
+  border: 2px solid var(--border-chip-on, #8A9188);
   border-radius: 50%;
   outline: none;
   margin: 0;
@@ -630,7 +630,7 @@
 }
 .settings-item input[type="checkbox"]:not(:checked) {
   background: transparent;
-  border-color: #94a3b8;
+  border-color: var(--border-chip-on, #8A9188);
 }
 .settings-item input[type="checkbox"]:checked::before {
   content: "";

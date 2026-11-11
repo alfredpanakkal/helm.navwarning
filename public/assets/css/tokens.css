@@ -1,30 +1,32 @@
 :root {
   /* ═══════════ HELM.PORTS DESIGN TOKENS (non-negotiable single source of truth) ═══════════ */
+  /* Moss palette (Helm.Ports src/index.css), mirrored in src/theme/themeTokens.ts. */
   /* Surfaces */
-  --canvas:          #ffffff;
-  --surface-subtle:  #fafbfc;   /* only for current-page, hover, active-chip */
-  --hairline:        #eef1f4;   /* table header underline */
-  --hairline-alt:    #f2f5f8;   /* row dividers */
-  --border-input:    #dde2e8;
-  --border-chip:     #e3e8ee;
-  --border-chip-on:  #b0bcc9;
+  --canvas:          #FAFAF7;   /* moss paper */
+  --surface-subtle:  #F0F2EE;   /* moss secondary: only for current-page, hover, active-chip */
+  --hairline:        rgb(0 0 0 / 10%);  /* moss --border: table header underline */
+  --hairline-alt:    rgb(0 0 0 / 6%);   /* row dividers (moss border, softer tier) */
+  --border-input:    rgb(0 0 0 / 10%);  /* moss --border */
+  --border-chip:     rgb(0 0 0 / 8%);   /* chip borders (derived moss border tier) */
+  --border-chip-on:  #8A9188;   /* moss neutral (dot-none) */
 
   /* Ink */
-  --ink-primary:     #0b0e11;   /* hero, primary data */
-  --ink-body:        #1f2937;   /* table body */
-  --ink-secondary:   #5f6b7a;   /* subline, meta, labels */
-  --ink-tertiary:    #69737f;   /* table headers, placeholders, inactive */
-  --ink-faint:       #6c7682;   /* inactive pagination */
+  --ink-primary:     #1D211E;   /* moss foreground: hero, primary data */
+  --ink-body:        #1D211E;   /* moss foreground: table body */
+  --ink-secondary:   #5D665F;   /* moss muted-foreground: subline, meta, labels */
+  --ink-tertiary:    #687169;   /* table headers, placeholders (moss --input #6F7770, darkened to pass 4.5:1) */
+  --ink-faint:       #8A9188;   /* inactive pagination (non-essential, >= 3:1) */
 
   /* Accent (the ONLY accent) */
-  --accent:          #2b6e8c;
-  --accent-halo:     rgba(43, 110, 140, 0.10);
+  --accent:          #2F6B4F;   /* Helm.Ports moss mint */
+  --accent-halo:     rgba(47, 107, 79, 0.10);
 
   /* Semantic (dots only — never fills, never pills) */
-  --sev-critical:    #c44536;
-  --sev-high:        #9c611f;
-  --sev-medium:      #54707d;
+  --sev-critical:    #B42318;
+  --sev-high:        #8C5208;
+  --sev-medium:      #2E5C8A;
   --sev-low:         #65727e;
+  --sev-high-halo:   rgba(140, 82, 8, 0.10);
 
   /* Radius */
   --radius-input:    12px;
@@ -98,12 +100,12 @@
   --background:       var(--canvas);
   --foreground:       var(--ink-primary);
   --muted-foreground: var(--ink-secondary);
-  --accent:           #2b6e8c;
+  --accent:           #2F6B4F;
   --accent-fill:      var(--surface-subtle);
   --line:             var(--hairline);
-  --sev-critical:     #c44536;
-  --sev-high:         #9c611f;
-  --sev-moderate:     #54707d;
+  --sev-critical:     #B42318;
+  --sev-high:         #8C5208;
+  --sev-moderate:     #2E5C8A;
 }
 
 /* Dark Theme */
@@ -121,12 +123,13 @@
   --ink-secondary:   #9fa69f;
   --ink-tertiary:    #868f87;
   --ink-faint:       #7c857e;
-  --accent:          #4a94b8;
-  --accent-halo:     rgba(74, 148, 184, 0.15);
+  --accent:          #8FCBA8;   /* moss dark mint */
+  --accent-halo:     rgba(143, 203, 168, 0.15);
   --sev-critical:    #f08484;
   --sev-high:        #d9a24a;
   --sev-medium:      #8db4e2;
   --sev-low:         #868f87;
+  --sev-high-halo:   rgba(217, 162, 74, 0.15);
   --background:      #0e1210;
   --foreground:      #e9ede9;
   --muted-foreground:#9fa69f;
@@ -155,6 +158,7 @@
   --sev-high:        #d08a3e;
   --sev-medium:      #bc8577;
   --sev-low:         #ab6d5f;
+  --sev-high-halo:   rgba(208, 138, 62, 0.15);
   --background:      #080404;
   --foreground:      #e0857a;
   --muted-foreground:#b5786b;
