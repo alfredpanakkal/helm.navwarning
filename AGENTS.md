@@ -103,8 +103,10 @@ deliberately deferred** — check it is still open before re-planning it.
 ### Design system (PRs #94–#96, #102–#104, merged)
 The UI follows the Helm.Ports constraints declared at the top of
 `src/index.css` and `public/assets/css/tokens.css`: single accent
-`#2b6e8c`, weight 500 max (enforced by CSS), no shadows, no hover
-lift/scale, Inter only, tokens over hardcoded values. Details:
+`#2F6B4F` (Helm.Ports moss palette: paper `#FAFAF7`, ink `#1D211E`,
+dark mint `#8FCBA8`; mirrored in `src/theme/themeTokens.ts`, guarded by
+`themeContrast.test.ts`), weight 500 max (enforced by CSS), no shadows,
+no hover lift/scale, Inter only, tokens over hardcoded values. Details:
 `DESIGN.md`, one-page rules `UI-DESIGN-FUNDAMENTALS.md`. Console shell
 is fluid full-width with a fixed left rail; the warning editor is a
 right-side drawer.

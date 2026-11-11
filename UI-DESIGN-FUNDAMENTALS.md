@@ -11,7 +11,7 @@ The binding design system is [DESIGN.md](DESIGN.md), verified against the shippe
 
 | Rule | Value |
 |---|---|
-| Accent color | Exactly one: `--accent: #2b6e8c` (console `--color-accent` same). Focus halo `rgba(43,110,140,0.10)` only. |
+| Accent color | Exactly one: `--accent: #2F6B4F` (console `--color-accent` same). Focus halo `rgba(47,107,79,0.10)` only. |
 | Font weight | 500 is the maximum anywhere. Never 600/700/bold (`b`, `strong`, `.font-bold` etc. are forced to 500 in `src/index.css`). |
 | Font family | Inter everywhere (`'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`). Do not add a second display font. |
 | Shadows | None. All `shadow-*` classes (including `.shadow-hard`) are neutralized; the only halo allowed is the search focus ring. |
@@ -33,4 +33,4 @@ The public site ships three themes in `tokens.css`: light (default), dark, night
 
 ## Known deviations (fix or formally accept; do not copy)
 
-Tracked in [DESIGN.md §8](DESIGN.md). The largest remaining one: the map toolbar controls in `src/index.css` still use a 600 weight and `translateY` hover motion.
+Tracked in [DESIGN.md §8](DESIGN.md). Largest remaining: the dark/night override blocks in `components.css` use intentional literal neutrals, and map decoration colors stay hardcoded. The old map-toolbar weight/motion deviation is fixed.
