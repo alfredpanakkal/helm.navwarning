@@ -11,7 +11,7 @@
 // Stored warning records use navarea codes like 'NA I' ... 'NA XXI'
 // (see public/index.html map filter and src/services/navWarningQueries.ts).
 
-export const SITE_URL = 'https://helmwarning.vercel.app';
+export const SITE_URL = 'https://navarea.helmology.com';
 
 export const NAVAREA_REGIONS = [
   { id: 'I',     shortLabel: 'North Atlantic / UK',           waters: 'the Northeast Atlantic, North Sea and waters around the United Kingdom and Ireland', authority: 'the United Kingdom Hydrographic Office (UKHO)', ingest: 'automated', sourceUrl: 'https://msi.admiralty.co.uk/RadioNavigationalWarnings', sourceLabel: 'UKHO Admiralty radio navigational warnings' },

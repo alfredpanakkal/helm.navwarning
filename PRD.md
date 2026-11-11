@@ -70,7 +70,7 @@ The authoritative schema contract is [`docs/supabase-backend-contract.md`](docs/
 
 ## 8. Open product questions
 
-- Domain purchase (site remains on `helmwarning.vercel.app`).
+- Domain purchase (site remains on `navarea.helmology.com`).
 - Map-update UX: pulse the marker vs auto-zoom — no decision recorded.
 - ECDIS export priority and target formats.
 - How to handle conflicting information from multiple sources for the same area.

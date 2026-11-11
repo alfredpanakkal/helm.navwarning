@@ -1,6 +1,6 @@
 state: live-baseline-map
 viewport: 1440x900
-url: https://helmwarning.vercel.app/
+url: https://navarea.helmology.com/
 overflow: scrollWidth=1440 clientWidth=1440 no_horizontal_overflow=true
 ---
 Skip to main content

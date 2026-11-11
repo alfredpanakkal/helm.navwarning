@@ -4,4 +4,4 @@ Disallow: /admin.html
 Disallow: /admin/
 Disallow: /admin
 
-Sitemap: https://helmwarning.vercel.app/sitemap.xml
+Sitemap: https://navarea.helmology.com/sitemap.xml

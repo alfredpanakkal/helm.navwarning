@@ -8,7 +8,7 @@
 ## 1. Platform at a glance
 
 - **Maritime safety platform (NAVAREA navigational warnings).**
-  Production: https://helmwarning.vercel.app/ — public site at `/`
+  Production: https://navarea.helmology.com/ — public site at `/`
   (Map / Data Bank / Info tabs), admin console at `/console`
   (React 19 SPA; canonical hash routes are the four sections
   `#/warnings/…`, `#/ingest/…`, `#/trace/…`, `#/system/…`;
@@ -157,7 +157,7 @@ causes; keep this file lean.
   (hit 2026-10-25 after the 6-PR UX series). A red Vercel status on a PR
   can be this rate limit, not a build failure; GitHub Actions are the
   build gate.
-- Post-deploy check: `https://helmwarning.vercel.app/apple-touch-icon.png`
+- Post-deploy check: `https://navarea.helmology.com/apple-touch-icon.png`
   returned 404 shortly after PR #56 merge (deploy lag pattern; verify).
 - Hygiene: legacy `/export/*` snapshot routes and GSC placeholder meta
   were removed and raw 502 passthroughs wrapped (PRs #35–#37, 2026-10-24).
@@ -173,7 +173,7 @@ causes; keep this file lean.
 - Undecided UX from the early era: on map update, pulse the marker vs
   auto-zoom to the new warning (auto-zoom can yank a watchkeeper’s view;
   a pulse is gentler but can be missed). No decision recorded.
-- Domain purchase undecided — site remains on `helmwarning.vercel.app`
+- Domain purchase undecided — site remains on `navarea.helmology.com`
   (early-history context: PROJECT_KNOWLEDGE §5).
 - Roadmap order is maintained in the maintainer's private notes; when in
   doubt, ask in the issue/PR rather than re-prioritizing unilaterally.

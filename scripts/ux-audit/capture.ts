@@ -25,7 +25,7 @@ const SHOTS = path.join(ROOT, 'docs', 'ux-audit', 'screenshots');
 const DOM = path.join(ROOT, 'docs', 'ux-audit', 'dom');
 
 const LOCAL = 'http://localhost:3000';
-const LIVE = 'https://helmwarning.vercel.app';
+const LIVE = 'https://navarea.helmology.com';
 
 const DESKTOP = { width: 1440, height: 900 };
 const TABLET = { width: 768, height: 1024 };
@@ -283,7 +283,7 @@ async function main() {
   console.log('capturing tablet states (768px)');
   await runViewportSet(browser, TABLET, 'tablet-768');
   if (withLive) {
-    console.log('capturing live-baseline states (helmwarning.vercel.app)');
+    console.log('capturing live-baseline states (navarea.helmology.com)');
     await runLive(browser);
   }
   await browser.close();
