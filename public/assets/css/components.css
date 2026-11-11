@@ -821,6 +821,61 @@ input.search-input:focus {
   }
 }
 
+/* ═══════════ WARNING DETAILS SIDE DRAWER (DESKTOP) ═══════════ */
+.warning-details-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 380px;
+  max-width: 90vw;
+  background: var(--canvas);
+  border-left: 1px solid var(--border-input);
+  box-shadow: none;
+  z-index: 650;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform var(--transition, 0.12s ease);
+  overflow: hidden;
+}
+.warning-details-drawer.open {
+  transform: translateX(0);
+}
+.drawer-details-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--canvas);
+  flex-shrink: 0;
+}
+.drawer-details-body {
+  padding: 16px 18px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--canvas);
+}
+.drawer-details-footer {
+  padding: 12px 18px;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: var(--canvas);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .warning-details-drawer {
+    display: none !important;
+  }
+}
+
 /* ═══════════ DARK & NIGHT THEME OVERRIDES ═══════════ */
 [data-theme="dark"] .map-recenter-pill-btn,
 [data-theme="night"] .map-recenter-pill-btn,

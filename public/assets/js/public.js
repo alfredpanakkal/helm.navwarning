@@ -1222,7 +1222,7 @@ window.openWarningDetails = function(w) {
 
   body.innerHTML = `
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-      <span class="badge-simple" style="background:${color}18;color:${color};font-weight:700">
+      <span class="badge-simple" style="background:${color}18;color:${color};font-weight:var(--w-hero, 500)">
         <span class="dot" style="background:${color}"></span> ${(w.severity || 'ACTIVE').toUpperCase()}
       </span>
       <span class="badge-simple badge-neutral">${cats.toUpperCase()}</span>
@@ -1230,24 +1230,24 @@ window.openWarningDetails = function(w) {
     </div>
 
     <div>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.5px">Area / Subject</div>
-      <div style="font-weight:600;font-size:14px;color:var(--text);margin-top:2px">${w.title || w.area_text || wid}</div>
-      ${w.area_text && w.area_text !== w.title ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${w.area_text}</div>` : ''}
+      <div style="font-size:11px;font-weight:var(--w-hero, 500);text-transform:uppercase;color:var(--ink-secondary, var(--text-muted));letter-spacing:0.5px">Area / Subject</div>
+      <div style="font-weight:var(--w-hero, 500);font-size:14px;color:var(--ink-primary, var(--text));margin-top:2px">${w.title || w.area_text || wid}</div>
+      ${w.area_text && w.area_text !== w.title ? `<div style="font-size:12px;color:var(--ink-secondary, var(--text-muted));margin-top:2px">${w.area_text}</div>` : ''}
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;background:var(--bg);padding:10px 12px;border-radius:6px;border:1px solid var(--border)">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;background:var(--surface-subtle);padding:10px 12px;border-radius:6px;border:1px solid var(--border-input)">
       <div>
-        <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Issued</div>
-        <div style="font-weight:600;color:var(--text);font-family:ui-monospace,monospace">${issuedText}</div>
+        <div style="font-size:10px;font-weight:var(--w-hero, 500);color:var(--ink-secondary, var(--text-muted));text-transform:uppercase">Issued</div>
+        <div style="font-weight:var(--w-hero, 500);color:var(--ink-body, var(--text));font-family:ui-monospace,monospace">${issuedText}</div>
       </div>
       <div>
-        <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Coordinates</div>
-        <div style="font-weight:600;color:var(--text);font-family:ui-monospace,monospace">${warningPositionText(w, 'Spatial Vector')}</div>
+        <div style="font-size:10px;font-weight:var(--w-hero, 500);color:var(--ink-secondary, var(--text-muted));text-transform:uppercase">Coordinates</div>
+        <div style="font-weight:var(--w-hero, 500);color:var(--ink-body, var(--text));font-family:ui-monospace,monospace">${warningPositionText(w, 'Spatial Vector')}</div>
       </div>
     </div>
 
     <div>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">Raw Bulletin Text</div>
+      <div style="font-size:11px;font-weight:var(--w-hero, 500);text-transform:uppercase;color:var(--ink-secondary, var(--text-muted));letter-spacing:0.5px;margin-bottom:6px">Raw Bulletin Text</div>
       <div class="warning-expanded-text" style="max-height:280px">${text}</div>
     </div>
   `;
