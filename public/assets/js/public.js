@@ -530,19 +530,19 @@ const BASE_MAP_DEFS = {
   },
   'carto-voyager': {
     name: 'CARTO Voyager',
-    url: '/api/tiles/carto/voyager/{z}/{x}/{y}',
+    url: '/navarea/api/tiles/carto/voyager/{z}/{x}/{y}',
     maxZoom: 19,
     attribution: '© OpenStreetMap contributors · CARTO · OpenSeaMap'
   },
   'carto-dark': {
     name: 'CARTO Dark Matter',
-    url: '/api/tiles/carto/dark_all/{z}/{x}/{y}',
+    url: '/navarea/api/tiles/carto/dark_all/{z}/{x}/{y}',
     maxZoom: 19,
     attribution: '© OpenStreetMap contributors · CARTO · OpenSeaMap'
   },
   'carto-positron': {
     name: 'CARTO Positron',
-    url: '/api/tiles/carto/light_all/{z}/{x}/{y}',
+    url: '/navarea/api/tiles/carto/light_all/{z}/{x}/{y}',
     maxZoom: 19,
     attribution: '© OpenStreetMap contributors · CARTO · OpenSeaMap'
   },

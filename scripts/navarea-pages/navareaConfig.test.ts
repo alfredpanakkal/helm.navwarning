@@ -55,7 +55,7 @@ describe('NAVAREA regional routes and configuration', () => {
   it('maps ids to the navarea codes stored in nav_warnings', () => {
     expect(navareaCode('I')).toBe('NA I');
     expect(navareaCode('XXI')).toBe('NA XXI');
-    expect(navareaMapHref('IV')).toBe('/?navarea=NA%20IV');
+    expect(navareaMapHref('IV')).toBe('/navarea?navarea=NA%20IV');
   });
 
   it('accepts only the 21 valid identifiers', () => {
@@ -92,8 +92,8 @@ describe('NAVAREA regional routes and configuration', () => {
       expect(html.split('<h1').length - 1).toBe(1);
       expect(html).toContain('<title>NAVAREA ' + r.id + ' Navigational Warnings | Helm.Warning</title>');
       expect(html).toContain('rel="canonical" href="' + SITE_URL + '/navarea/' + r.id + '"');
-      expect(html).toContain('href="/?navarea=NA%20' + r.id + '"');
-      expect(html).toContain('class="nav-tab stacked active" href="/" aria-current="page"');
+      expect(html).toContain('href="/navarea?navarea=NA%20' + r.id + '"');
+      expect(html).toContain('class="nav-tab stacked active" href="/navarea" aria-current="page"');
       expect(html).toContain('<span>HELM.WARNING</span>');
       expect(html).toContain('aria-label="Breadcrumb"');
       expect(html).toContain('{"id":"' + r.id + '","code":"NA ' + r.id + '"}');
@@ -111,12 +111,12 @@ describe('NAVAREA regional routes and configuration', () => {
     const html = buildAboutPageHtml();
     expect(html.split('<h1').length - 1).toBe(1);
     expect(html).toContain('<title>About Helm.Warning | NAVAREA Source Registry &amp; Maritime Safety Information</title>');
-    expect(html).toContain('rel="canonical" href="' + SITE_URL + '/about"');
+    expect(html).toContain('rel="canonical" href="' + SITE_URL + '/navarea/about"');
     expect(html).toContain('aria-label="Breadcrumb"');
     expect(html).toContain('id="source-registry"');
     // The combined page keeps the watch-theme settings.
     expect(html).toContain('class="theme-picker"');
-    expect(html).toContain('class="nav-tab stacked active" href="/?tab=info" aria-current="page"');
+    expect(html).toContain('class="nav-tab stacked active" href="/navarea?tab=info" aria-current="page"');
     expect(html).toContain('<span>HELM.WARNING</span>');
     expect(html).toContain('data-theme-set="light"');
     expect(html).toContain("localStorage.getItem('hw-theme')");
@@ -145,12 +145,12 @@ describe('NAVAREA regional routes and configuration', () => {
     expect(html).not.toContain('href="/sources"');
   });
 
-  it('builds a sitemap covering homepage, about and all 21 regional pages', () => {
+  it('builds a sitemap covering the /navarea homepage and all 21 regional pages', () => {
     const xml = buildSitemapXml('2026-10-25');
     const locs = (xml.match(/<loc>/g) || []).length;
-    expect(locs).toBe(23);
-    expect(xml).toContain(SITE_URL + '/');
-    expect(xml).toContain(SITE_URL + '/about');
+    expect(locs).toBe(22);
+    expect(xml).toContain(SITE_URL + '/navarea');
+    expect(xml).not.toContain(SITE_URL + '/about');
     expect(xml).not.toContain(SITE_URL + '/sources');
     for (const r of NAVAREA_REGIONS) {
       expect(xml).toContain(SITE_URL + '/navarea/' + r.id);
@@ -193,8 +193,8 @@ describe('Warning detail pages', () => {
     expect(html).toContain('FULL &lt;TEXT&gt; &amp; MORE');
     expect(html).not.toContain('FULL <TEXT>');
     expect(html).toContain('href="/navarea/IV"');
-    expect(html).toContain('href="/?navarea=NA%20IV"');
-    expect(html).toContain('href="/about#source-registry"');
+    expect(html).toContain('href="/navarea?navarea=NA%20IV"');
+    expect(html).toContain('href="/navarea?tab=info"');
     // No hydration scripts on prerendered detail pages.
     expect(html).not.toContain('supabase');
     expect(html).not.toContain('warning-detail.js');
@@ -213,7 +213,7 @@ describe('Warning detail pages', () => {
   it('includes detail URLs in the sitemap when provided', () => {
     const xml = buildSitemapXml('2026-10-25', ['/navarea/XI/warning/0451-26', '/navarea/IV/warning/1157-21']);
     const locs = (xml.match(/<loc>/g) || []).length;
-    expect(locs).toBe(25); // 23 base routes (home, about, 21 regions) + 2 detail URLs
+    expect(locs).toBe(24); // 22 base routes (home, 21 regions) + 2 detail URLs
     expect(xml).toContain(SITE_URL + '/navarea/XI/warning/0451-26');
     expect(xml).toContain(SITE_URL + '/navarea/IV/warning/1157-21');
   });

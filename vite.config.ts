@@ -6,6 +6,10 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    // The public app is served under helmology.com/navarea (proxied from the
+    // Helmology hub project). Base rewrites the asset/icon/manifest URLs that
+    // Vite processes inside the three HTML inputs.
+    base: '/navarea/',
     test: {
       exclude: [
         '**/node_modules/**',

@@ -32,7 +32,7 @@ export const BASE_LAYERS: MapLayerConfig[] = [
   {
     id: 'openseamap-base',
     name: 'OpenSeaMap Standard',
-    url: '/api/tiles/osm/{z}/{x}/{y}',
+    url: '/navarea/api/tiles/osm/{z}/{x}/{y}',
     type: 'base',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, OpenSeaMap',
     maxZoom: 19,
@@ -41,7 +41,7 @@ export const BASE_LAYERS: MapLayerConfig[] = [
   {
     id: 'carto-voyager',
     name: 'CARTO Voyager',
-    url: '/api/tiles/carto/voyager/{z}/{x}/{y}',
+    url: '/navarea/api/tiles/carto/voyager/{z}/{x}/{y}',
     type: 'base',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxZoom: 19,
@@ -50,7 +50,7 @@ export const BASE_LAYERS: MapLayerConfig[] = [
   {
     id: 'carto-dark',
     name: 'CARTO Dark Matter',
-    url: '/api/tiles/carto/dark_all/{z}/{x}/{y}',
+    url: '/navarea/api/tiles/carto/dark_all/{z}/{x}/{y}',
     type: 'base',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxZoom: 19,
@@ -59,7 +59,7 @@ export const BASE_LAYERS: MapLayerConfig[] = [
   {
     id: 'carto-positron',
     name: 'CARTO Positron',
-    url: '/api/tiles/carto/light_all/{z}/{x}/{y}',
+    url: '/navarea/api/tiles/carto/light_all/{z}/{x}/{y}',
     type: 'base',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxZoom: 19,
@@ -68,7 +68,7 @@ export const BASE_LAYERS: MapLayerConfig[] = [
   {
     id: 'osm-standard',
     name: 'OpenStreetMap',
-    url: '/api/tiles/osm/{z}/{x}/{y}',
+    url: '/navarea/api/tiles/osm/{z}/{x}/{y}',
     type: 'base',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 19,
@@ -101,7 +101,7 @@ export const OVERLAY_LAYERS: MapLayerConfig[] = [
   {
     id: 'openseamap',
     name: 'OpenSeaMap Seamarks',
-    url: '/api/tiles/openseamap/{z}/{x}/{y}',
+    url: '/navarea/api/tiles/openseamap/{z}/{x}/{y}',
     type: 'overlay',
     attribution: 'Map style: &copy; <a href="http://www.openseamap.org">OpenSeaMap</a>',
     maxZoom: 18,

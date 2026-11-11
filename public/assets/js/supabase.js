@@ -537,7 +537,7 @@ async function fetchActiveWarnings() {
 
   // Resilient fallback: Query server API (/api/warnings) hydrated from Supabase
   try {
-    const res = await fetch('/api/warnings?status=active');
+    const res = await fetch('/navarea/api/warnings?status=active');
     if (res.ok) {
       const serverData = await res.json();
       if (Array.isArray(serverData) && serverData.length > 0) {
@@ -619,7 +619,7 @@ async function fetchWarningDetails(identifier) {
 
   // Fallback to local server API
   try {
-    const res = await fetch('/api/warnings');
+    const res = await fetch('/navarea/api/warnings');
     if (res.ok) {
       const list = await res.json();
       const match = list.find(w => (

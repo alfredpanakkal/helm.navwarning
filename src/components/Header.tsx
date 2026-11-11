@@ -257,7 +257,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Public Portal Link */}
             <a
-              href="/"
+              href="/navarea"
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium text-ink-secondary hover:text-ink-primary hover:bg-surface-subtle transition-colors border border-transparent hover:border-hairline"

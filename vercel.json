@@ -2,13 +2,28 @@
   "cleanUrls": true,
   "redirects": [
     {
+      "source": "/",
+      "destination": "/navarea",
+      "permanent": true
+    },
+    {
       "source": "/about",
-      "destination": "/?tab=info",
+      "destination": "/navarea?tab=info",
       "permanent": true
     },
     {
       "source": "/sources",
-      "destination": "/?tab=sources",
+      "destination": "/navarea?tab=sources",
+      "permanent": true
+    },
+    {
+      "source": "/admin",
+      "destination": "/navarea/admin",
+      "permanent": true
+    },
+    {
+      "source": "/console",
+      "destination": "/navarea/console",
       "permanent": true
     }
   ],
@@ -16,6 +31,26 @@
     {
       "source": "/navarea/:rn/warning/:slug",
       "destination": "/warning-shell"
+    },
+    {
+      "source": "/navarea",
+      "destination": "/"
+    },
+    {
+      "source": "/navarea/api/tiles/carto/:style/:z/:x/:y",
+      "destination": "/api/tiles?provider=carto&style=:style&z=:z&x=:x&y=:y"
+    },
+    {
+      "source": "/navarea/api/tiles/osm/:z/:x/:y",
+      "destination": "/api/tiles?provider=osm&z=:z&x=:x&y=:y"
+    },
+    {
+      "source": "/navarea/api/tiles/openseamap/:z/:x/:y",
+      "destination": "/api/tiles?provider=openseamap&z=:z&x=:x&y=:y"
+    },
+    {
+      "source": "/navarea/:path*",
+      "destination": "/:path*"
     },
     {
       "source": "/api/tiles/carto/:style/:z/:x/:y",
@@ -44,7 +79,20 @@
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
       ]
+    },
+    {
+      "source": "/navarea/admin",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+      ]
+    },
+    {
+      "source": "/navarea/console",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+      ]
     }
   ]
 }
-

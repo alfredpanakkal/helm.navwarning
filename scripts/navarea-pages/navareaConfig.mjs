@@ -11,7 +11,7 @@
 // Stored warning records use navarea codes like 'NA I' ... 'NA XXI'
 // (see public/index.html map filter and src/services/navWarningQueries.ts).
 
-export const SITE_URL = 'https://helmwarning.vercel.app';
+export const SITE_URL = 'https://helmology.com';
 
 export const NAVAREA_REGIONS = [
   { id: 'I',     shortLabel: 'North Atlantic / UK',           waters: 'the Northeast Atlantic, North Sea and waters around the United Kingdom and Ireland', authority: 'the United Kingdom Hydrographic Office (UKHO)', ingest: 'automated', sourceUrl: 'https://msi.admiralty.co.uk/RadioNavigationalWarnings', sourceLabel: 'UKHO Admiralty radio navigational warnings' },
@@ -57,7 +57,7 @@ export function canonicalPath(id) {
 // Deep link onto the existing map with the region preselected (handled by
 // the small ?navarea= patch in public/assets/js/public.js).
 export function navareaMapHref(id) {
-  return '/?navarea=' + encodeURIComponent(navareaCode(id));
+  return '/navarea?navarea=' + encodeURIComponent(navareaCode(id));
 }
 
 // Normalizes whatever the database stores for a warning's navarea field.
@@ -159,9 +159,9 @@ const NAV_ICONS = {
   info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
 };
 const NAV_TABS = [
-  { id: 'map',  label: 'Map',  href: '/',          title: 'Map View' },
-  { id: 'data', label: 'Data', href: '/?tab=data', title: 'Data Bank' },
-  { id: 'info', label: 'Info', href: '/?tab=info', title: 'Sources, Disclaimer & About' }
+  { id: 'map',  label: 'Map',  href: '/navarea',            title: 'Map View' },
+  { id: 'data', label: 'Data', href: '/navarea?tab=data',    title: 'Data Bank' },
+  { id: 'info', label: 'Info', href: '/navarea?tab=info',   title: 'Sources, Disclaimer & About' }
 ];
 export function siteHeader(activeTab) {
   const links = NAV_TABS.map(function (t) {
@@ -171,7 +171,7 @@ export function siteHeader(activeTab) {
   return [
     '<header class="site-header">',
     '  <div class="header-inner">',
-    '    <a href="/" class="logo">' + LOGO_MARK_SVG + '<span>HELM.WARNING</span></a>',
+    '    <a href="/navarea" class="logo">' + LOGO_MARK_SVG + '<span>HELM.WARNING</span></a>',
     '    <nav class="main-nav" aria-label="Main navigation">',
     '      <div style="display:flex;gap:2px">',
     links,
@@ -193,7 +193,7 @@ export function buildPageHtml(r) {
   const description = 'Live NAVAREA ' + r.id + ' navigational warnings (' + r.shortLabel + '). View in-force maritime safety information for ' + r.waters + ', read the original warning bulletins, and open the region on the interactive Helm.Warning map.';
   const lead = 'NAVAREA ' + r.id + ' covers ' + r.waters + '. This page lists the in-force navigational warnings Helm.Warning currently holds for the region, as broadcast by the area coordinator, ' + r.authority + ', under the World-Wide Navigational Warning Service (WWNWS).';
   const jsonLd = '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[' +
-    '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/"},' +
+    '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/navarea"},' +
     '{"@type":"ListItem","position":2,"name":"NAVAREA ' + r.id + '","item":"' + url + '"}]}';
   const cfgJson = '{"id":"' + r.id + '","code":"' + code + '"}';
   const regionLinks = NAVAREA_REGIONS.map(function (x) {
@@ -211,26 +211,26 @@ export function buildPageHtml(r) {
     '<meta name="description" content="' + description + '">',
     '<link rel="canonical" href="' + url + '">',
     '<meta name="robots" content="index, follow">',
-    '<link rel="icon" type="image/svg+xml" href="/favicon.svg">',
-    '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">',
+    '<link rel="icon" type="image/svg+xml" href="/navarea/favicon.svg">',
+    '<link rel="apple-touch-icon" sizes="180x180" href="/navarea/apple-touch-icon.png">',
     '<meta property="og:type" content="website">',
     '<meta property="og:site_name" content="Helm.Warning">',
     '<meta property="og:title" content="' + title + '">',
     '<meta property="og:description" content="' + description + '">',
     '<meta property="og:url" content="' + url + '">',
-    '<meta property="og:image" content="' + SITE_URL + '/og-preview.png">',
+    '<meta property="og:image" content="' + SITE_URL + '/navarea/og-preview.png">',
     '<meta name="twitter:card" content="summary_large_image">',
     '<meta name="twitter:title" content="' + title + '">',
     '<meta name="twitter:description" content="' + description + '">',
     '<script type="application/ld+json">' + jsonLd + '</' + 'script>',
-    '<link rel="stylesheet" href="/assets/css/tokens.css">',
+    '<link rel="stylesheet" href="/navarea/assets/css/tokens.css">',
     '<style>' + PAGE_CSS + '</style>',
     '</head>',
     '<body>',
     siteHeader('map'),
     '',
     '<main class="page">',
-    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <span>NAVAREA ' + r.id + '</span></nav>',
+    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/navarea">Home</a> &rsaquo; <span>NAVAREA ' + r.id + '</span></nav>',
     '  <h1>NAVAREA ' + r.id + ' Navigational Warnings</h1>',
     '  <p class="lead">' + lead + '</p>',
     '  <a class="btn-map" href="' + mapHref + '">View NAVAREA ' + r.id + ' on the live map</a>',
@@ -252,7 +252,7 @@ export function buildPageHtml(r) {
       ? 'Helm.Warning aggregates these broadcasts daily from its verified official feed and plots them on the live map.'
       : 'Helm.Warning collects these broadcasts through its ingestion pipeline and plots them on the live map.') + '</p>',
     '    <p class="lead-note">Ingestion status: <strong>' + feedStatus(r.id).label + '</strong>' + (r.sourceUrl ? ' &middot; Official source: <a href="' + r.sourceUrl + '" target="_blank" rel="noopener noreferrer">' + r.sourceLabel + '</a>' : '') + '</p>',
-    '    <p>Helm.Warning is a convenience copy of these broadcasts, not an official source of Maritime Safety Information. Always verify against official channels (NAVTEX, Inmarsat SafetyNET) as required by SOLAS &mdash; see the <a href="/about">about and disclaimer</a> page for the full safety notice.</p>',
+    '    <p>Helm.Warning is a convenience copy of these broadcasts, not an official source of Maritime Safety Information. Always verify against official channels (NAVTEX, Inmarsat SafetyNET) as required by SOLAS &mdash; see the <a href="/navarea?tab=info">about and disclaimer</a> page for the full safety notice.</p>',
     '  </section>',
     '',
     '  <section>',
@@ -267,13 +267,13 @@ export function buildPageHtml(r) {
     '',
     '<footer class="site">',
     '  <p>Helm.Warning &mdash; NAVAREA Maritime Safety Information Pipeline</p>',
-    '  <p><a href="/">Live warnings map</a> &middot; <a href="/about">About &amp; Disclaimer</a></p>',
+    '  <p><a href="/navarea">Live warnings map</a> &middot; <a href="/navarea?tab=info">About &amp; Disclaimer</a></p>',
     '</footer>',
     '',
     '<script type="application/json" id="navareaPageConfig">' + cfgJson + '</' + 'script>',
     '<script defer src="https://unpkg.com/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" integrity="sha256-1qXEQUpdTOZG2cHeIjqnBn0/9mTBU5T/63/P/HYzVKM=" crossorigin="anonymous"></' + 'script>',
-    '<script defer src="/assets/js/supabase.js"></' + 'script>',
-    '<script defer src="/assets/js/navarea-page.js"></' + 'script>',
+    '<script defer src="/navarea/assets/js/supabase.js"></' + 'script>',
+    '<script defer src="/navarea/assets/js/navarea-page.js"></' + 'script>',
     '</body>',
     '</html>'
   ];
@@ -339,7 +339,7 @@ export function buildWarningPageHtml(r, w) {
   const descTitle = String(w.title || idText);
   const description = descTitle + ' — NAVAREA ' + r.id + ' navigational warning (' + r.shortLabel + '). Full original bulletin text, status and validity as held by Helm.Warning.';
   const jsonLd = '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[' +
-    '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/"},' +
+    '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/navarea"},' +
     '{"@type":"ListItem","position":2,"name":"NAVAREA ' + r.id + '","item":"' + SITE_URL + canonicalPath(r.id) + '"},' +
     '{"@type":"ListItem","position":3,"name":"' + idText + '","item":"' + url + '"}]}';
   const issued = fmtDate(w.issued_at);
@@ -366,26 +366,26 @@ export function buildWarningPageHtml(r, w) {
     '<meta name="description" content="' + escapeHtml(description) + '">',
     '<link rel="canonical" href="' + url + '">',
     '<meta name="robots" content="index, follow">',
-    '<link rel="icon" type="image/svg+xml" href="/favicon.svg">',
-    '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">',
+    '<link rel="icon" type="image/svg+xml" href="/navarea/favicon.svg">',
+    '<link rel="apple-touch-icon" sizes="180x180" href="/navarea/apple-touch-icon.png">',
     '<meta property="og:type" content="website">',
     '<meta property="og:site_name" content="Helm.Warning">',
     '<meta property="og:title" content="' + title + '">',
     '<meta property="og:description" content="' + escapeHtml(description) + '">',
     '<meta property="og:url" content="' + url + '">',
-    '<meta property="og:image" content="' + SITE_URL + '/og-preview.png">',
+    '<meta property="og:image" content="' + SITE_URL + '/navarea/og-preview.png">',
     '<meta name="twitter:card" content="summary_large_image">',
     '<meta name="twitter:title" content="' + title + '">',
     '<meta name="twitter:description" content="' + escapeHtml(description) + '">',
     '<script type="application/ld+json">' + jsonLd + '</' + 'script>',
-    '<link rel="stylesheet" href="/assets/css/tokens.css">',
+    '<link rel="stylesheet" href="/navarea/assets/css/tokens.css">',
     '<style>' + PAGE_CSS + DETAIL_CSS + '</style>',
     '</head>',
     '<body>',
     siteHeader('map'),
     '',
     '<main class="page">',
-    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <a href="' + canonicalPath(r.id) + '">NAVAREA ' + r.id + '</a> &rsaquo; <span>' + escapeHtml(idText) + '</span></nav>',
+    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/navarea">Home</a> &rsaquo; <a href="' + canonicalPath(r.id) + '">NAVAREA ' + r.id + '</a> &rsaquo; <span>' + escapeHtml(idText) + '</span></nav>',
     '  <h1>' + escapeHtml(idText) + '</h1>',
     '  <p class="lead">' + escapeHtml(descTitle) + (w.area_text ? ' &mdash; ' + escapeHtml(String(w.area_text)) : '') + '</p>',
     metaRows,
@@ -399,8 +399,8 @@ export function buildWarningPageHtml(r, w) {
     '  <section>',
     '    <h2>About this warning</h2>',
     '    <p>' + escapeHtml(idText) + ' is a navigational warning for NAVAREA ' + r.id + ' (' + r.shortLabel + '), broadcast by ' + r.authority + ' under the World-Wide Navigational Warning Service (WWNWS). Helm.Warning aggregates these broadcasts daily and plots warnings with resolved geometry on the <a href="' + navareaMapHref(r.id) + '">live map</a>.</p>',
-    '    <p>Helm.Warning is a convenience copy of these broadcasts, not an official source of Maritime Safety Information. Always verify against official channels (NAVTEX, Inmarsat SafetyNET) as required by SOLAS &mdash; see the <a href="/about">about and disclaimer</a> page for the full safety notice.</p>',
-    '    <p class="backlinks"><a href="' + canonicalPath(r.id) + '">All NAVAREA ' + r.id + ' warnings</a><a href="' + navareaMapHref(r.id) + '">View on the live map</a><a href="/about#source-registry">Source registry</a></p>',
+    '    <p>Helm.Warning is a convenience copy of these broadcasts, not an official source of Maritime Safety Information. Always verify against official channels (NAVTEX, Inmarsat SafetyNET) as required by SOLAS &mdash; see the <a href="/navarea?tab=info">about and disclaimer</a> page for the full safety notice.</p>',
+    '    <p class="backlinks"><a href="' + canonicalPath(r.id) + '">All NAVAREA ' + r.id + ' warnings</a><a href="' + navareaMapHref(r.id) + '">View on the live map</a><a href="/navarea?tab=info">Source registry</a></p>',
     '  </section>',
     '',
     '  <p class="disclaimer-box">Situational awareness only. Not a substitute for GMDSS, NAVTEX or SafetyNET broadcasts. Official broadcasts and the Master&rsquo;s judgment always take priority.</p>',
@@ -408,7 +408,7 @@ export function buildWarningPageHtml(r, w) {
     '',
     '<footer class="site">',
     '  <p>Helm.Warning &mdash; NAVAREA Maritime Safety Information Pipeline</p>',
-    '  <p><a href="/">Live warnings map</a> &middot; <a href="/about">About &amp; Disclaimer</a></p>',
+    '  <p><a href="/navarea">Live warnings map</a> &middot; <a href="/navarea?tab=info">About &amp; Disclaimer</a></p>',
     '</footer>',
     '',
     '</body>',
@@ -422,11 +422,11 @@ export function buildWarningPageHtml(r, w) {
 // /navarea/:rn/warning/:slug -> /warning-shell rewrite. Intentionally
 // noindex: crawlers pick the page up once the next deploy prerenders it.
 export function buildWarningShellHtml() {
-  const url = SITE_URL + '/warning-shell';
+  const url = SITE_URL + '/navarea/warning-shell';
   const title = 'Navigational warning | Helm.Warning';
   const description = 'NAVAREA navigational warning detail — original bulletin text, status and validity.';
   const jsonLd = '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[' +
-    '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/"},' +
+    '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/navarea"},' +
     '{"@type":"ListItem","position":2,"name":"Warning","item":"' + url + '"}]}';
   const lines = [
     '<!DOCTYPE html>',
@@ -439,32 +439,32 @@ export function buildWarningShellHtml() {
     '<meta name="description" content="' + description + '">',
     '<link rel="canonical" href="' + url + '">',
     '<meta name="robots" content="noindex, follow">',
-    '<link rel="icon" type="image/svg+xml" href="/favicon.svg">',
-    '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">',
+    '<link rel="icon" type="image/svg+xml" href="/navarea/favicon.svg">',
+    '<link rel="apple-touch-icon" sizes="180x180" href="/navarea/apple-touch-icon.png">',
     '<script type="application/ld+json">' + jsonLd + '</' + 'script>',
-    '<link rel="stylesheet" href="/assets/css/tokens.css">',
+    '<link rel="stylesheet" href="/navarea/assets/css/tokens.css">',
     '<style>' + PAGE_CSS + DETAIL_CSS + '</style>',
     '</head>',
     '<body>',
     siteHeader('map'),
     '',
     '<main class="page">',
-    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <span>Warning</span></nav>',
+    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/navarea">Home</a> &rsaquo; <span>Warning</span></nav>',
     '  <h1 id="warningTitle">Navigational warning</h1>',
     '  <div id="warningDetail" aria-live="polite"></div>',
-    '  <p id="emptyState" class="empty" hidden>No warning matches this address. It may have been cancelled, expired or removed. Browse the <a href="/about#source-registry">source registry</a> or return to the <a href="/">live map</a>.</p>',
-    '  <p id="errorState" class="error" hidden role="alert">This warning could not be loaded right now. Retry later, browse the <a href="/about#source-registry">source registry</a>, or use the <a href="/">live map</a>.</p>',
-    '  <noscript><p class="muted">Enable JavaScript to load this warning. Static warning pages are rebuilt on every deployment &mdash; the <a href="/about#source-registry">source registry</a> lists all regions.</p></noscript>',
+    '  <p id="emptyState" class="empty" hidden>No warning matches this address. It may have been cancelled, expired or removed. Browse the <a href="/navarea?tab=info">source registry</a> or return to the <a href="/navarea">live map</a>.</p>',
+    '  <p id="errorState" class="error" hidden role="alert">This warning could not be loaded right now. Retry later, browse the <a href="/navarea?tab=info">source registry</a>, or use the <a href="/navarea">live map</a>.</p>',
+    '  <noscript><p class="muted">Enable JavaScript to load this warning. Static warning pages are rebuilt on every deployment &mdash; the <a href="/navarea?tab=info">source registry</a> lists all regions.</p></noscript>',
     '</main>',
     '',
     '<footer class="site">',
     '  <p>Helm.Warning &mdash; NAVAREA Maritime Safety Information Pipeline</p>',
-    '  <p><a href="/">Live warnings map</a> &middot; <a href="/about">About &amp; Disclaimer</a></p>',
+    '  <p><a href="/navarea">Live warnings map</a> &middot; <a href="/navarea?tab=info">About &amp; Disclaimer</a></p>',
     '</footer>',
     '',
     '<script defer src="https://unpkg.com/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" integrity="sha256-1qXEQUpdTOZG2cHeIjqnBn0/9mTBU5T/63/P/HYzVKM=" crossorigin="anonymous"></' + 'script>',
-    '<script defer src="/assets/js/supabase.js"></' + 'script>',
-    '<script defer src="/assets/js/warning-detail.js"></' + 'script>',
+    '<script defer src="/navarea/assets/js/supabase.js"></' + 'script>',
+    '<script defer src="/navarea/assets/js/warning-detail.js"></' + 'script>',
     '</body>',
     '</html>'
   ];
@@ -477,11 +477,11 @@ export function buildWarningShellHtml() {
 // live at /sources. One crawlable, fully static page - no client-side
 // hydration. /sources permanently redirects here (vercel.json).
 export function buildAboutPageHtml() {
-  const url = SITE_URL + '/about';
+  const url = SITE_URL + '/navarea/about';
   const title = 'About Helm.Warning | NAVAREA Source Registry &amp; Maritime Safety Information';
   const description = 'What Helm.Warning is, where its NAVAREA warning data comes from, the 21-region source registry with official WWNWS area coordinators, and the safety disclaimer: for situational awareness only - not a substitute for official Maritime Safety Information (MSI).';
   const jsonLd = '{"@context":"schema.org","@type":"BreadcrumbList","itemListElement":[' +
-    '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/"},' +
+    '{"@type":"ListItem","position":1,"name":"Home","item":"' + SITE_URL + '/navarea"},' +
     '{"@type":"ListItem","position":2,"name":"About","item":"' + url + '"}]}';
   const nAutomated = NAVAREA_REGIONS.filter(function (x) { return x.ingest === 'automated'; }).length;
   const nRestricted = NAVAREA_REGIONS.filter(function (x) { return x.ingest === 'restricted'; }).length;
@@ -595,26 +595,26 @@ export function buildAboutPageHtml() {
     '<meta name="description" content="' + description + '">',
     '<link rel="canonical" href="' + url + '">',
     '<meta name="robots" content="index, follow">',
-    '<link rel="icon" type="image/svg+xml" href="/favicon.svg">',
-    '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">',
+    '<link rel="icon" type="image/svg+xml" href="/navarea/favicon.svg">',
+    '<link rel="apple-touch-icon" sizes="180x180" href="/navarea/apple-touch-icon.png">',
     '<meta property="og:type" content="website">',
     '<meta property="og:site_name" content="Helm.Warning">',
     '<meta property="og:title" content="' + title + '">',
     '<meta property="og:description" content="' + description + '">',
     '<meta property="og:url" content="' + url + '">',
-    '<meta property="og:image" content="' + SITE_URL + '/og-preview.png">',
+    '<meta property="og:image" content="' + SITE_URL + '/navarea/og-preview.png">',
     '<meta name="twitter:card" content="summary_large_image">',
     '<meta name="twitter:title" content="' + title + '">',
     '<meta name="twitter:description" content="' + description + '">',
     '<script type="application/ld+json">' + jsonLd + '</' + 'script>',
-    '<link rel="stylesheet" href="/assets/css/tokens.css">',
+    '<link rel="stylesheet" href="/navarea/assets/css/tokens.css">',
     '<style>' + PAGE_CSS + sourceCss + aboutCss + '</style>',
     '</head>',
     '<body>',
     siteHeader('info'),
     '',
     '<main class="page">',
-    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <span>About</span></nav>',
+    '  <nav class="crumbs" aria-label="Breadcrumb"><a href="/navarea">Home</a> &rsaquo; <span>About</span></nav>',
     '  <h1>About Helm.Warning</h1>',
     '',
     '  <section>',
@@ -638,7 +638,7 @@ export function buildAboutPageHtml() {
     '    <ul class="source-grid">',
     cards,
     '    </ul>',
-    '    <p>Helm.Warning ingests each region and plots the parsed warnings on the <a href="/">live map</a>. Every card carries an ingestion status: <span class="feed-badge feed-ok">green</span> = automated ingestion from a verified official feed; <span class="feed-badge feed-warn">amber</span> = not reliable, the source does not permit automatic crawling (bot-protected portal or no accessible publication endpoint), so data may be stale; <span class="feed-badge feed-none">grey</span> = no automated feed yet, warnings entered through the reviewed admin pipeline rather than an unofficial source. Regions with a verified source portal also link to it directly below the card.</p>',
+    '    <p>Helm.Warning ingests each region and plots the parsed warnings on the <a href="/navarea">live map</a>. Every card carries an ingestion status: <span class="feed-badge feed-ok">green</span> = automated ingestion from a verified official feed; <span class="feed-badge feed-warn">amber</span> = not reliable, the source does not permit automatic crawling (bot-protected portal or no accessible publication endpoint), so data may be stale; <span class="feed-badge feed-none">grey</span> = no automated feed yet, warnings entered through the reviewed admin pipeline rather than an unofficial source. Regions with a verified source portal also link to it directly below the card.</p>',
     '  </section>',
     '',
     '  <section>',
@@ -688,7 +688,7 @@ export function buildAboutPageHtml() {
     '    <p class="muted">Red watch is intentionally dim. These colours are calculated, not tested on a bridge display &mdash; try it at night on your own device and adjust screen brightness until it is comfortable. Severity colours keep the same meaning in every theme: a Critical warning always looks Critical.</p>',
     '  </section>',
     '',
-    '  <a class="backlink" href="/" aria-label="Back to the live NAVAREA warnings map">',
+    '  <a class="backlink" href="/navarea" aria-label="Back to the live NAVAREA warnings map">',
     '    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
     '    Back to the live map',
     '  </a>',
@@ -696,7 +696,7 @@ export function buildAboutPageHtml() {
     '',
     '<footer class="site">',
     '  <p>Helm.Warning &mdash; NAVAREA Maritime Safety Information Pipeline</p>',
-    '  <p>For situational awareness only. Not a substitute for official MSI (SafetyNET, NAVTEX). Always verify with official channels as required by SOLAS. <a href="/">Live warnings map</a></p>',
+    '  <p>For situational awareness only. Not a substitute for official MSI (SafetyNET, NAVTEX). Always verify with official channels as required by SOLAS. <a href="/navarea">Live warnings map</a></p>',
     '</footer>',
     '',
     themeToggleScript,
@@ -709,8 +709,7 @@ export function buildAboutPageHtml() {
 
 export function buildSitemapXml(todayIso, detailUrls) {
   const entries = [
-    { loc: SITE_URL + '/', freq: 'daily', priority: '1.0' },
-    { loc: SITE_URL + '/about', freq: 'monthly', priority: '0.7' }
+    { loc: SITE_URL + '/navarea', freq: 'daily', priority: '1.0' }
   ];
   for (const r of NAVAREA_REGIONS) {
     entries.push({ loc: SITE_URL + canonicalPath(r.id), freq: 'daily', priority: '0.8' });

@@ -149,7 +149,7 @@ input:focus {
   </form>
 
   <div class="links">
-    <a href="/">← Back to public portal</a>
+    <a href="/navarea">← Back to public portal</a>
   </div>
 </div>
 
@@ -178,7 +178,7 @@ function enterAdminMode() {
   // No client-side trust flags (helm_admin_mode / hw_admin_email) are written:
   // they were spoofable and conveyed no real authorization. The React console
   // derives admin mode from the server-verified session on mount.
-  window.location.replace('/console#/warnings/list');
+  window.location.replace('/navarea/console#/warnings/list');
 }
 
 async function checkExistingSession() {
