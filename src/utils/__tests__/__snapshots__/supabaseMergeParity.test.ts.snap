@@ -1,0 +1,679 @@
+// Vitest Snapshot Version 2
+
+// Golden output of fetchActiveWarnings captured from the PRE-refactor code
+// (main, commit before the mergeSpatialAndTextRows move), with the fake
+// placeholder fixtures defined in supabaseMergeParity.test.ts. The test
+// compares the current code against these strings; a mismatch means the
+// move changed behavior. All data is fake (TEST-*/99, navarea TT).
+
+exports[`fetchActiveWarnings spatial+text merge (PR A parity) > path 1: merges spatial and text rows into warning objects (golden snapshot) 1`] = `[
+ {
+  "id": "uuid-TEST-P1/99",
+  "warning_id": "TEST-P1/99",
+  "canonical_id": "TEST-P1/99",
+  "navarea": "TT",
+  "title": "TT TEST-P1/99",
+  "area_text": "area TEST-P1/99",
+  "severity": "high",
+  "category": "catX",
+  "categories": [
+   "catX"
+  ],
+  "status": "active",
+  "triage_tier": "A",
+  "data_quality": "EXPLICIT",
+  "valid_from": null,
+  "valid_to": null,
+  "radio_frequencies": null,
+  "space_launch_mission": null,
+  "geometries": [
+   {
+    "geom_id": "geom-TEST-P1/99",
+    "feature_type": "POINT",
+    "buffer_nm": 0,
+    "corridor_half_width_nm": 0,
+    "zone_label": "pt zone",
+    "geojson_blob": {
+     "type": "Point",
+     "coordinates": [
+      1.1,
+      2.2
+     ]
+    }
+   }
+  ],
+  "latitude": 2.2,
+  "longitude": 1.1,
+  "buffer_nm": 0,
+  "raw_text": "TEXT P1",
+  "bulletin": "TEXT P1",
+  "text": "TEXT P1",
+  "issued_at": "2026-01-02T03:04:05Z",
+  "issued_date": "2026-01-02",
+  "issued_text": "2026-01-02T03:04:05Z",
+  "spatial": {
+   "geometries": [
+    {
+     "type": "Point",
+     "coordinates": [
+      1.1,
+      2.2
+     ],
+     "label": "pt zone",
+     "buffer_nm": 0
+    }
+   ],
+   "circles": [],
+   "raw_coordinate_text": [],
+   "validation_status": "passed"
+  }
+ },
+ {
+  "id": "uuid-TEST-L1/99",
+  "warning_id": "TEST-L1/99",
+  "canonical_id": "TEST-L1/99",
+  "navarea": "TT",
+  "title": "TT TEST-L1/99",
+  "area_text": "area TEST-L1/99",
+  "severity": "high",
+  "category": "catX",
+  "categories": [
+   "catX"
+  ],
+  "status": "active",
+  "triage_tier": "A",
+  "data_quality": "EXPLICIT",
+  "valid_from": null,
+  "valid_to": null,
+  "radio_frequencies": null,
+  "space_launch_mission": null,
+  "geometries": [
+   {
+    "geom_id": "geom-TEST-L1/99",
+    "feature_type": "LINE",
+    "buffer_nm": 0,
+    "corridor_half_width_nm": 1.5,
+    "zone_label": "TT TEST-L1/99",
+    "geojson_blob": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       1,
+       2
+      ],
+      [
+       3,
+       4
+      ],
+      [
+       5,
+       6
+      ]
+     ]
+    }
+   }
+  ],
+  "latitude": 4,
+  "longitude": 3,
+  "buffer_nm": 0,
+  "raw_text": "TEXT L1",
+  "bulletin": "TEXT L1",
+  "text": "TEXT L1",
+  "issued_at": null,
+  "issued_date": null,
+  "issued_text": null,
+  "spatial": {
+   "geometries": [
+    {
+     "type": "LineString",
+     "coordinates": [
+      [
+       1,
+       2
+      ],
+      [
+       3,
+       4
+      ],
+      [
+       5,
+       6
+      ]
+     ],
+     "label": "TT TEST-L1/99",
+     "buffer_nm": 0
+    }
+   ],
+   "circles": [],
+   "raw_coordinate_text": [],
+   "validation_status": "passed"
+  }
+ },
+ {
+  "id": "uuid-TEST-PG1/99",
+  "warning_id": "TEST-PG1/99",
+  "canonical_id": "TEST-PG1/99",
+  "navarea": "TT",
+  "title": "TT TEST-PG1/99",
+  "area_text": "area TEST-PG1/99",
+  "severity": "high",
+  "category": "catX",
+  "categories": [
+   "catX"
+  ],
+  "status": "active",
+  "triage_tier": "A",
+  "data_quality": "EXPLICIT",
+  "valid_from": null,
+  "valid_to": null,
+  "radio_frequencies": null,
+  "space_launch_mission": null,
+  "geometries": [
+   {
+    "geom_id": "geom-TEST-PG1/99",
+    "feature_type": "POLYGON",
+    "buffer_nm": 0,
+    "corridor_half_width_nm": 0,
+    "zone_label": "TT TEST-PG1/99",
+    "geojson_blob": {
+     "type": "Polygon",
+     "coordinates": [
+      [
+       [
+        0,
+        0
+       ],
+       [
+        4,
+        0
+       ],
+       [
+        4,
+        4
+       ],
+       [
+        0,
+        0
+       ]
+      ]
+     ]
+    }
+   }
+  ],
+  "latitude": 1,
+  "longitude": 2,
+  "buffer_nm": 0,
+  "raw_text": "",
+  "bulletin": "",
+  "text": "",
+  "issued_at": "2026-01-02T03:04:05Z",
+  "issued_date": "2026-01-02",
+  "issued_text": "2026-01-02T03:04:05Z",
+  "spatial": {
+   "geometries": [
+    {
+     "type": "Polygon",
+     "coordinates": [
+      [
+       [
+        0,
+        0
+       ],
+       [
+        4,
+        0
+       ],
+       [
+        4,
+        4
+       ],
+       [
+        0,
+        0
+       ]
+      ]
+     ],
+     "label": "TT TEST-PG1/99",
+     "buffer_nm": 0
+    }
+   ],
+   "circles": [],
+   "raw_coordinate_text": [],
+   "validation_status": "passed"
+  }
+ },
+ {
+  "id": "uuid-TEST-R1/99",
+  "warning_id": "TEST-R1/99",
+  "canonical_id": "TEST-R1/99",
+  "navarea": "TT",
+  "title": "TT TEST-R1/99",
+  "area_text": "area TEST-R1/99",
+  "severity": "high",
+  "category": "catX",
+  "categories": [
+   "catX"
+  ],
+  "status": "active",
+  "triage_tier": "A",
+  "data_quality": "EXPLICIT",
+  "valid_from": null,
+  "valid_to": null,
+  "radio_frequencies": null,
+  "space_launch_mission": null,
+  "geometries": [
+   {
+    "geom_id": "geom-TEST-R1/99",
+    "feature_type": "POINT",
+    "buffer_nm": 5,
+    "corridor_half_width_nm": 0,
+    "zone_label": "radius zone",
+    "geojson_blob": {
+     "type": "Point",
+     "coordinates": [
+      7.5,
+      8.5
+     ]
+    }
+   }
+  ],
+  "latitude": 8.5,
+  "longitude": 7.5,
+  "buffer_nm": 5,
+  "raw_text": "TEXT R1",
+  "bulletin": "TEXT R1",
+  "text": "TEXT R1",
+  "issued_at": "2026-01-02T03:04:05Z",
+  "issued_date": "2026-01-02",
+  "issued_text": "2026-01-02T03:04:05Z",
+  "spatial": {
+   "geometries": [
+    {
+     "type": "Point",
+     "coordinates": [
+      7.5,
+      8.5
+     ],
+     "label": "radius zone",
+     "buffer_nm": 5
+    }
+   ],
+   "circles": [
+    {
+     "center": [
+      7.5,
+      8.5
+     ],
+     "radius_nm": 5,
+     "label": "radius zone"
+    }
+   ],
+   "raw_coordinate_text": [],
+   "validation_status": "passed"
+  }
+ },
+ {
+  "id": "uuid-TEST-MP1/99",
+  "warning_id": "TEST-MP1/99",
+  "canonical_id": "TEST-MP1/99",
+  "navarea": "TT",
+  "title": "TT TEST-MP1/99",
+  "area_text": "area TEST-MP1/99",
+  "severity": "high",
+  "category": "catX",
+  "categories": [
+   "catX"
+  ],
+  "status": "active",
+  "triage_tier": "A",
+  "data_quality": "EXPLICIT",
+  "valid_from": null,
+  "valid_to": null,
+  "radio_frequencies": null,
+  "space_launch_mission": null,
+  "geometries": [
+   {
+    "geom_id": "g-a",
+    "feature_type": "POINT",
+    "buffer_nm": 0,
+    "corridor_half_width_nm": 0,
+    "zone_label": "TT TEST-MP1/99",
+    "geojson_blob": {
+     "type": "Point",
+     "coordinates": [
+      1,
+      1
+     ]
+    }
+   },
+   {
+    "geom_id": "g-b",
+    "feature_type": "POINT",
+    "buffer_nm": 0,
+    "corridor_half_width_nm": 0,
+    "zone_label": "TT TEST-MP1/99",
+    "geojson_blob": {
+     "type": "Point",
+     "coordinates": [
+      2,
+      2
+     ]
+    }
+   }
+  ],
+  "latitude": 1,
+  "longitude": 1,
+  "buffer_nm": 0,
+  "raw_text": "TEXT MP1",
+  "bulletin": "TEXT MP1",
+  "text": "TEXT MP1",
+  "issued_at": "2026-01-02T03:04:05Z",
+  "issued_date": "2026-01-02",
+  "issued_text": "2026-01-02T03:04:05Z",
+  "spatial": {
+   "geometries": [
+    {
+     "type": "Point",
+     "coordinates": [
+      1,
+      1
+     ],
+     "label": "TT TEST-MP1/99",
+     "buffer_nm": 0
+    },
+    {
+     "type": "Point",
+     "coordinates": [
+      2,
+      2
+     ],
+     "label": "TT TEST-MP1/99",
+     "buffer_nm": 0
+    }
+   ],
+   "circles": [],
+   "raw_coordinate_text": [],
+   "validation_status": "passed"
+  }
+ },
+ {
+  "id": "uuid-TEST-NG1/99",
+  "warning_id": "TEST-NG1/99",
+  "canonical_id": "TEST-NG1/99",
+  "navarea": "TT",
+  "title": "TT TEST-NG1/99",
+  "area_text": "area TEST-NG1/99",
+  "severity": "high",
+  "category": "catX",
+  "categories": [
+   "catX"
+  ],
+  "status": "active",
+  "triage_tier": "A",
+  "data_quality": "EXPLICIT",
+  "valid_from": null,
+  "valid_to": null,
+  "radio_frequencies": null,
+  "space_launch_mission": null,
+  "geometries": [],
+  "latitude": null,
+  "longitude": null,
+  "buffer_nm": 0,
+  "raw_text": "TEXT NG1",
+  "bulletin": "TEXT NG1",
+  "text": "TEXT NG1",
+  "issued_at": "2026-01-02T03:04:05Z",
+  "issued_date": "2026-01-02",
+  "issued_text": "2026-01-02T03:04:05Z",
+  "spatial": {
+   "geometries": [],
+   "circles": [],
+   "raw_coordinate_text": [],
+   "validation_status": "passed"
+  }
+ },
+ {
+  "id": "uuid-TEST-INV1/99",
+  "warning_id": "TEST-INV1/99",
+  "canonical_id": "TEST-INV1/99",
+  "navarea": "TT",
+  "title": "TT TEST-INV1/99",
+  "area_text": "area TEST-INV1/99",
+  "severity": "high",
+  "category": "catX",
+  "categories": [
+   "catX"
+  ],
+  "status": "active",
+  "triage_tier": "A",
+  "data_quality": "EXPLICIT",
+  "valid_from": null,
+  "valid_to": null,
+  "radio_frequencies": null,
+  "space_launch_mission": null,
+  "geometries": [
+   {
+    "geom_id": "geom-TEST-INV1/99",
+    "feature_type": "POINT",
+    "buffer_nm": 0,
+    "corridor_half_width_nm": 0,
+    "zone_label": "TT TEST-INV1/99",
+    "geojson_blob": {
+     "type": "Point",
+     "coordinates": [
+      190,
+      95
+     ]
+    }
+   }
+  ],
+  "latitude": 95,
+  "longitude": 190,
+  "buffer_nm": 0,
+  "raw_text": "TEXT INV1",
+  "bulletin": "TEXT INV1",
+  "text": "TEXT INV1",
+  "issued_at": "2026-01-02T03:04:05Z",
+  "issued_date": "2026-01-02",
+  "issued_text": "2026-01-02T03:04:05Z",
+  "spatial": {
+   "geometries": [
+    {
+     "type": "Point",
+     "coordinates": [
+      190,
+      95
+     ],
+     "label": "TT TEST-INV1/99",
+     "buffer_nm": 0
+    }
+   ],
+   "circles": [],
+   "raw_coordinate_text": [],
+   "validation_status": "passed"
+  }
+ },
+ {
+  "id": "uuid-TEST-NT1/99",
+  "warning_id": "TEST-NT1/99",
+  "canonical_id": "TEST-NT1/99",
+  "navarea": "TT",
+  "title": "TT TEST-NT1/99",
+  "area_text": "area TEST-NT1/99",
+  "severity": "high",
+  "category": "catX",
+  "categories": [
+   "catX"
+  ],
+  "status": "active",
+  "triage_tier": "A",
+  "data_quality": "EXPLICIT",
+  "valid_from": null,
+  "valid_to": null,
+  "radio_frequencies": null,
+  "space_launch_mission": null,
+  "geometries": [
+   {
+    "geom_id": "geom-TEST-NT1/99",
+    "feature_type": "POINT",
+    "buffer_nm": 0,
+    "corridor_half_width_nm": 0,
+    "zone_label": "TT TEST-NT1/99",
+    "geojson_blob": {
+     "type": "Point",
+     "coordinates": [
+      3,
+      3
+     ]
+    }
+   }
+  ],
+  "latitude": 3,
+  "longitude": 3,
+  "buffer_nm": 0,
+  "spatial": {
+   "geometries": [
+    {
+     "type": "Point",
+     "coordinates": [
+      3,
+      3
+     ],
+     "label": "TT TEST-NT1/99",
+     "buffer_nm": 0
+    }
+   ],
+   "circles": [],
+   "raw_coordinate_text": [],
+   "validation_status": "passed"
+  }
+ }
+]`;
+
+exports[`fetchActiveWarnings spatial+text merge (PR A parity) > forced fallback (spatial empty / spatial error) produces identical output both ways 1`] = `[
+ {
+  "id": "uuid-FB1/99",
+  "canonical_id": "TEST-FB1/99",
+  "navarea": "TT",
+  "source_id": "src-x",
+  "title": "FB ONE",
+  "area_text": "fb area",
+  "categories": [
+   "catX"
+  ],
+  "status": "active",
+  "triage_tier": "A",
+  "data_quality": "EXPLICIT",
+  "valid_from": null,
+  "valid_to": null,
+  "issued_at": "2026-01-02T03:04:05Z",
+  "raw_text": "TEST FIXTURE. AREA BOUNDED BY 01-00.0N 002-00.0E, 01-00.0N 003-00.0E, 00-30.0N 003-00.0E, 00-30.0N 002-00.0E.",
+  "created_at": "2026-01-01T00:00:00Z",
+  "updated_at": "2026-01-01T00:00:00Z",
+  "warning_id": "TEST-FB1/99",
+  "severity": "high",
+  "category": "catX",
+  "issued_date": "2026-01-02",
+  "issued_text": "2026-01-02T03:04:05Z",
+  "latitude": 0.75,
+  "longitude": 2.5,
+  "bulletin": "TEST FIXTURE. AREA BOUNDED BY 01-00.0N 002-00.0E, 01-00.0N 003-00.0E, 00-30.0N 003-00.0E, 00-30.0N 002-00.0E.",
+  "text": "TEST FIXTURE. AREA BOUNDED BY 01-00.0N 002-00.0E, 01-00.0N 003-00.0E, 00-30.0N 003-00.0E, 00-30.0N 002-00.0E.",
+  "geometries": [
+   {
+    "feature_type": "POLYGON",
+    "geojson_blob": {
+     "type": "Polygon",
+     "coordinates": [
+      [
+       [
+        2,
+        1
+       ],
+       [
+        3,
+        1
+       ],
+       [
+        3,
+        0.5
+       ],
+       [
+        2,
+        0.5
+       ]
+      ]
+     ]
+    },
+    "zone_label": "FB ONE"
+   }
+  ],
+  "spatial": {
+   "geometries": [
+    {
+     "type": "Polygon",
+     "coordinates": [
+      [
+       [
+        2,
+        1
+       ],
+       [
+        3,
+        1
+       ],
+       [
+        3,
+        0.5
+       ],
+       [
+        2,
+        0.5
+       ]
+      ]
+     ],
+     "label": "FB ONE"
+    }
+   ],
+   "circles": [],
+   "raw_coordinate_text": [],
+   "validation_status": "passed"
+  }
+ },
+ {
+  "id": "uuid-FB2/99",
+  "canonical_id": "TEST-FB2/99",
+  "navarea": "TT",
+  "source_id": "src-x",
+  "title": "FB TWO",
+  "area_text": "fb area 2",
+  "categories": [
+   "general"
+  ],
+  "status": "active",
+  "triage_tier": null,
+  "data_quality": null,
+  "valid_from": null,
+  "valid_to": null,
+  "issued_at": null,
+  "raw_text": "NO COORDINATES HERE",
+  "created_at": "2026-01-01T00:00:00Z",
+  "updated_at": "2026-01-01T00:00:00Z",
+  "warning_id": "TEST-FB2/99",
+  "severity": "caution",
+  "category": "general",
+  "issued_date": null,
+  "issued_text": null,
+  "latitude": null,
+  "longitude": null,
+  "bulletin": "NO COORDINATES HERE",
+  "text": "NO COORDINATES HERE",
+  "geometries": [],
+  "spatial": {
+   "geometries": [],
+   "circles": [],
+   "raw_coordinate_text": [],
+   "validation_status": "passed"
+  }
+ }
+]`;
