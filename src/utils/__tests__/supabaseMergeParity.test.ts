@@ -18,7 +18,7 @@ import { createContext as vmCreateContext, runInContext } from 'node:vm';
  *
  * The harness loads the unmodified classic script in node:vm with a stubbed
  * window and a fake Supabase client; no network, no jsdom, no DOM.
- * All fixtures are fake placeholders (TEST-*/99, navarea 'TT'); nothing here
+ * All fixtures are fake placeholders (ids TEST-P1/99, navarea 'TT'); nothing here
  * resembles a real warning number, NAVAREA or official coordinates.
  */
 
