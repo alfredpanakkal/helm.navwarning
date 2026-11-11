@@ -307,6 +307,131 @@ function extractGeometriesFromRawText(text, fallbackTitle) {
   }));
 }
 
+// Pure merge of nav_warnings_active_spatial rows with nav_warnings text rows.
+// Moved out of fetchActiveWarnings unchanged so it can be tested on its own.
+function mergeSpatialAndTextRows(spatialData, textRows) {
+  // Group geometries by canonical_id to prevent multi-row fragmentation
+  const warningMap = new Map();
+
+  for (const row of spatialData) {
+    const key = row.canonical_id || row.warning_id;
+    if (!key) continue;
+
+    let entry = warningMap.get(key);
+    if (!entry) {
+      const primaryCategory = Array.isArray(row.categories) && row.categories.length > 0 ? row.categories[0] : 'general';
+      entry = {
+        id: row.warning_id,
+        warning_id: row.canonical_id || row.warning_id,
+        canonical_id: row.canonical_id || row.warning_id,
+        navarea: row.navarea,
+        title: row.title || row.canonical_id,
+        area_text: row.area_text,
+        severity: row.triage_tier === 'A' ? 'high' : 'caution',
+        category: primaryCategory,
+        categories: Array.isArray(row.categories) && row.categories.length > 0 ? row.categories : [primaryCategory],
+        status: row.status || 'active',
+        triage_tier: row.triage_tier || 'A',
+        data_quality: row.data_quality || 'EXPLICIT',
+        valid_from: row.valid_from,
+        valid_to: row.valid_to,
+        radio_frequencies: row.radio_frequencies,
+        space_launch_mission: row.space_launch_mission,
+        geometries: [],
+        latitude: null,
+        longitude: null,
+        buffer_nm: 0,
+      };
+      warningMap.set(key, entry);
+    }
+
+    if (row.geojson_blob) {
+      entry.geometries.push({
+        geom_id: row.geom_id,
+        feature_type: row.feature_type || row.geojson_blob.type,
+        buffer_nm: Number(row.buffer_nm) || 0,
+        corridor_half_width_nm: Number(row.corridor_half_width_nm) || 0,
+        zone_label: row.zone_label || row.title || entry.canonical_id,
+        geojson_blob: row.geojson_blob,
+      });
+      if (row.buffer_nm && row.buffer_nm > entry.buffer_nm) {
+        entry.buffer_nm = Number(row.buffer_nm);
+      }
+    }
+  }
+
+  // Merge raw_text / issued_at from the parallel master-table query
+  // (keyed by uuid). Non-fatal on failure — entries simply stay lighter.
+  if (textRows.length > 0) {
+    try {
+      const textMap = new Map(textRows.map(t => [t.id, t]));
+      for (const entry of warningMap.values()) {
+        const tr = textMap.get(entry.id);
+        if (tr) {
+          entry.raw_text = tr.raw_text || '';
+          entry.bulletin = tr.raw_text || '';
+          entry.text = tr.raw_text || '';
+          entry.issued_at = tr.issued_at || null;
+          entry.issued_date = tr.issued_at ? String(tr.issued_at).slice(0, 10) : null;
+          entry.issued_text = tr.issued_at || null;
+        }
+      }
+    } catch (textEx) {
+      console.warn('Text hydration notice:', textEx);
+    }
+  }
+
+  // Calculate representative latitude & longitude coordinates for each warning
+  for (const entry of warningMap.values()) {
+    for (const geom of entry.geometries) {
+      const blob = geom.geojson_blob;
+      if (!blob) continue;
+
+      if (blob.type === 'Point' && Array.isArray(blob.coordinates)) {
+        entry.longitude = blob.coordinates[0];
+        entry.latitude = blob.coordinates[1];
+        break;
+      } else if ((blob.type === 'Polygon' || blob.type === 'MultiPolygon') && Array.isArray(blob.coordinates)) {
+        const [cLat, cLng] = computePolygonCentroid(blob.coordinates);
+        if (cLat !== 0 || cLng !== 0) {
+          entry.latitude = cLat;
+          entry.longitude = cLng;
+          break;
+        }
+      } else if ((blob.type === 'LineString' || blob.type === 'MultiLineString') && Array.isArray(blob.coordinates)) {
+        const coords = blob.coordinates;
+        const mid = coords[Math.floor(coords.length / 2)];
+        if (Array.isArray(mid)) {
+          entry.longitude = mid[0];
+          entry.latitude = mid[1];
+          break;
+        }
+      }
+    }
+
+    // Build spatial contract object compatible with Leaflet & UI components
+    entry.spatial = {
+      geometries: entry.geometries.map(g => ({
+        type: g.geojson_blob?.type || g.feature_type,
+        coordinates: g.geojson_blob?.coordinates,
+        label: g.zone_label,
+        buffer_nm: g.buffer_nm,
+      })),
+      circles: entry.geometries
+        .filter(g => (g.feature_type === 'POINT' || g.geojson_blob?.type === 'Point') && g.buffer_nm > 0)
+        .map(g => ({
+          center: g.geojson_blob?.coordinates,
+          radius_nm: g.buffer_nm,
+          label: g.zone_label,
+        })),
+      raw_coordinate_text: [],
+      validation_status: 'passed',
+    };
+  }
+
+  return Array.from(warningMap.values());
+}
+
 async function fetchActiveWarnings() {
   if (window.hwSupabase) {
     // 1. Prioritize pre-calculated PostGIS dynamic spatial view (active + Tier A)
@@ -330,126 +455,7 @@ async function fetchActiveWarnings() {
       const textRows = (textRes && Array.isArray(textRes.data)) ? textRes.data : [];
 
       if (!spatialErr && Array.isArray(spatialData) && spatialData.length > 0) {
-        // Group geometries by canonical_id to prevent multi-row fragmentation
-        const warningMap = new Map();
-
-        for (const row of spatialData) {
-          const key = row.canonical_id || row.warning_id;
-          if (!key) continue;
-
-          let entry = warningMap.get(key);
-          if (!entry) {
-            const primaryCategory = Array.isArray(row.categories) && row.categories.length > 0 ? row.categories[0] : 'general';
-            entry = {
-              id: row.warning_id,
-              warning_id: row.canonical_id || row.warning_id,
-              canonical_id: row.canonical_id || row.warning_id,
-              navarea: row.navarea,
-              title: row.title || row.canonical_id,
-              area_text: row.area_text,
-              severity: row.triage_tier === 'A' ? 'high' : 'caution',
-              category: primaryCategory,
-              categories: Array.isArray(row.categories) && row.categories.length > 0 ? row.categories : [primaryCategory],
-              status: row.status || 'active',
-              triage_tier: row.triage_tier || 'A',
-              data_quality: row.data_quality || 'EXPLICIT',
-              valid_from: row.valid_from,
-              valid_to: row.valid_to,
-              radio_frequencies: row.radio_frequencies,
-              space_launch_mission: row.space_launch_mission,
-              geometries: [],
-              latitude: null,
-              longitude: null,
-              buffer_nm: 0,
-            };
-            warningMap.set(key, entry);
-          }
-
-          if (row.geojson_blob) {
-            entry.geometries.push({
-              geom_id: row.geom_id,
-              feature_type: row.feature_type || row.geojson_blob.type,
-              buffer_nm: Number(row.buffer_nm) || 0,
-              corridor_half_width_nm: Number(row.corridor_half_width_nm) || 0,
-              zone_label: row.zone_label || row.title || entry.canonical_id,
-              geojson_blob: row.geojson_blob,
-            });
-            if (row.buffer_nm && row.buffer_nm > entry.buffer_nm) {
-              entry.buffer_nm = Number(row.buffer_nm);
-            }
-          }
-        }
-
-        // Merge raw_text / issued_at from the parallel master-table query
-        // (keyed by uuid). Non-fatal on failure — entries simply stay lighter.
-        if (textRows.length > 0) {
-          try {
-            const textMap = new Map(textRows.map(t => [t.id, t]));
-            for (const entry of warningMap.values()) {
-              const tr = textMap.get(entry.id);
-              if (tr) {
-                entry.raw_text = tr.raw_text || '';
-                entry.bulletin = tr.raw_text || '';
-                entry.text = tr.raw_text || '';
-                entry.issued_at = tr.issued_at || null;
-                entry.issued_date = tr.issued_at ? String(tr.issued_at).slice(0, 10) : null;
-                entry.issued_text = tr.issued_at || null;
-              }
-            }
-          } catch (textEx) {
-            console.warn('Text hydration notice:', textEx);
-          }
-        }
-
-        // Calculate representative latitude & longitude coordinates for each warning
-        for (const entry of warningMap.values()) {
-          for (const geom of entry.geometries) {
-            const blob = geom.geojson_blob;
-            if (!blob) continue;
-
-            if (blob.type === 'Point' && Array.isArray(blob.coordinates)) {
-              entry.longitude = blob.coordinates[0];
-              entry.latitude = blob.coordinates[1];
-              break;
-            } else if ((blob.type === 'Polygon' || blob.type === 'MultiPolygon') && Array.isArray(blob.coordinates)) {
-              const [cLat, cLng] = computePolygonCentroid(blob.coordinates);
-              if (cLat !== 0 || cLng !== 0) {
-                entry.latitude = cLat;
-                entry.longitude = cLng;
-                break;
-              }
-            } else if ((blob.type === 'LineString' || blob.type === 'MultiLineString') && Array.isArray(blob.coordinates)) {
-              const coords = blob.coordinates;
-              const mid = coords[Math.floor(coords.length / 2)];
-              if (Array.isArray(mid)) {
-                entry.longitude = mid[0];
-                entry.latitude = mid[1];
-                break;
-              }
-            }
-          }
-
-          // Build spatial contract object compatible with Leaflet & UI components
-          entry.spatial = {
-            geometries: entry.geometries.map(g => ({
-              type: g.geojson_blob?.type || g.feature_type,
-              coordinates: g.geojson_blob?.coordinates,
-              label: g.zone_label,
-              buffer_nm: g.buffer_nm,
-            })),
-            circles: entry.geometries
-              .filter(g => (g.feature_type === 'POINT' || g.geojson_blob?.type === 'Point') && g.buffer_nm > 0)
-              .map(g => ({
-                center: g.geojson_blob?.coordinates,
-                radius_nm: g.buffer_nm,
-                label: g.zone_label,
-              })),
-            raw_coordinate_text: [],
-            validation_status: 'passed',
-          };
-        }
-
-        return Array.from(warningMap.values());
+        return mergeSpatialAndTextRows(spatialData, textRows);
       }
       if (spatialErr) {
         console.warn('nav_warnings_active_spatial query notice, falling back to master:', spatialErr.message);
