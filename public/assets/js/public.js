@@ -873,6 +873,7 @@ window.toggleMapFocusMode = function(explicitState) {
   }
   if (btn) {
     btn.classList.toggle('active', nextState);
+    btn.setAttribute('aria-pressed', nextState ? 'true' : 'false');
     btn.setAttribute('aria-label', nextState ? 'Exit focus mode' : 'Maximize map view full screen');
     btn.title = nextState ? 'Exit Focus Mode (Esc)' : 'Maximize Map View (Focus Mode)';
   }
@@ -979,11 +980,13 @@ window.syncSettingsUI = function(prefs) {
   if (masterBtnDesk) {
     masterBtnDesk.textContent = prefs.masterOverlays ? '[ON]' : '[OFF]';
     masterBtnDesk.classList.toggle('off', !prefs.masterOverlays);
+    masterBtnDesk.setAttribute('aria-pressed', String(!!prefs.masterOverlays));
   }
   const masterBtnMob = document.getElementById('masterToggleBtnMobile');
   if (masterBtnMob) {
     masterBtnMob.textContent = prefs.masterOverlays ? '[ON]' : '[OFF]';
     masterBtnMob.classList.toggle('off', !prefs.masterOverlays);
+    masterBtnMob.setAttribute('aria-pressed', String(!!prefs.masterOverlays));
   }
 };
 
@@ -2072,6 +2075,7 @@ window.toggleMinimizeWarningList = function(){
   if(minBtn) {
     minBtn.title = !isMin ? 'Restore' : 'Minimize';
     minBtn.setAttribute('aria-label', !isMin ? 'Restore active warnings list' : 'Minimize active warnings list');
+    minBtn.setAttribute('aria-expanded', !isMin ? 'false' : 'true');
     minBtn.innerHTML = !isMin
       ? '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"/></svg>'
       : '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
@@ -2080,6 +2084,7 @@ window.toggleMinimizeWarningList = function(){
   if(maxBtn) {
     maxBtn.title = 'Maximize';
     maxBtn.setAttribute('aria-label', 'Maximize active warnings list');
+    maxBtn.setAttribute('aria-expanded', 'false');
     maxBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
   }
 };
@@ -2102,12 +2107,14 @@ window.toggleMaximizeWarningList = function(){
   if(minBtn) {
     minBtn.title = 'Minimize';
     minBtn.setAttribute('aria-label', 'Minimize active warnings list');
+    minBtn.setAttribute('aria-expanded', 'true');
     minBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
   }
   const maxBtn = document.getElementById('btnMaxWarningList');
   if(maxBtn) {
     maxBtn.title = !isMax ? 'Restore' : 'Maximize';
     maxBtn.setAttribute('aria-label', !isMax ? 'Restore active warnings list size' : 'Maximize active warnings list');
+    maxBtn.setAttribute('aria-expanded', !isMax ? 'true' : 'false');
     maxBtn.innerHTML = !isMax
       ? '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>'
       : '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
