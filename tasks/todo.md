@@ -8,12 +8,12 @@
 ## Phase 1 — Attribute Hygiene (zero visual change)
 
 ### 1-A · Public portal button attrs
-- [ ] Branch `fix-buttons-public-attrs` created off `main`
-- [ ] `type="button"` added to all 9 `<button>` elements in `index.html`
-- [ ] `aria-expanded` wired to gear toggle + focus-panel disclosure button
-- [ ] `aria-pressed` wired to coord-display + focus-mode toggle buttons
-- [ ] `aria-label` added to any icon-only button missing visible text
-- [ ] PR opened; body includes root-cause + file list + test plan
+- [x] Branch `fix-buttons-public-attrs` created off `main`
+- [x] `type="button"` added to all 9 `<button>` elements in `index.html`
+- [x] `aria-expanded` wired to gear toggle + focus-panel disclosure button
+- [x] `aria-pressed` wired to coord-display + focus-mode toggle buttons
+- [x] `aria-label` added to any icon-only button missing visible text
+- [x] PR opened; body includes root-cause + file list + test plan ([PR #158](https://github.com/alfredpanakkal/helm.navwarning/pull/158))
 - [ ] Maintainer ran `npm test` + `npm run lint` ✅
 - [ ] **PR merged** → tick here ✅
 
