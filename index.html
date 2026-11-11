@@ -225,31 +225,7 @@ body.is-mobile .data-bank-header .actions{width:auto}
 .data-bank-heading-group h2{font:500 1.35rem var(--font-family-base);letter-spacing:-0.02em;margin:0;color:var(--ink-primary)}
 .data-bank-count-pill{font-size:12px;color:var(--ink-secondary);font-weight:400}
 
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--space-block,24px);margin-bottom:var(--space-block,24px);padding:var(--space-tight,8px) 0;border-bottom:1px solid var(--hairline)}
-.stat-card{background:transparent;border:none;border-radius:0;padding:0;display:flex;flex-direction:column;gap:4px}
-.stat-summary{display:flex;align-items:center;gap:10px;width:100%;background:var(--surface-subtle,transparent);border:1px solid var(--border-input);border-radius:8px;padding:6px 12px;margin:4px 0 10px;min-height:34px;font:500 12.5px var(--font-family-base);color:var(--ink-secondary);cursor:pointer;text-align:left;justify-content:space-between}
-.stat-summary:hover{border-color:var(--border-chip-on)}
-.stat-summary strong{font-weight:500;color:var(--ink-primary)}
-.stat-summary-items{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.stat-summary-item{display:inline-flex;align-items:center;gap:3px}
-.stat-summary-sep{color:var(--ink-tertiary)}
-.stat-summary-toggle-action{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ink-secondary);flex-shrink:0}
-.stat-summary svg{flex-shrink:0;transition:transform .2s ease}
-.stat-summary[aria-expanded="true"] svg{transform:rotate(180deg)}
-.stat-summary[aria-expanded="false"] svg{transform:rotate(0)}
 .data-bank-disclaimer{margin-top:16px;font-size:12px;color:var(--ink-secondary);text-align:center}
-.stat-icon{display:none}
-.stat-content{display:flex;flex-direction:column;gap:2px}
-.stat-label{font-size:var(--fs-label,0.7rem);font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-tertiary)}
-.stat-value-row{display:flex;align-items:baseline;gap:6px}
-.stat-value{font-size:1.5rem;font-weight:500;color:var(--ink-primary);line-height:1.15;font-variant-numeric:tabular-nums}
-.stat-sub{font-size:var(--fs-meta,0.8rem);color:var(--ink-secondary);font-weight:400}
-body.is-mobile .stat-summary{padding:6px 10px;margin:2px 0 8px;min-height:32px;font-size:12px}
-body.is-mobile .stat-grid{grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;padding:6px 0;border-bottom:1px solid var(--hairline)}
-body.is-mobile .stat-card{background:var(--surface-subtle);border:1px solid var(--border-input);border-radius:8px;padding:8px}
-body.is-mobile .stat-label{font-size:9px;letter-spacing:0.04em}
-body.is-mobile .stat-value{font-size:1.1rem;font-weight:500}
-body.is-mobile .stat-sub{font-size:9.5px}
 
 .map-top-section{overflow:hidden;max-height:260px;opacity:1;transition:max-height .25s ease,opacity .18s ease;margin-bottom:12px}
 .map-top-section.collapsed{max-height:0!important;opacity:0!important;margin-bottom:0!important;pointer-events:none}
@@ -512,7 +488,6 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
 @media (max-height:500px) and (orientation:landscape){
   body.is-mobile.tab-map-active .map-container{height:100%!important}
   body.is-mobile .map-warning-list{max-height:160px}
-  body.is-mobile .stat-grid{grid-template-columns:repeat(4,1fr)}
 }
 
 /* ── Map Interrogate (right-click) ───────────────────────────── */
@@ -782,60 +757,6 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
       <button class="btn btn-primary" id="btnRefreshSupabase" onclick="refreshSupabaseConnection()" title="Refresh" aria-label="Refresh data">
         <svg style="width:14px;height:14px;display:inline-block;vertical-align:-2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
       </button>
-      <button class="btn btn-secondary" onclick="showToast('Export not available for public users')" title="Export" aria-label="Export warnings">
-        <svg style="width:14px;height:14px;display:inline-block;vertical-align:-2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      </button>
-    </div>
-  </div>
-  <button type="button" class="stat-summary" id="statSummaryToggle" onclick="toggleStatSummary()" aria-expanded="false" aria-controls="statGrid" title="Toggle coverage metrics">
-    <div class="stat-summary-items">
-      <span class="stat-summary-item"><strong id="statActive">0</strong> warnings</span>
-      <span class="stat-summary-sep" aria-hidden="true">·</span>
-      <span class="stat-summary-item"><strong id="statReportingCount">0</strong> reporting</span>
-      <span class="stat-summary-sep" aria-hidden="true">·</span>
-      <span class="stat-summary-item"><strong id="statGeo">100%</strong> geo</span>
-    </div>
-    <span class="stat-summary-toggle-action">
-      <span class="stat-summary-toggle-label">Details</span>
-      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
-    </span>
-  </button>
-  <div class="stat-grid collapsible" id="statGrid" hidden>
-    <div class="stat-card">
-      <div class="stat-icon active" aria-hidden="true">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M4.93 4.93a10 10 0 0 1 14.14 0M7.76 7.76a6 6 0 0 1 8.48 0"/></svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Active</div>
-        <div class="stat-value-row">
-          <span class="stat-value" id="statActiveDetail">0</span>
-          <span class="stat-sub">In-force</span>
-        </div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon coverage" aria-hidden="true">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Coverage</div>
-        <div class="stat-value-row">
-          <span class="stat-value" id="statCoverage">0/21</span>
-          <span class="stat-sub" id="statCoverageSub">0% global</span>
-        </div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon geo" aria-hidden="true">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Georeferenced</div>
-        <div class="stat-value-row">
-          <span class="stat-value" id="statGeoDetail">100%</span>
-          <span class="stat-sub">GPS Coords</span>
-        </div>
-      </div>
     </div>
   </div>
   <div class="filter-bar">
