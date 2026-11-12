@@ -160,11 +160,13 @@ export function computeCentroid(coords: [number, number][]): [number, number] {
 
 /**
  * Generates a two-dimensional corridor polygon flanking a track line by widthNm / 2
- * on either side (total corridor width = widthNm).
+ * on either side, or asymmetric port/starboard offsets if specified.
  */
 export function computeLineCorridor(
   points: [number, number][],
-  widthNm: number = 3.0
+  widthNm: number = 3.0,
+  portWidthNm?: number,
+  stbdWidthNm?: number
 ): CorridorGeometry {
   if (!points || points.length < 2) {
     return {
@@ -175,7 +177,12 @@ export function computeLineCorridor(
     };
   }
 
-  const halfWidth = Math.max(0.1, widthNm / 2);
+  const effectivePortWidth = portWidthNm !== undefined ? Math.max(0.05, portWidthNm) : Math.max(0.1, widthNm / 2);
+  const effectiveStbdWidth = stbdWidthNm !== undefined ? Math.max(0.05, stbdWidthNm) : Math.max(0.1, widthNm / 2);
+  const totalWidthNm = portWidthNm !== undefined && stbdWidthNm !== undefined
+    ? Number((portWidthNm + stbdWidthNm).toFixed(2))
+    : widthNm;
+
   const leftBank: [number, number][] = [];
   const rightBank: [number, number][] = [];
   let totalLengthNm = 0;
@@ -197,16 +204,16 @@ export function computeLineCorridor(
       bearing = (Math.atan2(avgSin, avgCos) * RAD_TO_DEG + 360) % 360;
     }
 
-    // Left offset (+90 deg), Right offset (-90 deg)
+    // Left bank (Port offset: bearing - 90), Right bank (Starboard offset: bearing + 90)
     const leftPoint = computeDestinationPoint(
       points[i],
       (bearing - 90 + 360) % 360,
-      halfWidth
+      effectivePortWidth
     );
     const rightPoint = computeDestinationPoint(
       points[i],
       (bearing + 90) % 360,
-      halfWidth
+      effectiveStbdWidth
     );
 
     leftBank.push(leftPoint);
@@ -219,8 +226,113 @@ export function computeLineCorridor(
   return {
     centerLine: points,
     boundaryPolygon,
-    widthNm,
+    widthNm: totalWidthNm,
     lengthNm: Number(totalLengthNm.toFixed(2)),
+  };
+}
+
+/**
+ * Calculates a closed geodesic sector (sweep arc) polygon from center, radius,
+ * and start/end bearings in degrees clockwise from True North.
+ * Handles boundary crossing through 0°/360° north seamlessly.
+ */
+export function computeSectorPolygon(
+  center: [number, number],
+  radiusNm: number,
+  startBearingDeg: number,
+  endBearingDeg: number,
+  stepDeg: number = 4
+): [number, number][] {
+  if (!center || radiusNm <= 0) return [];
+
+  const normStart = ((startBearingDeg % 360) + 360) % 360;
+  const normEnd = ((endBearingDeg % 360) + 360) % 360;
+
+  // Angular distance clockwise from start to end
+  let sweepDeg = normEnd >= normStart
+    ? normEnd - normStart
+    : normEnd - normStart + 360;
+
+  if (sweepDeg === 0) {
+    sweepDeg = 360; // full circle sweep
+  }
+
+  const arcPoints: [number, number][] = [];
+  const validStep = Math.max(1, Math.min(15, stepDeg));
+  const stepsCount = Math.ceil(sweepDeg / validStep);
+
+  for (let i = 0; i <= stepsCount; i++) {
+    const fraction = i / stepsCount;
+    const currentBearing = (normStart + fraction * sweepDeg) % 360;
+    const pt = computeDestinationPoint(center, currentBearing, radiusNm);
+    arcPoints.push(pt);
+  }
+
+  // If full circle (sweep = 360), return closed circular ring
+  if (sweepDeg >= 359.9) {
+    return arcPoints;
+  }
+
+  // Otherwise, construct pie wedge: center -> arc points -> back to center
+  return [center, ...arcPoints, center];
+}
+
+export interface SectorDirective {
+  startBearing: number;
+  endBearing: number;
+  radiusNm?: number;
+  rawText: string;
+}
+
+/**
+ * Extracts directional sector bearing and radius clauses from text.
+ * Examples:
+ * - "BETWEEN BEARINGS 045 AND 135 OUT TO 10 NM"
+ * - "SECTOR OF A CIRCLE RADIUS 5 NM BETWEEN BEARINGS 270 AND 360"
+ * - "IN A SECTOR BOUNDED BY BEARINGS 180 DEG AND 240 DEG"
+ */
+export function parseSectorDirective(rawText: string): SectorDirective | null {
+  if (!rawText) return null;
+  const upper = rawText.toUpperCase();
+
+  // Pattern 1: SECTOR ... BETWEEN (BEARINGS) B1 AND B2
+  const sectorMatch = upper.match(
+    /(?:SECTOR\s+(?:OF\s+A\s+CIRCLE\s+)?(?:BOUNDED\s+BY\s+)?|BETWEEN\s+(?:TRUE\s+)?BEARINGS?\s+)(\d{1,3}(?:\.\d+)?)\s*(?:DEG|DEGREES|°)?\s*(?:AND|TO|-)\s*(\d{1,3}(?:\.\d+)?)\s*(?:DEG|DEGREES|°)?/i
+  );
+
+  let startBearing: number | null = null;
+  let endBearing: number | null = null;
+  let matchedSnippet = '';
+
+  if (sectorMatch) {
+    startBearing = parseFloat(sectorMatch[1]);
+    endBearing = parseFloat(sectorMatch[2]);
+    matchedSnippet = sectorMatch[0];
+  } else {
+    // Pattern 2: BETWEEN B1 DEG AND B2 DEG
+    const betweenMatch = upper.match(
+      /BETWEEN\s+(\d{1,3}(?:\.\d+)?)\s*(?:DEG|DEGREES|°)\s*(?:AND|TO)\s*(\d{1,3}(?:\.\d+)?)\s*(?:DEG|DEGREES|°)/i
+    );
+    if (betweenMatch) {
+      startBearing = parseFloat(betweenMatch[1]);
+      endBearing = parseFloat(betweenMatch[2]);
+      matchedSnippet = betweenMatch[0];
+    }
+  }
+
+  if (startBearing === null || endBearing === null) return null;
+
+  // Extract optional radius if specified nearby
+  const radiusMatch = upper.match(
+    /(?:RADIUS\s*(?:OF\s*)?|OUT\s+TO\s+|DISTANCE\s*(?:OF\s*)?)(\d+(?:\.\d+)?)\s*(?:NM|NAUTICAL\s*MILES?|MILES?)/i
+  );
+  const radiusNm = radiusMatch ? parseFloat(radiusMatch[1]) : undefined;
+
+  return {
+    startBearing: ((startBearing % 360) + 360) % 360,
+    endBearing: ((endBearing % 360) + 360) % 360,
+    radiusNm,
+    rawText: matchedSnippet,
   };
 }
 

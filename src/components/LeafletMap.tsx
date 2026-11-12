@@ -39,6 +39,7 @@ import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
 import { useMapLayers, WarningSeverityLevel } from '../hooks/useMapLayers';
 import { WarningHierarchyLines } from './WarningItemV2';
 import { classifyWarning } from '../parsers/warningClassifier';
+import { extractGeometry } from '../parsers/geometryExtractor';
 import { renderHazardBadgeHtml, renderPrimarySymbolSvg } from '../utils/hazardIcons';
 import { toPrimarySymbol, PRIMARY_SYMBOLS, PrimarySymbol } from '../utils/symbolMapping';
 import { parseBerthAndRadius } from '../parsers/berthParser';
@@ -47,10 +48,20 @@ import {
   computePolygonAreaSqNm,
   computeCentroid,
   computeLineCorridor,
+  computeSectorPolygon,
+  parseSectorDirective,
   parseClearanceDirective,
   parseDriftVector,
   formatWgs84Dms,
 } from '../core/coordinates';
+import {
+  getBoundaryDashArray,
+  getZoomScaleCategory,
+  shouldShowVertexPills,
+  shouldShowVertexDots,
+  shouldShowSwathPill,
+  shouldHideCenterPoint,
+} from '../utils/boundaryStyles';
 import { SpatialPlotType } from '../types/maritime';
 import { MapGeometryEditor } from './MapGeometryEditor';
 
@@ -141,10 +152,12 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   const [activePlotType, setActivePlotType] = useState<SpatialPlotType>('all');
   const [isLegendOpen, setIsLegendOpen] = useState<boolean>(false);
   const [isMobileSheetExpanded, setIsMobileSheetExpanded] = useState<boolean>(false);
+  const [currentZoom, setCurrentZoom] = useState<number>(2);
 
   // Modern Navigation & Drawer States (harmonized with public map + bottom sheet)
   const [bottomSheetState, setBottomSheetState] = useState<'minimized' | 'normal' | 'maximized'>('normal');
   const [expandedWarningId, setExpandedWarningId] = useState<string | null>(null);
+  const [selectedZoneLabel, setSelectedZoneLabel] = useState<string | null>(null);
   const [isLayerSettingsOpen, setIsLayerSettingsOpen] = useState<boolean>(false);
   // Phase 3 progressive disclosure: per-layer extras hidden behind "Advanced".
   const [showAdvancedLayers, setShowAdvancedLayers] = useState<boolean>(false);
@@ -338,6 +351,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       leafletInstance.current = map;
       setMapReady(map);
+
+      map.on('zoomend', () => {
+        setCurrentZoom(map.getZoom());
+      });
+      setCurrentZoom(map.getZoom());
 
       map.on('tooltipopen', (e: L.TooltipEvent) => { openTooltipRef.current = e.tooltip; });
       map.on('tooltipclose', () => { openTooltipRef.current = null; });
@@ -597,15 +615,18 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       const isUnverified = String(w.triage_tier || 'A').toUpperCase() === 'B';
 
       // Determine geometry presence
+      const parsedGeom = extractGeometry(w.raw_text || '');
+      const dataQuality = (w.data_quality || (parsedGeom as any).dataQuality || 'EXPLICIT').toUpperCase();
       const hasPolygons = Boolean(
         w.spatial?.geometries?.some(
           (g) => g.type === 'Polygon' && Array.isArray(g.coordinates) && g.coordinates.length > 0
-        )
+        ) || (parsedGeom.geometry.polygons && parsedGeom.geometry.polygons.length > 0)
       );
       const hasCircles = Boolean(w.spatial?.circles && w.spatial.circles.length > 0);
 
-      // User Decision: Hide center point when area or circle is visible
-      const hideCenterPoint = showPolygons && (hasPolygons || hasCircles);
+      // Phase 4.1 & User Decision: At global zoom (z <= 5), show centroid points with cluster groups.
+      // At regional and detailed zoom (z > 5), hide center point if polygon or circle is visible.
+      const hideCenterPoint = shouldHideCenterPoint(hasPolygons || hasCircles, showPolygons, currentZoom);
 
       // User Decision: Pulsating animation for active firing or live hazard zones
       const isLiveFiring =
@@ -680,17 +701,20 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 const latLngs = (geom.coordinates[0] as number[][]).map(([lng, lat]) => [lat, lng] as [number, number]);
                 const areaSqNm = computePolygonAreaSqNm(latLngs);
                 const centroid = computeCentroid(latLngs);
+                const zoneLabel = geom.label || (geom as any).zone_label || (geom as any).zoneLabel;
+                const isZoneSelected = (zoneLabel && selectedZoneLabel === zoneLabel) || isIsolated;
 
-                const polyColor = isUnverified ? '#d97706' : isIsolated ? '#dc2626' : classification.displayStyle === 'critical' ? '#dc2626' : '#2563eb';
-                const polyFill = isUnverified ? '#fbbf24' : isIsolated ? '#ef4444' : classification.displayStyle === 'critical' ? '#f87171' : '#3b82f6';
+                const polyColor = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                const polyFill = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                const borderDashArray = getBoundaryDashArray(isUnverified, dataQuality);
 
                 const poly = L.polygon(latLngs, {
                   color: polyColor,
-                  weight: isIsolated ? 3.5 : 2,
-                  dashArray: '6, 6',     // Nautical dashed perimeter
-                  opacity: 0.9,
+                  weight: isZoneSelected ? 3.5 : 2,
+                  dashArray: borderDashArray,
+                  opacity: currentZoom <= 5 ? 0.75 : 0.9,
                   fillColor: polyFill,
-                  fillOpacity: isIsolated ? 0.35 : 0.22,
+                  fillOpacity: isZoneSelected ? 0.35 : currentZoom <= 5 ? 0.12 : 0.22,
                   pane: 'navWarnVectorPane'
                 });
 
@@ -699,15 +723,18 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   <div style="font-family: monospace; padding: 4px; max-width: 240px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                       <span style="font-weight: 700; font-size: 13px; color: #1e293b;">${w.source_warning_id || w.warning_id}</span>
-                      ${isUnverified ? '<span style="background: #d97706; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">UNVERIFIED</span>' : '<span style="background: #059669; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">ACTIVE</span>'}
+                      ${zoneLabel ? `<span style="background: #2F6B4F; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">${zoneLabel}</span>` : isUnverified ? '<span style="background: #8C5208; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">UNVERIFIED</span>' : '<span style="background: #2F6B4F; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">ACTIVE</span>'}
                     </div>
                     <div style="font-size: 11px; color: #475569; margin-bottom: 8px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${w.title || w.area_text || w.raw_text}</div>
                     <div style="font-size: 10px; color: #0284c7; font-weight: 600;">Area: ${areaSqNm} sq NM</div>
                   </div>
                 `);
 
-                if (isUnverified) poly.bindTooltip('Unverified (Tier B) — needs review', { direction: 'center' });
-                poly.on('click', () => onSelectWarning(w));
+                poly.bindTooltip(zoneLabel ? `${zoneLabel} (${areaSqNm} sq NM)` : isUnverified ? 'Unverified (Tier B) — needs review' : `Area: ${areaSqNm} sq NM`, { direction: 'center' });
+                poly.on('click', () => {
+                  if (zoneLabel) setSelectedZoneLabel(zoneLabel);
+                  onSelectWarning(w);
+                });
                 poly.on('contextmenu', (e: L.LeafletMouseEvent) => {
                   handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
                 });
@@ -715,11 +742,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
                 // Progressive disclosure: tooltips and selection state handle identification (no permanent clutter badge)
 
-                // Plan Spec 4.1: Hybrid Vertex Handles (Minimal dots by default, V1..Vn pills when selected)
+                // Plan Spec 4.1 & Phase 4.1: Hybrid Vertex Handles
+                // Suppressed completely at global zoom (z <= 5) to eliminate chart clutter.
+                // At regional zoom (z 6..9), only show numbered pills if warning is isolated/selected.
+                // At detailed zoom (z >= 10), show numbered pills if isolated, minimal dots if unselected.
                 latLngs.forEach((latLng, idx) => {
                   const dmsLabel = formatWgs84Dms(latLng[0], latLng[1]);
 
-                  if (isIsolated) {
+                  if (shouldShowVertexPills(currentZoom, isIsolated)) {
                     // Numbered Vertex Pill (V1, V2, V3...) when selected
                     const pillIcon = L.divIcon({
                       className: 'vertex-pill-marker',
@@ -740,8 +770,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                       handleLayerContextMenu(e, w, latLng);
                     });
                     vectorGroup.addLayer(vertexMarker);
-                  } else {
-                    // Minimal subtle dot marker when unselected
+                  } else if (shouldShowVertexDots(currentZoom, isIsolated)) {
+                    // Minimal subtle dot marker when unselected, only visible at detailed zoom (z >= 10)
                     const vertexMarker = L.circleMarker(latLng, {
                       radius: 3.5,
                       fillColor: '#fbbf24',
@@ -785,10 +815,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 }).addTo(vectorGroup);
 
                 // Pass 2: Primary Core Track Line On Top
+                const lineDashArray = getBoundaryDashArray(isUnverified, dataQuality);
                 const coreLine = L.polyline(latLngs, {
                   color: isUnverified ? '#d97706' : classification.displayStyle === 'critical' ? '#dc2626' : '#0284c7',
                   weight: 3,
-                  dashArray: '8, 6',
+                  dashArray: lineDashArray,
                   pane: 'navWarnVectorPane',
                 }).addTo(vectorGroup);
                 if (isUnverified) coreLine.bindTooltip('Unverified (Tier B) — needs review', { direction: 'top' });
@@ -796,8 +827,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 coreLine.on('click', () => onSelectWarning(w));
                 casingLine.on('click', () => onSelectWarning(w));
 
-                // Termini Endpoint Markers (Point A / Point B)
-                if (latLngs.length >= 2) {
+                // Termini Endpoint Markers (Point A / Point B) - only at regional/detailed scale (z >= 6)
+                if (latLngs.length >= 2 && currentZoom >= 6) {
                   const startMarker = L.circleMarker(latLngs[0], {
                     radius: 4,
                     fillColor: '#38bdf8',
@@ -830,10 +861,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   const corridorPoly = L.polygon(corridor.boundaryPolygon, {
                     color: '#eab308',
                     weight: 1.5,
-                    dashArray: '5, 5',
-                    opacity: 0.8,
+                    dashArray: isUnverified ? '3, 5' : '5, 5',
+                    opacity: currentZoom <= 5 ? 0.6 : 0.8,
                     fillColor: '#eab308',
-                    fillOpacity: 0.16,
+                    fillOpacity: currentZoom <= 5 ? 0.08 : 0.16,
                     pane: 'navWarnVectorPane'
                   });
                   corridorPoly.bindTooltip(`Swath: ${corridor.widthNm} NM Corridor · Length: ${corridor.lengthNm} NM`, {
@@ -842,20 +873,22 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   corridorPoly.on('click', () => onSelectWarning(w));
                   vectorGroup.addLayer(corridorPoly);
 
-                  // Midpoint Metric Pill ("6 NM Swath")
-                  const midIdx = Math.floor(latLngs.length / 2);
-                  const midPoint = latLngs[midIdx] || latLngs[0];
-                  const swathPill = L.marker(midPoint, {
-                    icon: L.divIcon({
-                      className: 'swath-metric-pill',
-                      html: `<div style="background: #eab308; color: #14161c; border: 1px solid #ca8a04; padding: 2px 8px; border-radius: 9999px; font-family: monospace; font-size: 10px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.3); pointer-events: auto; cursor: pointer;">${corridor.widthNm} NM Swath</div>`,
-                      iconSize: [0, 0],
-                      iconAnchor: [35, 10]
-                    }),
-                    pane: 'navWarnVectorPane'
-                  });
-                  swathPill.on('click', () => onSelectWarning(w));
-                  vectorGroup.addLayer(swathPill);
+                  // Midpoint Metric Pill ("6 NM Swath") - shown at detailed zoom (z >= 10) or when isolated
+                  if (shouldShowSwathPill(currentZoom, isIsolated)) {
+                    const midIdx = Math.floor(latLngs.length / 2);
+                    const midPoint = latLngs[midIdx] || latLngs[0];
+                    const swathPill = L.marker(midPoint, {
+                      icon: L.divIcon({
+                        className: 'swath-metric-pill',
+                        html: `<div style="background: #eab308; color: #14161c; border: 1px solid #ca8a04; padding: 2px 8px; border-radius: 9999px; font-family: monospace; font-size: 10px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.3); pointer-events: auto; cursor: pointer;">${corridor.widthNm} NM Swath</div>`,
+                        iconSize: [0, 0],
+                        iconAnchor: [35, 10]
+                      }),
+                      pane: 'navWarnVectorPane'
+                    });
+                    swathPill.on('click', () => onSelectWarning(w));
+                    vectorGroup.addLayer(swathPill);
+                  }
                 }
               } catch {
                 // Malformed polyline fallback
@@ -864,11 +897,98 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           });
         }
 
+        // 1b. Fallback multi-zone parsed polygons if no explicit PostGIS geometries exist
+        if ((!w.spatial?.geometries || w.spatial.geometries.length === 0) && parsedGeom.geometry.polygons && parsedGeom.geometry.polygons.length > 0) {
+          parsedGeom.geometry.polygons.forEach((polyCoords, idx) => {
+            try {
+              const latLngs: [number, number][] = polyCoords.map((c) => [c.lat, c.lng]);
+              if (latLngs.length >= 3) {
+                const areaSqNm = computePolygonAreaSqNm(latLngs);
+                const zoneLabel = parsedGeom.geometry.zoneLabels?.[idx] || polyCoords[0]?.label || `Zone ${idx + 1}`;
+                const isZoneSelected = selectedZoneLabel === zoneLabel || isIsolated;
+
+                const polyColor = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                const polyFill = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                const fallbackDashArray = getBoundaryDashArray(isUnverified, dataQuality);
+
+                const poly = L.polygon(latLngs, {
+                  color: polyColor,
+                  weight: isZoneSelected ? 3.5 : 2,
+                  dashArray: fallbackDashArray,
+                  opacity: currentZoom <= 5 ? 0.75 : 0.9,
+                  fillColor: polyFill,
+                  fillOpacity: isZoneSelected ? 0.35 : currentZoom <= 5 ? 0.12 : 0.2,
+                  pane: 'navWarnVectorPane',
+                });
+
+                poly.bindPopup(`
+                  <div style="font-family: monospace; padding: 4px; max-width: 240px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-weight: 700; font-size: 13px; color: #1e293b;">${w.source_warning_id || w.warning_id}</span>
+                      <span style="background: #2F6B4F; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">${zoneLabel}</span>
+                    </div>
+                    <div style="font-size: 11px; color: #475569; margin-bottom: 8px; line-height: 1.3;">${w.title || w.area_text || w.raw_text}</div>
+                    <div style="font-size: 10px; color: #0284c7; font-weight: 600;">Area: ${areaSqNm} sq NM</div>
+                  </div>
+                `);
+
+                poly.bindTooltip(`${zoneLabel} (${areaSqNm} sq NM)`, { direction: 'center' });
+                poly.on('click', () => {
+                  setSelectedZoneLabel(zoneLabel);
+                  onSelectWarning(w);
+                });
+                vectorGroup.addLayer(poly);
+
+                // Hybrid Vertex Handles for fallback multi-zone polygons
+                latLngs.forEach((latLng, vIdx) => {
+                  const dmsLabel = formatWgs84Dms(latLng[0], latLng[1]);
+                  if (shouldShowVertexPills(currentZoom, isIsolated)) {
+                    const pillIcon = L.divIcon({
+                      className: 'vertex-pill-marker',
+                      html: `<div style="background: #14161c; color: #fbbf24; border: 1.5px solid #f59e0b; border-radius: 9999px; padding: 1px 6px; font-family: monospace; font-size: 10px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">V${vIdx + 1}</div>`,
+                      iconSize: [26, 18],
+                      iconAnchor: [13, 9]
+                    });
+                    const vMarker = L.marker(latLng, { icon: pillIcon, pane: 'navWarnVectorPane' });
+                    vMarker.bindTooltip(`Vertex V${vIdx + 1}: ${dmsLabel}`, { direction: 'top', offset: [0, -8] });
+                    vMarker.on('click', (e) => {
+                      L.DomEvent.stopPropagation(e);
+                      onSelectWarning(w);
+                    });
+                    vectorGroup.addLayer(vMarker);
+                  } else if (shouldShowVertexDots(currentZoom, isIsolated)) {
+                    const vMarker = L.circleMarker(latLng, {
+                      radius: 3.5,
+                      fillColor: '#fbbf24',
+                      color: '#d97706',
+                      weight: 1,
+                      fillOpacity: 0.9,
+                      pane: 'navWarnVectorPane'
+                    });
+                    vMarker.bindTooltip(`Vertex V${vIdx + 1}: ${dmsLabel}`, { direction: 'top', offset: [0, -4] });
+                    vMarker.on('click', (e) => {
+                      L.DomEvent.stopPropagation(e);
+                      onSelectWarning(w);
+                    });
+                    vectorGroup.addLayer(vMarker);
+                  }
+                });
+              }
+            } catch {
+              // fallback
+            }
+          });
+        }
+
         // 2. Circular hazard exclusion buffers
         if (w.spatial?.circles) {
+          const circleDashArray = getBoundaryDashArray(isUnverified, dataQuality);
           const circleStyle = {
             ...getCircleStyle(isIsolated),
-            ...(isUnverified ? { color: '#d97706', fillColor: '#fbbf24' } : {}),
+            dashArray: circleDashArray,
+            opacity: currentZoom <= 5 ? 0.75 : 0.9,
+            fillOpacity: isIsolated ? 0.35 : currentZoom <= 5 ? 0.1 : 0.22,
+            ...(isUnverified ? { color: '#8C5208', fillColor: '#8C5208' } : {}),
           };
           w.spatial.circles.forEach((circ) => {
             if (circ.center && Array.isArray(circ.center) && circ.radius_nm) {
@@ -889,23 +1009,25 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   }
                 );
 
-                const centerMarker = L.circleMarker(center, {
-                  radius: 5,
-                  fillColor: '#f59e0b',
-                  color: '#78350f',
-                  weight: 1.5,
-                  fillOpacity: 0.95,
-                  pane: 'navWarnVectorPane'
-                });
-                centerMarker.bindTooltip(`Center: ${circ.radius_nm} NM Radius`, { direction: 'top', offset: [0, -5] });
-                centerMarker.on('click', (e) => {
-                  L.DomEvent.stopPropagation(e);
-                  onSelectWarning(w);
-                });
-                centerMarker.on('contextmenu', (e: L.LeafletMouseEvent) => {
-                  handleLayerContextMenu(e, w, center);
-                });
-                vectorGroup.addLayer(centerMarker);
+                if (currentZoom >= 6 || isIsolated) {
+                  const centerMarker = L.circleMarker(center, {
+                    radius: 5,
+                    fillColor: '#f59e0b',
+                    color: '#78350f',
+                    weight: 1.5,
+                    fillOpacity: 0.95,
+                    pane: 'navWarnVectorPane'
+                  });
+                  centerMarker.bindTooltip(`Center: ${circ.radius_nm} NM Radius`, { direction: 'top', offset: [0, -5] });
+                  centerMarker.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    onSelectWarning(w);
+                  });
+                  centerMarker.on('contextmenu', (e: L.LeafletMouseEvent) => {
+                    handleLayerContextMenu(e, w, center);
+                  });
+                  vectorGroup.addLayer(centerMarker);
+                }
 
                 circleLayer.on('click', () => onSelectWarning(w));
                 circleLayer.on('contextmenu', (e: L.LeafletMouseEvent) => handleLayerContextMenu(e, w, center));
@@ -924,11 +1046,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               const center: [number, number] = [w.latitude, w.longitude];
               const radiusM = directive.radiusNm * 1852;
               const circleLayer = L.circle(center, {
-                color: '#ea580c',
+                color: '#8C5208',
                 weight: 1.5,
-                dashArray: '4, 4',
-                fillColor: '#ea580c',
-                fillOpacity: 0.15,
+                dashArray: isUnverified ? '3, 5' : '8, 6',
+                fillColor: '#8C5208',
+                fillOpacity: currentZoom <= 5 ? 0.08 : 0.15,
                 pane: 'navWarnVectorPane',
                 radius: radiusM,
               }).addTo(vectorGroup);
@@ -940,23 +1062,120 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             }
           }
 
-          // Drift vector for unmoored/drifting hazards
+          // 4. Sector / Sweep Arc Geometry Rendering (Phase 2.1)
+          const sector = parseSectorDirective(w.raw_text || w.issued_text || '');
+          if (sector) {
+            try {
+              const center: [number, number] = [w.latitude, w.longitude];
+              const radius = sector.radiusNm || 5.0;
+              const sectorPoly = computeSectorPolygon(center, radius, sector.startBearing, sector.endBearing);
+
+              if (sectorPoly.length >= 3) {
+                const sectorColor = isUnverified ? '#8C5208' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                const sectorFill = isUnverified ? '#8C5208' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                const sectorDashArray = getBoundaryDashArray(isUnverified, dataQuality);
+
+                const sectorLayer = L.polygon(sectorPoly, {
+                  color: sectorColor,
+                  weight: isIsolated ? 3 : 1.5,
+                  dashArray: sectorDashArray,
+                  fillColor: sectorFill,
+                  fillOpacity: isIsolated ? 0.32 : currentZoom <= 5 ? 0.1 : 0.18,
+                  pane: 'navWarnVectorPane',
+                }).addTo(vectorGroup);
+
+                sectorLayer.bindTooltip(
+                  `Sector Arc: ${sector.startBearing}°–${sector.endBearing}° · Radius: ${radius} NM`,
+                  { direction: 'center' }
+                );
+                sectorLayer.on('click', () => onSelectWarning(w));
+              }
+            } catch {
+              // fallback
+            }
+          }
+
+          // 5. Drift vector for unmoored/drifting hazards (Phase 2.2)
           const drift = parseDriftVector([w.latitude, w.longitude], w.raw_text || w.issued_text || '');
           if (drift) {
             try {
               const driftLine = L.polyline([drift.origin, drift.destination], {
-                color: '#f59e0b',
+                color: '#8C5208',
                 weight: 2.5,
                 dashArray: '3, 6',
-                pane: 'navWarnVectorPane'
+                pane: 'navWarnVectorPane',
               }).addTo(vectorGroup);
               driftLine.bindTooltip(`${drift.directionLabel}${drift.speedKts ? ` @ ${drift.speedKts} kts` : ''} (~${drift.distanceNm} NM)`, {
-                direction: 'center'
+                direction: 'center',
               });
               driftLine.on('click', () => onSelectWarning(w));
+
+              // Projected destination marker
+              const destMarker = L.circleMarker(drift.destination, {
+                radius: 3.5,
+                color: '#8C5208',
+                fillColor: '#8C5208',
+                fillOpacity: 0.7,
+                dashArray: '2, 2',
+                pane: 'navWarnVectorPane',
+              }).addTo(vectorGroup);
+              destMarker.bindTooltip(`Projected: ${drift.directionLabel}`, { direction: 'top' });
+              destMarker.on('click', () => onSelectWarning(w));
             } catch {
               // fallback
             }
+          }
+        }
+
+        // 6. Relocation displacement rendering (Phase 2.2)
+        if (parsedGeom.geometry.archetype === 'relocation' && parsedGeom.geometry.displacementVector) {
+          try {
+            const fromPoint: [number, number] = [
+              parsedGeom.geometry.displacementVector.from.lat,
+              parsedGeom.geometry.displacementVector.from.lng,
+            ];
+            const toPoint: [number, number] = [
+              parsedGeom.geometry.displacementVector.to.lat,
+              parsedGeom.geometry.displacementVector.to.lng,
+            ];
+
+            // Ghost marker at former coordinate
+            const ghostMarker = L.circleMarker(fromPoint, {
+              radius: 6,
+              color: '#8C5208',
+              weight: 1.5,
+              dashArray: '3, 3',
+              fillColor: '#8C5208',
+              fillOpacity: 0.15,
+              pane: 'navWarnVectorPane',
+            }).addTo(vectorGroup);
+            ghostMarker.bindTooltip('Former Position (Relocated)', { direction: 'top' });
+            ghostMarker.on('click', () => onSelectWarning(w));
+
+            // Directional relocation connector line
+            const vectorLine = L.polyline([fromPoint, toPoint], {
+              color: '#8C5208',
+              weight: 2,
+              dashArray: '4, 4',
+              pane: 'navWarnVectorPane',
+            }).addTo(vectorGroup);
+            const distNm = computeDistanceNm(fromPoint, toPoint);
+            vectorLine.bindTooltip(`Relocated ~${distNm} NM`, { direction: 'center' });
+            vectorLine.on('click', () => onSelectWarning(w));
+
+            // Established new position terminus marker
+            const newMarker = L.circleMarker(toPoint, {
+              radius: 4.5,
+              color: '#2F6B4F',
+              weight: 2,
+              fillColor: '#2F6B4F',
+              fillOpacity: 0.9,
+              pane: 'navWarnVectorPane',
+            }).addTo(vectorGroup);
+            newMarker.bindTooltip('New Established Position', { direction: 'top' });
+            newMarker.on('click', () => onSelectWarning(w));
+          } catch {
+            // fallback
           }
         }
       }
@@ -966,6 +1185,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     enableClusters,
     showPolygons,
     isDarkBasemap,
+    currentZoom,
+    selectedZoneLabel,
     getVectorStyle,
     getCircleStyle,
     handleLayerContextMenu,

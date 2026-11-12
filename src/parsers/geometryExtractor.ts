@@ -5,12 +5,81 @@ import type { Archetype, NavWarnGeometry, NavWarnCoordinate } from '../types/nav
 import { parseCoordinatesFull, CoordinateParseResult } from './coordinateParser';
 import { parseBerthAndRadius } from './berthParser';
 import { extractGroupLabels } from './labelExtractor';
+import { parseSectorDirective, computeSectorPolygon } from '../core/coordinates';
 
 export interface ExtractedGeometryResult {
   geometry: NavWarnGeometry;
   disambiguationRung: number;
   confidence: 'high' | 'medium' | 'low';
   repairsApplied: string[];
+}
+
+export interface LabeledZoneGroup {
+  label: string;
+  coords: NavWarnCoordinate[];
+}
+
+/**
+ * Extracts and partitions coordinates into distinct labeled polygon zones
+ * (e.g., AREA A, AREA B, ZONE 1, ZONE 2) anchored to text headers.
+ */
+export function extractLabeledZoneGroups(rawText: string, allCoords: NavWarnCoordinate[] = []): LabeledZoneGroup[] {
+  if (!rawText) return [];
+
+  // Find all zone anchors like "AREA A", "ZONE 1", "AREA 1", "ZONE A"
+  const anchorRegex = /(?:^|\b)(AREA\s+[A-Z0-9]+|ZONE\s+[A-Z0-9]+)\b/gi;
+  const matches: { label: string; index: number }[] = [];
+  let m: RegExpExecArray | null;
+
+  while ((m = anchorRegex.exec(rawText)) !== null) {
+    matches.push({
+      label: m[1].toUpperCase(),
+      index: m.index,
+    });
+  }
+
+  if (matches.length < 2) return [];
+
+  const groups: LabeledZoneGroup[] = [];
+
+  for (let i = 0; i < matches.length; i++) {
+    const current = matches[i];
+    const nextIndex = i < matches.length - 1 ? matches[i + 1].index : rawText.length;
+    const slice = rawText.slice(current.index, nextIndex);
+    const sliceParsed = parseCoordinatesFull(slice);
+
+    if (sliceParsed.coordinates.length >= 3) {
+      groups.push({
+        label: current.label,
+        coords: sliceParsed.coordinates.map(c => ({ ...c, label: current.label })),
+      });
+    }
+  }
+
+  // If sub-slice parsing found at least 2 valid polygon zones (each >= 3 coords)
+  if (groups.length >= 2) {
+    return groups;
+  }
+
+  // Fallback: If text defines N zones and allCoords can be split evenly
+  const polyGroups: LabeledZoneGroup[] = [];
+  const groupCount = matches.length;
+
+  if (allCoords.length >= 6) {
+    const groupSize = Math.floor(allCoords.length / groupCount);
+    if (groupSize >= 3) {
+      for (let i = 0; i < groupCount; i++) {
+        const slice = allCoords.slice(i * groupSize, i === groupCount - 1 ? undefined : (i + 1) * groupSize);
+        polyGroups.push({
+          label: matches[i].label,
+          coords: slice.map(c => ({ ...c, label: matches[i].label })),
+        });
+      }
+      return polyGroups;
+    }
+  }
+
+  return [];
 }
 
 export function extractGeometry(rawText: string): ExtractedGeometryResult {
@@ -38,19 +107,14 @@ export function extractGeometry(rawText: string): ExtractedGeometryResult {
   }
 
   // 2. Multi-Zone / Geometry Group check: "AREA A ... AREA B" or "ZONE 1 ... ZONE 2"
-  const hasMultiZones = /(?:AREA\s+[A-Z0-9]+|ZONE\s+[A-Z0-9]+)[\s\S]+?(?:AREA\s+[A-Z0-9]+|ZONE\s+[A-Z0-9]+)/i.test(rawText);
-  if (hasMultiZones && coords.length >= 6) {
-    // Split coords into groups (e.g. 4 coords each)
-    const polyGroups: NavWarnCoordinate[][] = [];
-    const groupSize = Math.floor(coords.length / 2);
-    polyGroups.push(coords.slice(0, groupSize));
-    polyGroups.push(coords.slice(groupSize));
-
+  const labeledZones = extractLabeledZoneGroups(rawText, coords);
+  if (labeledZones.length >= 2) {
     return {
       geometry: {
         archetype: 'geometry_group',
         coordinates: coords,
-        polygons: polyGroups,
+        polygons: labeledZones.map(z => z.coords),
+        zoneLabels: labeledZones.map(z => z.label),
       },
       disambiguationRung: 2,
       confidence: 'high',
@@ -114,6 +178,25 @@ export function extractGeometry(rawText: string): ExtractedGeometryResult {
         coordinates: coords,
       },
       disambiguationRung: 5,
+      confidence: 'high',
+      repairsApplied: coordResult.repairsApplied,
+    };
+  }
+
+  // 5b. Sector / Arc check: coordinate with directional bearing range
+  const sectorDirective = parseSectorDirective(rawText);
+  if (coords.length >= 1 && sectorDirective) {
+    const radius = sectorDirective.radiusNm ?? berth?.radiusNm ?? berth?.clearanceNm ?? 5.0;
+    return {
+      geometry: {
+        archetype: 'sector_wedge',
+        coordinates: coords,
+        radiusNm: radius,
+        startBearing: sectorDirective.startBearing,
+        endBearing: sectorDirective.endBearing,
+        statedRadiusNm: radius,
+      },
+      disambiguationRung: 5.5,
       confidence: 'high',
       repairsApplied: coordResult.repairsApplied,
     };
@@ -388,6 +471,7 @@ export function extractMaritimePlots(
       const latLngs: [number, number][] = poly.map(p => [p.lat, p.lng]);
       if (latLngs.length >= 3) {
         const areaSqNm = computePolygonAreaSqNm(latLngs);
+        const zoneLabel = geom.zoneLabels?.[idx] || poly[0]?.label || `Area ${String.fromCharCode(65 + idx)}`;
         plots.push({
           id: `${warningId}-poly-${idx}`,
           warningId,
@@ -396,7 +480,8 @@ export function extractMaritimePlots(
           plotType: 'polygon',
           coordinates: latLngs,
           areaSqNm,
-          label: `Danger Area (${areaSqNm} sq NM)`,
+          zoneLabel,
+          label: `${zoneLabel} (${areaSqNm} sq NM)`,
           rawTextSnippet: rawText.slice(0, 80),
         });
       }
@@ -448,6 +533,26 @@ export function extractMaritimePlots(
       label: `${isCorridor ? 'Corridor' : 'Subsea Line'} (${lengthNm} NM)`,
       rawTextSnippet: rawText.slice(0, 80),
     });
+  }
+
+  if (geom.archetype === 'sector_wedge' && geom.coordinates.length >= 1 && geom.startBearing != null && geom.endBearing != null) {
+    const center: [number, number] = [geom.coordinates[0].lat, geom.coordinates[0].lng];
+    const radius = geom.radiusNm || 5.0;
+    const sectorPoly = computeSectorPolygon(center, radius, geom.startBearing, geom.endBearing);
+    if (sectorPoly.length >= 3) {
+      plots.push({
+        id: `${warningId}-sector-0`,
+        warningId,
+        navarea,
+        hazardType: hazardType === 'other' ? 'danger_area' : hazardType,
+        plotType: 'polygon',
+        coordinates: sectorPoly,
+        radiusNm: radius,
+        bearingDeg: geom.startBearing,
+        label: `Sector Arc (${geom.startBearing}°–${geom.endBearing}°, ${radius} NM)`,
+        rawTextSnippet: rawText.slice(0, 80),
+      });
+    }
   }
 
   if (geom.archetype === 'point_radius' && geom.coordinates.length === 1) {

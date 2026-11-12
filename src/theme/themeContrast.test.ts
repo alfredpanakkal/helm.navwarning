@@ -124,7 +124,7 @@ describe('console gw-token mapping', () => {
     // On tertiary chips it is only ever small badge/UI text: the pre-existing
     // pairing is ~4.03:1, so the honest threshold here is the UI-component
     // floor (>= 3:1). Raising it would require changing the console's
-    // light-theme accent lift — a visual change, out of scope for this PR.
+    // light-theme accent lift -- a visual change, out of scope for this PR.
     expect(contrast(light.accentOnDark, light.tertiary)).toBeGreaterThanOrEqual(3);
   });
 
@@ -206,5 +206,38 @@ describe('CSS token sync (public/assets/css/tokens.css)', () => {
   it('canvas text on the accent stays readable for inverse controls (light/dark)', () => {
     expect(contrast(token(cssBlocks.light, 'canvas'), token(cssBlocks.light, 'accent'))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(token(cssBlocks.dark, 'canvas'), token(cssBlocks.dark, 'accent'))).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe('Competitor Warning Design Study: Pin & Severity Ring Contrast (Phase 5.2)', () => {
+  it('symbol badge white glyph (#ffffff) on dark pin background (#14161c) exceeds 7:1 contrast', () => {
+    const pinBg = '#14161c';
+    const glyphFg = '#ffffff';
+    // White glyph inside dark pin marker badge
+    expect(contrast(glyphFg, pinBg), 'white symbol on pin background').toBeGreaterThanOrEqual(7.0);
+  });
+
+  it('all 3 severity ring colors meet non-text contrast >= 4.5:1 against light canvas background', () => {
+    const canvas = '#FAFAF7';
+    const criticalRing = '#B42318';
+    const highRing = '#8C5208';
+    const moderateRing = '#2F6B4F';
+
+    expect(contrast(criticalRing, canvas), 'critical ring on canvas').toBeGreaterThanOrEqual(4.5);
+    expect(contrast(highRing, canvas), 'high ring on canvas').toBeGreaterThanOrEqual(4.5);
+    expect(contrast(moderateRing, canvas), 'moderate ring on canvas').toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('theme palette severity colors maintain contrast across all 3 themes', () => {
+    for (const theme of THEME_NAMES) {
+      const palette = THEME_PALETTES[theme];
+      expect(palette.sevCritical).toBeDefined();
+      expect(palette.sevHigh).toBeDefined();
+      expect(palette.sevModerate).toBeDefined();
+
+      expect(contrast(palette.sevCritical, palette.background)).toBeGreaterThanOrEqual(3.0);
+      expect(contrast(palette.sevHigh, palette.background)).toBeGreaterThanOrEqual(3.0);
+      expect(contrast(palette.sevModerate, palette.background)).toBeGreaterThanOrEqual(3.0);
+    }
   });
 });
