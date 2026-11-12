@@ -21,6 +21,11 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    define: {
+      'import.meta.env.VITE_APP_BUILD_TIME': JSON.stringify(
+        process.env.VITE_APP_BUILD_TIME || new Date().toISOString()
+      ),
+    },
     server: {
       hmr: false,
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
