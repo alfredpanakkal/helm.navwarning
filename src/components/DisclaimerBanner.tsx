@@ -28,13 +28,16 @@ export const DisclaimerBanner: React.FC = () => {
 
         <div className="flex items-center gap-1.5 shrink-0">
           <button
+            type="button"
             onClick={() => setExpanded(!expanded)}
+            aria-expanded={expanded}
             className="flex items-center gap-1 px-2 py-0.5 bg-transparent border border-[var(--border-input,#dde2e8)] rounded-[6px] text-xs font-medium text-[var(--ink-secondary,#5f6b7a)] hover:text-[var(--ink-primary,#0b0e11)] transition-colors min-h-[26px]"
           >
             <span className="hidden sm:inline">Principles</span>
             {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
           <button
+            type="button"
             onClick={() => setDismissed(true)}
             aria-label="Dismiss banner"
             className="p-1 text-[var(--ink-tertiary,#8b97a5)] hover:text-[var(--ink-primary,#0b0e11)] rounded min-h-[26px] flex items-center justify-center transition-colors"
