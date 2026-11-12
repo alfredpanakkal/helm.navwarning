@@ -79,6 +79,9 @@ export interface DriftVector {
   distanceNm: number;
   directionLabel?: string;
   observedAt?: string;
+  isEstimated?: boolean;
+  isFallback?: boolean;
+  projectionHours?: number;
 }
 
 export interface ClearanceDirective {
