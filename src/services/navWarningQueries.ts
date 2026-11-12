@@ -45,7 +45,7 @@ export interface NavWarningListFilters {
 const VIEW_COLUMNS =
   'warning_id, canonical_id, navarea, title, area_text, categories, status, ' +
   'triage_tier, data_quality, valid_from, valid_to, feature_type, zone_label, ' +
-  'buffer_nm, geojson_blob';
+  'buffer_nm, corridor_half_width_nm, geojson_blob';
 
 const LIST_COLUMNS =
   'id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, ' +
@@ -154,7 +154,14 @@ export function groupSpatialRowsByCanonicalId(rows: ActiveSpatialRow[]): Grouped
       byCanonical.set(r.canonical_id, grouped);
     }
     if (geom) {
-      (grouped._geometries as Record<string, unknown>[]).push(geom);
+      // Persisted geometry metadata (nav_warning_geometries.buffer_nm /
+      // corridor_half_width_nm) must survive grouping — the renderer and the
+      // buffered-point circle derivation both read it from the geometry entry.
+      (grouped._geometries as Record<string, unknown>[]).push({
+        ...geom,
+        buffer_nm: r.buffer_nm,
+        corridor_half_width_nm: r.corridor_half_width_nm,
+      });
       if (!grouped._geojson) grouped._geojson = geom;
     }
   }
@@ -231,7 +238,12 @@ export async function fetchSingleWarning(canonicalId: string): Promise<{
   const geometries: Record<string, unknown>[] = [];
   for (const r of spatial) {
     const g = geojsonBlobToGeometry(r.geojson_blob, r.zone_label);
-    if (g) geometries.push({ ...g, buffer_nm: Number(r.buffer_nm) || 0 });
+    if (g)
+      geometries.push({
+        ...g,
+        buffer_nm: Number(r.buffer_nm) || 0,
+        corridor_half_width_nm: r.corridor_half_width_nm,
+      });
   }
   // LIST_COLUMNS is a plain string (not a literal type), so the typed client
   // resolves data as GenericStringError — double-cast like fetchNavWarningsList.

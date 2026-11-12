@@ -134,6 +134,9 @@ export interface SpatialGeometry {
   radius_nm?: number;
   label?: string;
   data_quality?: DataQualityRating;
+  // Persisted backend metadata (nav_warning_geometries) carried through untouched.
+  buffer_nm?: number;
+  corridor_half_width_nm?: number | null;
 }
 
 export interface SpatialCircle {
