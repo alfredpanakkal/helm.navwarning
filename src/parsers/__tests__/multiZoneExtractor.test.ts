@@ -19,15 +19,17 @@ CANCEL AT 151200Z NOV.
     expect(res.geometry.polygons?.length).toBe(2);
     expect(res.geometry.zoneLabels).toEqual(['AREA A', 'AREA B']);
 
-    // Area A should have 4 coordinates
-    expect(res.geometry.polygons?.[0].length).toBe(4);
+    // Area A should be a closed ring with 4 unique vertices (5 points total: p1..p4, p1)
+    expect(res.geometry.polygons?.[0].length).toBe(5);
     expect(res.geometry.polygons?.[0][0].lat).toBeCloseTo(25.0, 1);
     expect(res.geometry.polygons?.[0][0].lng).toBeCloseTo(-75.0, 1);
+    expect(res.geometry.polygons?.[0][4].lat).toBeCloseTo(25.0, 1);
 
-    // Area B should have 4 coordinates
-    expect(res.geometry.polygons?.[1].length).toBe(4);
+    // Area B should be a closed ring with 4 unique vertices (5 points total: p1..p4, p1)
+    expect(res.geometry.polygons?.[1].length).toBe(5);
     expect(res.geometry.polygons?.[1][0].lat).toBeCloseTo(26.0, 1);
     expect(res.geometry.polygons?.[1][0].lng).toBeCloseTo(-76.0, 1);
+    expect(res.geometry.polygons?.[1][4].lat).toBeCloseTo(26.0, 1);
   });
 
   it('correctly handles 3-zone bulletins (AREA A, AREA B, AREA C)', () => {
@@ -43,8 +45,8 @@ AREA C BOUNDED BY 12-00N 062-00E, 12-30N 062-00E, 12-30N 062-30E.
     expect(res.geometry.archetype).toBe('geometry_group');
     expect(res.geometry.polygons?.length).toBe(3);
     expect(res.geometry.zoneLabels).toEqual(['AREA A', 'AREA B', 'AREA C']);
-    expect(res.geometry.polygons?.[0].length).toBe(3);
-    expect(res.geometry.polygons?.[1].length).toBe(3);
-    expect(res.geometry.polygons?.[2].length).toBe(3);
+    expect(res.geometry.polygons?.[0].length).toBe(4);
+    expect(res.geometry.polygons?.[1].length).toBe(4);
+    expect(res.geometry.polygons?.[2].length).toBe(4);
   });
 });

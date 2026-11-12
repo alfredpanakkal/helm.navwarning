@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { toPrimarySymbol, PRIMARY_SYMBOLS, PrimarySymbol } from '../../utils/symbolMapping';
-import { HazardCategory } from '../../types';
+import { HazardCategory } from '../../types/navarea';
 import {
   computeSectorPolygon,
   parseSectorDirective,
@@ -27,23 +27,22 @@ import {
 
 describe('Phase 5.1: 6-Symbol System Resolution (All 16 Categories)', () => {
   const categoryExpectations: Record<HazardCategory, PrimarySymbol> = {
-    general: 'general',
-    hazard: 'general',
-    unknown: 'general',
     mil_fire: 'military',
-    mil_ops: 'military',
-    firing: 'military',
-    exercise: 'military',
-    drifting_hazard: 'drifting',
-    derelict: 'drifting',
-    iceberg: 'drifting',
-    light_failure: 'aton',
-    buoy_off_station: 'aton',
-    subsea_cable: 'subsea',
-    pipe_op: 'subsea',
+    uxo: 'military',
+    drift: 'drifting',
+    aton: 'aton',
+    cable: 'subsea',
     survey: 'subsea',
+    rig: 'subsea',
     wreck: 'wreck',
-    obstruction: 'wreck',
+    security: 'wreck',
+    general_chart: 'general',
+    ops: 'general',
+    service_status: 'general',
+    restricted: 'general',
+    sar: 'general',
+    weather: 'general',
+    ice: 'general',
   };
 
   it('correctly maps every one of the 16 HazardCategory values to its primary symbol', () => {
@@ -57,13 +56,14 @@ describe('Phase 5.1: 6-Symbol System Resolution (All 16 Categories)', () => {
   it('only produces one of the 6 canonical primary symbols', () => {
     (Object.keys(categoryExpectations) as HazardCategory[]).forEach((cat) => {
       const symbol = toPrimarySymbol(cat);
-      expect(PRIMARY_SYMBOLS).toContain(symbol);
+      expect(PRIMARY_SYMBOLS[symbol]).toBeDefined();
+      expect(Object.keys(PRIMARY_SYMBOLS)).toContain(symbol);
     });
   });
 
   it('gracefully falls back to general for unrecognised categories', () => {
     expect(toPrimarySymbol(undefined)).toBe('general');
-    expect(toPrimarySymbol('' as any)).toBe('general');
+    expect(toPrimarySymbol('')).toBe('general');
     expect(toPrimarySymbol('alien_spacecraft' as any)).toBe('general');
   });
 });
@@ -72,8 +72,8 @@ describe('Phase 5.1: Sector Math & North Crossing Verification', () => {
   it('correctly computes a sector spanning across 0/360 deg north', () => {
     const center: [number, number] = [15.0, 65.0];
     const radiusNm = 12.0;
-    // 330 deg (NNW) across 0 deg North to 030 deg (NNE) = 60 deg sweep
-    const polygon = computeSectorPolygon(center, radiusNm, 330, 30, 16);
+    // 330 deg (NNW) across 0 deg North to 030 deg (NNE) = 60 deg sweep with 4 deg steps
+    const polygon = computeSectorPolygon(center, radiusNm, 330, 30, 4);
 
     expect(polygon.length).toBeGreaterThanOrEqual(10);
     // Polygon starts and ends at the center coordinate
@@ -145,8 +145,8 @@ describe('Phase 5.2: Multi-Zone Labeled Warnings End-to-End', () => {
     expect(groups.length).toBe(2);
     expect(groups[0].label).toBe('AREA A');
     expect(groups[1].label).toBe('AREA B');
-    expect(groups[0].coordinates.length).toBe(4);
-    expect(groups[1].coordinates.length).toBe(4);
+    expect(groups[0].coords.length).toBe(5); // closed loop p1..p4, p1
+    expect(groups[1].coords.length).toBe(5);
 
     const parsed = extractGeometry(raw);
     expect(parsed.geometry.zoneLabels).toBeDefined();
@@ -154,7 +154,7 @@ describe('Phase 5.2: Multi-Zone Labeled Warnings End-to-End', () => {
     expect(parsed.geometry.zoneLabels).toContain('AREA B');
     expect(parsed.geometry.polygons?.length).toBe(2);
 
-    const plots = extractMaritimePlots(raw);
+    const plots = extractMaritimePlots({ raw_text: raw, warning_id: 'IX-101/26', navarea: 'IX' });
     const polyPlots = plots.filter((p) => p.plotType === 'polygon');
     expect(polyPlots.length).toBe(2);
     expect(polyPlots[0].zoneLabel).toBe('AREA A');
@@ -175,7 +175,7 @@ describe('Phase 5.3: Real Bulletin Golden Evaluation Suite', () => {
 
     const geom = extractGeometry(bulletin);
     expect(geom.geometry.polygons?.length).toBeGreaterThanOrEqual(1);
-    expect(geom.geometry.polygons![0].length).toBe(4);
+    expect(geom.geometry.polygons![0].length).toBe(5); // closed ring
   });
 
   it('Bulletin B (Subsea Cable Installation) resolves to subsea corridor', () => {
@@ -189,8 +189,9 @@ describe('Phase 5.3: Real Bulletin Golden Evaluation Suite', () => {
     expect(toPrimarySymbol(classification.category)).toBe('subsea');
 
     const geom = extractGeometry(bulletin);
-    expect(geom.geometry.linestrings?.length).toBeGreaterThanOrEqual(1);
-    expect(geom.geometry.linestrings![0].length).toBe(3);
+    expect(geom.geometry.archetype).toBe('corridor');
+    expect(geom.geometry.coordinates.length).toBe(3);
+    expect(geom.geometry.clearanceNm).toBe(2);
   });
 
   it('Bulletin C (Hazardous Drifting Object) resolves to drifting category and vector', () => {
@@ -231,7 +232,7 @@ describe('Phase 5.3: Real Bulletin Golden Evaluation Suite', () => {
     const classification = classifyWarning(bulletin);
     expect(toPrimarySymbol(classification.category)).toBe('wreck');
 
-    const plots = extractMaritimePlots(bulletin);
+    const plots = extractMaritimePlots({ raw_text: bulletin, warning_id: 'IV-1002/26', navarea: 'IV' });
     expect(plots.length).toBeGreaterThanOrEqual(1);
     expect(plots[0].plotType).toBe('point');
   });

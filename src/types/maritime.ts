@@ -45,6 +45,7 @@ export interface MaritimePlot {
   bearingDeg?: number;
   areaSqNm?: number;
   lengthNm?: number;
+  zoneLabel?: string;
   label: string;
   rawTextSnippet: string;
 }
