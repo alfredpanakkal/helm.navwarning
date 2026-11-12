@@ -9,8 +9,8 @@
 ## Roadmap Overview
 
 ```
-Phase 1: 6-Symbol System & Severity Ring Decoupling       [READY TO START]
-Phase 2: Basic & Advanced Geometry Rendering (Sectors/Relocation) [PENDING]
+Phase 1: 6-Symbol System & Severity Ring Decoupling       [COMPLETED]
+Phase 2: Basic & Advanced Geometry Rendering (Sectors/Relocation) [READY TO START]
 Phase 3: Multi-Zone Label Splitting & Geometry Integrity         [PENDING]
 Phase 4: Zoom Hierarchy, Decluttering & Legend Updates           [PENDING]
 Phase 5: Verification, Cross-Theme Parity & Golden Dataset Tests [PENDING]
@@ -20,26 +20,27 @@ Phase 5: Verification, Cross-Theme Parity & Golden Dataset Tests [PENDING]
 
 ## Phase 1 — Establish the 6-Symbol System & Severity Ring Decoupling
 
-- [ ] **1.1 Symbol Mapping Module**
+- [x] **1.1 Symbol Mapping Module**
   - Create `src/utils/symbolMapping.ts`.
   - Define `PrimarySymbol` union: `'general' | 'military' | 'drifting' | 'aton' | 'subsea' | 'wreck'`.
   - Implement `toPrimarySymbol(category: HazardCategory): PrimarySymbol`.
   - Write pure unit tests in `src/utils/__tests__/symbolMapping.test.ts`.
 
-- [ ] **1.2 Unified SVG Glyphs & Badge Generator**
+- [x] **1.2 Unified SVG Glyphs & Badge Generator**
   - Update `src/utils/hazardIcons.ts`:
-    - Ensure clean 24x24 SVG paths for the 6 primary symbols.
-    - Decouple badge generation: glyph is dictated by `PrimarySymbol`; border/halo is dictated by `Severity` (`critical` $\to$ `#B42318`, `high` $\to$ `#8C5208`, `active/moderate` $\to$ `#2F6B4F`).
+    - Clean SVG paths for the 6 primary symbols (`PRIMARY_SVG_PATHS`).
+    - Decoupled badge generation: glyph is dictated by `PrimarySymbol`; border/halo is dictated by `Severity` (`critical` $\to$ `#B42318`, `high` $\to$ `#8C5208`, `active/moderate` $\to$ `#2F6B4F`).
     - Eliminate legacy hardcoded blues/yellows in favor of design system tokens (`--sev-critical`, `--sev-high`, `--accent`).
 
-- [ ] **1.3 Marker Rendering Integration in LeafletMap**
+- [x] **1.3 Marker Rendering Integration in LeafletMap**
   - In `src/components/LeafletMap.tsx`:
     - Consume `toPrimarySymbol(classification.category)` for point markers.
     - Wrap markers with severity rings adhering to the 3-state system.
-    - Verify dual-ring cluster markers reflect the 3-state colors.
+    - Dual-ring cluster markers reflect the 3-state token colors.
 
-- [ ] **1.4 Map Legend Updates**
-  - Update legend in `LeafletMap.tsx` / `DataBankStatusBar.tsx` to document the 6 primary symbols and 3 severity rings.
+- [x] **1.4 Map Legend Updates**
+  - Add Legend trigger button in top-right map toolbar.
+  - Render accessible floating Map Legend popover documenting the 6 primary symbols, 3 severity rings, and boundary conventions.
   - Include disclaimer: *"Severity ratings reflect automated keyword matching and do not represent official IMO/IHO gradings."*
 
 ---

@@ -1,24 +1,47 @@
 // src/utils/hazardIcons.ts
-// Domain-authentic maritime SVG iconography registry for polymorphic NAVAREA hazards
+// Maritime SVG iconography & badge registry adhering to the 6-Symbol System
+// and decoupled severity ring specification (docs/COMPETITOR_WARNING_DESIGN_STUDY.md).
 
 import type { HazardCategory, DisplayStyle, Severity } from '../types/navarea';
+import { type PrimarySymbol, toPrimarySymbol } from './symbolMapping';
 
-export const SEVERITY_COLORS: Record<DisplayStyle, { stroke: string; fill: string; bg: string }> = {
-  critical: { stroke: '#dc2626', fill: 'rgba(220, 38, 38, 0.18)', bg: '#dc2626' },
-  high: { stroke: '#ea580c', fill: 'rgba(234, 88, 12, 0.18)', bg: '#ea580c' },
-  active: { stroke: '#059669', fill: 'rgba(5, 150, 105, 0.18)', bg: '#059669' },
-  verified: { stroke: '#0d9488', fill: 'rgba(13, 148, 136, 0.18)', bg: '#0d9488' },
-  neutral: { stroke: '#64748b', fill: 'rgba(100, 116, 139, 0.18)', bg: '#64748b' },
-  explicit: { stroke: '#475569', fill: 'rgba(71, 85, 105, 0.18)', bg: '#475569' },
-  inferred: { stroke: '#d97706', fill: 'rgba(217, 119, 6, 0.18)', bg: '#d97706' },
-  ambiguous: { stroke: '#7c3aed', fill: 'rgba(124, 58, 237, 0.18)', bg: '#7c3aed' },
-  invalid: { stroke: '#b91c1c', fill: 'rgba(185, 28, 28, 0.18)', bg: '#b91c1c' },
-  review: { stroke: '#3b82f6', fill: 'rgba(59, 130, 246, 0.18)', bg: '#3b82f6' },
+/**
+ * 3-tier severity tokens (+ neutral/info) adhering to Helm.Ports moss palette:
+ * Critical: --sev-critical (#B42318)
+ * High:     --sev-high (#8C5208)
+ * Moderate: --accent (#2F6B4F)
+ */
+export const SEVERITY_RING_COLORS: Record<'critical' | 'high' | 'moderate' | 'caution' | 'info', { stroke: string; fill: string; bg: string }> = {
+  critical: { stroke: '#B42318', fill: 'rgba(180, 35, 24, 0.16)', bg: '#B42318' },
+  high: { stroke: '#8C5208', fill: 'rgba(140, 82, 8, 0.16)', bg: '#8C5208' },
+  moderate: { stroke: '#2F6B4F', fill: 'rgba(47, 107, 79, 0.16)', bg: '#2F6B4F' },
+  caution: { stroke: '#8C5208', fill: 'rgba(140, 82, 8, 0.16)', bg: '#8C5208' },
+  info: { stroke: '#2F6B4F', fill: 'rgba(47, 107, 79, 0.16)', bg: '#2F6B4F' },
 };
 
-export const HAZARD_SVG_PATHS: Record<HazardCategory, string> = {
-  // Gunnery / Firing: crosshair burst
-  mil_fire: `
+export const SEVERITY_COLORS: Record<DisplayStyle, { stroke: string; fill: string; bg: string }> = {
+  critical: { stroke: '#B42318', fill: 'rgba(180, 35, 24, 0.16)', bg: '#B42318' },
+  high: { stroke: '#8C5208', fill: 'rgba(140, 82, 8, 0.16)', bg: '#8C5208' },
+  active: { stroke: '#2F6B4F', fill: 'rgba(47, 107, 79, 0.16)', bg: '#2F6B4F' },
+  verified: { stroke: '#2F6B4F', fill: 'rgba(47, 107, 79, 0.16)', bg: '#2F6B4F' },
+  neutral: { stroke: '#687169', fill: 'rgba(104, 113, 105, 0.16)', bg: '#687169' },
+  explicit: { stroke: '#475569', fill: 'rgba(71, 85, 105, 0.16)', bg: '#475569' },
+  inferred: { stroke: '#8C5208', fill: 'rgba(140, 82, 8, 0.16)', bg: '#8C5208' },
+  ambiguous: { stroke: '#8C5208', fill: 'rgba(140, 82, 8, 0.16)', bg: '#8C5208' },
+  invalid: { stroke: '#B42318', fill: 'rgba(180, 35, 24, 0.16)', bg: '#B42318' },
+  review: { stroke: '#2F6B4F', fill: 'rgba(47, 107, 79, 0.16)', bg: '#2F6B4F' },
+};
+
+/**
+ * 6 Primary SVG Symbol Paths (24x24 viewBox)
+ */
+export const PRIMARY_SVG_PATHS: Record<PrimarySymbol, string> = {
+  // 1. General Navigational Hazard: 8-point compass star
+  general: `
+    <polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5" fill="currentColor"/>
+  `,
+  // 2. Military Operations & UXO: crosshair target burst
+  military: `
     <circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1.8" fill="none"/>
     <line x1="12" y1="2" x2="12" y2="7" stroke="currentColor" stroke-width="2"/>
     <line x1="12" y1="17" x2="12" y2="22" stroke="currentColor" stroke-width="2"/>
@@ -26,13 +49,41 @@ export const HAZARD_SVG_PATHS: Record<HazardCategory, string> = {
     <line x1="17" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/>
     <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
   `,
-  // Derelicts / Drifting hazards: drifting vessel silhouette
-  drift: `
+  // 3. Drifting Hazard & Derelict: drifting vessel silhouette
+  drifting: `
     <path d="M3 15 L21 15 L18 19 L6 19 Z" fill="currentColor"/>
     <path d="M12 4 L12 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
     <path d="M12 6 L17 10 L12 11 Z" fill="currentColor"/>
   `,
-  // UXO / Mines: naval contact mine with spikes
+  // 4. Aids to Navigation (AtoN): lighthouse beacon
+  aton: `
+    <polygon points="9,20 15,20 13,8 11,8" stroke="currentColor" stroke-width="1.5" fill="currentColor"/>
+    <rect x="10" y="5" width="4" height="3" fill="currentColor"/>
+    <polygon points="12,2 8,5 16,5" fill="currentColor"/>
+    <line x1="4" y1="6" x2="7" y2="7" stroke="currentColor" stroke-width="1.5"/>
+    <line x1="20" y1="6" x2="17" y2="7" stroke="currentColor" stroke-width="1.5"/>
+  `,
+  // 5. Subsea & Offshore: cable spool & pipeline curve
+  subsea: `
+    <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/>
+    <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+    <path d="M4 17 Q8 10 12 12 T20 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+  `,
+  // 6. Wrecks & Obstructions: submerged mast
+  wreck: `
+    <line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" stroke-width="2"/>
+    <path d="M6 18 Q12 12 18 18" stroke="currentColor" stroke-width="2" fill="none"/>
+    <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/>
+    <line x1="9" y1="11" x2="15" y2="11" stroke="currentColor" stroke-width="2"/>
+  `,
+};
+
+/**
+ * Retained full 16-category granular dictionary for provenance & legacy compatibility
+ */
+export const HAZARD_SVG_PATHS: Record<HazardCategory, string> = {
+  mil_fire: PRIMARY_SVG_PATHS.military,
+  drift: PRIMARY_SVG_PATHS.drifting,
   uxo: `
     <circle cx="12" cy="12" r="5" fill="currentColor"/>
     <line x1="12" y1="3" x2="12" y2="6" stroke="currentColor" stroke-width="2"/>
@@ -44,7 +95,6 @@ export const HAZARD_SVG_PATHS: Record<HazardCategory, string> = {
     <line x1="18.5" y1="5.5" x2="16.5" y2="7.5" stroke="currentColor" stroke-width="2"/>
     <line x1="7.5" y1="16.5" x2="5.5" y2="18.5" stroke="currentColor" stroke-width="2"/>
   `,
-  // Search and Rescue (SAR): lifebuoy ring
   sar: `
     <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2.5" fill="none"/>
     <circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="2" fill="none"/>
@@ -53,27 +103,13 @@ export const HAZARD_SVG_PATHS: Record<HazardCategory, string> = {
     <line x1="6.5" y1="17.5" x2="9.5" y2="14.5" stroke="currentColor" stroke-width="2.5"/>
     <line x1="17.5" y1="17.5" x2="14.5" y2="14.5" stroke="currentColor" stroke-width="2.5"/>
   `,
-  // Aids to Navigation (AtoN) / Lights: lighthouse
-  aton: `
-    <polygon points="9,20 15,20 13,8 11,8" stroke="currentColor" stroke-width="1.5" fill="currentColor"/>
-    <rect x="10" y="5" width="4" height="3" fill="currentColor"/>
-    <polygon points="12,2 8,5 16,5" fill="currentColor"/>
-    <line x1="4" y1="6" x2="7" y2="7" stroke="currentColor" stroke-width="1.5"/>
-    <line x1="20" y1="6" x2="17" y2="7" stroke="currentColor" stroke-width="1.5"/>
-  `,
-  // Submarine Cables & Pipelines: cable spool
-  cable: `
-    <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/>
-    <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
-    <path d="M4 17 Q8 10 12 12 T20 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
-  `,
-  // Surveys: sonar acoustic waves
+  aton: PRIMARY_SVG_PATHS.aton,
+  cable: PRIMARY_SVG_PATHS.subsea,
   survey: `
     <circle cx="12" cy="17" r="2" fill="currentColor"/>
     <path d="M7 13 A7 7 0 0 1 17 13" stroke="currentColor" stroke-width="1.8" fill="none"/>
     <path d="M4 9 A11 11 0 0 1 20 9" stroke="currentColor" stroke-width="1.8" fill="none"/>
   `,
-  // Offshore Rigs: platform tower
   rig: `
     <line x1="7" y1="19" x2="10" y2="7" stroke="currentColor" stroke-width="1.8"/>
     <line x1="17" y1="19" x2="14" y2="7" stroke="currentColor" stroke-width="1.8"/>
@@ -82,76 +118,94 @@ export const HAZARD_SVG_PATHS: Record<HazardCategory, string> = {
     <rect x="8" y="5" width="8" height="2.5" fill="currentColor"/>
     <line x1="12" y1="2" x2="12" y2="5" stroke="currentColor" stroke-width="2"/>
   `,
-  // Weather / Tropical Cyclones: spiral vortex
   weather: `
     <path d="M12 4 A8 8 0 0 1 20 12 A8 8 0 0 1 12 20 A4 4 0 0 1 8 16 A4 4 0 0 1 12 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
     <circle cx="12" cy="12" r="2" fill="currentColor"/>
   `,
-  // Ice patrol / icebergs: iceberg crystal
   ice: `
     <polygon points="12,3 17,9 15,19 9,19 7,9" stroke="currentColor" stroke-width="1.8" fill="none"/>
     <line x1="7" y1="12" x2="17" y2="12" stroke="currentColor" stroke-width="1.5"/>
     <line x1="12" y1="3" x2="12" y2="19" stroke="currentColor" stroke-width="1.5"/>
   `,
-  // Security / Piracy: security alert shield
   security: `
     <path d="M12 3 L19 6 V12 C19 16.5 15.5 20 12 21 C8.5 20 5 16.5 5 12 V6 Z" stroke="currentColor" stroke-width="1.8" fill="none"/>
     <line x1="12" y1="8" x2="12" y2="13" stroke="currentColor" stroke-width="2"/>
     <circle cx="12" cy="16" r="1" fill="currentColor"/>
   `,
-  // Wrecks: submerged mast
-  wreck: `
-    <line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" stroke-width="2"/>
-    <path d="M6 18 Q12 12 18 18" stroke="currentColor" stroke-width="2" fill="none"/>
-    <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/>
-    <line x1="9" y1="11" x2="15" y2="11" stroke="currentColor" stroke-width="2"/>
-  `,
-  // Marine Operations: nautical gear
+  wreck: PRIMARY_SVG_PATHS.wreck,
   ops: `
     <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/>
     <line x1="12" y1="2" x2="12" y2="6" stroke="currentColor" stroke-width="2"/>
     <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="2"/>
     <circle cx="12" cy="12" r="2" fill="currentColor"/>
   `,
-  // Service outages: radio broadcast mast
   service_status: `
     <line x1="12" y1="7" x2="12" y2="21" stroke="currentColor" stroke-width="2"/>
     <circle cx="12" cy="6" r="2.5" fill="currentColor"/>
     <path d="M7 10 A7 7 0 0 1 17 10" stroke="currentColor" stroke-width="1.8" fill="none"/>
     <path d="M4 6 A11 11 0 0 1 20 6" stroke="currentColor" stroke-width="1.8" fill="none"/>
   `,
-  // Chart corrections & Soundings: navigation compass star
-  general_chart: `
-    <polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5" fill="currentColor"/>
-  `,
-  // Restricted areas: prohibition barrier
+  general_chart: PRIMARY_SVG_PATHS.general,
   restricted: `
     <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2" fill="none"/>
     <line x1="6.5" y1="6.5" x2="17.5" y2="17.5" stroke="currentColor" stroke-width="2"/>
   `,
 };
 
+function isPrimarySymbol(val: any): val is PrimarySymbol {
+  return ['general', 'military', 'drifting', 'aton', 'subsea', 'wreck'].includes(val);
+}
+
+/**
+ * Generates an SVG string for a primary symbol (e.g. for map legend or UI lists).
+ */
+export function renderPrimarySymbolSvg(symbol: PrimarySymbol, size = 16, color = 'currentColor'): string {
+  const path = PRIMARY_SVG_PATHS[symbol] || PRIMARY_SVG_PATHS.general;
+  return `
+    <svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" style="color: ${color};" xmlns="http://www.w3.org/2000/svg">
+      ${path}
+    </svg>
+  `;
+}
+
+/**
+ * Renders a circular map marker HTML string adhering strictly to the 4 independent properties:
+ * 1. Symbol: One of 6 primary glyphs
+ * 2. Colour: Outer ring dictated by severity
+ * 3. Geometry: Never dictated by this marker
+ * 4. Cluster: Rendered outside this marker
+ */
 export function renderHazardBadgeHtml(
-  category: HazardCategory,
+  categoryOrSymbol: HazardCategory | PrimarySymbol,
   displayStyle: DisplayStyle = 'critical',
   isPulsing = false,
-  label?: string
+  label?: string,
+  customSeverity?: Severity
 ): string {
-  const colors = SEVERITY_COLORS[displayStyle] || SEVERITY_COLORS.critical;
-  const path = HAZARD_SVG_PATHS[category] || HAZARD_SVG_PATHS.ops;
+  // 1. Resolve to one of the 6 primary symbols
+  const primarySym: PrimarySymbol = isPrimarySymbol(categoryOrSymbol)
+    ? categoryOrSymbol
+    : toPrimarySymbol(categoryOrSymbol);
+
+  // 2. Resolve ring color
+  const colors = customSeverity
+    ? (SEVERITY_RING_COLORS[customSeverity] || SEVERITY_RING_COLORS.moderate)
+    : (SEVERITY_COLORS[displayStyle] || SEVERITY_COLORS.critical);
+
+  const path = PRIMARY_SVG_PATHS[primarySym] || PRIMARY_SVG_PATHS.general;
 
   const pulseRing = isPulsing
-    ? `<div class="nw-pulse-ring" style="border-color: ${colors.stroke};"></div>`
+    ? `<div class="nw-pulse-ring" style="position: absolute; inset: -4px; border-radius: 50%; border: 2px solid ${colors.stroke}; opacity: 0.7; animation: pulse 2s infinite ease-out;"></div>`
     : '';
 
   const labelBadge = label
-    ? `<span class="nw-marker-label" style="background:${colors.bg};">${label}</span>`
+    ? `<span class="nw-marker-label" style="background:${colors.bg}; position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%); font-size: 9px; font-family: monospace; font-weight: 500; color: #ffffff; padding: 1px 4px; border-radius: 4px; white-space: nowrap; pointer-events: none;">${label}</span>`
     : '';
 
   return `
-    <div class="nw-hazard-badge ${isPulsing ? 'is-pulsing' : ''}" style="color: ${colors.stroke}; border-color: ${colors.stroke};">
+    <div class="nw-hazard-badge ${isPulsing ? 'is-pulsing' : ''}" style="color: #ffffff; border-color: ${colors.stroke}; background: #14161c; width: 26px; height: 26px; border-radius: 50%; border: 2px solid ${colors.stroke}; display: flex; align-items: center; justify-content: center; position: relative; box-sizing: border-box; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">
       ${pulseRing}
-      <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 24 24" style="width: 14px; height: 14px;" fill="none" xmlns="http://www.w3.org/2000/svg">
         ${path}
       </svg>
       ${labelBadge}

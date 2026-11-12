@@ -28,6 +28,7 @@ import {
   ChevronDown,
   ChevronUp,
   RotateCcw,
+  Info,
 } from 'lucide-react';
 import { getLeafletLatLng } from '../utils/coordinateParser';
 import { useMapNavigation } from '../hooks/useMapNavigation';
@@ -38,7 +39,8 @@ import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
 import { useMapLayers, WarningSeverityLevel } from '../hooks/useMapLayers';
 import { WarningHierarchyLines } from './WarningItemV2';
 import { classifyWarning } from '../parsers/warningClassifier';
-import { renderHazardBadgeHtml } from '../utils/hazardIcons';
+import { renderHazardBadgeHtml, renderPrimarySymbolSvg } from '../utils/hazardIcons';
+import { toPrimarySymbol, PRIMARY_SYMBOLS, PrimarySymbol } from '../utils/symbolMapping';
 import { parseBerthAndRadius } from '../parsers/berthParser';
 import {
   computeDistanceNm,
@@ -179,6 +181,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       if (e.key === 'Escape') {
         if (isQuickJumpExpanded) setIsQuickJumpExpanded(false);
         if (isLayerSettingsOpen) setIsLayerSettingsOpen(false);
+        if (isLegendOpen) setIsLegendOpen(false);
         if (isTopFiltersOpen) setIsTopFiltersOpen(false);
         if (openTooltipRef.current && leafletInstance.current) {
           leafletInstance.current.closeTooltip(openTooltipRef.current);
@@ -187,7 +190,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isQuickJumpExpanded]);
+  }, [isQuickJumpExpanded, isLayerSettingsOpen, isLegendOpen, isTopFiltersOpen]);
 
   // Real-time navigation and coordinate tracking hook
   const {
@@ -292,7 +295,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           const count = cluster.getChildCount();
           const markers = cluster.getAllChildMarkers();
           
-          let ringColor = '#64748b'; // Default neutral slate
+          let ringColor = '#687169'; // Default neutral ink-tertiary
           let highestRank = 0;
 
           markers.forEach((m) => {
@@ -300,13 +303,13 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             if (w) {
               const cls = classifyWarning(w.raw_text || w.area_text || '');
               if (cls.displayStyle === 'critical' && highestRank < 3) {
-                ringColor = '#dc2626'; // Red
+                ringColor = '#B42318'; // Critical (--sev-critical)
                 highestRank = 3;
               } else if (cls.displayStyle === 'high' && highestRank < 2) {
-                ringColor = '#ea580c'; // Orange
+                ringColor = '#8C5208'; // High (--sev-high)
                 highestRank = 2;
               } else if (cls.displayStyle === 'active' && highestRank < 1) {
-                ringColor = '#059669'; // Green
+                ringColor = '#2F6B4F'; // Moderate / Active (--accent)
                 highestRank = 1;
               }
             }
@@ -611,8 +614,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       // Render Point Marker only if center point is NOT suppressed
       if (!hideCenterPoint && activeMarkerLayer) {
+        const primarySymbol = toPrimarySymbol(classification.category);
         const badgeHtml = renderHazardBadgeHtml(
-          classification.category,
+          primarySymbol,
           classification.displayStyle,
           isLiveFiring,
           w.sub_area || undefined
@@ -643,13 +647,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           }
           const radiusNm = statedBerth?.radiusNm ?? statedBerth?.clearanceNm ?? 0.5;
           const radiusMeters = radiusNm * 1852;
+          const haloColor = classification.displayStyle === 'critical' ? '#B42318' : '#8C5208';
           const halo = L.circle(coords, {
             pane: 'navWarnHaloPane',
             radius: radiusMeters,
-            color: classification.displayStyle === 'critical' ? '#dc2626' : '#ea580c',
+            color: haloColor,
             weight: 1.5,
             dashArray: '4, 4',
-            fillColor: classification.displayStyle === 'critical' ? '#dc2626' : '#ea580c',
+            fillColor: haloColor,
             fillOpacity: 0.14,
           }).addTo(leafletInstance.current);
           hoverHaloLayerRef.current = halo;
@@ -1315,6 +1320,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           className={`map-gear-btn ${isLayerSettingsOpen ? 'active' : ''}`}
           onClick={(e) => {
             e.stopPropagation();
+            if (isLegendOpen) setIsLegendOpen(false);
             setIsLayerSettingsOpen(!isLayerSettingsOpen);
           }}
           title="Layers & Chart Type"
@@ -1322,6 +1328,21 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           aria-expanded={isLayerSettingsOpen}
         >
           <Sliders className="w-4 h-4" />
+        </button>
+
+        <button
+          type="button"
+          className={`map-coord-btn ${isLegendOpen ? 'is-active' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isLayerSettingsOpen) setIsLayerSettingsOpen(false);
+            setIsLegendOpen(!isLegendOpen);
+          }}
+          title="Map Symbols & Severity Legend"
+          aria-label="Map symbols and severity legend"
+          aria-expanded={isLegendOpen}
+        >
+          <Info className="w-4 h-4" />
         </button>
 
         <button
@@ -1460,6 +1481,121 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset to defaults</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* DESKTOP MAP SYMBOL & SEVERITY LEGEND POPOVER */}
+      {isLegendOpen && (
+        <div
+          className="map-settings-popover open"
+          style={{ width: '360px', maxHeight: '80vh', overflowY: 'auto' }}
+          role="dialog"
+          aria-labelledby="adminLegendPopoverTitle"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="settings-header">
+            <span className="settings-title" id="adminLegendPopoverTitle">
+              Map Symbols &amp; Severity
+            </span>
+            <button
+              type="button"
+              className="settings-close-btn"
+              onClick={() => setIsLegendOpen(false)}
+              aria-label="Close legend"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="settings-body space-y-3">
+            {/* 6 Primary Symbols */}
+            <div>
+              <div className="settings-section-title mb-2">6 Primary Warning Symbols</div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {(Object.keys(PRIMARY_SYMBOLS) as PrimarySymbol[]).map((symKey) => {
+                  const item = PRIMARY_SYMBOLS[symKey];
+                  return (
+                    <div
+                      key={symKey}
+                      className="p-1.5 rounded-lg border border-gw-secondary bg-gw-bg/40 flex items-start gap-2"
+                    >
+                      <div
+                        className="shrink-0 w-6 h-6 rounded-full bg-[#14161c] border border-gw-secondary flex items-center justify-center text-white"
+                        dangerouslySetInnerHTML={{
+                          __html: renderPrimarySymbolSvg(symKey, 14, '#ffffff'),
+                        }}
+                      />
+                      <div className="min-w-0">
+                        <div className="font-medium text-gw-primary leading-tight text-[11px] truncate">
+                          {item.label}
+                        </div>
+                        <div className="text-[10px] text-gw-accent leading-tight line-clamp-2 mt-0.5">
+                          {item.description}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="settings-divider"></div>
+
+            {/* 3 Severity States */}
+            <div>
+              <div className="settings-section-title mb-2">Severity Rings</div>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-[#B42318] bg-[#14161c] shrink-0" />
+                  <div className="flex-1">
+                    <span className="font-semibold text-gw-primary text-[11px]">Critical</span>
+                    <span className="text-[10px] text-gw-accent block">Immediate danger (live firing, active SAR, floating mines)</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-[#8C5208] bg-[#14161c] shrink-0" />
+                  <div className="flex-1">
+                    <span className="font-semibold text-gw-primary text-[11px]">High</span>
+                    <span className="text-[10px] text-gw-accent block">Significant hazard (major AtoN unlit, adrift derelicts)</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-[#2F6B4F] bg-[#14161c] shrink-0" />
+                  <div className="flex-1">
+                    <span className="font-semibold text-gw-primary text-[11px]">Moderate / Active</span>
+                    <span className="text-[10px] text-gw-accent block">Routine operations, subsea surveys, scheduled hazards</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="settings-divider"></div>
+
+            {/* Boundary Conventions */}
+            <div>
+              <div className="settings-section-title mb-1.5">Boundary Conventions</div>
+              <div className="space-y-1 text-[11px] text-gw-accent">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-0.5 bg-gw-primary inline-block" />
+                  <span>Solid: Explicit verified boundary</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-0.5 border-t border-dashed border-gw-primary inline-block" />
+                  <span>Dashed: Inferred or algorithmic boundary</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-0.5 border-t-2 border-dotted border-amber-600 inline-block" />
+                  <span>Dotted: Tier B unverified review boundary</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="settings-divider"></div>
+
+            {/* Disclaimer */}
+            <div className="text-[10px] text-gw-accent italic leading-relaxed">
+              Severity ratings reflect algorithmic rule matching from bulletin text, not official IMO/IHO hazard gradings.
+            </div>
           </div>
         </div>
       )}
