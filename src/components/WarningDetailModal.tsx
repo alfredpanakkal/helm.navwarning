@@ -715,9 +715,9 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg shadow-xs transition-all"
+                className="flex items-center gap-1.5 px-3 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase rounded-lg shadow-xs transition-all"
               >
-                <Download className="w-3.5 h-3.5 text-sky-600" />
+                <Download className="w-3.5 h-3.5 text-gw-primary" />
                 <span>Export Geometry</span>
                 <ChevronDown className="w-3.5 h-3.5 text-gw-accent" />
               </button>
@@ -780,10 +780,10 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                   if (onClearIsolation) onClearIsolation();
                   onClose();
                 }}
-                className="flex items-center gap-1.5 px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 border-2 border-amber-600 font-bold text-xs uppercase rounded-lg transition-all shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-2 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)] font-medium text-xs uppercase rounded-lg transition-all shadow-xs"
                 title="Exit Isolation Mode and show all warnings on map"
               >
-                <Filter className="w-3.5 h-3.5 text-amber-700" />
+                <Filter className="w-3.5 h-3.5 text-[var(--accent)]" />
                 <span>Exit Isolation Mode</span>
               </button>
             ) : (
@@ -793,7 +793,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                   if (onIsolateWarning) onIsolateWarning(warning);
                   onClose();
                 }}
-                className="flex items-center gap-1.5 px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs uppercase rounded-lg transition-all shadow-xs tracking-wider"
+                className="flex items-center gap-1.5 px-3 py-2 bg-transparent border border-[var(--ink)]/30 text-[var(--ink)] hover:bg-[var(--ink)]/5 font-medium text-xs uppercase rounded-lg transition-all shadow-xs tracking-wider"
                 title="Filter map to show only this warning's polygon/corridor and zoom to bounds"
               >
                 <Crosshair className="w-3.5 h-3.5" />
@@ -808,7 +808,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 onClick={onPrevious}
                 disabled={!hasPrevious}
                 title="Previous unverified candidate in queue"
-                className="flex items-center gap-1 px-2.5 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-2.5 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase rounded-lg transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>Prev</span>
@@ -820,7 +820,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 onClick={onNext}
                 disabled={!hasNext}
                 title="Next unverified candidate in queue"
-                className="flex items-center gap-1 px-2.5 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-2.5 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase rounded-lg transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span>Next</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -832,7 +832,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 onClick={handleVerifyClick}
                 disabled={verifyPending}
                 title="Mark this warning verified (audited VERIFY write)"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider px-3 py-2 rounded-lg transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] font-medium text-xs uppercase tracking-wider px-3 py-2 rounded-lg transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>{verifyPending ? 'Verifying…' : 'Verify'}</span>
@@ -844,7 +844,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 type="button"
                 onClick={() => onEditWarning(warning)}
                 title="Edit this warning (admin) — type, time/expiry, status, tier, geometry, NAVAREA move"
-                className="flex items-center gap-1.5 px-3 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase rounded-lg transition-all shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase rounded-lg transition-all shadow-xs"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit</span>
@@ -860,7 +860,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg transition-all shadow-xs"
+              className="bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase tracking-wider px-4 py-2 rounded-lg transition-all shadow-xs"
             >
               Close
             </button>

@@ -82,15 +82,15 @@
 - [x] Edit FAB: verified `type="button"` added in Phase 1; colour already correct (`bg-gw-primary`)
 - [x] `font-bold`/`font-semibold` on button classNames → `font-medium`
 - [x] No `emerald-` token remains in `src/App.tsx`
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #173](https://github.com/alfredpanakkal/helm.navwarning/pull/173))
 
 ### 2-B · Verify palette — modal + drawer
-- [ ] Branch `fix-buttons-verify-palette-modal` created
-- [ ] `WarningDetailModal:820` Verify: `bg-emerald-600` → `bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)]`
-- [ ] `WarningDetailModal:780` "Show Only This Message": → ghost `border border-[var(--ink)]/30 text-[var(--ink)] bg-transparent hover:bg-[var(--ink)]/5`
-- [ ] `WarningEditModal:501` drawer Verify: same accent token substitution
-- [ ] `DataBankWarningList:261` Quick Verify: same accent token substitution
-- [ ] No `emerald-`, `sky-` token on any button in these three files
+- [x] Branch `fix-buttons-verify-palette-modal` created
+- [x] `WarningDetailModal:820` Verify: `bg-emerald-600` → `bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)]`
+- [x] `WarningDetailModal:780` "Show Only This Message": → ghost `border border-[var(--ink)]/30 text-[var(--ink)] bg-transparent hover:bg-[var(--ink)]/5`
+- [x] `WarningEditModal:501` drawer Verify: same accent token substitution
+- [x] `DataBankWarningList:261` Quick Verify: same accent token substitution
+- [x] No `emerald-`, `sky-` token on any button in these three files
 - [ ] PR opened, reviewed, merged ✅
 
 ### 2-C · Verify palette — ingest views
