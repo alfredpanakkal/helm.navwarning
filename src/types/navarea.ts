@@ -89,6 +89,7 @@ export interface NavWarnGeometry {
   archetype: Archetype;
   coordinates: NavWarnCoordinate[];
   polygons?: NavWarnCoordinate[][];
+  zoneLabels?: string[];
   radiusNm?: number;
   clearanceNm?: number;
   corridorHalfWidthM?: number;
