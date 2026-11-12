@@ -63,13 +63,13 @@
 - [x] Files: `MapGeometryEditor`, `SupabaseStatusView`, `SourceRegistryView`, `GenerationInspectorView`, `AdminDataBankTools`
 - [x] `type="button"` on every `<button` in all five files
 - [x] `aria-label` on icon-only buttons
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #171](https://github.com/alfredpanakkal/helm.navwarning/pull/171))
 
 ### 1-F · Remaining components sweep — Batch 3
-- [ ] Branch `fix-buttons-remaining-attrs-3` created
-- [ ] Files: `DataBankSummary`, `DataBankStatusBar`, `DisclaimerBanner`, `InForceCoverageBanner`
-- [ ] `type="button"` on every `<button` in all four files
-- [ ] Final check: `git grep -rn '<button ' src/components/ | grep -v 'type='` → 0 results
+- [x] Branch `fix-buttons-remaining-attrs-3` created
+- [x] Files: `DataBankSummary`, `DataBankStatusBar`, `DisclaimerBanner`, `InForceCoverageBanner`
+- [x] `type="button"` on every `<button` in all four files
+- [x] Final check: `git grep -rn '<button ' src/components/ | grep -v 'type='` → 0 results
 - [ ] PR opened, reviewed, merged ✅
 
 ---
