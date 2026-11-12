@@ -10,8 +10,8 @@
 
 ```
 Phase 1: 6-Symbol System & Severity Ring Decoupling       [COMPLETED]
-Phase 2: Basic & Advanced Geometry Rendering (Sectors/Relocation) [READY TO START]
-Phase 3: Multi-Zone Label Splitting & Geometry Integrity         [PENDING]
+Phase 2: Basic & Advanced Geometry Rendering (Sectors/Relocation) [COMPLETED]
+Phase 3: Multi-Zone Label Splitting & Geometry Integrity         [READY TO START]
 Phase 4: Zoom Hierarchy, Decluttering & Legend Updates           [PENDING]
 Phase 5: Verification, Cross-Theme Parity & Golden Dataset Tests [PENDING]
 ```
@@ -47,20 +47,21 @@ Phase 5: Verification, Cross-Theme Parity & Golden Dataset Tests [PENDING]
 
 ## Phase 2 — Basic & Advanced Geometry Rendering
 
-- [ ] **2.1 Sector / Arc Geometry**
+- [x] **2.1 Sector / Arc Geometry**
   - Implement geodesic sector calculation in `src/core/coordinates.ts` (`computeSectorPolygon(center, radiusNm, startBearing, endBearing)`).
   - Add `sector_wedge` rendering in `LeafletMap.tsx`.
-  - Wire sector parsing from bearing clauses in `src/parsers/geometryExtractor.ts`.
+  - Wire sector parsing from bearing clauses in `src/parsers/geometryExtractor.ts` (rung 5.5).
+  - Add unit tests for sector polygon calculations across 0°/360° north in `src/core/__tests__/coordinatesSector.test.ts`.
 
-- [ ] **2.2 Relocation & Drift Displacement**
+- [x] **2.2 Relocation & Drift Displacement**
   - Update `LeafletMap.tsx` to render `archetype === 'relocation'`:
-    - Ghost marker at former coordinate (dashed circle).
-    - Solid marker at new coordinate.
-    - Directional connector arrow.
-  - Refine `drift_vector` rendering with timestamped positions if present in message.
+    - Ghost marker at former coordinate (`dashArray: '3, 3'`).
+    - Directional connector vector (`dashArray: '4, 4'`).
+    - Solid terminus marker at new established position.
+  - Refine `drift_vector` rendering with projected destination beacon.
 
-- [ ] **2.3 Geodesic Swath Refinement**
-  - Refine corridor calculation in `src/core/coordinates.ts` to support asymmetric port/starboard buffer widths where specified.
+- [x] **2.3 Geodesic Swath Refinement**
+  - Refine `computeLineCorridor` in `src/core/coordinates.ts` to support asymmetric port/starboard buffer widths.
 
 ---
 

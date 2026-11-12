@@ -5,6 +5,7 @@ import type { Archetype, NavWarnGeometry, NavWarnCoordinate } from '../types/nav
 import { parseCoordinatesFull, CoordinateParseResult } from './coordinateParser';
 import { parseBerthAndRadius } from './berthParser';
 import { extractGroupLabels } from './labelExtractor';
+import { parseSectorDirective, computeSectorPolygon } from '../core/coordinates';
 
 export interface ExtractedGeometryResult {
   geometry: NavWarnGeometry;
@@ -114,6 +115,25 @@ export function extractGeometry(rawText: string): ExtractedGeometryResult {
         coordinates: coords,
       },
       disambiguationRung: 5,
+      confidence: 'high',
+      repairsApplied: coordResult.repairsApplied,
+    };
+  }
+
+  // 5b. Sector / Arc check: coordinate with directional bearing range
+  const sectorDirective = parseSectorDirective(rawText);
+  if (coords.length >= 1 && sectorDirective) {
+    const radius = sectorDirective.radiusNm ?? berth?.radiusNm ?? berth?.clearanceNm ?? 5.0;
+    return {
+      geometry: {
+        archetype: 'sector_wedge',
+        coordinates: coords,
+        radiusNm: radius,
+        startBearing: sectorDirective.startBearing,
+        endBearing: sectorDirective.endBearing,
+        statedRadiusNm: radius,
+      },
+      disambiguationRung: 5.5,
       confidence: 'high',
       repairsApplied: coordResult.repairsApplied,
     };
@@ -448,6 +468,26 @@ export function extractMaritimePlots(
       label: `${isCorridor ? 'Corridor' : 'Subsea Line'} (${lengthNm} NM)`,
       rawTextSnippet: rawText.slice(0, 80),
     });
+  }
+
+  if (geom.archetype === 'sector_wedge' && geom.coordinates.length >= 1 && geom.startBearing != null && geom.endBearing != null) {
+    const center: [number, number] = [geom.coordinates[0].lat, geom.coordinates[0].lng];
+    const radius = geom.radiusNm || 5.0;
+    const sectorPoly = computeSectorPolygon(center, radius, geom.startBearing, geom.endBearing);
+    if (sectorPoly.length >= 3) {
+      plots.push({
+        id: `${warningId}-sector-0`,
+        warningId,
+        navarea,
+        hazardType: hazardType === 'other' ? 'danger_area' : hazardType,
+        plotType: 'polygon',
+        coordinates: sectorPoly,
+        radiusNm: radius,
+        bearingDeg: geom.startBearing,
+        label: `Sector Arc (${geom.startBearing}°–${geom.endBearing}°, ${radius} NM)`,
+        rawTextSnippet: rawText.slice(0, 80),
+      });
+    }
   }
 
   if (geom.archetype === 'point_radius' && geom.coordinates.length === 1) {

@@ -39,6 +39,7 @@ import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
 import { useMapLayers, WarningSeverityLevel } from '../hooks/useMapLayers';
 import { WarningHierarchyLines } from './WarningItemV2';
 import { classifyWarning } from '../parsers/warningClassifier';
+import { extractGeometry } from '../parsers/geometryExtractor';
 import { renderHazardBadgeHtml, renderPrimarySymbolSvg } from '../utils/hazardIcons';
 import { toPrimarySymbol, PRIMARY_SYMBOLS, PrimarySymbol } from '../utils/symbolMapping';
 import { parseBerthAndRadius } from '../parsers/berthParser';
@@ -47,6 +48,8 @@ import {
   computePolygonAreaSqNm,
   computeCentroid,
   computeLineCorridor,
+  computeSectorPolygon,
+  parseSectorDirective,
   parseClearanceDirective,
   parseDriftVector,
   formatWgs84Dms,
@@ -924,10 +927,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               const center: [number, number] = [w.latitude, w.longitude];
               const radiusM = directive.radiusNm * 1852;
               const circleLayer = L.circle(center, {
-                color: '#ea580c',
+                color: '#8C5208',
                 weight: 1.5,
                 dashArray: '4, 4',
-                fillColor: '#ea580c',
+                fillColor: '#8C5208',
                 fillOpacity: 0.15,
                 pane: 'navWarnVectorPane',
                 radius: radiusM,
@@ -940,23 +943,120 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             }
           }
 
-          // Drift vector for unmoored/drifting hazards
+          // 4. Sector / Sweep Arc Geometry Rendering (Phase 2.1)
+          const sector = parseSectorDirective(w.raw_text || w.issued_text || '');
+          if (sector) {
+            try {
+              const center: [number, number] = [w.latitude, w.longitude];
+              const radius = sector.radiusNm || 5.0;
+              const sectorPoly = computeSectorPolygon(center, radius, sector.startBearing, sector.endBearing);
+
+              if (sectorPoly.length >= 3) {
+                const sectorColor = isUnverified ? '#8C5208' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                const sectorFill = isUnverified ? '#8C5208' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+
+                const sectorLayer = L.polygon(sectorPoly, {
+                  color: sectorColor,
+                  weight: isIsolated ? 3 : 1.5,
+                  dashArray: isUnverified ? '4, 4' : undefined,
+                  fillColor: sectorFill,
+                  fillOpacity: isIsolated ? 0.32 : 0.18,
+                  pane: 'navWarnVectorPane',
+                }).addTo(vectorGroup);
+
+                sectorLayer.bindTooltip(
+                  `Sector Arc: ${sector.startBearing}°–${sector.endBearing}° · Radius: ${radius} NM`,
+                  { direction: 'center' }
+                );
+                sectorLayer.on('click', () => onSelectWarning(w));
+              }
+            } catch {
+              // fallback
+            }
+          }
+
+          // 5. Drift vector for unmoored/drifting hazards (Phase 2.2)
           const drift = parseDriftVector([w.latitude, w.longitude], w.raw_text || w.issued_text || '');
           if (drift) {
             try {
               const driftLine = L.polyline([drift.origin, drift.destination], {
-                color: '#f59e0b',
+                color: '#8C5208',
                 weight: 2.5,
                 dashArray: '3, 6',
-                pane: 'navWarnVectorPane'
+                pane: 'navWarnVectorPane',
               }).addTo(vectorGroup);
               driftLine.bindTooltip(`${drift.directionLabel}${drift.speedKts ? ` @ ${drift.speedKts} kts` : ''} (~${drift.distanceNm} NM)`, {
-                direction: 'center'
+                direction: 'center',
               });
               driftLine.on('click', () => onSelectWarning(w));
+
+              // Projected destination marker
+              const destMarker = L.circleMarker(drift.destination, {
+                radius: 3.5,
+                color: '#8C5208',
+                fillColor: '#8C5208',
+                fillOpacity: 0.7,
+                dashArray: '2, 2',
+                pane: 'navWarnVectorPane',
+              }).addTo(vectorGroup);
+              destMarker.bindTooltip(`Projected: ${drift.directionLabel}`, { direction: 'top' });
+              destMarker.on('click', () => onSelectWarning(w));
             } catch {
               // fallback
             }
+          }
+        }
+
+        // 6. Relocation displacement rendering (Phase 2.2)
+        const parsedGeom = extractGeometry(w.raw_text || '');
+        if (parsedGeom.geometry.archetype === 'relocation' && parsedGeom.geometry.displacementVector) {
+          try {
+            const fromPoint: [number, number] = [
+              parsedGeom.geometry.displacementVector.from.lat,
+              parsedGeom.geometry.displacementVector.from.lng,
+            ];
+            const toPoint: [number, number] = [
+              parsedGeom.geometry.displacementVector.to.lat,
+              parsedGeom.geometry.displacementVector.to.lng,
+            ];
+
+            // Ghost marker at former coordinate
+            const ghostMarker = L.circleMarker(fromPoint, {
+              radius: 6,
+              color: '#8C5208',
+              weight: 1.5,
+              dashArray: '3, 3',
+              fillColor: '#8C5208',
+              fillOpacity: 0.15,
+              pane: 'navWarnVectorPane',
+            }).addTo(vectorGroup);
+            ghostMarker.bindTooltip('Former Position (Relocated)', { direction: 'top' });
+            ghostMarker.on('click', () => onSelectWarning(w));
+
+            // Directional relocation connector line
+            const vectorLine = L.polyline([fromPoint, toPoint], {
+              color: '#8C5208',
+              weight: 2,
+              dashArray: '4, 4',
+              pane: 'navWarnVectorPane',
+            }).addTo(vectorGroup);
+            const distNm = computeDistanceNm(fromPoint, toPoint);
+            vectorLine.bindTooltip(`Relocated ~${distNm} NM`, { direction: 'center' });
+            vectorLine.on('click', () => onSelectWarning(w));
+
+            // Established new position terminus marker
+            const newMarker = L.circleMarker(toPoint, {
+              radius: 4.5,
+              color: '#2F6B4F',
+              weight: 2,
+              fillColor: '#2F6B4F',
+              fillOpacity: 0.9,
+              pane: 'navWarnVectorPane',
+            }).addTo(vectorGroup);
+            newMarker.bindTooltip('New Established Position', { direction: 'top' });
+            newMarker.on('click', () => onSelectWarning(w));
+          } catch {
+            // fallback
           }
         }
       }
