@@ -794,13 +794,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     vectorGroup.addLayer(vertexMarker);
                   }
                 });
-                    });
-                    vertexMarker.on('contextmenu', (e: L.LeafletMouseEvent) => {
-                      handleLayerContextMenu(e, w, latLng);
-                    });
-                    vectorGroup.addLayer(vertexMarker);
-                  }
-                });
               } catch {
                 // Malformed polygon fallback
               }
