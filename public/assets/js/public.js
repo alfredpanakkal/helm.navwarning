@@ -1646,19 +1646,6 @@ function plotWarning(w) {
           w._layers.push(rigMarker);
           if (!w._primaryLayer) w._primaryLayer = rigMarker;
         } else {
-          // Animated radar pulse marker for critical / active firing hazards
-          if (isMilitary) {
-            const radarIcon = L.divIcon({
-              className: 'nw-radar-wrap',
-              html: `<div class="nw-radar-pulse"></div>`,
-              iconSize: [22, 22],
-              iconAnchor: [11, 11],
-            });
-            const radarMarker = L.marker(pos, { icon: radarIcon });
-            if (pointsLayer) pointsLayer.addLayer(radarMarker);
-            w._layers.push(radarMarker);
-          }
-
           const pointMarker = L.circleMarker(pos, {
             radius: isMobile ? 8 : 6,
             fillColor: color,
