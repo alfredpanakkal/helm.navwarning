@@ -100,7 +100,43 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Tabs: 'ai_bulk' | 'markdown' | 'paste' | 'file' | 'api'
-  const [activeImportTab, setActiveImportTab] = useState<'ai_bulk' | 'markdown' | 'paste' | 'file' | 'api'>('ai_bulk');
+  const IMPORT_TAB_IDS = ['ai_bulk', 'markdown', 'paste', 'file', 'api'] as const;
+  type ImportTabId = typeof IMPORT_TAB_IDS[number];
+  const [activeImportTab, setActiveImportTab] = useState<ImportTabId>('ai_bulk');
+  const tabButtonRefs = useRef<Record<ImportTabId, HTMLButtonElement | null>>({
+    ai_bulk: null,
+    markdown: null,
+    paste: null,
+    file: null,
+    api: null,
+  });
+
+  const handleTabKeyDown = (e: React.KeyboardEvent, currentTab: ImportTabId) => {
+    const currentIndex = IMPORT_TAB_IDS.indexOf(currentTab);
+    if (currentIndex === -1) return;
+
+    let targetTab: ImportTabId | null = null;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextIndex = (currentIndex + 1) % IMPORT_TAB_IDS.length;
+      targetTab = IMPORT_TAB_IDS[nextIndex];
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prevIndex = (currentIndex - 1 + IMPORT_TAB_IDS.length) % IMPORT_TAB_IDS.length;
+      targetTab = IMPORT_TAB_IDS[prevIndex];
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      targetTab = IMPORT_TAB_IDS[0];
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      targetTab = IMPORT_TAB_IDS[IMPORT_TAB_IDS.length - 1];
+    }
+
+    if (targetTab) {
+      handleTabSwitch(targetTab);
+      tabButtonRefs.current[targetTab]?.focus();
+    }
+  };
 
   // AI Bulk Ingestion & Triage State
   const [aiBulkText, setAiBulkText] = useState<string>(SAMPLE_AI_BULK_MIXED);
@@ -834,13 +870,16 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
       {/* Tabs */}
       <div role="tablist" aria-label="Import methods" className="flex flex-wrap border-b border-gw-secondary gap-2">
         <button
+          ref={(el) => { tabButtonRefs.current['ai_bulk'] = el; }}
           type="button"
           id="import-tab-ai_bulk"
           role="tab"
+          tabIndex={activeImportTab === 'ai_bulk' ? 0 : -1}
           aria-selected={activeImportTab === 'ai_bulk'}
           aria-controls="import-panel-ai_bulk"
           onClick={() => handleTabSwitch('ai_bulk')}
-          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
+          onKeyDown={(e) => handleTabKeyDown(e, 'ai_bulk')}
+          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-1 ${
             activeImportTab === 'ai_bulk'
               ? 'border-sky-600 text-sky-800 bg-sky-50 shadow-sm'
               : 'border-transparent text-gw-accent hover:text-gw-primary'
@@ -852,13 +891,16 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
         </button>
 
         <button
+          ref={(el) => { tabButtonRefs.current['markdown'] = el; }}
           type="button"
           id="import-tab-markdown"
           role="tab"
+          tabIndex={activeImportTab === 'markdown' ? 0 : -1}
           aria-selected={activeImportTab === 'markdown'}
           aria-controls="import-panel-markdown"
           onClick={() => handleTabSwitch('markdown')}
-          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
+          onKeyDown={(e) => handleTabKeyDown(e, 'markdown')}
+          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary focus-visible:ring-offset-1 ${
             activeImportTab === 'markdown'
               ? 'border-gw-primary text-gw-primary bg-gw-panel shadow-sm'
               : 'border-transparent text-gw-accent hover:text-gw-primary'
@@ -869,13 +911,16 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
         </button>
 
         <button
+          ref={(el) => { tabButtonRefs.current['paste'] = el; }}
           type="button"
           id="import-tab-paste"
           role="tab"
+          tabIndex={activeImportTab === 'paste' ? 0 : -1}
           aria-selected={activeImportTab === 'paste'}
           aria-controls="import-panel-paste"
           onClick={() => handleTabSwitch('paste')}
-          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
+          onKeyDown={(e) => handleTabKeyDown(e, 'paste')}
+          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary focus-visible:ring-offset-1 ${
             activeImportTab === 'paste'
               ? 'border-gw-primary text-gw-primary bg-gw-panel shadow-sm'
               : 'border-transparent text-gw-accent hover:text-gw-primary'
@@ -886,13 +931,16 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
         </button>
 
         <button
+          ref={(el) => { tabButtonRefs.current['file'] = el; }}
           type="button"
           id="import-tab-file"
           role="tab"
+          tabIndex={activeImportTab === 'file' ? 0 : -1}
           aria-selected={activeImportTab === 'file'}
           aria-controls="import-panel-file"
           onClick={() => handleTabSwitch('file')}
-          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
+          onKeyDown={(e) => handleTabKeyDown(e, 'file')}
+          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary focus-visible:ring-offset-1 ${
             activeImportTab === 'file'
               ? 'border-gw-primary text-gw-primary bg-gw-panel shadow-sm'
               : 'border-transparent text-gw-accent hover:text-gw-primary'
@@ -903,13 +951,16 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
         </button>
 
         <button
+          ref={(el) => { tabButtonRefs.current['api'] = el; }}
           type="button"
           id="import-tab-api"
           role="tab"
+          tabIndex={activeImportTab === 'api' ? 0 : -1}
           aria-selected={activeImportTab === 'api'}
           aria-controls="import-panel-api"
           onClick={() => handleTabSwitch('api')}
-          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
+          onKeyDown={(e) => handleTabKeyDown(e, 'api')}
+          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary focus-visible:ring-offset-1 ${
             activeImportTab === 'api'
               ? 'border-gw-primary text-gw-primary bg-gw-panel shadow-sm'
               : 'border-transparent text-gw-accent hover:text-gw-primary'
@@ -922,7 +973,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 0: AI Bulk Ingestion & Triage */}
       {activeImportTab === 'ai_bulk' && (
-        <div id="import-panel-ai_bulk" role="tabpanel" aria-labelledby="import-tab-ai_bulk" className="bg-gw-panel border-2 border-sky-600 p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
+        <div id="import-panel-ai_bulk" role="tabpanel" tabIndex={0} aria-labelledby="import-tab-ai_bulk" className="bg-gw-panel border-2 border-sky-600 p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-sky-900 uppercase tracking-wider flex items-center gap-2">
@@ -1056,7 +1107,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 0: Paste Markdown (.md) */}
       {activeImportTab === 'markdown' && (
-        <div id="import-panel-markdown" role="tabpanel" aria-labelledby="import-tab-markdown" className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
+        <div id="import-panel-markdown" role="tabpanel" tabIndex={0} aria-labelledby="import-tab-markdown" className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-gw-primary uppercase tracking-wider flex items-center gap-2">
@@ -1188,7 +1239,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 1: Paste Raw Data */}
       {activeImportTab === 'paste' && (
-        <div id="import-panel-paste" role="tabpanel" aria-labelledby="import-tab-paste" className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
+        <div id="import-panel-paste" role="tabpanel" tabIndex={0} aria-labelledby="import-tab-paste" className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-gw-primary uppercase tracking-wider flex items-center gap-2">
@@ -1264,7 +1315,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 2: File Upload (CSV, GPX, ZIP) */}
       {activeImportTab === 'file' && (
-        <div id="import-panel-file" role="tabpanel" aria-labelledby="import-tab-file" className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm">
+        <div id="import-panel-file" role="tabpanel" tabIndex={0} aria-labelledby="import-tab-file" className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary">
           <div className="flex items-center gap-2 mb-2">
             <UploadCloud className="w-5 h-5 text-gw-primary" />
             <h2 className="text-base font-bold text-gw-primary uppercase tracking-wider">Bulk CSV, S-124 ZIP & GPX Import</h2>
@@ -1312,7 +1363,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 3: FreeOpenAPI Live Sync */}
       {activeImportTab === 'api' && (
-        <div id="import-panel-api" role="tabpanel" aria-labelledby="import-tab-api" className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm">
+        <div id="import-panel-api" role="tabpanel" tabIndex={0} aria-labelledby="import-tab-api" className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary">
           <div className="flex items-center gap-2 mb-2">
             <Globe className="w-5 h-5 text-gw-primary" />
             <h2 className="text-base font-bold text-gw-primary uppercase tracking-wider">FreeOpenAPI Live Sync</h2>
@@ -1467,11 +1518,16 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
           {/* Sub-Tabs: Accepted Warnings vs Rejected by Gemini */}
           <div className="px-4 pt-3 pb-0 flex flex-wrap items-center justify-between gap-3 border-b border-gw-secondary/30 bg-gw-bg">
-            <div className="flex items-center gap-2">
+            <div role="tablist" aria-label="Staged warnings preview" className="flex items-center gap-2">
               <button
                 type="button"
+                id="preview-tab-accepted"
+                role="tab"
+                tabIndex={previewSubTab === 'accepted' ? 0 : -1}
+                aria-selected={previewSubTab === 'accepted'}
+                aria-controls="preview-panel-accepted"
                 onClick={() => setPreviewSubTab('accepted')}
-                className={`px-4 py-2 text-xs font-bold uppercase rounded-t-lg transition-colors flex items-center gap-2 ${
+                className={`px-4 py-2 text-xs font-bold uppercase rounded-t-lg transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${
                   previewSubTab === 'accepted'
                     ? 'bg-gw-panel text-emerald-800 border-t-2 border-x-2 border-emerald-600 shadow-xs'
                     : 'text-gw-accent hover:text-gw-primary'
@@ -1484,8 +1540,13 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               {rejectedItems.length > 0 && (
                 <button
                   type="button"
+                  id="preview-tab-rejected"
+                  role="tab"
+                  tabIndex={previewSubTab === 'rejected' ? 0 : -1}
+                  aria-selected={previewSubTab === 'rejected'}
+                  aria-controls="preview-panel-rejected"
                   onClick={() => setPreviewSubTab('rejected')}
-                  className={`px-4 py-2 text-xs font-bold uppercase rounded-t-lg transition-colors flex items-center gap-2 ${
+                  className={`px-4 py-2 text-xs font-bold uppercase rounded-t-lg transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 ${
                     previewSubTab === 'rejected'
                       ? 'bg-gw-panel text-red-800 border-t-2 border-x-2 border-red-600 shadow-xs'
                       : 'text-gw-accent hover:text-red-600'
@@ -1521,7 +1582,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
           {/* Sub-View 1: REJECTED ITEMS */}
           {previewSubTab === 'rejected' && (
-            <div className="p-4 space-y-3 bg-red-50/40">
+            <div id="preview-panel-rejected" role="tabpanel" tabIndex={0} aria-labelledby="preview-tab-rejected" className="p-4 space-y-3 bg-red-50/40 focus:outline-none">
               <div className="p-3.5 bg-red-100 border border-red-300 rounded-xl text-xs text-red-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="w-5 h-5 text-red-600 shrink-0" />
@@ -1611,7 +1672,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
           {/* Sub-View 2: ACCEPTED WARNINGS */}
           {previewSubTab === 'accepted' && (
-            <div className="flex flex-col">
+            <div id="preview-panel-accepted" role="tabpanel" tabIndex={0} aria-labelledby="preview-tab-accepted" className="flex flex-col focus:outline-none">
               {/* Header Action Bar */}
               <div className="p-4 border-b-2 border-gw-primary flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gw-bg">
                 <div>
