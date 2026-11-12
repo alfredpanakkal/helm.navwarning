@@ -70,18 +70,18 @@
 - [x] Files: `DataBankSummary`, `DataBankStatusBar`, `DisclaimerBanner`, `InForceCoverageBanner`
 - [x] `type="button"` on every `<button` in all four files
 - [x] Final check: `git grep -rn '<button ' src/components/ | grep -v 'type='` → 0 results
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #172](https://github.com/alfredpanakkal/helm.navwarning/pull/172))
 
 ---
 
 ## Phase 2 — Moss Palette Alignment
 
 ### 2-A · FAB palette (`App.tsx`)
-- [ ] Branch `fix-buttons-fab-palette` created
-- [ ] FAB line 761: `bg-emerald-600 hover:bg-emerald-500 ring-emerald-400` → `bg-[var(--accent)] hover:brightness-110 ring-[var(--accent)]`
-- [ ] Edit FAB: verified `type="button"` added in Phase 1; colour already correct (`bg-gw-primary`)
-- [ ] `font-bold`/`font-semibold` on button classNames → `font-medium`
-- [ ] No `emerald-` token remains in `src/App.tsx`
+- [x] Branch `fix-buttons-fab-palette` created
+- [x] FAB line 761: `bg-emerald-600 hover:bg-emerald-500 ring-emerald-400` → `bg-[var(--accent)] hover:brightness-110 ring-[var(--accent)]`
+- [x] Edit FAB: verified `type="button"` added in Phase 1; colour already correct (`bg-gw-primary`)
+- [x] `font-bold`/`font-semibold` on button classNames → `font-medium`
+- [x] No `emerald-` token remains in `src/App.tsx`
 - [ ] PR opened, reviewed, merged ✅
 
 ### 2-B · Verify palette — modal + drawer

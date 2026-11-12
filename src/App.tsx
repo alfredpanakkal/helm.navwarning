@@ -763,7 +763,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setSelectedWarning(unverifiedCandidates[0])}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] rounded-full text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             title="Open next unverified warning for review"
             aria-label={`Review next unverified warning (${unverifiedCandidates.length} remaining)`}
           >
