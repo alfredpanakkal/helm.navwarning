@@ -323,23 +323,23 @@ Lightweight confirmation guard. Not an audited write so no audit row risk, but d
 
 ## Completion Checklist
 
-| Phase | PR Count | Status |
-|---|---|---|
-| 1-A Public attrs | 1 | ⬜ |
-| 1-B Shell attrs | 1 | ⬜ |
-| 1-C Header/workspace attrs | 1 | ⬜ |
-| 1-D DataBank attrs | 1 | ⬜ |
-| 1-E Ingest attrs + tab roles | 1 | ⬜ |
-| 1-F Remaining sweep (3 batches) | 3 | ⬜ |
-| 2-A FAB palette | 1 | ⬜ |
-| 2-B Verify palette — modal/drawer | 1 | ⬜ |
-| 2-C Verify palette — ingest | 1 | ⬜ |
-| 2-D Deviant palette + motion | 1 | ⬜ |
-| 3-A Public touch target | 1 | ⬜ |
-| 3-B Console tap targets | 1 | ⬜ |
-| 4-A Single-fire guards | 1 | ⬜ |
-| 5-A Style sweep | 2–4 | ⬜ |
-| **Total** | **~17 PRs** | |
+| Phase | PR Count | Status | Notes |
+|---|---|---|---|
+| 1-A Public attrs | 1 | ✅ | PR #158 merged |
+| 1-B Shell attrs | 1 | ✅ | PR #166 merged |
+| 1-C Header/workspace attrs | 1 | ✅ | PR #167 merged |
+| 1-D DataBank attrs | 1 | ✅ | PR #168 merged |
+| 1-E Ingest attrs + tab roles | 1 | ✅ | PR #169 merged |
+| 1-F Remaining sweep (3 batches) | 3 | ✅ | PRs #170, #171, #172 merged |
+| 2-A FAB palette | 1 | ✅ | PR #173 merged |
+| 2-B Verify palette — modal/drawer | 1 | ✅ | PR #175 merged |
+| 2-C Verify palette — ingest | 1 | ✅ | PR #176 merged |
+| 2-D Deviant palette + motion | 1 | ✅ | PR #177 merged |
+| 3-A Public touch target | 1 | ✅ | PR #178 merged |
+| 3-B Console tap targets | 1 | ✅ | PR #179 merged |
+| 4-A Single-fire guards | 1 | ✅ | PR #180 merged |
+| 5-A Style sweep | 1 | ✅ | PR #181 merged |
+| **Total** | **15 PRs** | ✅ | **All phases 100% complete** |
 
 ---
 

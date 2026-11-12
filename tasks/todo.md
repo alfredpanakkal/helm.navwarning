@@ -150,7 +150,7 @@
 - [x] `rounded-lg`/`rounded-xl` on non-pill buttons → `rounded` (exception: FAB `rounded-full`)
 - [x] `shadow-*` sweep confirms zero remaining on buttons (not removed in Phase 2)
 - [x] `git grep -rn 'font-bold\|font-semibold\|font-black' src/components/ | grep 'button\|btn'` → 0
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #181](https://github.com/alfredpanakkal/helm.navwarning/pull/181))
 
 ---
 
@@ -161,4 +161,4 @@
 - [x] `git grep -rn 'active:scale-\|shadow-md\|shadow-lg' src/components/` → 0 results on buttons
 - [x] Axe/WAVE clean pass on: public portal, Data Bank, ingest import tabs, Warning Detail modal
 - [x] Mobile (pointer: coarse): all public `.btn-sm` ≥ 44px; all console icon buttons ≥ 44px
-- [ ] Maintainer confirms `npm test` + `npm run lint` pass on `main` after all merges
+- [x] Maintainer confirms `npm test` + `npm run lint` pass on `main` after all merges ([PR #181](https://github.com/alfredpanakkal/helm.navwarning/pull/181))
