@@ -364,6 +364,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                   {/* Reorder & Remove Controls */}
                   <div className="flex items-center gap-1">
                     <button
+                      type="button"
                       disabled={idx === 0}
                       onClick={() => handleMovePoint(idx, 'up')}
                       className="p-1 text-gw-primary hover:bg-gw-panel rounded disabled:opacity-30"
@@ -373,6 +374,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                       <ArrowUp className="w-3.5 h-3.5" />
                     </button>
                     <button
+                      type="button"
                       disabled={idx === layer.features.length - 1}
                       onClick={() => handleMovePoint(idx, 'down')}
                       className="p-1 text-gw-primary hover:bg-gw-panel rounded disabled:opacity-30"
@@ -382,6 +384,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                       <ArrowDown className="w-3.5 h-3.5" />
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleDeletePoint(feat.id)}
                       className="p-1 text-red-600 hover:bg-red-100 rounded"
                       title="Delete Point"
@@ -465,6 +468,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                 {/* Insert Point button below item */}
                 <div className="flex justify-end pt-1">
                   <button
+                    type="button"
                     onClick={() => handleInsertPoint(idx)}
                     className="flex items-center gap-1 text-xs text-gw-primary hover:text-gw-accent font-bold uppercase"
                   >
@@ -481,32 +485,39 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
       <div className="p-3 bg-gw-bg border-t-2 border-gw-primary flex flex-col sm:flex-row justify-between items-center gap-2">
         <div className="flex items-center gap-1.5 flex-wrap justify-center">
           <button
+            type="button"
             onClick={() => handleInsertPoint(layer.features.length - 1)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-panel border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> Add Point Feature
           </button>
           <button
+            type="button"
             onClick={undo}
             disabled={undoStack.length === 0}
             className="p-1.5 bg-gw-panel border border-gw-secondary rounded text-gw-accent hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             title="Undo last layer change"
+            aria-label="Undo last layer change"
           >
             <Undo2 className="w-3.5 h-3.5" />
           </button>
           <button
+            type="button"
             onClick={redo}
             disabled={redoStack.length === 0}
             className="p-1.5 bg-gw-panel border border-gw-secondary rounded text-gw-accent hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             title="Redo"
+            aria-label="Redo"
           >
             <Redo2 className="w-3.5 h-3.5" />
           </button>
           <button
+            type="button"
             onClick={resetToOriginal}
             disabled={!isDirty}
             className="p-1.5 bg-gw-panel border border-gw-secondary rounded text-gw-accent hover:text-gw-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             title="Reset officer layer to the extracted original"
+            aria-label="Reset officer layer to the extracted original"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
@@ -514,6 +525,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={handleCopyGeoJson}
             className="flex items-center gap-1 px-3 py-1.5 bg-gw-panel border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
           >
@@ -522,6 +534,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={handleDownloadGeoJson}
             className="flex items-center gap-1 px-3 py-1.5 bg-gw-primary text-gw-bg rounded text-xs font-bold uppercase hover:bg-gw-accent transition-colors shadow-xs"
           >

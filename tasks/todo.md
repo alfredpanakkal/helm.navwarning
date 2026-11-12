@@ -38,16 +38,16 @@
 - [x] `verifyingIds.has(id)` guard verified correctly wired to `disabled` on Quick Verify
 - [x] `aria-sort` confirmed present on column sort buttons (no change if already ✅)
 - [x] `aria-label` on icon-only action buttons in `WarningItemV2`
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #168](https://github.com/alfredpanakkal/helm.navwarning/pull/168))
 
 ### 1-E · Ingest layer attrs + import tab semantic roles
-- [ ] Branch `fix-buttons-ingest-attrs` created
-- [ ] `type="button"` on all missing buttons in `CsvUploaderView`, `ManualParserView`, `EcdisFeatureEditor`
-- [ ] `CsvUploaderView` lines 836–885: `role="tablist"` on container
-- [ ] Each import tab button has `role="tab"` + `aria-selected` + `aria-controls`
-- [ ] Each tab panel has `role="tabpanel"` + `aria-labelledby`
-- [ ] `aria-selected` toggled correctly in JS on tab click
-- [ ] `aria-label` on EcdisFeatureEditor vertex/point icon buttons
+- [x] Branch `fix-buttons-ingest-attrs` created
+- [x] `type="button"` on all missing buttons in `CsvUploaderView`, `ManualParserView`, `EcdisFeatureEditor`
+- [x] `CsvUploaderView` lines 836–885: `role="tablist"` on container
+- [x] Each import tab button has `role="tab"` + `aria-selected` + `aria-controls`
+- [x] Each tab panel has `role="tabpanel"` + `aria-labelledby`
+- [x] `aria-selected` toggled correctly in JS on tab click
+- [x] `aria-label` on EcdisFeatureEditor vertex/point icon buttons
 - [ ] PR opened, reviewed, merged ✅
 
 ### 1-F · Remaining components sweep — Batch 1

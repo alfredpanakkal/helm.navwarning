@@ -214,6 +214,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
             <div className="flex justify-end gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => setAiFallbackModal(null)}
                 className="px-4 py-2 bg-gw-primary text-gw-bg text-xs font-bold rounded-xl hover:bg-gw-accent transition-colors"
               >
@@ -427,6 +428,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
             >
               <span>{supabaseSaveMsg.text}</span>
               <button
+                type="button"
                 onClick={() => setSupabaseSaveMsg(null)}
                 className="touch-hit text-[11px] uppercase hover:underline ml-2"
               >
@@ -487,6 +489,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => handleSaveToSupabase(parsedResults)}
                     disabled={isSavingToSupabase}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
@@ -892,6 +895,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
 
                     <div className="flex flex-col sm:flex-row gap-2 mt-4">
                       <button
+                        type="button"
                         onClick={() => handleSaveToSupabase([parsedResult])}
                         disabled={isSavingToSupabase}
                         className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-2 shadow-sm"
@@ -902,6 +906,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => onSelectWarning(parsedResult)}
                         className="flex-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary font-bold text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-2 shadow-sm"
                       >

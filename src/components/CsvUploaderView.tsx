@@ -832,8 +832,13 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap border-b border-gw-secondary gap-2">
+      <div role="tablist" aria-label="Import methods" className="flex flex-wrap border-b border-gw-secondary gap-2">
         <button
+          type="button"
+          id="import-tab-ai_bulk"
+          role="tab"
+          aria-selected={activeImportTab === 'ai_bulk'}
+          aria-controls="import-panel-ai_bulk"
           onClick={() => handleTabSwitch('ai_bulk')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
             activeImportTab === 'ai_bulk'
@@ -847,6 +852,11 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
         </button>
 
         <button
+          type="button"
+          id="import-tab-markdown"
+          role="tab"
+          aria-selected={activeImportTab === 'markdown'}
+          aria-controls="import-panel-markdown"
           onClick={() => handleTabSwitch('markdown')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
             activeImportTab === 'markdown'
@@ -859,6 +869,11 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
         </button>
 
         <button
+          type="button"
+          id="import-tab-paste"
+          role="tab"
+          aria-selected={activeImportTab === 'paste'}
+          aria-controls="import-panel-paste"
           onClick={() => handleTabSwitch('paste')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
             activeImportTab === 'paste'
@@ -871,6 +886,11 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
         </button>
 
         <button
+          type="button"
+          id="import-tab-file"
+          role="tab"
+          aria-selected={activeImportTab === 'file'}
+          aria-controls="import-panel-file"
           onClick={() => handleTabSwitch('file')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
             activeImportTab === 'file'
@@ -883,6 +903,11 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
         </button>
 
         <button
+          type="button"
+          id="import-tab-api"
+          role="tab"
+          aria-selected={activeImportTab === 'api'}
+          aria-controls="import-panel-api"
           onClick={() => handleTabSwitch('api')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus:outline-none ${
             activeImportTab === 'api'
@@ -897,7 +922,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 0: AI Bulk Ingestion & Triage */}
       {activeImportTab === 'ai_bulk' && (
-        <div className="bg-gw-panel border-2 border-sky-600 p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
+        <div id="import-panel-ai_bulk" role="tabpanel" aria-labelledby="import-tab-ai_bulk" className="bg-gw-panel border-2 border-sky-600 p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-sky-900 uppercase tracking-wider flex items-center gap-2">
@@ -1031,7 +1056,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 0: Paste Markdown (.md) */}
       {activeImportTab === 'markdown' && (
-        <div className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
+        <div id="import-panel-markdown" role="tabpanel" aria-labelledby="import-tab-markdown" className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-gw-primary uppercase tracking-wider flex items-center gap-2">
@@ -1145,6 +1170,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
             </div>
 
             <button
+              type="button"
               onClick={handleParseMarkdown}
               disabled={isProcessing || !markdownContent.trim()}
               className="w-full sm:w-auto bg-gw-primary hover:bg-gw-accent disabled:opacity-50 text-gw-secondary text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm"
@@ -1162,7 +1188,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 1: Paste Raw Data */}
       {activeImportTab === 'paste' && (
-        <div className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
+        <div id="import-panel-paste" role="tabpanel" aria-labelledby="import-tab-paste" className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-gw-primary uppercase tracking-wider flex items-center gap-2">
@@ -1220,6 +1246,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
             </div>
 
             <button
+              type="button"
               onClick={handleParsePastedData}
               disabled={isProcessing || !pasteContent.trim()}
               className="bg-gw-primary hover:bg-gw-accent disabled:opacity-50 text-gw-secondary text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-sm"
@@ -1237,7 +1264,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 2: File Upload (CSV, GPX, ZIP) */}
       {activeImportTab === 'file' && (
-        <div className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm">
+        <div id="import-panel-file" role="tabpanel" aria-labelledby="import-tab-file" className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <UploadCloud className="w-5 h-5 text-gw-primary" />
             <h2 className="text-base font-bold text-gw-primary uppercase tracking-wider">Bulk CSV, S-124 ZIP & GPX Import</h2>
@@ -1285,7 +1312,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
 
       {/* Tab 3: FreeOpenAPI Live Sync */}
       {activeImportTab === 'api' && (
-        <div className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm">
+        <div id="import-panel-api" role="tabpanel" aria-labelledby="import-tab-api" className="bg-gw-panel border-2 border-gw-primary p-5 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Globe className="w-5 h-5 text-gw-primary" />
             <h2 className="text-base font-bold text-gw-primary uppercase tracking-wider">FreeOpenAPI Live Sync</h2>
@@ -1323,6 +1350,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
             </div>
 
             <button
+              type="button"
               onClick={handleApiSync}
               disabled={isProcessing}
               className="w-full md:w-auto bg-gw-primary hover:bg-gw-accent disabled:opacity-50 text-gw-secondary text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded flex items-center justify-center gap-2 transition-all shadow-sm"
@@ -1428,6 +1456,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 )}
               </div>
               <button
+                type="button"
                 onClick={() => setSupabaseSaveStatus(null)}
                 className="touch-hit text-xs uppercase hover:underline shrink-0"
               >
@@ -1596,6 +1625,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5">
                   <button
+                    type="button"
                     onClick={() => setParsedWarnings([])}
                     className="text-xs font-bold text-gw-accent hover:text-gw-primary px-3 py-1.5 uppercase"
                   >
@@ -1603,6 +1633,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => setIsConfirmCommitOpen(true)}
                     disabled={isSavingToSupabase || parsedWarnings.length === 0}
                     className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-lg flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
@@ -1617,6 +1648,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                   </button>
 
                   <button
+                    type="button"
                     onClick={handleCommit}
                     disabled={parsedWarnings.length === 0}
                     className="bg-gw-primary hover:bg-gw-accent disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
