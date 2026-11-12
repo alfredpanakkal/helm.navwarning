@@ -1,0 +1,105 @@
+# Implementation Tracker: Warning Symbols & Geographic Plotting
+
+> **Parent Design Study**: [`docs/COMPETITOR_WARNING_DESIGN_STUDY.md`](COMPETITOR_WARNING_DESIGN_STUDY.md)  
+> **Status**: Ready to begin Phase 1  
+> **Target Branch**: `competitor_warning_design_study`
+
+---
+
+## Roadmap Overview
+
+```
+Phase 1: 6-Symbol System & Severity Ring Decoupling       [READY TO START]
+Phase 2: Basic & Advanced Geometry Rendering (Sectors/Relocation) [PENDING]
+Phase 3: Multi-Zone Label Splitting & Geometry Integrity         [PENDING]
+Phase 4: Zoom Hierarchy, Decluttering & Legend Updates           [PENDING]
+Phase 5: Verification, Cross-Theme Parity & Golden Dataset Tests [PENDING]
+```
+
+---
+
+## Phase 1 — Establish the 6-Symbol System & Severity Ring Decoupling
+
+- [ ] **1.1 Symbol Mapping Module**
+  - Create `src/utils/symbolMapping.ts`.
+  - Define `PrimarySymbol` union: `'general' | 'military' | 'drifting' | 'aton' | 'subsea' | 'wreck'`.
+  - Implement `toPrimarySymbol(category: HazardCategory): PrimarySymbol`.
+  - Write pure unit tests in `src/utils/__tests__/symbolMapping.test.ts`.
+
+- [ ] **1.2 Unified SVG Glyphs & Badge Generator**
+  - Update `src/utils/hazardIcons.ts`:
+    - Ensure clean 24x24 SVG paths for the 6 primary symbols.
+    - Decouple badge generation: glyph is dictated by `PrimarySymbol`; border/halo is dictated by `Severity` (`critical` $\to$ `#B42318`, `high` $\to$ `#8C5208`, `active/moderate` $\to$ `#2F6B4F`).
+    - Eliminate legacy hardcoded blues/yellows in favor of design system tokens (`--sev-critical`, `--sev-high`, `--accent`).
+
+- [ ] **1.3 Marker Rendering Integration in LeafletMap**
+  - In `src/components/LeafletMap.tsx`:
+    - Consume `toPrimarySymbol(classification.category)` for point markers.
+    - Wrap markers with severity rings adhering to the 3-state system.
+    - Verify dual-ring cluster markers reflect the 3-state colors.
+
+- [ ] **1.4 Map Legend Updates**
+  - Update legend in `LeafletMap.tsx` / `DataBankStatusBar.tsx` to document the 6 primary symbols and 3 severity rings.
+  - Include disclaimer: *"Severity ratings reflect automated keyword matching and do not represent official IMO/IHO gradings."*
+
+---
+
+## Phase 2 — Basic & Advanced Geometry Rendering
+
+- [ ] **2.1 Sector / Arc Geometry**
+  - Implement geodesic sector calculation in `src/core/coordinates.ts` (`computeSectorPolygon(center, radiusNm, startBearing, endBearing)`).
+  - Add `sector_wedge` rendering in `LeafletMap.tsx`.
+  - Wire sector parsing from bearing clauses in `src/parsers/geometryExtractor.ts`.
+
+- [ ] **2.2 Relocation & Drift Displacement**
+  - Update `LeafletMap.tsx` to render `archetype === 'relocation'`:
+    - Ghost marker at former coordinate (dashed circle).
+    - Solid marker at new coordinate.
+    - Directional connector arrow.
+  - Refine `drift_vector` rendering with timestamped positions if present in message.
+
+- [ ] **2.3 Geodesic Swath Refinement**
+  - Refine corridor calculation in `src/core/coordinates.ts` to support asymmetric port/starboard buffer widths where specified.
+
+---
+
+## Phase 3 — Multi-Zone Labeled Warnings
+
+- [ ] **3.1 Label-Aware Geometry Splitting**
+  - Replace naïve bisection in `src/parsers/geometryExtractor.ts` (rung 2) with label-anchored splitting using `src/parsers/labelExtractor.ts`.
+  - Extract and attach `zone_label` (e.g. `AREA A`, `AREA B`) to each parsed zone feature.
+
+- [ ] **3.2 Interactive Zone Selection**
+  - In `src/components/LeafletMap.tsx`, when a user clicks a polygon belonging to a multi-zone warning:
+    - Highlight the specific clicked zone boundary.
+    - Open the parent warning drawer with the corresponding zone highlighted.
+
+---
+
+## Phase 4 — Zoom Hierarchy & Decluttering
+
+- [ ] **4.1 Scale-Dependent Display Rules**
+  - At global zoom ($z \le 5$): suppress complex vertices, display centroid points with cluster groups.
+  - At regional zoom ($z = 6 \dots 9$): show simplified polygon borders, suppress vertex numbers.
+  - At detailed zoom ($z \ge 10$): show full interactive vertex pills ($V_1 \dots V_n$) and measurement swaths.
+
+- [ ] **4.2 Boundary Semantics**
+  - Enforce visual hierarchy:
+    - Solid border: `EXPLICIT` geometry.
+    - Dashed border: `INFERRED` geometry.
+    - Dotted amber border: Tier B unverified geometry.
+
+---
+
+## Phase 5 — Verification & Multi-Theme Parity
+
+- [ ] **5.1 Unit & Snapshot Testing**
+  - Verify all 16 `HazardCategory` values correctly resolve to their assigned `PrimarySymbol`.
+  - Verify sector math across 0°/360° north-crossing boundaries.
+  - Verify corridor polygon closure and winding order.
+
+- [ ] **5.2 Theme Contrast Testing**
+  - Validate all 6 symbols and 3 severity rings across all 3 themes (`light`, `dark`, `night`) in `src/theme/themeContrast.test.ts`.
+
+- [ ] **5.3 Real Bulletin Evaluation**
+  - Validate against the baseline fixtures (`data/fixtures/oracle-expectations.json` and NAVAREA IV/IX corpora).
