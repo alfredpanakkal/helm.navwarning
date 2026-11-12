@@ -200,7 +200,7 @@ CREATE TABLE public.raw_messages (
             type="button"
             onClick={loadStatus}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-2 bg-gw-tertiary hover:bg-gw-secondary text-gw-bg hover:text-gw-primary font-bold text-xs uppercase tracking-wider rounded border border-gw-accent transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 bg-gw-tertiary hover:bg-gw-secondary text-gw-bg hover:text-gw-primary font-medium text-xs uppercase tracking-wider rounded border border-gw-accent transition-all"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Check Status</span>
@@ -236,7 +236,7 @@ CREATE TABLE public.raw_messages (
             type="button"
             onClick={handleManualSync}
             disabled={isSyncing}
-            className="flex items-center gap-2 px-4 py-2 bg-gw-primary text-gw-bg font-bold text-xs uppercase tracking-wider rounded border-2 border-gw-primary hover:bg-gw-tertiary transition-all shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-gw-primary text-gw-bg font-medium text-xs uppercase tracking-wider rounded border-2 border-gw-primary hover:bg-gw-tertiary transition-colors"
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
             <span>{isSyncing ? 'Syncing...' : 'Sync to Supabase Now'}</span>
@@ -331,12 +331,12 @@ CREATE TABLE public.raw_messages (
             type="button"
             onClick={handleTestGemini}
             disabled={isTestingGemini}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg border-2 border-indigo-700 shadow-md transition-all active:scale-95 disabled:opacity-50 shrink-0"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] font-medium text-xs uppercase tracking-wider rounded-lg border border-[var(--accent)] transition-colors disabled:opacity-50 shrink-0"
           >
             {isTestingGemini ? (
               <RefreshCw className="w-4 h-4 animate-spin text-white" />
             ) : (
-              <Sparkles className="w-4 h-4 text-indigo-200" />
+              <Sparkles className="w-4 h-4" />
             )}
             <span>{isTestingGemini ? 'Testing Gemini API...' : 'Test Gemini Integration'}</span>
           </button>
@@ -357,13 +357,13 @@ CREATE TABLE public.raw_messages (
               value={geminiPrompt}
               onChange={(e) => setGeminiPrompt(e.target.value)}
               placeholder="Enter test prompt for Gemini API..."
-              className="flex-1 px-3 py-2 bg-gw-bg border border-gw-primary rounded text-xs font-mono text-gw-primary focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 px-3 py-2 bg-gw-bg border border-gw-primary rounded text-xs font-mono text-gw-primary focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
             <button
               type="button"
               onClick={handleTestGemini}
               disabled={isTestingGemini || !geminiPrompt.trim()}
-              className="px-4 py-2 bg-gw-primary text-gw-bg hover:bg-gw-tertiary rounded font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-1.5"
+              className="px-4 py-2 bg-gw-primary text-gw-bg hover:bg-gw-tertiary rounded font-medium text-xs uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
               <Send className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Execute</span>
@@ -461,7 +461,7 @@ CREATE TABLE public.raw_messages (
             <button
               type="button"
               onClick={handleCopySql}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-bg border border-gw-secondary hover:border-gw-primary rounded text-xs font-bold uppercase transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-bg border border-gw-secondary hover:border-gw-primary rounded text-xs font-medium uppercase transition-colors"
             >
               {copiedSql ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copiedSql ? 'Copied' : 'Copy SQL'}</span>
@@ -488,7 +488,7 @@ CREATE TABLE public.raw_messages (
           <button
             type="button"
             onClick={handleExportJson}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gw-primary text-gw-bg font-bold text-xs uppercase tracking-wider rounded border-2 border-gw-primary hover:bg-gw-tertiary transition-all shadow-sm"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gw-primary text-gw-bg font-medium text-xs uppercase tracking-wider rounded border-2 border-gw-primary hover:bg-gw-tertiary transition-colors"
           >
             <Download className="w-4 h-4" />
             <span>Download Database JSON Backup</span>

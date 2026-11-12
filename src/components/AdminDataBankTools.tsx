@@ -353,7 +353,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
             <button
               type="button"
               onClick={selectAllStale}
-              className="px-3 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 font-medium text-xs transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-md border border-[var(--accent)] text-[var(--accent)] bg-transparent hover:bg-[var(--accent)]/10 font-medium text-xs transition-colors cursor-pointer"
             >
               Select All {staleWarnings.length} Stale
             </button>
