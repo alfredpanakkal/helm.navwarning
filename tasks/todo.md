@@ -30,14 +30,14 @@
 - [x] `aria-pressed` on mobile-menu + panel-collapse toggles
 - [x] `aria-expanded` + `aria-controls` on disclosure triggers
 - [x] `isLoggingIn` disabled guard verified still connected (no change needed if correct)
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #167](https://github.com/alfredpanakkal/helm.navwarning/pull/167))
 
 ### 1-D · DataBank layer attrs
-- [ ] Branch `fix-buttons-databank-attrs` created
-- [ ] `type="button"` on ~25 buttons in `DataBankControls`, `DataBankWarningList`, `WarningItemV2`
-- [ ] `verifyingIds.has(id)` guard verified correctly wired to `disabled` on Quick Verify
-- [ ] `aria-sort` confirmed present on column sort buttons (no change if already ✅)
-- [ ] `aria-label` on icon-only action buttons in `WarningItemV2`
+- [x] Branch `fix-buttons-databank-attrs` created
+- [x] `type="button"` on ~25 buttons in `DataBankControls`, `DataBankWarningList`, `WarningItemV2`
+- [x] `verifyingIds.has(id)` guard verified correctly wired to `disabled` on Quick Verify
+- [x] `aria-sort` confirmed present on column sort buttons (no change if already ✅)
+- [x] `aria-label` on icon-only action buttons in `WarningItemV2`
 - [ ] PR opened, reviewed, merged ✅
 
 ### 1-E · Ingest layer attrs + import tab semantic roles
