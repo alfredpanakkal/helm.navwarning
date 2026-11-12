@@ -11,8 +11,8 @@
 ```
 Phase 1: 6-Symbol System & Severity Ring Decoupling       [COMPLETED]
 Phase 2: Basic & Advanced Geometry Rendering (Sectors/Relocation) [COMPLETED]
-Phase 3: Multi-Zone Label Splitting & Geometry Integrity         [READY TO START]
-Phase 4: Zoom Hierarchy, Decluttering & Legend Updates           [PENDING]
+Phase 3: Multi-Zone Label Splitting & Geometry Integrity         [COMPLETED]
+Phase 4: Zoom Hierarchy, Decluttering & Legend Updates           [READY TO START]
 Phase 5: Verification, Cross-Theme Parity & Golden Dataset Tests [PENDING]
 ```
 
@@ -67,14 +67,16 @@ Phase 5: Verification, Cross-Theme Parity & Golden Dataset Tests [PENDING]
 
 ## Phase 3 — Multi-Zone Labeled Warnings
 
-- [ ] **3.1 Label-Aware Geometry Splitting**
-  - Replace naïve bisection in `src/parsers/geometryExtractor.ts` (rung 2) with label-anchored splitting using `src/parsers/labelExtractor.ts`.
-  - Extract and attach `zone_label` (e.g. `AREA A`, `AREA B`) to each parsed zone feature.
+- [x] **3.1 Label-Aware Geometry Splitting**
+  - Replace naïve bisection in `src/parsers/geometryExtractor.ts` (rung 2) with label-anchored splitting using `extractLabeledZoneGroups()`.
+  - Extract and attach `zoneLabels` (e.g. `AREA A`, `AREA B`) to each parsed zone feature in `NavWarnGeometry`.
+  - Add multi-zone unit test suite in `src/parsers/__tests__/multiZoneExtractor.test.ts`.
 
-- [ ] **3.2 Interactive Zone Selection**
+- [x] **3.2 Interactive Zone Selection**
   - In `src/components/LeafletMap.tsx`, when a user clicks a polygon belonging to a multi-zone warning:
-    - Highlight the specific clicked zone boundary.
-    - Open the parent warning drawer with the corresponding zone highlighted.
+    - Highlight the specific clicked zone boundary (`isZoneSelected`).
+    - Open the parent warning drawer with the corresponding zone badge highlighted.
+  - Render fallback multi-zone parsed polygons if no explicit PostGIS geometries exist.
 
 ---
 

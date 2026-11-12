@@ -148,6 +148,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   // Modern Navigation & Drawer States (harmonized with public map + bottom sheet)
   const [bottomSheetState, setBottomSheetState] = useState<'minimized' | 'normal' | 'maximized'>('normal');
   const [expandedWarningId, setExpandedWarningId] = useState<string | null>(null);
+  const [selectedZoneLabel, setSelectedZoneLabel] = useState<string | null>(null);
   const [isLayerSettingsOpen, setIsLayerSettingsOpen] = useState<boolean>(false);
   // Phase 3 progressive disclosure: per-layer extras hidden behind "Advanced".
   const [showAdvancedLayers, setShowAdvancedLayers] = useState<boolean>(false);
@@ -600,10 +601,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       const isUnverified = String(w.triage_tier || 'A').toUpperCase() === 'B';
 
       // Determine geometry presence
+      const parsedGeom = extractGeometry(w.raw_text || '');
       const hasPolygons = Boolean(
         w.spatial?.geometries?.some(
           (g) => g.type === 'Polygon' && Array.isArray(g.coordinates) && g.coordinates.length > 0
-        )
+        ) || (parsedGeom.geometry.polygons && parsedGeom.geometry.polygons.length > 0)
       );
       const hasCircles = Boolean(w.spatial?.circles && w.spatial.circles.length > 0);
 
@@ -683,17 +685,19 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 const latLngs = (geom.coordinates[0] as number[][]).map(([lng, lat]) => [lat, lng] as [number, number]);
                 const areaSqNm = computePolygonAreaSqNm(latLngs);
                 const centroid = computeCentroid(latLngs);
+                const zoneLabel = geom.label || (geom as any).zone_label || (geom as any).zoneLabel;
+                const isZoneSelected = (zoneLabel && selectedZoneLabel === zoneLabel) || isIsolated;
 
-                const polyColor = isUnverified ? '#d97706' : isIsolated ? '#dc2626' : classification.displayStyle === 'critical' ? '#dc2626' : '#2563eb';
-                const polyFill = isUnverified ? '#fbbf24' : isIsolated ? '#ef4444' : classification.displayStyle === 'critical' ? '#f87171' : '#3b82f6';
+                const polyColor = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                const polyFill = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
 
                 const poly = L.polygon(latLngs, {
                   color: polyColor,
-                  weight: isIsolated ? 3.5 : 2,
+                  weight: isZoneSelected ? 3.5 : 2,
                   dashArray: '6, 6',     // Nautical dashed perimeter
                   opacity: 0.9,
                   fillColor: polyFill,
-                  fillOpacity: isIsolated ? 0.35 : 0.22,
+                  fillOpacity: isZoneSelected ? 0.35 : 0.22,
                   pane: 'navWarnVectorPane'
                 });
 
@@ -702,15 +706,18 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   <div style="font-family: monospace; padding: 4px; max-width: 240px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                       <span style="font-weight: 700; font-size: 13px; color: #1e293b;">${w.source_warning_id || w.warning_id}</span>
-                      ${isUnverified ? '<span style="background: #d97706; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">UNVERIFIED</span>' : '<span style="background: #059669; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">ACTIVE</span>'}
+                      ${zoneLabel ? `<span style="background: #2F6B4F; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">${zoneLabel}</span>` : isUnverified ? '<span style="background: #8C5208; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">UNVERIFIED</span>' : '<span style="background: #2F6B4F; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">ACTIVE</span>'}
                     </div>
                     <div style="font-size: 11px; color: #475569; margin-bottom: 8px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${w.title || w.area_text || w.raw_text}</div>
                     <div style="font-size: 10px; color: #0284c7; font-weight: 600;">Area: ${areaSqNm} sq NM</div>
                   </div>
                 `);
 
-                if (isUnverified) poly.bindTooltip('Unverified (Tier B) — needs review', { direction: 'center' });
-                poly.on('click', () => onSelectWarning(w));
+                poly.bindTooltip(zoneLabel ? `${zoneLabel} (${areaSqNm} sq NM)` : isUnverified ? 'Unverified (Tier B) — needs review' : `Area: ${areaSqNm} sq NM`, { direction: 'center' });
+                poly.on('click', () => {
+                  if (zoneLabel) setSelectedZoneLabel(zoneLabel);
+                  onSelectWarning(w);
+                });
                 poly.on('contextmenu', (e: L.LeafletMouseEvent) => {
                   handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
                 });
@@ -867,6 +874,53 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           });
         }
 
+        // 1b. Fallback multi-zone parsed polygons if no explicit PostGIS geometries exist
+        if ((!w.spatial?.geometries || w.spatial.geometries.length === 0) && parsedGeom.geometry.polygons && parsedGeom.geometry.polygons.length > 0) {
+          parsedGeom.geometry.polygons.forEach((polyCoords, idx) => {
+            try {
+              const latLngs: [number, number][] = polyCoords.map((c) => [c.lat, c.lng]);
+              if (latLngs.length >= 3) {
+                const areaSqNm = computePolygonAreaSqNm(latLngs);
+                const zoneLabel = parsedGeom.geometry.zoneLabels?.[idx] || polyCoords[0]?.label || `Zone ${idx + 1}`;
+                const isZoneSelected = selectedZoneLabel === zoneLabel || isIsolated;
+
+                const polyColor = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                const polyFill = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+
+                const poly = L.polygon(latLngs, {
+                  color: polyColor,
+                  weight: isZoneSelected ? 3.5 : 2,
+                  dashArray: '6, 6',
+                  opacity: 0.9,
+                  fillColor: polyFill,
+                  fillOpacity: isZoneSelected ? 0.35 : 0.2,
+                  pane: 'navWarnVectorPane',
+                });
+
+                poly.bindPopup(`
+                  <div style="font-family: monospace; padding: 4px; max-width: 240px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-weight: 700; font-size: 13px; color: #1e293b;">${w.source_warning_id || w.warning_id}</span>
+                      <span style="background: #2F6B4F; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">${zoneLabel}</span>
+                    </div>
+                    <div style="font-size: 11px; color: #475569; margin-bottom: 8px; line-height: 1.3;">${w.title || w.area_text || w.raw_text}</div>
+                    <div style="font-size: 10px; color: #0284c7; font-weight: 600;">Area: ${areaSqNm} sq NM</div>
+                  </div>
+                `);
+
+                poly.bindTooltip(`${zoneLabel} (${areaSqNm} sq NM)`, { direction: 'center' });
+                poly.on('click', () => {
+                  setSelectedZoneLabel(zoneLabel);
+                  onSelectWarning(w);
+                });
+                vectorGroup.addLayer(poly);
+              }
+            } catch {
+              // fallback
+            }
+          });
+        }
+
         // 2. Circular hazard exclusion buffers
         if (w.spatial?.circles) {
           const circleStyle = {
@@ -1008,7 +1062,6 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         }
 
         // 6. Relocation displacement rendering (Phase 2.2)
-        const parsedGeom = extractGeometry(w.raw_text || '');
         if (parsedGeom.geometry.archetype === 'relocation' && parsedGeom.geometry.displacementVector) {
           try {
             const fromPoint: [number, number] = [
