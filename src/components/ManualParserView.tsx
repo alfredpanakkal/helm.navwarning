@@ -216,7 +216,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
               <button
                 type="button"
                 onClick={() => setAiFallbackModal(null)}
-                className="px-4 py-2 bg-gw-primary text-gw-bg text-xs font-bold rounded-xl hover:bg-gw-accent transition-colors"
+                className="px-4 py-2 bg-gw-primary text-gw-bg text-xs font-medium rounded hover:bg-gw-accent transition-colors"
               >
                 Acknowledge & View Results
               </button>
@@ -332,7 +332,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     `NAVAREA III 0102/26 WESTERN MEDITERRANEAN SEA. GUNNERY EXERCISES 150000 UTC TO 182359 UTC SEP IN AREA BOUNDED BY 37-12N 009-45E, 37-25N 010-10E, 37-05N 010-20E. SHIPS TO KEEP SAFE DISTANCE.\n---\nNAVAREA III 0103/26 EASTERN MEDITERRANEAN. CABLE LAYING OPERATIONS BY C/S DEPENDABLE FROM 20 SEP TO 30 SEP ALONG TRACK: 34-10N 032-15E TO 33-50N 033-05E. 1NM BERTH REQUESTED.`
                   )
                 }
-                className="touch-hit text-xs text-gw-accent hover:text-gw-primary transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-gw-accent hover:text-gw-primary transition-colors underline font-mono font-medium uppercase text-left"
               >
                 Sample Bulk Text
               </button>
@@ -345,7 +345,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setNavarea('XI');
                   setParseMode('jhod_structured');
                 }}
-                className="touch-hit text-xs text-indigo-700 hover:text-indigo-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-indigo-700 hover:text-indigo-900 transition-colors underline font-mono font-medium uppercase text-left"
               >
                 🇯🇵 Sample JHOD NAVAREA XI Telex
               </button>
@@ -357,7 +357,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setParseMode('jhod_structured');
                   setViewMode('table');
                 }}
-                className="touch-hit text-xs text-emerald-700 hover:text-emerald-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-emerald-700 hover:text-emerald-900 transition-colors underline font-mono font-medium uppercase text-left"
               >
                 🇯🇵 Load Complete 19-Notice NAVAREA XI Feed
               </button>
@@ -370,7 +370,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setNavarea('XI');
                   setParseMode('regex');
                 }}
-                className="touch-hit text-xs text-rose-700 hover:text-rose-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-rose-700 hover:text-rose-900 transition-colors underline font-mono font-medium uppercase text-left"
                 title="Tests strict quarantine when coordinate is missing both hemisphere letters"
               >
                 🛡️ Test Missing Hemisphere (Quarantine)
@@ -384,7 +384,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setNavarea('XI');
                   setParseMode('regex');
                 }}
-                className="touch-hit text-xs text-amber-700 hover:text-amber-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-amber-700 hover:text-amber-900 transition-colors underline font-mono font-medium uppercase text-left"
                 title="Tests strict quarantine when coordinate has latitude hemisphere but lacks longitude hemisphere"
               >
                 🛡️ Test Partial Hemisphere (Quarantine)
@@ -398,7 +398,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   setNavarea('XI');
                   setParseMode('regex');
                 }}
-                className="touch-hit text-xs text-blue-700 hover:text-blue-900 transition-colors underline font-mono font-bold uppercase text-left"
+                className="touch-hit text-xs text-blue-700 hover:text-blue-900 transition-colors underline font-mono font-medium uppercase text-left"
                 title="Tests broadened radius regex converting 500 metres to 0.270 NM"
               >
                 📏 Test Metric Radius (500m → 0.270 NM)
@@ -408,7 +408,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
             <button
               type="submit"
               disabled={isParsing}
-              className="flex items-center justify-center gap-2 bg-gw-primary hover:bg-gw-accent text-gw-secondary font-bold text-xs uppercase tracking-wider px-5 py-2.5 rounded transition-all disabled:opacity-50 shadow-sm"
+              className="flex items-center justify-center gap-2 bg-gw-primary hover:bg-gw-accent text-gw-secondary font-medium text-xs uppercase tracking-wider px-5 py-2.5 rounded transition-all disabled:opacity-50 "
             >
               <Sparkles className="w-4 h-4" />
               <span>{isParsing ? 'Parsing & Extracting...' : 'Parse & Extract Geometry'}</span>
@@ -469,9 +469,9 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setViewMode('table')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${
-                        viewMode === 'table' ? 'bg-gw-primary text-gw-secondary shadow-sm' : 'text-gw-accent hover:text-gw-primary'
-                      }`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+ viewMode === 'table' ? 'bg-gw-primary text-gw-secondary ' : 'text-gw-accent hover:text-gw-primary'
+ }`}
                     >
                       <TableIcon className="w-3.5 h-3.5" />
                       <span>Table</span>
@@ -479,9 +479,9 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setViewMode('cards')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all ${
-                        viewMode === 'cards' ? 'bg-gw-primary text-gw-secondary shadow-sm' : 'text-gw-accent hover:text-gw-primary'
-                      }`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+ viewMode === 'cards' ? 'bg-gw-primary text-gw-secondary ' : 'text-gw-accent hover:text-gw-primary'
+ }`}
                     >
                       <LayoutGrid className="w-3.5 h-3.5" />
                       <span>Cards</span>
@@ -492,7 +492,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     type="button"
                     onClick={() => handleSaveToSupabase(parsedResults)}
                     disabled={isSavingToSupabase}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] hover:brightness-110 disabled:opacity-50 text-[var(--canvas)] rounded text-xs font-medium uppercase tracking-wider transition-colors shadow-sm"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] hover:brightness-110 disabled:opacity-50 text-[var(--canvas)] rounded text-xs font-medium uppercase tracking-wider transition-colors "
                     title="Commit all extracted warnings to Supabase"
                   >
                     {isSavingToSupabase ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
@@ -714,7 +714,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                               <button
                                 type="button"
                                 onClick={() => setInspectedWarning(w)}
-                                className="px-2 py-1 bg-gw-bg hover:bg-gw-primary hover:text-gw-secondary text-gw-primary text-[11px] font-bold rounded border border-gw-primary transition-colors"
+                                className="px-2 py-1 bg-gw-bg hover:bg-gw-primary hover:text-gw-secondary text-gw-primary text-[11px] font-medium rounded border border-gw-primary transition-colors"
                                 title="Inspect attributes and ECDIS feature editor"
                               >
                                 <Eye className="w-3.5 h-3.5" />
@@ -722,7 +722,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                               <button
                                 type="button"
                                 onClick={() => onSelectWarning(w)}
-                                className="px-2 py-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary text-[11px] font-bold rounded transition-colors"
+                                className="px-2 py-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary text-[11px] font-medium rounded transition-colors"
                                 title="Inspect in Data Bank & Cartographic Map"
                               >
                                 <ArrowRight className="w-3.5 h-3.5" />
@@ -898,7 +898,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                         type="button"
                         onClick={() => handleSaveToSupabase([parsedResult])}
                         disabled={isSavingToSupabase}
-                        className="flex-1 bg-[var(--accent)] hover:brightness-110 disabled:opacity-50 text-[var(--canvas)] font-medium text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-2 shadow-sm"
+                        className="flex-1 bg-[var(--accent)] hover:brightness-110 disabled:opacity-50 text-[var(--canvas)] font-medium text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-2 "
                         title="Saves this warning directly to Supabase nav_warnings table"
                       >
                         {isSavingToSupabase ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
@@ -908,7 +908,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                       <button
                         type="button"
                         onClick={() => onSelectWarning(parsedResult)}
-                        className="flex-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary font-bold text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-2 shadow-sm"
+                        className="flex-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary font-medium text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-2 "
                       >
                         <span>Inspect in Bank & Map</span>
                         <ArrowRight className="w-4 h-4" />
@@ -943,7 +943,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setInspectedWarning(null)}
-                    className="p-1 rounded-lg hover:bg-gw-bg text-gw-primary transition-colors"
+                    className="p-1 rounded hover:bg-gw-bg text-gw-primary transition-colors"
                     aria-label="Close"
                   >
                     <X className="w-5 h-5" />
@@ -1054,7 +1054,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                       handleSaveToSupabase([inspectedWarning]);
                     }}
                     disabled={isSavingToSupabase}
-                    className="flex-1 bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] font-medium text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                    className="flex-1 bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] font-medium text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-1.5 "
                   >
                     <Database className="w-4 h-4" />
                     <span>Save to Supabase</span>
@@ -1066,7 +1066,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                       onSelectWarning(inspectedWarning);
                       setInspectedWarning(null);
                     }}
-                    className="flex-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary font-bold text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                    className="flex-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary font-medium text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-1.5 "
                   >
                     <span>Inspect in Bank & Map</span>
                     <ArrowRight className="w-4 h-4" />
@@ -1075,7 +1075,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setInspectedWarning(null)}
-                    className="px-4 py-2.5 bg-gw-bg hover:bg-gw-secondary text-gw-primary font-bold text-xs uppercase tracking-wider rounded border border-gw-primary transition-colors"
+                    className="px-4 py-2.5 bg-gw-bg hover:bg-gw-secondary text-gw-primary font-medium text-xs uppercase tracking-wider rounded border border-gw-primary transition-colors"
                   >
                     Close
                   </button>

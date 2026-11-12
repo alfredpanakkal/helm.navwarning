@@ -331,7 +331,7 @@ CREATE TABLE public.raw_messages (
             type="button"
             onClick={handleTestGemini}
             disabled={isTestingGemini}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] font-medium text-xs uppercase tracking-wider rounded-lg border border-[var(--accent)] transition-colors disabled:opacity-50 shrink-0"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] font-medium text-xs uppercase tracking-wider rounded border border-[var(--accent)] transition-colors disabled:opacity-50 shrink-0"
           >
             {isTestingGemini ? (
               <RefreshCw className="w-4 h-4 animate-spin text-white" />

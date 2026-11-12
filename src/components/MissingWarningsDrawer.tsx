@@ -104,7 +104,7 @@ export const MissingWarningsDrawer: React.FC<MissingWarningsDrawerProps> = ({
             data-testid="close-drawer-btn"
             onClick={onClose}
             aria-label="Close drawer"
-            className="p-1.5 rounded-lg text-gw-accent hover:text-gw-primary hover:bg-gw-secondary/60 transition-colors cursor-pointer"
+            className="p-1.5 rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary/60 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -153,12 +153,12 @@ export const MissingWarningsDrawer: React.FC<MissingWarningsDrawerProps> = ({
                           type="button"
                           onClick={() => onFetchMissing(id)}
                           disabled={isFetching}
-                          className="px-2 py-1 bg-gw-panel border border-red-300 hover:border-red-500 text-red-700 text-[10px] font-bold rounded uppercase transition-colors cursor-pointer disabled:opacity-50"
+                          className="px-2 py-1 bg-gw-panel border border-red-300 hover:border-red-500 text-red-700 text-[10px] font-medium rounded uppercase transition-colors cursor-pointer disabled:opacity-50"
                         >
                           Fetch
                         </button>
                       ) : (
-                        <span className="text-[10px] font-mono text-red-600 font-bold uppercase">
+                        <span className="text-[10px] font-mono text-red-600 font-medium uppercase">
                           Not Ingested
                         </span>
                       )}
@@ -178,7 +178,7 @@ export const MissingWarningsDrawer: React.FC<MissingWarningsDrawerProps> = ({
               data-testid="fetch-all-missing-btn"
               onClick={() => onFetchMissing()}
               disabled={isFetching}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-gw-primary hover:bg-gw-primary/90 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-gw-primary hover:bg-gw-primary/90 text-white font-medium text-xs rounded transition-all cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
               <span>{isFetching ? 'Fetching Missing Notices...' : `Fetch All Missing (${missingIds.length})`}</span>

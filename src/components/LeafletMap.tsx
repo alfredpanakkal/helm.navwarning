@@ -1337,7 +1337,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectWarning(isolatedWarning)}
-                className="px-2.5 py-1 bg-gw-panel hover:bg-amber-100 border border-amber-500 rounded text-amber-950 font-bold uppercase text-xs transition-all"
+                className="px-2.5 py-1 bg-gw-panel hover:bg-amber-100 border border-amber-500 rounded text-amber-950 font-medium uppercase text-xs transition-all"
               >
                 Details
               </button>
@@ -1345,7 +1345,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 <button
                   type="button"
                   onClick={onClearIsolation}
-                  className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold uppercase text-xs transition-all shadow-xs"
+                  className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-medium uppercase text-xs transition-all "
                 >
                   Show All Warnings
                 </button>
@@ -1431,11 +1431,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     key={scope}
                     type="button"
                     onClick={() => setScopeFilter(scope)}
-                    className={`py-1 text-xs font-bold uppercase rounded text-center transition-all ${
-                      scopeFilter === scope
-                        ? 'bg-gw-primary text-gw-bg shadow-xs'
-                        : 'text-gw-accent hover:text-gw-primary hover:bg-gw-bg'
-                    }`}
+                    className={`py-1 text-xs font-medium uppercase rounded text-center transition-all ${
+ scopeFilter === scope
+ ? 'bg-gw-primary text-gw-bg '
+ : 'text-gw-accent hover:text-gw-primary hover:bg-gw-bg'
+ }`}
                   >
                     {scope === 'all' ? 'All' : scope === 'navarea' ? 'Nav' : 'Coast'}
                   </button>
@@ -1455,11 +1455,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     key={sev}
                     type="button"
                     onClick={() => setFilterSeverity(sev)}
-                    className={`py-1 text-xs uppercase font-bold rounded transition-all text-center ${
-                      filterSeverity === sev
-                        ? 'bg-gw-primary text-gw-bg'
-                        : 'text-gw-accent hover:text-gw-primary hover:bg-gw-panel'
-                    }`}
+                    className={`py-1 text-xs uppercase font-medium rounded transition-all text-center ${
+ filterSeverity === sev
+ ? 'bg-gw-primary text-gw-bg'
+ : 'text-gw-accent hover:text-gw-primary hover:bg-gw-panel'
+ }`}
                   >
                     {sev === 'critical' ? 'Crit' : sev === 'moderate' ? 'Mod' : sev.slice(0, 4)}
                   </button>
@@ -1506,7 +1506,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 setFilterSeverity('all');
                 setSearchQuery('');
               }}
-              className="flex items-center gap-1 text-xs font-bold uppercase text-gw-accent hover:text-gw-primary"
+              className="flex items-center gap-1 text-xs font-medium uppercase text-gw-accent hover:text-gw-primary"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Reset Filters</span>
@@ -1974,7 +1974,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   onEditWarning(contextMenu.targetWarning!);
                   closeContextMenu();
                 }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-gw-primary/10 text-gw-primary transition-all font-bold text-left text-[11px] border-t border-gw-secondary mt-0.5 pt-2"
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-gw-primary/10 text-gw-primary transition-all font-medium text-left text-[11px] border-t border-gw-secondary mt-0.5 pt-2"
               >
                 <Edit3 className="w-3.5 h-3.5 text-gw-primary" />
                 <span>Edit Warning (Admin)</span>
@@ -2009,7 +2009,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               <button
                 type="button"
                 onClick={unhideAllWarnings}
-                className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-400 rounded text-[10px] font-bold uppercase transition-all"
+                className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-400 rounded text-[10px] font-medium uppercase transition-all"
                 title="Restore all hidden layers"
               >
                 <Eye className="w-3 h-3 text-amber-700" />
@@ -2034,10 +2034,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                     type="button"
                     onClick={() => setScopeFilter(scope)}
                     className={`px-2 py-0.5 rounded transition-all ${
-                      scopeFilter === scope
-                        ? 'bg-gw-primary text-gw-bg shadow-xs'
-                        : 'text-gw-accent hover:text-gw-primary'
-                    }`}
+ scopeFilter === scope
+ ? 'bg-gw-primary text-gw-bg '
+ : 'text-gw-accent hover:text-gw-primary'
+ }`}
                   >
                     {scope === 'all' ? 'All' : scope === 'navarea' ? 'NAVAREA' : 'Coastal'}
                   </button>
@@ -2156,10 +2156,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                                 toggleWarningVisibility(w.warning_id);
                               }}
                               className={`p-1 rounded transition-colors ${
-                                isHidden
-                                  ? 'text-amber-700 hover:bg-amber-100'
-                                  : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
-                              }`}
+ isHidden
+ ? 'text-amber-700 hover:bg-amber-100'
+ : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
+ }`}
                               title={isHidden ? 'Unhide layer on map' : 'Hide layer from map'}
                               aria-label={isHidden ? 'Unhide layer on map' : 'Hide layer from map'}
                             >
@@ -2215,7 +2215,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                             <button
                               type="button"
                               onClick={() => centerOnWarningArea(w)}
-                              className="flex items-center gap-1 px-2.5 py-1 bg-gw-panel border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-white transition-colors"
+                              className="flex items-center gap-1 px-2.5 py-1 bg-gw-panel border border-gw-primary text-gw-primary rounded text-[10px] font-medium uppercase hover:bg-gw-primary hover:text-white transition-colors"
                               title="Center map on hazard coordinates"
                             >
                               <MapPin className="w-3 h-3" />
@@ -2225,7 +2225,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                             <button
                               type="button"
                               onClick={() => onSelectWarning(w)}
-                              className="flex items-center gap-1 px-2.5 py-1 bg-gw-panel border border-gw-secondary text-gw-accent hover:border-gw-primary hover:text-gw-primary rounded text-[10px] font-bold uppercase transition-colors"
+                              className="flex items-center gap-1 px-2.5 py-1 bg-gw-panel border border-gw-secondary text-gw-accent hover:border-gw-primary hover:text-gw-primary rounded text-[10px] font-medium uppercase transition-colors"
                               title="Open full provenance and audit modal"
                             >
                               <ExternalLink className="w-3 h-3" />
@@ -2237,7 +2237,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                               <button
                                 type="button"
                                 onClick={() => onEditWarning(w)}
-                                className="flex items-center gap-1 px-2.5 py-1 bg-gw-primary text-gw-bg rounded text-[10px] font-bold uppercase hover:bg-gw-tertiary transition-colors shadow-xs"
+                                className="flex items-center gap-1 px-2.5 py-1 bg-gw-primary text-gw-bg rounded text-[10px] font-medium uppercase hover:bg-gw-tertiary transition-colors "
                                 title="Open admin warning editor"
                               >
                                 <Edit3 className="w-3 h-3 text-sky-300" />

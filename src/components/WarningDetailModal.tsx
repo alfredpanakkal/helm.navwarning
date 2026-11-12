@@ -272,7 +272,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Close modal"
-              className="text-gw-accent hover:text-gw-primary font-bold text-xl p-1.5 rounded-lg hover:bg-gw-secondary transition-colors shrink-0"
+              className="text-gw-accent hover:text-gw-primary font-medium text-xl p-1.5 rounded hover:bg-gw-secondary transition-colors shrink-0"
               title="Close modal (Esc)"
             >
               ✕
@@ -284,11 +284,11 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('message')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all shadow-xs ${
-                activeTab === 'message'
-                  ? 'bg-gw-primary text-gw-bg shadow-sm'
-                  : 'bg-secondary text-gw-primary border-primary hover:bg-gw-bg'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-medium uppercase transition-all ${
+ activeTab === 'message'
+ ? 'bg-gw-primary text-gw-bg '
+ : 'bg-secondary text-gw-primary border-primary hover:bg-gw-bg'
+ }`}
             >
               <FileText className="w-4 h-4" />
               <span>Tab 1: Message</span>
@@ -297,11 +297,11 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('geometry')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all shadow-xs ${
-                activeTab === 'geometry'
-                  ? 'bg-gw-primary text-gw-bg shadow-sm'
-                  : 'bg-secondary text-gw-primary border-primary hover:bg-gw-bg'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-medium uppercase transition-all ${
+ activeTab === 'geometry'
+ ? 'bg-gw-primary text-gw-bg '
+ : 'bg-secondary text-gw-primary border-primary hover:bg-gw-bg'
+ }`}
             >
               <MapPin className="w-4 h-4" />
               <span>Tab 2: Geometry</span>
@@ -313,11 +313,11 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('ecdis')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
-                activeTab === 'ecdis'
-                  ? 'bg-gw-primary text-gw-bg'
-                  : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
-              }`}
+              className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-medium uppercase transition-all ${
+ activeTab === 'ecdis'
+ ? 'bg-gw-primary text-gw-bg'
+ : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
+ }`}
             >
               <Edit3 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">ECDIS Layer</span>
@@ -326,11 +326,11 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('audit')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
-                activeTab === 'audit'
-                  ? 'bg-gw-primary text-gw-bg'
-                  : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
-              }`}
+              className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-medium uppercase transition-all ${
+ activeTab === 'audit'
+ ? 'bg-gw-primary text-gw-bg'
+ : 'text-gw-accent hover:text-gw-primary hover:bg-gw-secondary'
+ }`}
               title="Read-only audit trail for this warning (nav_warning_audits)"
             >
               <History className="w-3.5 h-3.5" />
@@ -354,7 +354,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleCopy(getWarningBulletinText(warning), 'raw')}
-                    className="flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg hover:bg-gw-primary hover:text-gw-bg border border-gw-primary rounded text-xs font-mono font-bold uppercase transition-all"
+                    className="flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg hover:bg-gw-primary hover:text-gw-bg border border-gw-primary rounded text-xs font-mono font-medium uppercase transition-all"
                   >
                     {copiedType === 'raw' ? (
                       <>
@@ -514,9 +514,9 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                     }}
                     disabled={!(warning as any).db_uuid}
                     title={(warning as any).db_uuid ? 'Copy Supabase row id' : 'No Supabase row id on this record'}
-                    className={`max-w-full truncate inline-block px-2 py-0.5 bg-gw-panel border rounded font-bold ${
-                      copiedType === 'uuid' ? 'text-emerald-700 border-emerald-300' : 'text-gw-primary border-gw-secondary hover:text-gw-accent'
-                    }`}
+                    className={`max-w-full truncate inline-block px-2 py-0.5 bg-gw-panel border rounded font-medium ${
+ copiedType === 'uuid' ? 'text-emerald-700 border-emerald-300' : 'text-gw-primary border-gw-secondary hover:text-gw-accent'
+ }`}
                   >
                     {(warning as any).db_uuid ? (copiedType === 'uuid' ? 'Copied!' : (warning as any).db_uuid) : '—'}
                   </button>
@@ -715,7 +715,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase rounded-lg shadow-xs transition-all"
+                className="flex items-center gap-1.5 px-3 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase rounded transition-all"
               >
                 <Download className="w-3.5 h-3.5 text-gw-primary" />
                 <span>Export Geometry</span>
@@ -730,7 +730,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                   <button
                     type="button"
                     onClick={handleExportGeoJSON}
-                    className="w-full text-left px-2.5 py-1.5 hover:bg-gw-bg rounded text-gw-primary font-bold flex items-center justify-between transition-colors"
+                    className="w-full text-left px-2.5 py-1.5 hover:bg-gw-bg rounded text-gw-primary font-medium flex items-center justify-between transition-colors"
                   >
                     <span>GeoJSON (.geojson)</span>
                     <Code className="w-3.5 h-3.5 text-gw-accent" />
@@ -738,7 +738,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                   <button
                     type="button"
                     onClick={handleExportKML}
-                    className="w-full text-left px-2.5 py-1.5 hover:bg-gw-bg rounded text-gw-primary font-bold flex items-center justify-between transition-colors"
+                    className="w-full text-left px-2.5 py-1.5 hover:bg-gw-bg rounded text-gw-primary font-medium flex items-center justify-between transition-colors"
                   >
                     <span>Google Earth KML (.kml)</span>
                     <Globe className="w-3.5 h-3.5 text-gw-accent" />
@@ -746,7 +746,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                   <button
                     type="button"
                     onClick={handleExportTextCoords}
-                    className="w-full text-left px-2.5 py-1.5 hover:bg-gw-bg rounded text-gw-primary font-bold flex items-center justify-between transition-colors"
+                    className="w-full text-left px-2.5 py-1.5 hover:bg-gw-bg rounded text-gw-primary font-medium flex items-center justify-between transition-colors"
                   >
                     <span>Plain Coordinate List (.txt)</span>
                     <FileText className="w-3.5 h-3.5 text-gw-accent" />
@@ -780,7 +780,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                   if (onClearIsolation) onClearIsolation();
                   onClose();
                 }}
-                className="flex items-center gap-1.5 px-3 py-2 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)] font-medium text-xs uppercase rounded-lg transition-all shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-2 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)] font-medium text-xs uppercase rounded transition-all "
                 title="Exit Isolation Mode and show all warnings on map"
               >
                 <Filter className="w-3.5 h-3.5 text-[var(--accent)]" />
@@ -793,7 +793,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                   if (onIsolateWarning) onIsolateWarning(warning);
                   onClose();
                 }}
-                className="flex items-center gap-1.5 px-3 py-2 bg-transparent border border-[var(--ink)]/30 text-[var(--ink)] hover:bg-[var(--ink)]/5 font-medium text-xs uppercase rounded-lg transition-all shadow-xs tracking-wider"
+                className="flex items-center gap-1.5 px-3 py-2 bg-transparent border border-[var(--ink)]/30 text-[var(--ink)] hover:bg-[var(--ink)]/5 font-medium text-xs uppercase rounded transition-all tracking-wider"
                 title="Filter map to show only this warning's polygon/corridor and zoom to bounds"
               >
                 <Crosshair className="w-3.5 h-3.5" />
@@ -808,7 +808,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 onClick={onPrevious}
                 disabled={!hasPrevious}
                 title="Previous unverified candidate in queue"
-                className="flex items-center gap-1 px-2.5 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase rounded-lg transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-2.5 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase rounded transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>Prev</span>
@@ -820,7 +820,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 onClick={onNext}
                 disabled={!hasNext}
                 title="Next unverified candidate in queue"
-                className="flex items-center gap-1 px-2.5 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase rounded-lg transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-2.5 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase rounded transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span>Next</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -832,7 +832,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 onClick={handleVerifyClick}
                 disabled={verifyPending}
                 title="Mark this warning verified (audited VERIFY write)"
-                className="bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] font-medium text-xs uppercase tracking-wider px-3 py-2 rounded-lg transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] font-medium text-xs uppercase tracking-wider px-3 py-2 rounded transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>{verifyPending ? 'Verifying…' : 'Verify'}</span>
@@ -844,7 +844,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 type="button"
                 onClick={() => onEditWarning(warning)}
                 title="Edit this warning (admin) — type, time/expiry, status, tier, geometry, NAVAREA move"
-                className="flex items-center gap-1.5 px-3 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase rounded-lg transition-all shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-2 bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase rounded transition-all "
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit</span>
@@ -860,7 +860,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase tracking-wider px-4 py-2 rounded-lg transition-all shadow-xs"
+              className="bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-medium text-xs uppercase tracking-wider px-4 py-2 rounded transition-all "
             >
               Close
             </button>

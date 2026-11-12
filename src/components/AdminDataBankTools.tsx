@@ -328,7 +328,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-input hover:border-hairline hover:bg-surface text-ink-secondary hover:text-ink-primary font-medium text-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-border-input hover:border-hairline hover:bg-surface text-ink-secondary hover:text-ink-primary font-medium text-xs transition-colors cursor-pointer"
             aria-expanded={isExpanded}
           >
             <span>{isExpanded ? 'Hide Tools' : 'Open Tools'}</span>
@@ -428,7 +428,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
                 type="button"
                 onClick={runBulkEdit}
                 disabled={bulkRunning || checked.size === 0}
-                className="px-4 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-1.5 min-h-[36px] cursor-pointer shrink-0"
+                className="px-4 py-1.5 bg-accent text-white rounded text-xs font-medium hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-1.5 min-h-[36px] cursor-pointer shrink-0"
               >
                 {bulkRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                 <span>{bulkRunning ? 'Applying Changes…' : `Apply to ${checked.size} Selected`}</span>
@@ -462,7 +462,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
                 <button
                   type="button"
                   onClick={exportAsCsv}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-canvas border border-border-input hover:border-hairline hover:bg-surface-subtle rounded-lg text-xs font-medium text-ink-primary transition-colors cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-canvas border border-border-input hover:border-hairline hover:bg-surface-subtle rounded text-xs font-medium text-ink-primary transition-colors cursor-pointer"
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5 text-accent" />
                   <span>CSV</span>
@@ -470,7 +470,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
                 <button
                   type="button"
                   onClick={exportAsGeoJson}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-canvas border border-border-input hover:border-hairline hover:bg-surface-subtle rounded-lg text-xs font-medium text-ink-primary transition-colors cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-canvas border border-border-input hover:border-hairline hover:bg-surface-subtle rounded text-xs font-medium text-ink-primary transition-colors cursor-pointer"
                 >
                   <MapPin className="w-3.5 h-3.5 text-accent" />
                   <span>GeoJSON</span>
@@ -478,7 +478,7 @@ export const AdminDataBankTools: React.FC<AdminDataBankToolsProps> = ({ warnings
                 <button
                   type="button"
                   onClick={exportAsKml}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-canvas border border-border-input hover:border-hairline hover:bg-surface-subtle rounded-lg text-xs font-medium text-ink-primary transition-colors cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-canvas border border-border-input hover:border-hairline hover:bg-surface-subtle rounded text-xs font-medium text-ink-primary transition-colors cursor-pointer"
                 >
                   <Globe className="w-3.5 h-3.5 text-accent" />
                   <span>KML</span>

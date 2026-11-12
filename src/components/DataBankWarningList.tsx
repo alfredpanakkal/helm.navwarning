@@ -239,7 +239,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                                 e.stopPropagation();
                                 onLocate(w);
                               }}
-                              className="flex items-center gap-1 px-2 py-1 bg-gw-panel border border-gw-primary text-gw-primary rounded text-[10px] font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
+                              className="flex items-center gap-1 px-2 py-1 bg-gw-panel border border-gw-primary text-gw-primary rounded text-[10px] font-medium uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
                             >
                               <Locate className="w-3 h-3" />
                               <span>View on map</span>
@@ -252,7 +252,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                               }}
                               aria-expanded={isExpanded}
                               aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
-                              className="flex items-center gap-1 px-2 py-1 bg-gw-panel border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:border-gw-primary hover:text-gw-primary transition-colors"
+                              className="flex items-center gap-1 px-2 py-1 bg-gw-panel border border-gw-secondary text-gw-accent rounded text-[10px] font-medium uppercase hover:border-gw-primary hover:text-gw-primary transition-colors"
                             >
                               <span>Details</span>
                               {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -333,7 +333,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                                 handleVerify(w.warning_id);
                               }}
                               disabled={verifyingIds.has(w.warning_id)}
-                              className="px-2.5 py-1.5 bg-[var(--accent)] text-[var(--canvas)] hover:brightness-110 rounded-lg text-[10px] font-medium uppercase transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="px-2.5 py-1.5 bg-[var(--accent)] text-[var(--canvas)] hover:brightness-110 rounded text-[10px] font-medium uppercase transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               ✓ Verify
                             </button>
@@ -344,7 +344,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                               e.stopPropagation();
                               onLocate(w);
                             }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-primary text-gw-bg rounded-lg text-[10px] font-bold uppercase hover:bg-gw-accent transition-colors shadow-xs"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-primary text-gw-bg rounded text-[10px] font-medium uppercase hover:bg-gw-accent transition-colors "
                           >
                             <Locate className="w-3 h-3" />
                             <span>Locate</span>
@@ -437,7 +437,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             <button
               type="button"
               onClick={handleResetFilters}
-              className="px-3 py-1.5 bg-gw-primary text-gw-bg rounded text-xs font-bold hover:bg-gw-accent transition-colors"
+              className="px-3 py-1.5 bg-gw-primary text-gw-bg rounded text-xs font-medium hover:bg-gw-accent transition-colors"
             >
               Reset Filters
             </button>
@@ -554,7 +554,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         e.stopPropagation();
                         onLocate(w);
                       }}
-                      className="flex items-center gap-1 px-2 py-1.5 bg-gw-primary text-gw-bg rounded text-[10px] font-bold uppercase transition-colors hover:bg-gw-accent"
+                      className="flex items-center gap-1 px-2 py-1.5 bg-gw-primary text-gw-bg rounded text-[10px] font-medium uppercase transition-colors hover:bg-gw-accent"
                       title="Locate on Map"
                     >
                       <Locate className="w-3 h-3" />
@@ -625,8 +625,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                               e.stopPropagation();
                               handleCopyFeedback(`${w.source_warning_id || w.warning_id}:coords`, formatSpatialCoordinates(w.spatial));
                             }}
-                            className={`touch-hit text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
-                              copiedKey === `${w.source_warning_id || w.warning_id}:coords` ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
+                            className={`touch-hit text-[10px] font-medium uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
+ copiedKey === `${w.source_warning_id || w.warning_id}:coords` ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
                             }`}
                           >
                             {copiedKey === `${w.source_warning_id || w.warning_id}:coords` ? 'Copied!' : 'Copy Coords'}
@@ -657,8 +657,8 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                             e.stopPropagation();
                             handleCopyFeedback(`${w.source_warning_id || w.warning_id}:raw`, getWarningBulletinText(w));
                           }}
-                          className={`touch-hit text-[10px] font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
-                            copiedKey === `${w.source_warning_id || w.warning_id}:raw` ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
+                          className={`touch-hit text-[10px] font-medium uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
+ copiedKey === `${w.source_warning_id || w.warning_id}:raw` ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
                           }`}
                         >
                           {copiedKey === `${w.source_warning_id || w.warning_id}:raw` ? 'Copied!' : 'Copy Raw Telemetry'}
@@ -701,10 +701,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 type="button"
                 onClick={() => handleSort(field)}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded transition-all font-mono cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent,#2b6e8c)] ${
-                  sortField === field
-                    ? 'border border-[var(--border-chip-on,#b0bcc9)] bg-[var(--surface-subtle,#fafbfc)] text-[var(--ink-primary,#0b0e11)] font-medium'
-                    : 'text-[var(--ink-secondary,#5f6b7a)] hover:text-[var(--ink-primary,#0b0e11)]'
-                }`}
+ sortField === field
+ ? 'border border-[var(--border-chip-on,#b0bcc9)] bg-[var(--surface-subtle,#fafbfc)] text-[var(--ink-primary,#0b0e11)] font-medium'
+ : 'text-[var(--ink-secondary,#5f6b7a)] hover:text-[var(--ink-primary,#0b0e11)]'
+ }`}
                 title={getSortLabel(field, field === 'area' ? 'NAVAREA' : label)}
                 aria-sort={sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
               >
@@ -737,10 +737,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             type="button"
             onClick={() => handleSort('id')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
-              sortField === 'id'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
-            }`}
+ sortField === 'id'
+ ? 'bg-gw-bg/20 text-gw-bg font-medium ring-1 ring-gw-bg/40 '
+ : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
+ }`}
             title={getSortLabel('id', 'Warning ID')}
             aria-sort={sortField === 'id' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
           >
@@ -761,10 +761,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             type="button"
             onClick={() => handleSort('area')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
-              sortField === 'area'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
-            }`}
+ sortField === 'area'
+ ? 'bg-gw-bg/20 text-gw-bg font-medium ring-1 ring-gw-bg/40 '
+ : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
+ }`}
             title={getSortLabel('area', 'NAVAREA')}
             aria-sort={sortField === 'area' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
           >
@@ -785,10 +785,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             type="button"
             onClick={() => handleSort('title')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
-              sortField === 'title'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
-            }`}
+ sortField === 'title'
+ ? 'bg-gw-bg/20 text-gw-bg font-medium ring-1 ring-gw-bg/40 '
+ : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
+ }`}
             title={getSortLabel('title', 'Title & Summary')}
             aria-sort={sortField === 'title' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
           >
@@ -809,10 +809,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             type="button"
             onClick={() => handleSort('severity')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
-              sortField === 'severity'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
-            }`}
+ sortField === 'severity'
+ ? 'bg-gw-bg/20 text-gw-bg font-medium ring-1 ring-gw-bg/40 '
+ : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
+ }`}
             title={getSortLabel('severity', 'Severity & Confidence')}
             aria-sort={sortField === 'severity' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
           >
@@ -833,10 +833,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             type="button"
             onClick={() => handleSort('coords')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
-              sortField === 'coords'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
-            }`}
+ sortField === 'coords'
+ ? 'bg-gw-bg/20 text-gw-bg font-medium ring-1 ring-gw-bg/40 '
+ : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
+ }`}
             title={getSortLabel('coords', 'Coordinates')}
             aria-sort={sortField === 'coords' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
           >
@@ -857,10 +857,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             type="button"
             onClick={() => handleSort('issued')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
-              sortField === 'issued'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
-            }`}
+ sortField === 'issued'
+ ? 'bg-gw-bg/20 text-gw-bg font-medium ring-1 ring-gw-bg/40 '
+ : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
+ }`}
             title={getSortLabel('issued', 'Issued Date')}
             aria-sort={sortField === 'issued' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
           >
@@ -881,10 +881,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
             type="button"
             onClick={() => handleSort('status')}
             className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-left transition-all font-mono group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-bg ${
-              sortField === 'status'
-                ? 'bg-gw-bg/20 text-gw-bg font-black ring-1 ring-gw-bg/40 shadow-xs'
-                : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
-            }`}
+ sortField === 'status'
+ ? 'bg-gw-bg/20 text-gw-bg font-medium ring-1 ring-gw-bg/40 '
+ : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
+ }`}
             title={getSortLabel('status', 'Warning Status')}
             aria-sort={sortField === 'status' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
           >
@@ -1148,10 +1148,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         type="button"
                         onClick={() => shiftToPage(Number(p))}
                         className={`min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs transition-colors ${
-                          validPage === p
-                            ? 'border border-[var(--border-input,#dde2e8)] bg-[var(--surface-subtle,#fafbfc)] text-[var(--ink-primary,#0b0e11)] font-medium rounded-[6px]'
-                            : 'text-[var(--ink-faint,#b0bcc9)] hover:text-[var(--ink-primary,#0b0e11)] bg-transparent'
-                        }`}
+ validPage === p
+ ? 'border border-[var(--border-input,#dde2e8)] bg-[var(--surface-subtle,#fafbfc)] text-[var(--ink-primary,#0b0e11)] font-medium rounded-[6px]'
+ : 'text-[var(--ink-faint,#b0bcc9)] hover:text-[var(--ink-primary,#0b0e11)] bg-transparent'
+ }`}
                       >
                         {p}
                       </button>

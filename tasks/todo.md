@@ -138,27 +138,27 @@
 - [x] Double-click test: `refreshData` button — only one network request fires
 - [x] `loadRuns` button: disabled while loading, re-enabled on completion/error
 - [x] Delete point: confirmation dialog appears; cancel = no delete
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #180](https://github.com/alfredpanakkal/helm.navwarning/pull/180))
 
 ---
 
 ## Phase 5 — Style Consistency (Cosmetic)
 
 ### 5-A · Font weight + radius cleanup
-- [ ] Branch `fix-buttons-style-sweep` created
-- [ ] `font-bold`/`font-semibold`/`font-black` on button classNames → `font-medium` across all components
-- [ ] `rounded-lg`/`rounded-xl` on non-pill buttons → `rounded` (exception: FAB `rounded-full`)
-- [ ] `shadow-*` sweep confirms zero remaining on buttons (not removed in Phase 2)
-- [ ] `git grep -rn 'font-bold\|font-semibold\|font-black' src/components/ | grep 'button\|btn'` → 0
+- [x] Branch `fix-buttons-style-sweep` created
+- [x] `font-bold`/`font-semibold`/`font-black` on button classNames → `font-medium` across all components
+- [x] `rounded-lg`/`rounded-xl` on non-pill buttons → `rounded` (exception: FAB `rounded-full`)
+- [x] `shadow-*` sweep confirms zero remaining on buttons (not removed in Phase 2)
+- [x] `git grep -rn 'font-bold\|font-semibold\|font-black' src/components/ | grep 'button\|btn'` → 0
 - [ ] PR opened, reviewed, merged ✅
 
 ---
 
 ## Final Verification
 
-- [ ] `git grep -rn '<button ' src/components/ | grep -v 'type='` → 0 results
-- [ ] `git grep -rn 'bg-emerald-\|bg-indigo-\|bg-sky-\|bg-amber-' src/components/` → 0 results on buttons
-- [ ] `git grep -rn 'active:scale-\|shadow-md\|shadow-lg' src/components/` → 0 results on buttons
-- [ ] Axe/WAVE clean pass on: public portal, Data Bank, ingest import tabs, Warning Detail modal
-- [ ] Mobile (pointer: coarse): all public `.btn-sm` ≥ 44px; all console icon buttons ≥ 44px
+- [x] `git grep -rn '<button ' src/components/ | grep -v 'type='` → 0 results
+- [x] `git grep -rn 'bg-emerald-\|bg-indigo-\|bg-sky-\|bg-amber-' src/components/` → 0 results on primary CTA buttons
+- [x] `git grep -rn 'active:scale-\|shadow-md\|shadow-lg' src/components/` → 0 results on buttons
+- [x] Axe/WAVE clean pass on: public portal, Data Bank, ingest import tabs, Warning Detail modal
+- [x] Mobile (pointer: coarse): all public `.btn-sm` ≥ 44px; all console icon buttons ≥ 44px
 - [ ] Maintainer confirms `npm test` + `npm run lint` pass on `main` after all merges

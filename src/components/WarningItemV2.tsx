@@ -231,8 +231,8 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
             disabled={!w.db_uuid}
             title={w.db_uuid ? 'Copy Supabase row id (nav_warnings.id)' : 'No Supabase row id on this record'}
             className={`touch-hit max-w-full truncate inline-block px-2 py-0.5 bg-gw-panel border border-gw-secondary rounded font-mono text-[10px] ${
-              copiedKey === 'uuid' ? 'text-emerald-700 border-emerald-300' : 'text-gw-primary hover:text-gw-accent'
-            }`}
+ copiedKey === 'uuid' ? 'text-emerald-700 border-emerald-300' : 'text-gw-primary hover:text-gw-accent'
+ }`}
           >
             {w.db_uuid ? (copiedKey === 'uuid' ? 'Copied!' : w.db_uuid) : '—'}
           </button>
@@ -246,9 +246,9 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
                 e.stopPropagation();
                 handleCopy('coords', formatSpatialCoordinates(w.spatial));
               }}
-              className={`touch-hit text-xs font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
-                copiedKey === 'coords' ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
-              }`}
+              className={`touch-hit text-xs font-medium uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
+ copiedKey === 'coords' ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
+ }`}
             >
               {copiedKey === 'coords' ? 'Copied!' : 'Copy Coords'}
             </button>
@@ -286,9 +286,9 @@ export const WarningItemDetails: React.FC<WarningItemDetailsProps> = ({ warning:
               e.stopPropagation();
               handleCopy('raw', getWarningBulletinText(w));
             }}
-            className={`touch-hit text-xs font-bold uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
-              copiedKey === 'raw' ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
-            }`}
+            className={`touch-hit text-xs font-medium uppercase underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary ${
+ copiedKey === 'raw' ? 'text-emerald-700' : 'text-gw-primary hover:text-gw-accent'
+ }`}
           >
             {copiedKey === 'raw' ? 'Copied!' : 'Copy Raw Telemetry'}
           </button>
