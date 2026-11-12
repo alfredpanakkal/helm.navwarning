@@ -107,17 +107,17 @@
 - [x] `AdminDataBankTools:353`: `bg-amber-600` → ghost `border border-[var(--accent)] text-[var(--accent)] bg-transparent hover:bg-[var(--accent)]/8`
 - [x] `font-bold`/`font-semibold` on buttons in both files → `font-medium`
 - [x] No `active:scale-*`, `shadow-*`, `indigo-*`, `amber-*` on any button in either file
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #177](https://github.com/alfredpanakkal/helm.navwarning/pull/177))
 
 ---
 
 ## Phase 3 — Touch Targets
 
 ### 3-A · Public `.btn-sm` mobile touch target
-- [ ] Branch `fix-buttons-touch-targets` created
-- [ ] `public/assets/css/components.css` after line 101: `@media (pointer: coarse) { .btn-sm { min-height: 44px; min-width: 44px; } }` added
-- [ ] Verified in Chrome DevTools: `.btn-sm` ≥ 44px on `pointer: coarse` emulation
-- [ ] Desktop layout unchanged
+- [x] Branch `fix-buttons-touch-targets` created
+- [x] `public/assets/css/components.css` after line 101: `@media (pointer: coarse) { .btn-sm { min-height: 44px; min-width: 44px; } }` added
+- [x] Verified in Chrome DevTools: `.btn-sm` ≥ 44px on `pointer: coarse` emulation
+- [x] Desktop layout unchanged
 - [ ] PR opened, reviewed, merged ✅
 
 ### 3-B · Console icon button tap targets
