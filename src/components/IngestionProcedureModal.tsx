@@ -245,11 +245,11 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
           <button
             type="button"
             onClick={() => setActiveTab('procedure')}
-            className={`px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'procedure'
-                ? 'border-gw-primary text-gw-primary'
-                : 'border-transparent text-gw-accent hover:text-gw-primary'
-            }`}
+            className={`px-3 sm:px-4 py-2 text-xs font-medium uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+ activeTab === 'procedure'
+ ? 'border-gw-primary text-gw-primary'
+ : 'border-transparent text-gw-accent hover:text-gw-primary'
+ }`}
           >
             <Layers className="w-4 h-4" />
             1. Ingestion Procedure (SOP)
@@ -257,11 +257,11 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
           <button
             type="button"
             onClick={() => setActiveTab('simulator')}
-            className={`px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'simulator'
-                ? 'border-gw-primary text-gw-primary'
-                : 'border-transparent text-gw-accent hover:text-gw-primary'
-            }`}
+            className={`px-3 sm:px-4 py-2 text-xs font-medium uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+ activeTab === 'simulator'
+ ? 'border-gw-primary text-gw-primary'
+ : 'border-transparent text-gw-accent hover:text-gw-primary'
+ }`}
           >
             <Code2 className="w-4 h-4" />
             2. Live Parser Simulator
@@ -269,11 +269,11 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
           <button
             type="button"
             onClick={() => setActiveTab('sources')}
-            className={`px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'sources'
-                ? 'border-gw-primary text-gw-primary'
-                : 'border-transparent text-gw-accent hover:text-gw-primary'
-            }`}
+            className={`px-3 sm:px-4 py-2 text-xs font-medium uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+ activeTab === 'sources'
+ ? 'border-gw-primary text-gw-primary'
+ : 'border-transparent text-gw-accent hover:text-gw-primary'
+ }`}
           >
             <Radio className="w-4 h-4" />
             3. Registered Feeds ({sources.length})
@@ -300,7 +300,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                     type="button"
                     onClick={() => onTriggerRefresh()}
                     disabled={isRefreshing}
-                    className="px-4 py-2.5 bg-gw-primary text-gw-bg text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all shadow-xs flex items-center gap-2 shrink-0 disabled:opacity-50"
+                    className="px-4 py-2.5 bg-gw-primary text-gw-bg text-xs font-medium uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-tertiary transition-all flex items-center gap-2 shrink-0 disabled:opacity-50"
                   >
                     <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     {isRefreshing ? 'Syncing...' : 'Sync Live Feeds Now'}
@@ -401,7 +401,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                     <button
                       type="button"
                       onClick={() => setActiveTab('simulator')}
-                      className="px-3.5 py-2 bg-gw-panel text-gw-primary text-xs font-bold uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-bg transition-all"
+                      className="px-3.5 py-2 bg-gw-panel text-gw-primary text-xs font-medium uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-bg transition-all"
                     >
                       Test Parser Simulator
                     </button>
@@ -436,10 +436,10 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                     type="button"
                     onClick={() => handleSelectPreset(preset)}
                     className={`px-2.5 py-1.5 text-xs rounded border transition-all ${
-                      simNavArea === preset.navarea
-                        ? 'bg-gw-primary text-gw-bg border-gw-primary font-bold shadow-xs'
-                        : 'bg-gw-panel border-gw-secondary text-gw-accent hover:text-gw-primary hover:border-gw-primary'
-                    }`}
+ simNavArea === preset.navarea
+ ? 'bg-gw-primary text-gw-bg border-gw-primary font-medium '
+ : 'bg-gw-panel border-gw-secondary text-gw-accent hover:text-gw-primary hover:border-gw-primary'
+ }`}
                   >
                     {preset.name.split(' - ')[0]}
                   </button>
@@ -569,7 +569,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                           type="button"
                           onClick={handleCommitParsed}
                           disabled={!!(parsedResult?.warning && committedId === parsedResult.warning.warning_id)}
-                          className="px-4 py-2 bg-gw-primary text-gw-bg text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-4 py-2 bg-gw-primary text-gw-bg text-xs font-medium uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-tertiary transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Download className="w-3.5 h-3.5" />
                           {parsedResult?.warning && committedId === parsedResult.warning.warning_id ? 'Notice Committed' : 'Commit Notice to Live Bank'}
@@ -635,7 +635,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                           type="button"
                           onClick={() => onTriggerRefresh(src.source_id)}
                           disabled={isRefreshing}
-                          className="p-1.5 bg-gw-bg text-gw-primary rounded border border-gw-secondary hover:border-gw-primary text-[10px] font-bold uppercase transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
+                          className="p-1.5 bg-gw-bg text-gw-primary rounded border border-gw-secondary hover:border-gw-primary text-[10px] font-medium uppercase transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
                           aria-label={`Trigger fetch for ${src.source_id}`}
                           title={`Trigger fetch for ${src.source_id}`}
                         >
@@ -659,7 +659,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 bg-gw-primary text-gw-bg text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all"
+            className="px-5 py-2 bg-gw-primary text-gw-bg text-xs font-medium uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-tertiary transition-all"
           >
             Close Procedure
           </button>

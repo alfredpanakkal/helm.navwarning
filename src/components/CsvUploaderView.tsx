@@ -879,11 +879,11 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
           aria-controls="import-panel-ai_bulk"
           onClick={() => handleTabSwitch('ai_bulk')}
           onKeyDown={(e) => handleTabKeyDown(e, 'ai_bulk')}
-          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-1 ${
-            activeImportTab === 'ai_bulk'
-              ? 'border-sky-600 text-sky-800 bg-sky-50 shadow-sm'
-              : 'border-transparent text-gw-accent hover:text-gw-primary'
-          }`}
+          className={`px-4 py-2 text-xs sm:text-sm font-medium uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-1 ${
+ activeImportTab === 'ai_bulk'
+ ? 'border-sky-600 text-sky-800 bg-sky-50 '
+ : 'border-transparent text-gw-accent hover:text-gw-primary'
+ }`}
         >
           <Bot className="w-4 h-4 text-sky-600" />
           <span>AI Bulk Ingestion & Triage</span>
@@ -900,11 +900,11 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
           aria-controls="import-panel-markdown"
           onClick={() => handleTabSwitch('markdown')}
           onKeyDown={(e) => handleTabKeyDown(e, 'markdown')}
-          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary focus-visible:ring-offset-1 ${
-            activeImportTab === 'markdown'
-              ? 'border-gw-primary text-gw-primary bg-gw-panel shadow-sm'
-              : 'border-transparent text-gw-accent hover:text-gw-primary'
-          }`}
+          className={`px-4 py-2 text-xs sm:text-sm font-medium uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary focus-visible:ring-offset-1 ${
+ activeImportTab === 'markdown'
+ ? 'border-gw-primary text-gw-primary bg-gw-panel '
+ : 'border-transparent text-gw-accent hover:text-gw-primary'
+ }`}
         >
           <FileCode className="w-4 h-4 text-emerald-600" />
           <span>Paste Markdown (.md)</span>
@@ -920,11 +920,11 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
           aria-controls="import-panel-paste"
           onClick={() => handleTabSwitch('paste')}
           onKeyDown={(e) => handleTabKeyDown(e, 'paste')}
-          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary focus-visible:ring-offset-1 ${
-            activeImportTab === 'paste'
-              ? 'border-gw-primary text-gw-primary bg-gw-panel shadow-sm'
-              : 'border-transparent text-gw-accent hover:text-gw-primary'
-          }`}
+          className={`px-4 py-2 text-xs sm:text-sm font-medium uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary focus-visible:ring-offset-1 ${
+ activeImportTab === 'paste'
+ ? 'border-gw-primary text-gw-primary bg-gw-panel '
+ : 'border-transparent text-gw-accent hover:text-gw-primary'
+ }`}
         >
           <ClipboardPaste className="w-4 h-4" />
           <span>Paste Tabular (CSV / TSV / Excel)</span>
@@ -940,11 +940,11 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
           aria-controls="import-panel-file"
           onClick={() => handleTabSwitch('file')}
           onKeyDown={(e) => handleTabKeyDown(e, 'file')}
-          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary focus-visible:ring-offset-1 ${
-            activeImportTab === 'file'
-              ? 'border-gw-primary text-gw-primary bg-gw-panel shadow-sm'
-              : 'border-transparent text-gw-accent hover:text-gw-primary'
-          }`}
+          className={`px-4 py-2 text-xs sm:text-sm font-medium uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary focus-visible:ring-offset-1 ${
+ activeImportTab === 'file'
+ ? 'border-gw-primary text-gw-primary bg-gw-panel '
+ : 'border-transparent text-gw-accent hover:text-gw-primary'
+ }`}
         >
           <FileText className="w-4 h-4" />
           <span>File Upload (.md, .csv, .zip)</span>
@@ -960,11 +960,11 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
           aria-controls="import-panel-api"
           onClick={() => handleTabSwitch('api')}
           onKeyDown={(e) => handleTabKeyDown(e, 'api')}
-          className={`px-4 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary focus-visible:ring-offset-1 ${
-            activeImportTab === 'api'
-              ? 'border-gw-primary text-gw-primary bg-gw-panel shadow-sm'
-              : 'border-transparent text-gw-accent hover:text-gw-primary'
-          }`}
+          className={`px-4 py-2 text-xs sm:text-sm font-medium uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary focus-visible:ring-offset-1 ${
+ activeImportTab === 'api'
+ ? 'border-gw-primary text-gw-primary bg-gw-panel '
+ : 'border-transparent text-gw-accent hover:text-gw-primary'
+ }`}
         >
           <Globe className="w-4 h-4" />
           <span>FreeOpenAPI Live Sync</span>
@@ -992,7 +992,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               <button
                 type="button"
                 onClick={() => setAiBulkText(SAMPLE_AI_BULK_MIXED)}
-                className="bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-300 text-xs font-bold uppercase px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors"
+                className="bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-300 text-xs font-medium uppercase px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors"
                 title="Load mixed stream with authentic notices, web cookie noise, and corrupt binary fragments"
               >
                 <Sparkles className="w-3.5 h-3.5 text-sky-600" />
@@ -1002,7 +1002,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               <button
                 type="button"
                 onClick={() => setAiBulkText(SAMPLE_AI_BULK_ARCTIC)}
-                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-300 text-xs font-bold uppercase px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors"
+                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-300 text-xs font-medium uppercase px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors"
                 title="Load high-latitude Arctic NAVAREA XVII / XVIII bulletins"
               >
                 <FileText className="w-3.5 h-3.5 text-indigo-600" />
@@ -1013,7 +1013,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 <button
                   type="button"
                   onClick={() => setAiBulkText('')}
-                  className="text-gw-accent hover:text-red-600 text-xs font-bold uppercase px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"
+                  className="text-gw-accent hover:text-red-600 text-xs font-medium uppercase px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Clear</span>
@@ -1087,7 +1087,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               type="button"
               onClick={handleAiBulkIngest}
               disabled={isProcessing || !aiBulkText.trim()}
-              className="w-full sm:w-auto bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-xl flex items-center justify-center gap-2.5 transition-all shadow-md hover:shadow-lg"
+              className="w-full sm:w-auto bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 disabled:opacity-50 text-white text-xs font-medium uppercase tracking-wider px-6 py-3 rounded flex items-center justify-center gap-2.5 transition-all "
             >
               {isProcessing ? (
                 <>
@@ -1133,7 +1133,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               <button
                 type="button"
                 onClick={() => setMarkdownContent(SAMPLE_MARKDOWN_BULLETINS)}
-                className="bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-300 text-xs font-bold uppercase px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors"
+                className="bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-300 text-xs font-medium uppercase px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors"
                 title="Load sample NAVAREA I & IV bulleted bulletins"
               >
                 <FileText className="w-3.5 h-3.5 text-sky-600" />
@@ -1144,7 +1144,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 <button
                   type="button"
                   onClick={() => setMarkdownContent('')}
-                  className="text-gw-accent hover:text-red-600 text-xs font-bold uppercase px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"
+                  className="text-gw-accent hover:text-red-600 text-xs font-medium uppercase px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Clear</span>
@@ -1224,7 +1224,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               type="button"
               onClick={handleParseMarkdown}
               disabled={isProcessing || !markdownContent.trim()}
-              className="w-full sm:w-auto bg-gw-primary hover:bg-gw-accent disabled:opacity-50 text-gw-secondary text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm"
+              className="w-full sm:w-auto bg-gw-primary hover:bg-gw-accent disabled:opacity-50 text-gw-secondary text-xs font-medium uppercase tracking-wider px-6 py-2.5 rounded flex items-center justify-center gap-2 transition-all "
             >
               {isProcessing ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1255,7 +1255,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               <button
                 type="button"
                 onClick={handleLoadSampleData}
-                className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold uppercase px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors"
+                className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-medium uppercase px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors"
                 title="Load sample NAVAREA XVII data provided for verification"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-600" />
@@ -1266,7 +1266,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 <button
                   type="button"
                   onClick={() => setPasteContent('')}
-                  className="text-gw-accent hover:text-red-600 text-xs font-bold uppercase px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"
+                  className="text-gw-accent hover:text-red-600 text-xs font-medium uppercase px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Clear</span>
@@ -1300,7 +1300,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               type="button"
               onClick={handleParsePastedData}
               disabled={isProcessing || !pasteContent.trim()}
-              className="bg-gw-primary hover:bg-gw-accent disabled:opacity-50 text-gw-secondary text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-sm"
+              className="bg-gw-primary hover:bg-gw-accent disabled:opacity-50 text-gw-secondary text-xs font-medium uppercase tracking-wider px-6 py-2.5 rounded flex items-center gap-2 transition-all "
             >
               {isProcessing ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1404,7 +1404,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               type="button"
               onClick={handleApiSync}
               disabled={isProcessing}
-              className="w-full md:w-auto bg-gw-primary hover:bg-gw-accent disabled:opacity-50 text-gw-secondary text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded flex items-center justify-center gap-2 transition-all shadow-sm"
+              className="w-full md:w-auto bg-gw-primary hover:bg-gw-accent disabled:opacity-50 text-gw-secondary text-xs font-medium uppercase tracking-wider px-6 py-2.5 rounded flex items-center justify-center gap-2 transition-all "
             >
               {isProcessing ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1527,11 +1527,11 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 aria-selected={previewSubTab === 'accepted'}
                 aria-controls="preview-panel-accepted"
                 onClick={() => setPreviewSubTab('accepted')}
-                className={`px-4 py-2 text-xs font-bold uppercase rounded-t-lg transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${
-                  previewSubTab === 'accepted'
-                    ? 'bg-gw-panel text-emerald-800 border-t-2 border-x-2 border-emerald-600 shadow-xs'
-                    : 'text-gw-accent hover:text-gw-primary'
-                }`}
+                className={`px-4 py-2 text-xs font-medium uppercase rounded-t-lg transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${
+ previewSubTab === 'accepted'
+ ? 'bg-gw-panel text-emerald-800 border-t-2 border-x-2 border-emerald-600 '
+ : 'text-gw-accent hover:text-gw-primary'
+ }`}
               >
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 <span>Accepted Warnings ({parsedWarnings.length})</span>
@@ -1546,11 +1546,11 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                   aria-selected={previewSubTab === 'rejected'}
                   aria-controls="preview-panel-rejected"
                   onClick={() => setPreviewSubTab('rejected')}
-                  className={`px-4 py-2 text-xs font-bold uppercase rounded-t-lg transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 ${
-                    previewSubTab === 'rejected'
-                      ? 'bg-gw-panel text-red-800 border-t-2 border-x-2 border-red-600 shadow-xs'
-                      : 'text-gw-accent hover:text-red-600'
-                  }`}
+                  className={`px-4 py-2 text-xs font-medium uppercase rounded-t-lg transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 ${
+ previewSubTab === 'rejected'
+ ? 'bg-gw-panel text-red-800 border-t-2 border-x-2 border-red-600 '
+ : 'text-gw-accent hover:text-red-600'
+ }`}
                 >
                   <XCircle className="w-4 h-4 text-red-600" />
                   <span>Rejected by Gemini ({rejectedItems.length})</span>
@@ -1567,7 +1567,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 type="button"
                 onClick={handleAuditBatchWithAI}
                 disabled={isAuditingBatch}
-                className="mb-1 text-xs font-bold uppercase tracking-wide text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-300 px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+                className="mb-1 text-xs font-medium uppercase tracking-wide text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-300 px-3.5 py-1.5 rounded flex items-center gap-1.5 transition-colors "
                 title="Runs a secondary Gemini verification pass across all staged warnings for sanity & coordinate validation"
               >
                 {isAuditingBatch ? (
@@ -1593,7 +1593,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                 <button
                   type="button"
                   onClick={() => setRejectedItems([])}
-                  className="touch-hit text-xs font-bold text-red-800 hover:underline uppercase self-end sm:self-auto"
+                  className="touch-hit text-xs font-medium text-red-800 hover:underline uppercase self-end sm:self-auto"
                 >
                   Clear Rejected List
                 </button>
@@ -1635,7 +1635,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                         <button
                           type="button"
                           onClick={() => handleOverrideRejectToAccept(rej)}
-                          className="bg-gw-secondary hover:bg-gw-tertiary text-gw-primary border border-gw-secondary text-xs font-medium uppercase px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+                          className="bg-gw-secondary hover:bg-gw-tertiary text-gw-primary border border-gw-secondary text-xs font-medium uppercase px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors "
                           title="Override Gemini's rejection and force acceptance of this notice into the staged warnings"
                         >
                           <CheckSquare className="w-3.5 h-3.5 text-gw-primary" />
@@ -1688,7 +1688,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                   <button
                     type="button"
                     onClick={() => setParsedWarnings([])}
-                    className="text-xs font-bold text-gw-accent hover:text-gw-primary px-3 py-1.5 uppercase"
+                    className="text-xs font-medium text-gw-accent hover:text-gw-primary px-3 py-1.5 uppercase"
                   >
                     Clear Preview
                   </button>
@@ -1697,7 +1697,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                     type="button"
                     onClick={() => setIsConfirmCommitOpen(true)}
                     disabled={isSavingToSupabase || parsedWarnings.length === 0}
-                    className="bg-[var(--accent)] hover:brightness-110 disabled:opacity-50 text-[var(--canvas)] text-xs font-medium uppercase tracking-wider px-5 py-2.5 rounded-lg flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+                    className="bg-[var(--accent)] hover:brightness-110 disabled:opacity-50 text-[var(--canvas)] text-xs font-medium uppercase tracking-wider px-5 py-2.5 rounded flex items-center gap-2 transition-colors cursor-pointer"
                     title="Saves parsed warnings directly to Supabase nav_warnings PostgreSQL table"
                   >
                     {isSavingToSupabase ? (
@@ -1712,7 +1712,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                     type="button"
                     onClick={handleCommit}
                     disabled={parsedWarnings.length === 0}
-                    className="bg-gw-primary hover:bg-gw-accent disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                    className="bg-gw-primary hover:bg-gw-accent disabled:opacity-50 text-white text-xs font-medium uppercase tracking-wider px-5 py-2.5 rounded flex items-center gap-2 transition-colors "
                     title="Adds to local application data bank and renders on the live map"
                   >
                     <Save className="w-4 h-4" />
@@ -1931,7 +1931,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               <button
                 type="button"
                 onClick={() => setIsConfirmCommitOpen(false)}
-                className="px-4 py-2 border border-gw-secondary hover:bg-gw-secondary rounded-lg text-xs font-bold uppercase tracking-wider text-gw-accent transition-colors cursor-pointer"
+                className="px-4 py-2 border border-gw-secondary hover:bg-gw-secondary rounded text-xs font-medium uppercase tracking-wider text-gw-accent transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -1942,7 +1942,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                   handleSaveToSupabase();
                 }}
                 disabled={isSavingToSupabase}
-                className="px-5 py-2 bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] rounded-lg text-xs font-medium uppercase tracking-wider transition-colors shadow-sm cursor-pointer flex items-center gap-1.5"
+                className="px-5 py-2 bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] rounded text-xs font-medium uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1.5"
               >
                 <Check className="w-4 h-4" />
                 <span>Confirm &amp; Commit to Database</span>

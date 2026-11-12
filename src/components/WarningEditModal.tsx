@@ -272,8 +272,8 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
       type="button"
       onClick={() => setTab(id)}
       className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-medium tracking-wide transition-colors ${
-        tab === id ? 'bg-gw-primary text-gw-bg' : 'bg-gw-panel text-gw-primary hover:bg-gw-bg'
-      }`}
+ tab === id ? 'bg-gw-primary text-gw-bg' : 'bg-gw-panel text-gw-primary hover:bg-gw-bg'
+ }`}
     >
       {icon}
       <span>{label}</span>
@@ -327,10 +327,10 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                       type="button"
                       onClick={() => toggleCategory(c.id)}
                       className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        categories.includes(c.id)
-                          ? 'bg-gw-primary text-gw-bg border-gw-primary'
-                          : 'bg-gw-panel text-gw-primary border-gw-secondary hover:border-gw-primary'
-                      }`}
+ categories.includes(c.id)
+ ? 'bg-gw-primary text-gw-bg border-gw-primary'
+ : 'bg-gw-panel text-gw-primary border-gw-secondary hover:border-gw-primary'
+ }`}
                     >
                       {c.label}
                     </button>

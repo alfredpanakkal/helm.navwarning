@@ -219,7 +219,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                             type="button"
                             onClick={() => onTriggerRefresh(src.source_id)}
                             disabled={isRefreshing}
-                            className="flex items-center gap-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 shadow-sm"
+                            className="flex items-center gap-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary px-2.5 py-1 rounded text-[11px] font-medium uppercase tracking-wider transition-colors disabled:opacity-50 "
                           >
                             <Play className="w-3 h-3" />
                             <span>Run Worker</span>
@@ -253,7 +253,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                 type="button"
                 onClick={() => setSelectedSourceForChecklist(null)}
                 aria-label="Close source checklist"
-                className="text-gw-accent hover:text-gw-primary font-bold text-lg p-2"
+                className="text-gw-accent hover:text-gw-primary font-medium text-lg p-2"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -297,7 +297,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedSourceForChecklist(null)}
-                className="bg-gw-primary hover:bg-gw-accent text-gw-secondary font-bold text-xs uppercase tracking-wider px-5 py-2 rounded transition-all shadow-sm"
+                className="bg-gw-primary hover:bg-gw-accent text-gw-secondary font-medium text-xs uppercase tracking-wider px-5 py-2 rounded transition-all "
               >
                 Close Checklist
               </button>

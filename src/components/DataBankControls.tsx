@@ -183,10 +183,10 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             onClick={() => setShowMoreFilters((v) => !v)}
             aria-expanded={showMoreFilters}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium tracking-wide transition-all min-h-[36px] cursor-pointer ${
-              showMoreFilters
-                ? 'bg-surface-subtle text-ink-primary border-border-chip-on'
-                : 'bg-canvas text-ink-secondary border-border-chip hover:border-border-chip-on'
-            }`}
+ showMoreFilters
+ ? 'bg-surface-subtle text-ink-primary border-border-chip-on'
+ : 'bg-canvas text-ink-secondary border-border-chip hover:border-border-chip-on'
+ }`}
           >
             <Filter className="w-3.5 h-3.5" />
             <span>More filters</span>
@@ -245,7 +245,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             <button
               type="button"
               onClick={() => applyNavArea('ALL')}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-medium cursor-pointer"
               title="Clear NAVAREA filter"
             >
               <span>NAVAREA: {selectedNavArea}</span>
@@ -260,7 +260,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 setSelectedSeverity('ALL');
                 setCurrentPage(1);
               }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-medium cursor-pointer"
               title="Clear severity filter"
             >
               <span>Severity: {selectedSeverity}</span>
@@ -272,7 +272,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             <button
               type="button"
               onClick={() => applyStatus('ALL')}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-medium cursor-pointer"
               title="Clear status filter"
             >
               <span>Status: {selectedStatus}</span>
@@ -284,7 +284,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             <button
               type="button"
               onClick={() => applyCategory('ALL')}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-medium cursor-pointer"
               title="Clear category filter"
             >
               <span>Category: {HAZARD_CATEGORIES[selectedCategory]?.shortLabel ?? selectedCategory}</span>
@@ -299,7 +299,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 setCoordFilter('ALL' as CoordFilterType);
                 setCurrentPage(1);
               }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-medium cursor-pointer"
               title="Clear coordinates filter"
             >
               <span>{coordFilter === 'with_coords' ? 'Mapped Geometry' : 'Text Only'}</span>
@@ -343,7 +343,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
               type="button"
               onClick={() => setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))}
               title="Toggle sort direction"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary text-xs font-bold hover:bg-gw-panel cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-gw-secondary bg-gw-bg text-gw-primary text-xs font-medium hover:bg-gw-panel cursor-pointer"
             >
               <SlidersHorizontal className="w-3 h-3 text-gw-accent shrink-0" />
               <span className="uppercase">{sortDirection === 'asc' ? 'Asc' : 'Desc'}</span>
@@ -360,11 +360,11 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             <button
               type="button"
               onClick={handleResetFilters}
-              className={`px-2.5 py-1.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
-                !hasActiveFilters
-                  ? 'bg-gw-primary text-gw-bg shadow-xs'
-                  : 'bg-gw-bg border border-gw-secondary text-gw-primary hover:bg-gw-bg/80'
-              }`}
+              className={`px-2.5 py-1.5 rounded text-[11px] font-medium transition-all cursor-pointer ${
+ !hasActiveFilters
+ ? 'bg-gw-primary text-gw-bg '
+ : 'bg-gw-bg border border-gw-secondary text-gw-primary hover:bg-gw-bg/80'
+ }`}
             >
               All ({warnings.length})
             </button>
@@ -372,11 +372,11 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
             <button
               type="button"
               onClick={() => applyStatus('active')}
-              className={`px-2.5 py-1.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
-                selectedStatus === 'active'
-                  ? 'bg-green-700 text-white shadow-xs'
-                  : 'bg-green-50 border border-green-200 text-green-800 hover:bg-green-100'
-              }`}
+              className={`px-2.5 py-1.5 rounded text-[11px] font-medium transition-all cursor-pointer ${
+ selectedStatus === 'active'
+ ? 'bg-green-700 text-white '
+ : 'bg-green-50 border border-green-200 text-green-800 hover:bg-green-100'
+ }`}
             >
               Active Only ({activeCount})
             </button>
@@ -387,11 +387,11 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 setCoordFilter(coordFilter === 'with_coords' ? 'ALL' : 'with_coords');
                 setCurrentPage(1);
               }}
-              className={`px-2.5 py-1.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
-                coordFilter === 'with_coords'
-                  ? 'bg-blue-700 text-white shadow-xs'
-                  : 'bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100'
-              }`}
+              className={`px-2.5 py-1.5 rounded text-[11px] font-medium transition-all cursor-pointer ${
+ coordFilter === 'with_coords'
+ ? 'bg-blue-700 text-white '
+ : 'bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100'
+ }`}
             >
               Mapped ({coordsCount})
             </button>
@@ -400,11 +400,11 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
               <button
                 type="button"
                 onClick={() => applyStatus('unverified')}
-                className={`px-2.5 py-1.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
-                  selectedStatus === 'unverified'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100'
-                }`}
+                className={`px-2.5 py-1.5 rounded text-[11px] font-medium transition-all cursor-pointer ${
+ selectedStatus === 'unverified'
+ ? 'bg-amber-600 text-white '
+ : 'bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100'
+ }`}
               >
                 Unverified ({unverifiedCount})
               </button>
@@ -472,7 +472,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 <button
                   type="button"
                   onClick={() => applyCategory('ALL')}
-                  className="touch-hit text-xs text-gw-primary hover:underline font-bold cursor-pointer"
+                  className="touch-hit text-xs text-gw-primary hover:underline font-medium cursor-pointer"
                 >
                   Clear Category Filter
                 </button>
@@ -482,11 +482,11 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
               <button
                 type="button"
                 onClick={() => applyCategory('ALL')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
-                  selectedCategory === 'ALL'
-                    ? 'bg-gw-primary text-gw-bg border-gw-primary shadow-xs'
-                    : 'bg-gw-bg text-gw-primary border-gw-secondary hover:bg-gw-panel'
-                }`}
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-all border cursor-pointer ${
+ selectedCategory === 'ALL'
+ ? 'bg-gw-primary text-gw-bg border-gw-primary '
+ : 'bg-gw-bg text-gw-primary border-gw-secondary hover:bg-gw-panel'
+ }`}
               >
                 All Categories ({warnings.length})
               </button>
@@ -498,13 +498,13 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                     key={catKey}
                     type="button"
                     onClick={() => applyCategory(catKey)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
-                      isSelected
-                        ? 'bg-gw-primary text-gw-bg border-gw-primary shadow-xs'
-                        : count === 0
-                          ? meta.badgeClass + ' opacity-50'
-                          : meta.badgeClass + ' hover:opacity-90'
-                    }`}
+                    className={`px-3 py-1.5 rounded text-xs font-medium transition-all border flex items-center gap-1.5 cursor-pointer ${
+ isSelected
+ ? 'bg-gw-primary text-gw-bg border-gw-primary '
+ : count === 0
+ ? meta.badgeClass + ' opacity-50'
+ : meta.badgeClass + ' hover:opacity-90'
+ }`}
                     title={count === 0 ? `${meta.label} — no warnings in this class right now` : meta.label}
                   >
                     <span>{meta.shortLabel}</span>

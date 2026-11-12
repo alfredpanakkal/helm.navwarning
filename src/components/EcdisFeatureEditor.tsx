@@ -473,7 +473,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                   <button
                     type="button"
                     onClick={() => handleInsertPoint(idx)}
-                    className="flex items-center gap-1 text-xs text-gw-primary hover:text-gw-accent font-bold uppercase"
+                    className="flex items-center gap-1 text-xs text-gw-primary hover:text-gw-accent font-medium uppercase"
                   >
                     <Plus className="w-3 h-3" /> Insert Point Below
                   </button>
@@ -490,7 +490,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
           <button
             type="button"
             onClick={() => handleInsertPoint(layer.features.length - 1)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-panel border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-panel border border-gw-primary rounded text-xs font-medium uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> Add Point Feature
           </button>
@@ -530,7 +530,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
           <button
             type="button"
             onClick={handleCopyGeoJson}
-            className="flex items-center gap-1 px-3 py-1.5 bg-gw-panel border border-gw-primary rounded text-xs font-bold uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 bg-gw-panel border border-gw-primary rounded text-xs font-medium uppercase hover:bg-gw-primary hover:text-gw-bg transition-colors"
           >
             <Copy className="w-3.5 h-3.5" />
             <span>{copySuccess ? 'Copied GeoJSON!' : 'Copy Layer GeoJSON'}</span>
@@ -539,7 +539,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
           <button
             type="button"
             onClick={handleDownloadGeoJson}
-            className="flex items-center gap-1 px-3 py-1.5 bg-gw-primary text-gw-bg rounded text-xs font-bold uppercase hover:bg-gw-accent transition-colors shadow-xs"
+            className="flex items-center gap-1 px-3 py-1.5 bg-gw-primary text-gw-bg rounded text-xs font-medium uppercase hover:bg-gw-accent transition-colors "
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export ECDIS Layer</span>

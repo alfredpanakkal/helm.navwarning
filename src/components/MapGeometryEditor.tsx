@@ -678,9 +678,9 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
     <button
       type="button"
       onClick={() => (mode === m ? exitMode() : enterMode(m))}
-      className={`flex items-center gap-1.5 px-3 py-2 rounded text-[10px] font-bold uppercase border transition-colors ${
-        mode === m ? 'bg-gw-primary text-gw-bg border-gw-primary' : 'bg-gw-panel text-gw-primary border-gw-secondary hover:border-gw-primary'
-      }`}
+      className={`flex items-center gap-1.5 px-3 py-2 rounded text-[10px] font-medium uppercase border transition-colors ${
+ mode === m ? 'bg-gw-primary text-gw-bg border-gw-primary' : 'bg-gw-panel text-gw-primary border-gw-secondary hover:border-gw-primary'
+ }`}
     >
       {icon}
       <span>{label}</span>
@@ -703,7 +703,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                 <button
                   type="button"
                   onClick={() => { pushHistory(); partsRef.current = buildPartsFromWarning(selectedWarning); drawPtsRef.current = []; markDirtyIfChanged(); setMessage('Draft reset to the stored geometry.'); setMessageKind('info'); renderDraft(); }}
-                  className="flex items-center gap-1 p-2 bg-gw-panel border border-gw-secondary text-gw-accent rounded text-[10px] font-bold uppercase hover:text-gw-primary transition-colors"
+                  className="flex items-center gap-1 p-2 bg-gw-panel border border-gw-secondary text-gw-accent rounded text-[10px] font-medium uppercase hover:text-gw-primary transition-colors"
                   title="Reset draft to stored geometry"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -732,7 +732,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                   type="button"
                   onClick={handleSave}
                   disabled={saving || !dirty}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-gw-primary hover:bg-gw-accent text-gw-bg rounded text-[10px] font-bold uppercase transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-gw-primary hover:bg-gw-accent text-gw-bg rounded text-[10px] font-medium uppercase transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                   <span>Save</span>
@@ -759,9 +759,9 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
                 key={shape}
                 type="button"
                 onClick={() => setDrawShape(shape)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded border font-bold uppercase ${
-                  drawShape === shape ? 'bg-gw-primary text-gw-bg border-gw-primary' : 'bg-gw-panel text-gw-primary border-gw-secondary'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded border font-medium uppercase ${
+ drawShape === shape ? 'bg-gw-primary text-gw-bg border-gw-primary' : 'bg-gw-panel text-gw-primary border-gw-secondary'
+ }`}
               >
                 <Icon className="w-3 h-3" />
                 <span>{shape}</span>

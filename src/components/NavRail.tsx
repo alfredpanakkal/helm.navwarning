@@ -95,11 +95,11 @@ export const NavRail: React.FC<NavRailProps> = ({
                     aria-label={view.label}
                     aria-current={isActive ? 'page' : undefined}
                     className={
-                      'w-9 h-9 mx-auto flex items-center justify-center rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
-                      (isActive
-                        ? 'bg-surface-subtle text-ink-primary'
-                        : 'text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary')
-                    }
+ 'w-9 h-9 mx-auto flex items-center justify-center rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
+ (isActive
+ ? 'bg-surface-subtle text-ink-primary'
+ : 'text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary')
+ }
                   >
                     {VIEW_ICONS[view.id]}
                   </button>
@@ -113,11 +113,11 @@ export const NavRail: React.FC<NavRailProps> = ({
                   aria-label={view.label}
                   aria-current={isActive ? 'page' : undefined}
                   className={
-                    'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
-                    (isActive
-                      ? 'bg-surface-subtle text-ink-primary'
-                      : 'text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary')
-                  }
+ 'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
+ (isActive
+ ? 'bg-surface-subtle text-ink-primary'
+ : 'text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary')
+ }
                 >
                   {VIEW_ICONS[view.id]}
                   <span>{view.label}</span>
@@ -136,9 +136,9 @@ export const NavRail: React.FC<NavRailProps> = ({
           aria-expanded={!collapsed}
           title={collapsed ? 'Expand navigation rail' : 'Collapse navigation rail'}
           className={
-            'flex items-center gap-2.5 py-2 rounded-md text-sm font-medium text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent' +
-            (collapsed ? ' w-9 h-9 mx-auto justify-center px-0' : ' w-full px-3')
-          }
+ 'flex items-center gap-2.5 py-2 rounded-md text-sm font-medium text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent' +
+ (collapsed ? ' w-9 h-9 mx-auto justify-center px-0' : ' w-full px-3')
+ }
         >
           {collapsed ? (
             <ChevronsRight className="w-4 h-4 shrink-0" />

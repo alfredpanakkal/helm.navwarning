@@ -232,11 +232,11 @@ export const Header: React.FC<HeaderProps> = ({
                             aria-current={isActive ? 'page' : undefined}
                             onClick={() => { setActiveTab(view.id); setMenuOpen(false); }}
                             className={
-                              'w-full min-h-[44px] flex items-center px-3 rounded-md text-sm font-medium text-left cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
-                              (isActive
-                                ? 'bg-surface-subtle text-ink-primary'
-                                : 'text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary')
-                            }
+ 'w-full min-h-[44px] flex items-center px-3 rounded-md text-sm font-medium text-left cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
+ (isActive
+ ? 'bg-surface-subtle text-ink-primary'
+ : 'text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary')
+ }
                           >
                             {view.label}
                           </button>
@@ -282,11 +282,11 @@ export const Header: React.FC<HeaderProps> = ({
                 }}
                 aria-label="Sign out of admin session"
                 className={
-                  'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium border transition-all cursor-pointer ' +
-                  (signOutConfirm
-                    ? 'text-sev-critical bg-surface-subtle border-sev-critical'
-                    : 'text-ink-body bg-transparent hover:bg-surface-subtle border-border-input')
-                }
+ 'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium border transition-all cursor-pointer ' +
+ (signOutConfirm
+ ? 'text-sev-critical bg-surface-subtle border-sev-critical'
+ : 'text-ink-body bg-transparent hover:bg-surface-subtle border-border-input')
+ }
                 title="Admin session active (app_metadata.role === 'admin'). Click to sign out."
               >
                 <Lock className="w-3.5 h-3.5 text-accent" />
