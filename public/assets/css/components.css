@@ -833,14 +833,12 @@ input.search-input:focus {
   border-left: 1px solid var(--border-input);
   box-shadow: none;
   z-index: 650;
-  display: flex;
+  display: none;
   flex-direction: column;
-  transform: translateX(100%);
-  transition: transform var(--transition, 0.12s ease);
   overflow: hidden;
 }
 .warning-details-drawer.open {
-  transform: translateX(0);
+  display: flex;
 }
 .drawer-details-header {
   padding: 14px 18px;

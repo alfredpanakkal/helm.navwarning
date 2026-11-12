@@ -1196,6 +1196,7 @@ window.handleTitleCardClick = function() {
 let drawerTriggerElement = null;
 
 window.openWarningDetails = function(w) {
+  hideTitleCard(true);
   currentDrawerWarning = w;
   currentWarning = w;
   const isMob = document.body.classList.contains('is-mobile');
@@ -1259,7 +1260,12 @@ window.openWarningDetails = function(w) {
   drawer.setAttribute('aria-hidden', 'false');
   drawerTriggerElement = document.activeElement;
   const drawerCloseBtn = drawer.querySelector('.settings-close-btn') || drawer.querySelector('button');
-  if (drawerCloseBtn) setTimeout(() => drawerCloseBtn.focus(), 50);
+  if (drawerCloseBtn) {
+    setTimeout(() => {
+      try { drawerCloseBtn.focus({ preventScroll: true }); }
+      catch (_) { drawerCloseBtn.focus(); }
+    }, 50);
+  }
 };
 
 window.closeWarningDrawer = function() {
@@ -1269,7 +1275,8 @@ window.closeWarningDrawer = function() {
     drawer.setAttribute('aria-hidden', 'true');
   }
   if (drawerTriggerElement && typeof drawerTriggerElement.focus === 'function') {
-    drawerTriggerElement.focus();
+    try { drawerTriggerElement.focus({ preventScroll: true }); }
+    catch (_) { drawerTriggerElement.focus(); }
   }
   drawerTriggerElement = null;
 };
@@ -2651,7 +2658,12 @@ window.openWarningModal = async function(w){
     modalOverlay.classList.add('open');
     modalOverlay.setAttribute('aria-hidden', 'false');
     const closeBtn = modalOverlay.querySelector('.modal-close');
-    if(closeBtn) setTimeout(()=>closeBtn.focus(), 50);
+    if(closeBtn) {
+      setTimeout(() => {
+        try { closeBtn.focus({ preventScroll: true }); }
+        catch (_) { closeBtn.focus(); }
+      }, 50);
+    }
   }
   document.body.style.overflow='hidden';
 
@@ -2692,7 +2704,8 @@ window.closeWarningModal = function(){
   }
   document.body.style.overflow='';
   if(previousFocusedElement && typeof previousFocusedElement.focus === 'function'){
-    previousFocusedElement.focus();
+    try { previousFocusedElement.focus({ preventScroll: true }); }
+    catch (_) { previousFocusedElement.focus(); }
   }
 };
 window.showToast = function(m){
