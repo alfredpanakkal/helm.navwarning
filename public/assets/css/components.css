@@ -100,6 +100,12 @@ button:focus-visible, a:focus-visible, select:focus-visible, summary:focus-visib
   font-size: 0.8rem;
   min-height: 28px;
 }
+@media (pointer: coarse) {
+  .btn-sm {
+    min-height: var(--touch-min, 44px);
+    min-width: var(--touch-min, 44px);
+  }
+}
 
 /* ═══════════ BADGES & DOTS (Dots only — never fills, never pills) ═══════════ */
 .badge-simple {
