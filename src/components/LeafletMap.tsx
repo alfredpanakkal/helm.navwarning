@@ -1105,12 +1105,15 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 dashArray: '3, 6',
                 pane: 'navWarnVectorPane',
               }).addTo(vectorGroup);
-              driftLine.bindTooltip(`${drift.directionLabel}${drift.speedKts ? ` @ ${drift.speedKts} kts` : ''} (~${drift.distanceNm} NM)`, {
+              const lineTooltipText = drift.speedKts
+                ? `Estimated Drift (6h projection): ${drift.directionLabel} @ ${drift.speedKts} kts (~${drift.distanceNm} NM)`
+                : `Indicative Drift Vector: ${drift.directionLabel} (Speed Unknown, Indicative ~${drift.distanceNm} NM)`;
+              driftLine.bindTooltip(lineTooltipText, {
                 direction: 'center',
               });
               driftLine.on('click', () => onSelectWarning(w));
 
-              // Projected destination marker
+              // Projected destination marker (Clearly distinguished as an unverified estimate)
               const destMarker = L.circleMarker(drift.destination, {
                 radius: 3.5,
                 color: '#8C5208',
@@ -1119,7 +1122,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 dashArray: '2, 2',
                 pane: 'navWarnVectorPane',
               }).addTo(vectorGroup);
-              destMarker.bindTooltip(`Projected: ${drift.directionLabel}`, { direction: 'top' });
+              const destTooltipText = drift.speedKts
+                ? `Estimated 6h Position: ${drift.directionLabel} (Unverified Projection)`
+                : `Indicative Direction: ${drift.directionLabel} (Not a Verified Position)`;
+              destMarker.bindTooltip(destTooltipText, { direction: 'top' });
               destMarker.on('click', () => onSelectWarning(w));
             } catch {
               // fallback
@@ -1386,6 +1392,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </span>
             </div>
             <button
+              type="button"
               onClick={() => setIsTopFiltersOpen(false)}
               className="p-1 rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all"
               title="Close filter menu"
@@ -1446,6 +1453,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 {['all', 'critical', 'high', 'moderate'].map((sev) => (
                   <button
                     key={sev}
+                    type="button"
                     onClick={() => setFilterSeverity(sev)}
                     className={`py-1 text-xs uppercase font-bold rounded transition-all text-center ${
                       filterSeverity === sev
@@ -1474,7 +1482,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 />
                 {searchQuery && (
                   <button
+                    type="button"
                     onClick={() => setSearchQuery('')}
+                    aria-label="Clear notice search"
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gw-accent hover:text-gw-primary"
                   >
                     <X className="w-3 h-3" />
@@ -1875,6 +1885,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               </span>
             </div>
             <button
+              type="button"
               onClick={closeContextMenu}
               aria-label="Close context menu"
               className="text-gw-secondary hover:text-white p-0.5 rounded transition-all"
@@ -1900,6 +1911,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
           <div className="p-1 space-y-0.5 bg-gw-panel">
             <button
+              type="button"
               onClick={() => copyLayerLocation(contextMenu.nauticalCoordinates)}
               className="w-full flex items-center justify-between px-2.5 py-1.5 rounded hover:bg-gw-bg text-gw-primary transition-all font-medium text-left text-[11px]"
             >
@@ -1917,6 +1929,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
             {contextMenu.targetWarning && (
               <button
+                type="button"
                 onClick={() => toggleWarningVisibility(contextMenu.targetWarning!.warning_id)}
                 className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-amber-50 text-amber-900 transition-all font-medium text-left text-[11px]"
               >
@@ -1927,6 +1940,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
             {contextMenu.targetWarning && (
               <button
+                type="button"
                 onClick={() => {
                   centerOnWarningArea(contextMenu.targetWarning!);
                   closeContextMenu();
@@ -1940,6 +1954,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
             {contextMenu.targetWarning && (
               <button
+                type="button"
                 onClick={() => {
                   onSelectWarning(contextMenu.targetWarning!);
                   closeContextMenu();
@@ -1954,6 +1969,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             {/* E3: Admin edit entry inside the map context menu */}
             {isAdminMode && onEditWarning && contextMenu.targetWarning && (
               <button
+                type="button"
                 onClick={() => {
                   onEditWarning(contextMenu.targetWarning!);
                   closeContextMenu();
@@ -1991,6 +2007,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
             {hiddenWarningIds.size > 0 && (
               <button
+                type="button"
                 onClick={unhideAllWarnings}
                 className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-400 rounded text-[10px] font-bold uppercase transition-all"
                 title="Restore all hidden layers"
@@ -2014,6 +2031,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 {(['all', 'navarea', 'coastal'] as ScopeFilterType[]).map((scope) => (
                   <button
                     key={scope}
+                    type="button"
                     onClick={() => setScopeFilter(scope)}
                     className={`px-2 py-0.5 rounded transition-all ${
                       scopeFilter === scope
@@ -2042,6 +2060,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           {/* Window Resize Controls */}
           <div className="flex items-center gap-1 shrink-0">
             <button
+              type="button"
               onClick={() =>
                 setBottomSheetState(bottomSheetState === 'minimized' ? 'normal' : 'minimized')
               }
@@ -2056,6 +2075,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               )}
             </button>
             <button
+              type="button"
               onClick={() =>
                 setBottomSheetState(bottomSheetState === 'maximized' ? 'normal' : 'maximized')
               }
