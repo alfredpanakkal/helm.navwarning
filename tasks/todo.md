@@ -48,14 +48,14 @@
 - [x] Each tab panel has `role="tabpanel"` + `aria-labelledby`
 - [x] `aria-selected` toggled correctly in JS on tab click
 - [x] `aria-label` on EcdisFeatureEditor vertex/point icon buttons
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #169](https://github.com/alfredpanakkal/helm.navwarning/pull/169))
 
 ### 1-F · Remaining components sweep — Batch 1
-- [ ] Branch `fix-buttons-remaining-attrs-1` created
-- [ ] Files: `WarningDetailModal`, `WarningEditModal`, `IngestionProcedureModal`, `MissingWarningsDrawer`, `LeafletMap`
-- [ ] `type="button"` on every `<button` in all five files
-- [ ] `aria-label` on icon-only buttons
-- [ ] `verifyPending` / `saving` / `committedId` guards verified wired to `disabled`
+- [x] Branch `fix-buttons-remaining-attrs-1` created
+- [x] Files: `WarningDetailModal`, `WarningEditModal`, `IngestionProcedureModal`, `MissingWarningsDrawer`, `LeafletMap`
+- [x] `type="button"` on every `<button` in all five files
+- [x] `aria-label` on icon-only buttons
+- [x] `verifyPending` / `saving` / `committedId` guards verified wired to `disabled`
 - [ ] PR opened, reviewed, merged ✅
 
 ### 1-F · Remaining components sweep — Batch 2

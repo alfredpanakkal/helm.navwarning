@@ -230,6 +230,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close procedure modal"
             className="p-1.5 text-gw-accent hover:text-gw-primary rounded border border-transparent hover:border-gw-secondary transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
@@ -242,6 +243,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
         {/* Tab Navigation */}
         <div className="flex border-b border-gw-secondary bg-gw-panel px-4 sm:px-6 pt-2 gap-2 overflow-x-auto">
           <button
+            type="button"
             onClick={() => setActiveTab('procedure')}
             className={`px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'procedure'
@@ -253,6 +255,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
             1. Ingestion Procedure (SOP)
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('simulator')}
             className={`px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'simulator'
@@ -264,6 +267,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
             2. Live Parser Simulator
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('sources')}
             className={`px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'sources'
@@ -293,6 +297,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                 </div>
                 {onTriggerRefresh && (
                   <button
+                    type="button"
                     onClick={() => onTriggerRefresh()}
                     disabled={isRefreshing}
                     className="px-4 py-2.5 bg-gw-primary text-gw-bg text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all shadow-xs flex items-center gap-2 shrink-0 disabled:opacity-50"
@@ -394,6 +399,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button
+                      type="button"
                       onClick={() => setActiveTab('simulator')}
                       className="px-3.5 py-2 bg-gw-panel text-gw-primary text-xs font-bold uppercase tracking-wider rounded border border-gw-primary hover:bg-gw-bg transition-all"
                     >
@@ -427,6 +433,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                 {SAMPLE_BULLETINS.map((preset) => (
                   <button
                     key={preset.id}
+                    type="button"
                     onClick={() => handleSelectPreset(preset)}
                     className={`px-2.5 py-1.5 text-xs rounded border transition-all ${
                       simNavArea === preset.navarea
@@ -559,6 +566,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                       )}
                       {onCommitWarning && (
                         <button
+                          type="button"
                           onClick={handleCommitParsed}
                           disabled={!!(parsedResult?.warning && committedId === parsedResult.warning.warning_id)}
                           className="px-4 py-2 bg-gw-primary text-gw-bg text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -624,6 +632,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
                       </span>
                       {onTriggerRefresh && (
                         <button
+                          type="button"
                           onClick={() => onTriggerRefresh(src.source_id)}
                           disabled={isRefreshing}
                           className="p-1.5 bg-gw-bg text-gw-primary rounded border border-gw-secondary hover:border-gw-primary text-[10px] font-bold uppercase transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-primary"
@@ -648,6 +657,7 @@ export const IngestionProcedureModal: React.FC<IngestionProcedureModalProps> = (
             <span>Currently Managing: <strong className="text-gw-primary">{warningsCount.toLocaleString()}</strong> Live Dynamic Warnings</span>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="px-5 py-2 bg-gw-primary text-gw-bg text-xs font-bold uppercase tracking-wider rounded-lg border border-gw-primary hover:bg-gw-tertiary transition-all"
           >

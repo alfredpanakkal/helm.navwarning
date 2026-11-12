@@ -269,7 +269,9 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
 
             {/* Close Modal Button */}
             <button
+              type="button"
               onClick={onClose}
+              aria-label="Close modal"
               className="text-gw-accent hover:text-gw-primary font-bold text-xl p-1.5 rounded-lg hover:bg-gw-secondary transition-colors shrink-0"
               title="Close modal (Esc)"
             >
@@ -280,6 +282,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
           {/* Dual Tab Navigation */}
           <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gw-secondary">
             <button
+              type="button"
               onClick={() => setActiveTab('message')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all shadow-xs ${
                 activeTab === 'message'
@@ -292,6 +295,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             </button>
 
             <button
+              type="button"
               onClick={() => setActiveTab('geometry')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all shadow-xs ${
                 activeTab === 'geometry'
@@ -307,6 +311,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             </button>
 
             <button
+              type="button"
               onClick={() => setActiveTab('ecdis')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
                 activeTab === 'ecdis'
@@ -319,6 +324,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
             </button>
 
             <button
+              type="button"
               onClick={() => setActiveTab('audit')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
                 activeTab === 'audit'
@@ -346,6 +352,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                     <span>Verbatim Raw NAVTEX / Broadcast Notice</span>
                   </span>
                   <button
+                    type="button"
                     onClick={() => handleCopy(getWarningBulletinText(warning), 'raw')}
                     className="flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg hover:bg-gw-primary hover:text-gw-bg border border-gw-primary rounded text-xs font-mono font-bold uppercase transition-all"
                   >
@@ -721,6 +728,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                     Select Export Format:
                   </div>
                   <button
+                    type="button"
                     onClick={handleExportGeoJSON}
                     className="w-full text-left px-2.5 py-1.5 hover:bg-gw-bg rounded text-gw-primary font-bold flex items-center justify-between transition-colors"
                   >
@@ -728,6 +736,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                     <Code className="w-3.5 h-3.5 text-gw-accent" />
                   </button>
                   <button
+                    type="button"
                     onClick={handleExportKML}
                     className="w-full text-left px-2.5 py-1.5 hover:bg-gw-bg rounded text-gw-primary font-bold flex items-center justify-between transition-colors"
                   >
@@ -735,6 +744,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                     <Globe className="w-3.5 h-3.5 text-gw-accent" />
                   </button>
                   <button
+                    type="button"
                     onClick={handleExportTextCoords}
                     className="w-full text-left px-2.5 py-1.5 hover:bg-gw-bg rounded text-gw-primary font-bold flex items-center justify-between transition-colors"
                   >
@@ -848,6 +858,7 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
 
             {/* Close Button */}
             <button
+              type="button"
               onClick={onClose}
               className="bg-gw-panel border-2 border-gw-primary hover:bg-gw-bg text-gw-primary font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg transition-all shadow-xs"
             >
