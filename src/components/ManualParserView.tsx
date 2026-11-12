@@ -492,7 +492,7 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                     type="button"
                     onClick={() => handleSaveToSupabase(parsedResults)}
                     disabled={isSavingToSupabase}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] hover:brightness-110 disabled:opacity-50 text-[var(--canvas)] rounded text-xs font-medium uppercase tracking-wider transition-colors shadow-sm"
                     title="Commit all extracted warnings to Supabase"
                   >
                     {isSavingToSupabase ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
@@ -898,10 +898,10 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                         type="button"
                         onClick={() => handleSaveToSupabase([parsedResult])}
                         disabled={isSavingToSupabase}
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-2 shadow-sm"
+                        className="flex-1 bg-[var(--accent)] hover:brightness-110 disabled:opacity-50 text-[var(--canvas)] font-medium text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-2 shadow-sm"
                         title="Saves this warning directly to Supabase nav_warnings table"
                       >
-                        {isSavingToSupabase ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4 text-emerald-200" />}
+                        {isSavingToSupabase ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
                         <span>Save to Supabase</span>
                       </button>
 
@@ -1054,9 +1054,9 @@ export const ManualParserView: React.FC<ManualParserViewProps> = ({
                       handleSaveToSupabase([inspectedWarning]);
                     }}
                     disabled={isSavingToSupabase}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                    className="flex-1 bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] font-medium text-xs uppercase tracking-wider py-2.5 rounded transition-all flex items-center justify-center gap-1.5 shadow-sm"
                   >
-                    <Database className="w-4 h-4 text-emerald-200" />
+                    <Database className="w-4 h-4" />
                     <span>Save to Supabase</span>
                   </button>
 

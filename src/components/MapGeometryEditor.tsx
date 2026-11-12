@@ -770,7 +770,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
             <button
               type="button"
               onClick={finishDraw}
-              className="ml-auto px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold uppercase"
+              className="ml-auto px-3 py-2 bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] rounded font-medium uppercase"
             >
               Finish shape
             </button>

@@ -1123,10 +1123,10 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
               <button
                 type="button"
                 onClick={() => setMarkdownContent(SAMPLE_MARKDOWN_TABLE)}
-                className="bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold uppercase px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors"
+                className="bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)] text-xs font-medium uppercase px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors"
                 title="Load sample Canadian Coast Guard markdown table"
               >
-                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                <Sparkles className="w-3.5 h-3.5 text-gw-primary" />
                 <span>Load CCG Table (.md)</span>
               </button>
 
@@ -1635,10 +1635,10 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                         <button
                           type="button"
                           onClick={() => handleOverrideRejectToAccept(rej)}
-                          className="bg-gw-secondary hover:bg-emerald-50 text-gw-primary hover:text-emerald-800 border border-gw-secondary hover:border-emerald-500 text-xs font-bold uppercase px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+                          className="bg-gw-secondary hover:bg-gw-tertiary text-gw-primary border border-gw-secondary text-xs font-medium uppercase px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
                           title="Override Gemini's rejection and force acceptance of this notice into the staged warnings"
                         >
-                          <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
+                          <CheckSquare className="w-3.5 h-3.5 text-gw-primary" />
                           <span>Force Accept / Override</span>
                         </button>
                       </div>
@@ -1697,13 +1697,13 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                     type="button"
                     onClick={() => setIsConfirmCommitOpen(true)}
                     disabled={isSavingToSupabase || parsedWarnings.length === 0}
-                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-lg flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+                    className="bg-[var(--accent)] hover:brightness-110 disabled:opacity-50 text-[var(--canvas)] text-xs font-medium uppercase tracking-wider px-5 py-2.5 rounded-lg flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
                     title="Saves parsed warnings directly to Supabase nav_warnings PostgreSQL table"
                   >
                     {isSavingToSupabase ? (
                       <RefreshCw className="w-4 h-4 animate-spin" />
                     ) : (
-                      <Database className="w-4 h-4 text-emerald-200" />
+                      <Database className="w-4 h-4" />
                     )}
                     <span>{isSavingToSupabase ? 'Saving to Supabase...' : `Save ${parsedWarnings.length} to Supabase`}</span>
                   </button>
@@ -1942,7 +1942,7 @@ export const CsvUploaderView: React.FC<CsvUploaderViewProps> = ({ onCommitWarnin
                   handleSaveToSupabase();
                 }}
                 disabled={isSavingToSupabase}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shadow-sm cursor-pointer flex items-center gap-1.5"
+                className="px-5 py-2 bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] rounded-lg text-xs font-medium uppercase tracking-wider transition-colors shadow-sm cursor-pointer flex items-center gap-1.5"
               >
                 <Check className="w-4 h-4" />
                 <span>Confirm &amp; Commit to Database</span>

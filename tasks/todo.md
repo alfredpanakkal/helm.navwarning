@@ -91,14 +91,14 @@
 - [x] `WarningEditModal:501` drawer Verify: same accent token substitution
 - [x] `DataBankWarningList:261` Quick Verify: same accent token substitution
 - [x] No `emerald-`, `sky-` token on any button in these three files
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #175](https://github.com/alfredpanakkal/helm.navwarning/pull/175))
 
 ### 2-C · Verify palette — ingest views
-- [ ] Branch `fix-buttons-verify-palette-ingest` created
-- [ ] `ManualParserView` lines 489, 894, 1046: `bg-emerald-600` → `bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)]`
-- [ ] `CsvUploaderView:1605` staged save: same substitution
-- [ ] `MapGeometryEditor:770` "Finish shape": same substitution
-- [ ] No `emerald-` token on primary action buttons in these three files
+- [x] Branch `fix-buttons-verify-palette-ingest` created
+- [x] `ManualParserView` lines 489, 894, 1046: `bg-emerald-600` → `bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)]`
+- [x] `CsvUploaderView:1605` staged save: same substitution
+- [x] `MapGeometryEditor:770` "Finish shape": same substitution
+- [x] No `emerald-` token on primary action buttons in these three files
 - [ ] PR opened, reviewed, merged ✅
 
 ### 2-D · Deviant palette + motion cleanup
