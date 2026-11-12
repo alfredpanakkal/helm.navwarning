@@ -517,8 +517,8 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
     <!-- PUBLIC NAV ONLY — no admin -->
     <nav class="main-nav" aria-label="Main navigation">
       <div role="tablist" aria-label="Main navigation views" style="display:flex;gap:2px">
-        <button class="nav-tab stacked active" data-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" id="tab-btn-map" onclick="switchTab('map')" title="Map View"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg><span class="nav-tab-label">Map</span></button>
-        <button class="nav-tab stacked" data-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" id="tab-btn-data" onclick="switchTab('data')" title="Data Bank"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg><span class="nav-tab-label">Data</span></button>
+        <button type="button" class="nav-tab stacked active" data-tab="map" role="tab" aria-selected="true" aria-controls="tab-map" id="tab-btn-map" onclick="switchTab('map')" title="Map View"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg><span class="nav-tab-label">Map</span></button>
+        <button type="button" class="nav-tab stacked" data-tab="data" role="tab" aria-selected="false" aria-controls="tab-data" id="tab-btn-data" onclick="switchTab('data')" title="Data Bank"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg><span class="nav-tab-label">Data</span></button>
         <button class="nav-tab stacked" type="button" id="tab-btn-more" onclick="toggleMoreMenu()" aria-expanded="false" aria-haspopup="true" aria-controls="moreMenu" title="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg><span class="nav-tab-label">More</span></button>
       </div>
     </nav>
@@ -570,8 +570,8 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </div>
-        <button class="btn btn-primary" onclick="refreshData()">Refresh Data</button>
-        <button class="btn btn-secondary" onclick="switchTab('data')">Data Bank →</button>
+        <button type="button" class="btn btn-primary" onclick="refreshData()">Refresh Data</button>
+        <button type="button" class="btn btn-secondary" onclick="switchTab('data')">Data Bank →</button>
       </div>
     </div>
   </div>
@@ -604,7 +604,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
       <button type="button" class="map-recenter-pill-btn" onclick="resetMapView()" title="Fit all warnings" aria-label="Fit all warnings in view">
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 4h4M4 4v4M20 4h-4M20 4v4M4 20h4M4 20v-4M20 20h-4M20 20v-4"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
-      <button type="button" class="map-focus-btn" id="btnMapFocus" onclick="toggleMapFocusMode()" title="Maximize Map View (Focus Mode)" aria-label="Maximize map view full screen">
+      <button type="button" class="map-focus-btn" id="btnMapFocus" onclick="toggleMapFocusMode()" title="Maximize Map View (Focus Mode)" aria-label="Maximize map view full screen" aria-pressed="false">
         <svg id="iconMapFocusMax" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
         </svg>
@@ -659,7 +659,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
 
         <div class="settings-section-title">
           <span>Maritime Overlays</span>
-          <button type="button" class="master-toggle-btn" id="masterToggleBtnDesktop" onclick="toggleMasterOverlays()" aria-label="Toggle all maritime overlays">[ON]</button>
+          <button type="button" class="master-toggle-btn" id="masterToggleBtnDesktop" onclick="toggleMasterOverlays()" aria-label="Toggle all maritime overlays" aria-pressed="true">[ON]</button>
         </div>
         <label class="settings-item">
           <input type="checkbox" id="layerTogglePointsDesktop" checked onchange="toggleLayer('points', this.checked)">
@@ -728,10 +728,10 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
           <span class="badge-simple badge-active" id="mapLiveBadge"><span class="dot"></span> 0 live</span>
         </div>
         <div class="panel-actions">
-          <button type="button" class="panel-btn" id="btnMinWarningList" onclick="toggleMinimizeWarningList()" title="Minimize" aria-label="Minimize active warnings list">
+          <button type="button" class="panel-btn" id="btnMinWarningList" onclick="toggleMinimizeWarningList()" title="Minimize" aria-label="Minimize active warnings list" aria-expanded="true" aria-controls="mapWarningList">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
-          <button type="button" class="panel-btn" id="btnMaxWarningList" onclick="toggleMaximizeWarningList()" title="Maximize" aria-label="Maximize active warnings list">
+          <button type="button" class="panel-btn" id="btnMaxWarningList" onclick="toggleMaximizeWarningList()" title="Maximize" aria-label="Maximize active warnings list" aria-expanded="false" aria-controls="mapWarningList">
             <svg id="iconMaxWarningList" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
           </button>
         </div>
@@ -754,7 +754,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
       <span class="data-bank-count-pill" id="dataSubtitle">0 published warnings</span>
     </div>
     <div class="actions data-bank-actions">
-      <button class="btn btn-primary" id="btnRefreshSupabase" onclick="refreshSupabaseConnection()" title="Refresh" aria-label="Refresh data">
+      <button type="button" class="btn btn-primary" id="btnRefreshSupabase" onclick="refreshSupabaseConnection()" title="Refresh" aria-label="Refresh data">
         <svg style="width:14px;height:14px;display:inline-block;vertical-align:-2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
       </button>
     </div>
@@ -1085,12 +1085,12 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
 
 <div class="modal-overlay" id="warningModal" onclick="closeModal(event)" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
   <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-header"><h2 id="modalTitle">Warning</h2><button class="modal-close" onclick="closeWarningModal()" aria-label="Close warning details">✕</button></div>
+    <div class="modal-header"><h2 id="modalTitle">Warning</h2><button type="button" class="modal-close" onclick="closeWarningModal()" aria-label="Close warning details">✕</button></div>
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeWarningModal()">Close</button>
-      <button class="btn btn-secondary" onclick="copyCurrentWarningText()">Copy Bulletin</button>
-      <button class="btn btn-primary" onclick="locateOnMap()">Locate on Map</button>
+      <button type="button" class="btn btn-ghost" onclick="closeWarningModal()">Close</button>
+      <button type="button" class="btn btn-secondary" onclick="copyCurrentWarningText()">Copy Bulletin</button>
+      <button type="button" class="btn btn-primary" onclick="locateOnMap()">Locate on Map</button>
     </div>
   </div>
 </div>
@@ -1132,7 +1132,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
 
     <div class="settings-section-title">
       <span>Maritime Overlays</span>
-      <button type="button" class="master-toggle-btn" id="masterToggleBtnMobile" onclick="toggleMasterOverlays()" aria-label="Toggle all maritime overlays">[ON]</button>
+      <button type="button" class="master-toggle-btn" id="masterToggleBtnMobile" onclick="toggleMasterOverlays()" aria-label="Toggle all maritime overlays" aria-pressed="true">[ON]</button>
     </div>
     <label class="settings-item">
       <input type="checkbox" id="layerTogglePointsMobile" checked onchange="toggleLayer('points', this.checked)">
