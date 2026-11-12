@@ -197,6 +197,7 @@ CREATE TABLE public.raw_messages (
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={loadStatus}
             disabled={isLoading}
             className="flex items-center gap-1.5 px-3 py-2 bg-gw-tertiary hover:bg-gw-secondary text-gw-bg hover:text-gw-primary font-bold text-xs uppercase tracking-wider rounded border border-gw-accent transition-all"
@@ -232,6 +233,7 @@ CREATE TABLE public.raw_messages (
           </div>
 
           <button
+            type="button"
             onClick={handleManualSync}
             disabled={isSyncing}
             className="flex items-center gap-2 px-4 py-2 bg-gw-primary text-gw-bg font-bold text-xs uppercase tracking-wider rounded border-2 border-gw-primary hover:bg-gw-tertiary transition-all shadow-sm"
@@ -326,6 +328,7 @@ CREATE TABLE public.raw_messages (
           </div>
 
           <button
+            type="button"
             onClick={handleTestGemini}
             disabled={isTestingGemini}
             className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg border-2 border-indigo-700 shadow-md transition-all active:scale-95 disabled:opacity-50 shrink-0"
@@ -357,6 +360,7 @@ CREATE TABLE public.raw_messages (
               className="flex-1 px-3 py-2 bg-gw-bg border border-gw-primary rounded text-xs font-mono text-gw-primary focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <button
+              type="button"
               onClick={handleTestGemini}
               disabled={isTestingGemini || !geminiPrompt.trim()}
               className="px-4 py-2 bg-gw-primary text-gw-bg hover:bg-gw-tertiary rounded font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-1.5"
@@ -455,6 +459,7 @@ CREATE TABLE public.raw_messages (
               <span>Supabase SQL DDL Setup Schema</span>
             </div>
             <button
+              type="button"
               onClick={handleCopySql}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-gw-bg border border-gw-secondary hover:border-gw-primary rounded text-xs font-bold uppercase transition-colors"
             >
@@ -481,6 +486,7 @@ CREATE TABLE public.raw_messages (
           </div>
 
           <button
+            type="button"
             onClick={handleExportJson}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gw-primary text-gw-bg font-bold text-xs uppercase tracking-wider rounded border-2 border-gw-primary hover:bg-gw-tertiary transition-all shadow-sm"
           >

@@ -173,6 +173,7 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
             <span>Pipeline Run Ledger (<code className="font-mono">pipeline_runs</code>)</span>
           </h3>
           <button
+            type="button"
             onClick={loadRuns}
             className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-gw-primary text-gw-bg rounded border border-gw-primary hover:bg-gw-accent transition-colors"
           >
