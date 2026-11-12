@@ -73,6 +73,16 @@ export function computeDestinationPoint(
   bearingDeg: number,
   distanceNm: number
 ): [number, number] {
+  if (
+    !start ||
+    !Number.isFinite(start[0]) ||
+    !Number.isFinite(start[1]) ||
+    !Number.isFinite(bearingDeg) ||
+    !Number.isFinite(distanceNm)
+  ) {
+    return [0, 0];
+  }
+
   const [lat1, lng1] = start;
   const delta = distanceNm / EARTH_RADIUS_NM;
   const theta = bearingDeg * DEG_TO_RAD;
@@ -80,10 +90,11 @@ export function computeDestinationPoint(
   const phi1 = lat1 * DEG_TO_RAD;
   const lambda1 = lng1 * DEG_TO_RAD;
 
-  const phi2 = Math.asin(
+  const sinPhi2 =
     Math.sin(phi1) * Math.cos(delta) +
-      Math.cos(phi1) * Math.sin(delta) * Math.cos(theta)
-  );
+    Math.cos(phi1) * Math.sin(delta) * Math.cos(theta);
+  const clampedSin = Math.max(-1, Math.min(1, sinPhi2));
+  const phi2 = Math.asin(clampedSin);
 
   const lambda2 =
     lambda1 +
@@ -168,11 +179,23 @@ export function computeLineCorridor(
   portWidthNm?: number,
   stbdWidthNm?: number
 ): CorridorGeometry {
-  if (!points || points.length < 2) {
+  if (!points || !Array.isArray(points) || points.length < 2) {
     return {
       centerLine: points || [],
       boundaryPolygon: points || [],
-      widthNm,
+      widthNm: Number.isFinite(widthNm) ? widthNm : 3.0,
+      lengthNm: 0,
+    };
+  }
+
+  const validPoints = points.filter(
+    (p) => Array.isArray(p) && p.length >= 2 && Number.isFinite(p[0]) && Number.isFinite(p[1])
+  );
+  if (validPoints.length < 2) {
+    return {
+      centerLine: validPoints,
+      boundaryPolygon: validPoints,
+      widthNm: Number.isFinite(widthNm) ? widthNm : 3.0,
       lengthNm: 0,
     };
   }
@@ -187,17 +210,17 @@ export function computeLineCorridor(
   const rightBank: [number, number][] = [];
   let totalLengthNm = 0;
 
-  for (let i = 0; i < points.length; i++) {
+  for (let i = 0; i < validPoints.length; i++) {
     let bearing: number;
     if (i === 0) {
-      bearing = computeBearingDeg(points[0], points[1]);
-      totalLengthNm += computeDistanceNm(points[0], points[1]);
-    } else if (i === points.length - 1) {
-      bearing = computeBearingDeg(points[i - 1], points[i]);
+      bearing = computeBearingDeg(validPoints[0], validPoints[1]);
+      totalLengthNm += computeDistanceNm(validPoints[0], validPoints[1]);
+    } else if (i === validPoints.length - 1) {
+      bearing = computeBearingDeg(validPoints[i - 1], validPoints[i]);
     } else {
-      const b1 = computeBearingDeg(points[i - 1], points[i]);
-      const b2 = computeBearingDeg(points[i], points[i + 1]);
-      totalLengthNm += computeDistanceNm(points[i], points[i + 1]);
+      const b1 = computeBearingDeg(validPoints[i - 1], validPoints[i]);
+      const b2 = computeBearingDeg(validPoints[i], validPoints[i + 1]);
+      totalLengthNm += computeDistanceNm(validPoints[i], validPoints[i + 1]);
       // Average bearing at vertices
       const avgSin = (Math.sin(b1 * DEG_TO_RAD) + Math.sin(b2 * DEG_TO_RAD)) / 2;
       const avgCos = (Math.cos(b1 * DEG_TO_RAD) + Math.cos(b2 * DEG_TO_RAD)) / 2;
@@ -206,12 +229,12 @@ export function computeLineCorridor(
 
     // Left bank (Port offset: bearing - 90), Right bank (Starboard offset: bearing + 90)
     const leftPoint = computeDestinationPoint(
-      points[i],
+      validPoints[i],
       (bearing - 90 + 360) % 360,
       effectivePortWidth
     );
     const rightPoint = computeDestinationPoint(
-      points[i],
+      validPoints[i],
       (bearing + 90) % 360,
       effectiveStbdWidth
     );
@@ -224,7 +247,7 @@ export function computeLineCorridor(
   const boundaryPolygon = [...leftBank, ...rightBank.reverse(), leftBank[0]];
 
   return {
-    centerLine: points,
+    centerLine: validPoints,
     boundaryPolygon,
     widthNm: totalWidthNm,
     lengthNm: Number(totalLengthNm.toFixed(2)),
@@ -243,7 +266,16 @@ export function computeSectorPolygon(
   endBearingDeg: number,
   stepDeg: number = 4
 ): [number, number][] {
-  if (!center || radiusNm <= 0) return [];
+  if (
+    !center ||
+    !Array.isArray(center) ||
+    !Number.isFinite(center[0]) ||
+    !Number.isFinite(center[1]) ||
+    !Number.isFinite(radiusNm) ||
+    radiusNm <= 0 ||
+    !Number.isFinite(startBearingDeg) ||
+    !Number.isFinite(endBearingDeg)
+  ) return [];
 
   const normStart = ((startBearingDeg % 360) + 360) % 360;
   const normEnd = ((endBearingDeg % 360) + 360) % 360;
@@ -512,6 +544,8 @@ export function parseDriftVector(
   const speedKts = speedMatch ? parseFloat(speedMatch[1]) : undefined;
 
   // Project estimated 6-hour or standard 5 NM drift line if speed unknown
+  const isFallback = !speedKts;
+  const projectionHours = speedKts ? 6 : undefined;
   const distanceNm = speedKts ? Number((speedKts * 6).toFixed(1)) : 5.0;
   const destination = computeDestinationPoint(origin, bearingDeg, distanceNm);
 
@@ -522,6 +556,9 @@ export function parseDriftVector(
     speedKts,
     distanceNm,
     directionLabel,
+    isEstimated: true,
+    isFallback,
+    projectionHours,
   };
 }
 
@@ -529,7 +566,12 @@ export function parseDriftVector(
  * Formats a coordinate pair into the site-wide display standard (e.g., 58° 12.34' N 011° 15.67' E).
  */
 export function formatWgs84Dms(lat: number, lng: number): string {
-  if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+  if (
+    typeof lat !== 'number' ||
+    typeof lng !== 'number' ||
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng)
+  ) {
     return 'N/A';
   }
 
@@ -546,7 +588,7 @@ export function formatWgs84Dms(lat: number, lng: number): string {
   const lngMin = (absLng - lngDeg) * 60;
 
   const latStr = `${latDeg.toString().padStart(2, '0')}° ${latMin.toFixed(2)}' ${latHem}`;
-  const lngStr = `${lngDeg.toString().padStart(3, '0')}° ${latMin.toFixed(2)}' ${lngHem}`;
+  const lngStr = `${lngDeg.toString().padStart(3, '0')}° ${lngMin.toFixed(2)}' ${lngHem}`;
 
   return `${latStr} ${lngStr}`;
 }
