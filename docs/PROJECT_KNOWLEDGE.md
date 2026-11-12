@@ -264,4 +264,4 @@ description of the current system; live code wins.
   - Colour: 3 severity ring states (`--sev-critical`, `--sev-high`, `--accent`), decoupled from category.
   - Geometry: 7 explicit types (Point, Line, Polygon, Circle, Sector, Corridor, Displacement). Multi-zone preserves 1 warning → N labeled zones.
   - Cluster: Numeric dual-ring clusters apply strictly to point markers.
-- **Execution**: 5-phase rollout starting with Phase 1 (Six-Symbol System & Severity Ring Decoupling).
+- **Execution**: 5-phase PR rollout (PRs #161–#165) delivering the 6-symbol system (#161), sector arcs/relocation (#162), multi-zone labeled splitting (#163), zoom hierarchy & boundary semantics (#164), and multi-theme contrast & golden validation suite (#165). Tracked in [`docs/TODO_WARNING_DESIGN_STUDY.md`](TODO_WARNING_DESIGN_STUDY.md).

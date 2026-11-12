@@ -23,8 +23,8 @@ export interface LabeledZoneGroup {
  * Extracts and partitions coordinates into distinct labeled polygon zones
  * (e.g., AREA A, AREA B, ZONE 1, ZONE 2) anchored to text headers.
  */
-export function extractLabeledZoneGroups(rawText: string, allCoords: NavWarnCoordinate[]): LabeledZoneGroup[] {
-  if (!rawText || allCoords.length < 6) return [];
+export function extractLabeledZoneGroups(rawText: string, allCoords: NavWarnCoordinate[] = []): LabeledZoneGroup[] {
+  if (!rawText) return [];
 
   // Find all zone anchors like "AREA A", "ZONE 1", "AREA 1", "ZONE A"
   const anchorRegex = /(?:^|\b)(AREA\s+[A-Z0-9]+|ZONE\s+[A-Z0-9]+)\b/gi;
@@ -64,17 +64,19 @@ export function extractLabeledZoneGroups(rawText: string, allCoords: NavWarnCoor
   // Fallback: If text defines N zones and allCoords can be split evenly
   const polyGroups: LabeledZoneGroup[] = [];
   const groupCount = matches.length;
-  const groupSize = Math.floor(allCoords.length / groupCount);
 
-  if (groupSize >= 3) {
-    for (let i = 0; i < groupCount; i++) {
-      const slice = allCoords.slice(i * groupSize, i === groupCount - 1 ? undefined : (i + 1) * groupSize);
-      polyGroups.push({
-        label: matches[i].label,
-        coords: slice.map(c => ({ ...c, label: matches[i].label })),
-      });
+  if (allCoords.length >= 6) {
+    const groupSize = Math.floor(allCoords.length / groupCount);
+    if (groupSize >= 3) {
+      for (let i = 0; i < groupCount; i++) {
+        const slice = allCoords.slice(i * groupSize, i === groupCount - 1 ? undefined : (i + 1) * groupSize);
+        polyGroups.push({
+          label: matches[i].label,
+          coords: slice.map(c => ({ ...c, label: matches[i].label })),
+        });
+      }
+      return polyGroups;
     }
-    return polyGroups;
   }
 
   return [];
@@ -478,6 +480,7 @@ export function extractMaritimePlots(
           plotType: 'polygon',
           coordinates: latLngs,
           areaSqNm,
+          zoneLabel,
           label: `${zoneLabel} (${areaSqNm} sq NM)`,
           rawTextSnippet: rawText.slice(0, 80),
         });
