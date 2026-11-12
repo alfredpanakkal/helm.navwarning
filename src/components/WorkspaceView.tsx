@@ -60,6 +60,8 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             <button
               type="button"
               onClick={() => setShowAttention(!showAttention)}
+              aria-expanded={showAttention}
+              aria-controls="attention-required-items"
               className="text-xs text-amber-800 hover:text-amber-950 font-medium flex items-center gap-1 cursor-pointer"
             >
               <span>{showAttention ? 'Minimize' : 'Show All'}</span>
@@ -67,7 +69,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             </button>
           </div>
           {showAttention && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2.5">
+            <div id="attention-required-items" className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2.5">
               {attentionItems.slice(0, 4).map((item) => (
                 <div
                   key={item.id}
@@ -84,6 +86,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                   </div>
                   {item.warningId && onSelectWarning ? (
                     <button
+                      type="button"
                       onClick={() => {
                         const warn = warnings.find((w) => w.warning_id === item.warningId);
                         if (warn) onSelectWarning(warn);
@@ -94,6 +97,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                     </button>
                   ) : item.actionTab ? (
                     <button
+                      type="button"
                       onClick={() => onNavigate?.(item.actionTab as TabType)}
                       className="shrink-0 text-xs font-medium text-accent hover:underline cursor-pointer"
                     >
@@ -111,6 +115,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
       <div className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 shadow-2xs">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-xs font-medium text-ink-primary">
           <button
+            type="button"
             onClick={() => onNavigateWithFilter ? onNavigateWithFilter('sources', 'unverified') : onNavigate?.('sources')}
             title="View sources (filtered to unverified if any)"
             className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-surface-subtle hover:bg-surface border border-border-input hover:border-hairline rounded-lg transition-colors cursor-pointer"
@@ -122,6 +127,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             <span className="text-ink-primary font-semibold text-xs ml-auto sm:ml-0">{activeSourcesCount}/{sources.length} Active</span>
           </button>
           <button
+            type="button"
             onClick={() => onNavigateWithFilter ? onNavigateWithFilter('databank', 'unverified') : onNavigate?.('databank')}
             title="Jump to candidate warnings requiring verification"
             className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-surface-subtle hover:bg-surface border border-border-input hover:border-hairline rounded-lg transition-colors cursor-pointer"
@@ -133,6 +139,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
             <span className="text-ink-primary font-semibold text-xs ml-auto sm:ml-0">{warnings.filter((w) => w.status === 'active').length} Published</span>
           </button>
           <button
+            type="button"
             onClick={() => onNavigate?.('supabase')}
             className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-surface-subtle hover:bg-surface border border-border-input hover:border-hairline rounded-lg transition-colors cursor-pointer"
           >
@@ -159,6 +166,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-xs text-ink-tertiary hidden sm:inline">Primary Actions</span>
             <button
+              type="button"
               onClick={() => setIsIngestionProcedureOpen?.(true)}
               className="touch-hit text-xs text-accent font-medium hover:underline cursor-pointer"
             >
@@ -169,6 +177,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
           <button
+            type="button"
             onClick={() => onNavigate?.('sources')}
             className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"
           >
@@ -185,6 +194,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={() => onNavigate?.('manual')}
             className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"
           >
@@ -201,6 +211,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={() => onNavigate?.('imports')}
             className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"
           >
@@ -217,6 +228,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={() => onNavigate?.('audit')}
             className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"
           >
@@ -233,6 +245,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={() => onNavigate?.('evidence')}
             className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"
           >
@@ -249,6 +262,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={() => onNavigate?.('supabase')}
             className="bg-surface border border-hairline rounded-xl p-3 sm:p-3.5 text-left hover:border-border-input hover:shadow-xs transition-all group flex flex-col justify-between min-h-[84px] sm:min-h-[104px] cursor-pointer"
           >
@@ -390,6 +404,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               </div>
               {generations.length > 0 && (
                 <button
+                  type="button"
                   onClick={() => onNavigate?.('audit')}
                   className="touch-hit text-xs text-gw-accent hover:text-gw-primary font-bold underline uppercase"
                 >
@@ -423,6 +438,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                     Operating on live synchronized store ({warnings.length} warnings across {sources.length} sources).
                   </p>
                   <button
+                    type="button"
                     onClick={() => setIsIngestionProcedureOpen?.(true)}
                     className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-gw-primary hover:bg-gw-tertiary text-gw-secondary border border-gw-secondary rounded text-[11px] font-sans font-bold uppercase transition-colors"
                   >
@@ -445,6 +461,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
                 Source Health
               </div>
               <button
+                type="button"
                 onClick={() => onNavigate?.('sources')}
                 className="touch-hit text-xs text-gw-accent hover:text-gw-primary font-bold underline uppercase"
               >
