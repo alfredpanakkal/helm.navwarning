@@ -265,3 +265,13 @@ description of the current system; live code wins.
   - Geometry: 7 explicit types (Point, Line, Polygon, Circle, Sector, Corridor, Displacement). Multi-zone preserves 1 warning → N labeled zones.
   - Cluster: Numeric dual-ring clusters apply strictly to point markers.
 - **Execution**: 5-phase PR rollout (PRs #161–#165) delivering the 6-symbol system (#161), sector arcs/relocation (#162), multi-zone labeled splitting (#163), zoom hierarchy & boundary semantics (#164), and multi-theme contrast & golden validation suite (#165). Tracked in [`docs/TODO_WARNING_DESIGN_STUDY.md`](TODO_WARNING_DESIGN_STUDY.md).
+
+## 8. UI Button Audit Series (PRs #158, #166–#182, merged 2026-11-12)
+
+Comprehensive accessibility, design system alignment, and resilience sweep across all public and console buttons (5 phases, 15 PRs, tracked in `tasks/plan.md` and `tasks/todo.md`):
+- **Phase 1 (Attribute Hygiene — PRs #158, #166–#172)**: Explicit `type="button"` across 100% of `<button>` elements in public HTML and React console (0 missing); wired ARIA states (`aria-expanded`, `aria-pressed`, `aria-selected`, `aria-current="page"`, `aria-controls`); accessible names on icon-only buttons; semantic `tablist`/`tab`/`tabpanel` markup for ingestion import tabs (#169).
+- **Phase 2 (Moss Palette Alignment — PRs #173, #175–#177)**: Replaced rogue `emerald-`, `indigo-`, `sky-`, and `amber-` classes on buttons with Helm.Ports design system tokens (`var(--accent)` `#2F6B4F`, ink/canvas neutrals, or ghost borders); eliminated `active:scale-95` and `shadow-md` (#177).
+- **Phase 3 (Touch Targets — PRs #178–#179)**: Public portal `.btn-sm` elevated to $\ge$ 44px min-dimensions under `@media (pointer: coarse)` (#178); console icon buttons reinforced to 32px natural and 44px coarse hit targets (#179).
+- **Phase 4 (Single-Fire Guards — PR #180)**: Prevented duplicate write triggers by wiring `.finally` disable/re-enable to `refreshData` in public portal, connecting `runsLoading` disable guard in generation inspector, and adding confirmation before point deletion in ECDIS feature editor.
+- **Phase 5 (Style Consistency Sweep — PRs #181–#182)**: Normalized button font weights to `font-medium` (500 max cap), replaced `rounded-lg`/`rounded-xl` on non-pill buttons with `rounded` (6px default radius), verified zero remaining drop shadows.
+
