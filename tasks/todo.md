@@ -56,13 +56,13 @@
 - [x] `type="button"` on every `<button` in all five files
 - [x] `aria-label` on icon-only buttons
 - [x] `verifyPending` / `saving` / `committedId` guards verified wired to `disabled`
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #170](https://github.com/alfredpanakkal/helm.navwarning/pull/170))
 
 ### 1-F · Remaining components sweep — Batch 2
-- [ ] Branch `fix-buttons-remaining-attrs-2` created
-- [ ] Files: `MapGeometryEditor`, `SupabaseStatusView`, `SourceRegistryView`, `GenerationInspectorView`, `AdminDataBankTools`
-- [ ] `type="button"` on every `<button` in all five files
-- [ ] `aria-label` on icon-only buttons
+- [x] Branch `fix-buttons-remaining-attrs-2` created
+- [x] Files: `MapGeometryEditor`, `SupabaseStatusView`, `SourceRegistryView`, `GenerationInspectorView`, `AdminDataBankTools`
+- [x] `type="button"` on every `<button` in all five files
+- [x] `aria-label` on icon-only buttons
 - [ ] PR opened, reviewed, merged ✅
 
 ### 1-F · Remaining components sweep — Batch 3

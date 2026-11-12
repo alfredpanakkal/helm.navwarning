@@ -205,15 +205,18 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
+                          type="button"
                           onClick={() => setSelectedSourceForChecklist(src)}
                           className="text-gw-primary hover:bg-gw-bg p-1.5 rounded border border-gw-secondary transition-colors"
                           title="View Onboarding Checklist"
+                          aria-label={`View onboarding checklist for ${src.source_id}`}
                         >
                           <FileCheck className="w-4 h-4" />
                         </button>
 
                         {isVerified ? (
                           <button
+                            type="button"
                             onClick={() => onTriggerRefresh(src.source_id)}
                             disabled={isRefreshing}
                             className="flex items-center gap-1 bg-gw-primary hover:bg-gw-accent text-gw-secondary px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 shadow-sm"
@@ -247,6 +250,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
                 <p className="text-xs text-gw-accent mt-0.5 font-bold">{selectedSourceForChecklist.publisher_name}</p>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedSourceForChecklist(null)}
                 aria-label="Close source checklist"
                 className="text-gw-accent hover:text-gw-primary font-bold text-lg p-2"
@@ -291,6 +295,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({
 
             <div className="pt-3 border-t-2 border-gw-primary flex justify-end">
               <button
+                type="button"
                 onClick={() => setSelectedSourceForChecklist(null)}
                 className="bg-gw-primary hover:bg-gw-accent text-gw-secondary font-bold text-xs uppercase tracking-wider px-5 py-2 rounded transition-all shadow-sm"
               >
