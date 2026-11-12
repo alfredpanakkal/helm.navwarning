@@ -118,12 +118,12 @@
 - [x] `public/assets/css/components.css` after line 101: `@media (pointer: coarse) { .btn-sm { min-height: 44px; min-width: 44px; } }` added
 - [x] Verified in Chrome DevTools: `.btn-sm` ≥ 44px on `pointer: coarse` emulation
 - [x] Desktop layout unchanged
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #178](https://github.com/alfredpanakkal/helm.navwarning/pull/178))
 
 ### 3-B · Console icon button tap targets
-- [ ] Branch `fix-buttons-console-taptargets` created
-- [ ] `EcdisFeatureEditor` vertex control buttons: `p-2` padding added
-- [ ] `LeafletMap` accordion action buttons: `min-h-[2.75rem] min-w-[2.75rem]` or `p-2` added
+- [x] Branch `fix-buttons-console-taptargets` created
+- [x] `EcdisFeatureEditor` vertex control buttons: `p-2` padding added
+- [x] `LeafletMap` accordion action buttons: `min-h-[2.75rem] min-w-[2.75rem]` or `p-2` added
 - [ ] PR opened, reviewed, merged ✅
 
 ---
