@@ -502,7 +502,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
             type="button"
             onClick={handleVerify}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs tracking-wide rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-4 py-2 bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)] font-medium text-xs tracking-wide rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Record an audited VERIFY action (writes a nav_warning_audits row)"
           >
             <CheckCircle2 className="w-4 h-4" />
