@@ -14,14 +14,14 @@
 - [x] `aria-pressed` wired to coord-display + focus-mode toggle buttons
 - [x] `aria-label` added to any icon-only button missing visible text
 - [x] PR opened; body includes root-cause + file list + test plan ([PR #158](https://github.com/alfredpanakkal/helm.navwarning/pull/158))
-- [ ] Maintainer ran `npm test` + `npm run lint` ✅
-- [ ] **PR merged** → tick here ✅
+- [x] Maintainer ran `npm test` + `npm run lint` ✅
+- [x] **PR merged** → tick here ✅
 
 ### 1-B · Shell button attrs (`App.tsx`, `NavRail.tsx`)
-- [ ] Branch `fix-buttons-shell-attrs` created
-- [ ] `type="button"` on all 8 buttons in `App.tsx`
-- [ ] `type="button"` on all buttons in `NavRail.tsx`
-- [ ] `aria-label` added to icon-only nav buttons; `aria-current="page"` on active item
+- [x] Branch `fix-buttons-shell-attrs` created
+- [x] `type="button"` on all 8 buttons in `App.tsx`
+- [x] `type="button"` on all buttons in `NavRail.tsx`
+- [x] `aria-label` added to icon-only nav buttons; `aria-current="page"` on active item
 - [ ] PR opened, reviewed, merged ✅
 
 ### 1-C · Header + WorkspaceView attrs
