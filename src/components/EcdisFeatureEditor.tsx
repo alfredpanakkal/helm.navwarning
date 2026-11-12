@@ -236,6 +236,9 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
   };
 
   const handleDeletePoint = (id: string) => {
+    if (typeof window !== 'undefined' && !window.confirm('Delete this point? This cannot be undone.')) {
+      return;
+    }
     const filtered = layer.features.filter((f) => f.id !== id);
     const reindexed = filtered.map((f, i) => ({
       ...f,

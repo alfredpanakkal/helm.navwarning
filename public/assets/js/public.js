@@ -2597,10 +2597,16 @@ function populateSources(){
   // Sources & Coverage registry panel (see /?tab=sources). Kept as a no-op
   // so any legacy deep link or bookmark calling it stays harmless.
 }
-window.refreshData = async function(){
-  await loadWarnings();
-  filterMapByNavArea(currentSelectedNavArea);
-  showToast('Data refreshed — latest published generation loaded');
+window.refreshData = async function(btn){
+  const target = btn || document.querySelector('button[onclick*="refreshData"]');
+  if (target) target.disabled = true;
+  try {
+    await loadWarnings();
+    filterMapByNavArea(currentSelectedNavArea);
+    showToast('Data refreshed — latest published generation loaded');
+  } finally {
+    if (target) target.disabled = false;
+  }
 };
 
 window.refreshSupabaseConnection = async function(){

@@ -124,20 +124,20 @@
 - [x] Branch `fix-buttons-console-taptargets` created
 - [x] `EcdisFeatureEditor` vertex control buttons: `p-2` padding added
 - [x] `LeafletMap` accordion action buttons: `min-h-[2.75rem] min-w-[2.75rem]` or `p-2` added
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #179](https://github.com/alfredpanakkal/helm.navwarning/pull/179))
 
 ---
 
 ## Phase 4 — Single-Fire Guards
 
 ### 4-A · Refresh + run-load + delete guards
-- [ ] Branch `fix-buttons-singlefire-guards` created
-- [ ] `index.html:573` `refreshData` button: disabled on call, re-enabled in `.finally()`
-- [ ] `GenerationInspectorView:175` `loadRuns` button: `disabled={runsLoading}` added
-- [ ] `EcdisFeatureEditor:385` `handleDeletePoint`: `window.confirm()` guard added
-- [ ] Double-click test: `refreshData` button — only one network request fires
-- [ ] `loadRuns` button: disabled while loading, re-enabled on completion/error
-- [ ] Delete point: confirmation dialog appears; cancel = no delete
+- [x] Branch `fix-buttons-singlefire-guards` created
+- [x] `index.html:573` `refreshData` button: disabled on call, re-enabled in `.finally()`
+- [x] `GenerationInspectorView:175` `loadRuns` button: `disabled={runsLoading}` added
+- [x] `EcdisFeatureEditor:385` `handleDeletePoint`: `window.confirm()` guard added
+- [x] Double-click test: `refreshData` button — only one network request fires
+- [x] `loadRuns` button: disabled while loading, re-enabled on completion/error
+- [x] Delete point: confirmation dialog appears; cancel = no delete
 - [ ] PR opened, reviewed, merged ✅
 
 ---

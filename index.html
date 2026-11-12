@@ -570,7 +570,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </div>
-        <button type="button" class="btn btn-primary" onclick="refreshData()">Refresh Data</button>
+        <button type="button" class="btn btn-primary" onclick="const b=this;b.disabled=true;refreshData(b).finally(()=>{b.disabled=false})">Refresh Data</button>
         <button type="button" class="btn btn-secondary" onclick="switchTab('data')">Data Bank →</button>
       </div>
     </div>
