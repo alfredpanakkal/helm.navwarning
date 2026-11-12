@@ -1345,14 +1345,7 @@ function bindProgressiveFeatureInteractions(layer, w, summaryText, color) {
     L.DomEvent.stopPropagation(e);
     const isMob = document.body.classList.contains('is-mobile');
 
-    if (!isMob) {
-      openWarningDetails(w);
-      return;
-    }
-
-    if (activeTouchFeature && (activeTouchFeature.canonical_id === wid || activeTouchFeature.warning_id === wid || activeTouchFeature.id === wid)) {
-      openWarningDetails(w);
-    } else {
+    if (isMob) {
       clearActiveFeatureHighlight();
       activeTouchFeature = w;
       activeHighlightedLayer = layer;
@@ -1362,8 +1355,10 @@ function bindProgressiveFeatureInteractions(layer, w, summaryText, color) {
       if (layer._icon) {
         layer._icon.classList.add('nw-active-selected');
       }
-      showTitleCard(w, summaryText, null, color);
+      hideTitleCard(true);
     }
+
+    openWarningDetails(w);
   });
 }
 
