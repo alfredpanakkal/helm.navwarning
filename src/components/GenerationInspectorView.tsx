@@ -175,9 +175,10 @@ export const GenerationInspectorView: React.FC<GenerationInspectorViewProps> = (
           <button
             type="button"
             onClick={loadRuns}
-            className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-gw-primary text-gw-bg rounded border border-gw-primary hover:bg-gw-accent transition-colors"
+            disabled={runsLoading}
+            className="px-3 py-1.5 text-xs font-medium uppercase tracking-wider bg-gw-primary text-gw-bg rounded border border-gw-primary hover:bg-gw-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Refresh Runs
+            {runsLoading ? 'Refreshing…' : 'Refresh Runs'}
           </button>
         </div>
 
