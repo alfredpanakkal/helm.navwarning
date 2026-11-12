@@ -590,6 +590,7 @@ export default function App() {
                 <span className="truncate">Supabase sync notice — {dataError}</span>
               </div>
               <button
+                type="button"
                 onClick={() => loadData()}
                 className="btn btn-sm btn-secondary text-xs flex items-center gap-1.5 shrink-0"
               >
@@ -630,6 +631,7 @@ export default function App() {
               </span>
             </div>
             <button
+              type="button"
               onClick={() => setLoginPrompt((n) => n + 1)}
               className="btn btn-sm btn-secondary text-xs shrink-0"
             >
@@ -759,9 +761,11 @@ export default function App() {
       {isAdminMode && activeTab === 'databank' && unverifiedCandidates.length > 0 && !selectedWarning && !editingWarning && !isIngestionProcedureOpen && (
         <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-6 right-4 sm:right-6 z-console-fab flex items-center gap-2 bg-gw-primary/95 text-gw-bg p-1.5 rounded-full border border-gw-accent backdrop-blur-md">
           <button
+            type="button"
             onClick={() => setSelectedWarning(unverifiedCandidates[0])}
             className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
             title="Open next unverified warning for review"
+            aria-label={`Review next unverified warning (${unverifiedCandidates.length} remaining)`}
           >
             <ShieldCheck className="w-4 h-4" />
             <span>Review Next ({unverifiedCandidates.length})</span>
@@ -775,9 +779,11 @@ export default function App() {
       {isAdminMode && selectedWarning && !editingWarning && !isIngestionProcedureOpen && (
         <div className="hidden md:block fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-console-fab">
           <button
+            type="button"
             onClick={() => setEditingWarning(selectedWarning)}
             className="flex items-center gap-2 px-4 py-2.5 bg-gw-primary hover:bg-gw-accent text-gw-bg rounded-full text-xs font-medium tracking-wide transition-colors border border-gw-accent"
             title="Edit this warning (admin) — type, time/expiry, status, tier, geometry, NAVAREA move"
+            aria-label="Edit warning"
           >
             <Edit3 className="w-4 h-4" />
             <span>Edit Warning</span>

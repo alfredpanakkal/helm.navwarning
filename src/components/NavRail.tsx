@@ -75,6 +75,7 @@ export const NavRail: React.FC<NavRailProps> = ({
               />
             ) : (
               <button
+                type="button"
                 onClick={() => handleSectionSelect(section)}
                 aria-current={activeSection === section ? 'true' : undefined}
                 className="text-[0.7rem] font-medium uppercase tracking-[0.06em] text-left px-3 pt-1 text-ink-tertiary hover:text-ink-primary transition-colors cursor-pointer"
@@ -87,6 +88,7 @@ export const NavRail: React.FC<NavRailProps> = ({
               if (collapsed) {
                 return (
                   <button
+                    type="button"
                     key={view.id}
                     onClick={() => setActiveTab(view.id)}
                     title={view.label}
@@ -105,8 +107,10 @@ export const NavRail: React.FC<NavRailProps> = ({
               }
               return (
                 <button
+                  type="button"
                   key={view.id}
                   onClick={() => setActiveTab(view.id)}
+                  aria-label={view.label}
                   aria-current={isActive ? 'page' : undefined}
                   className={
                     'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ' +
@@ -126,6 +130,7 @@ export const NavRail: React.FC<NavRailProps> = ({
 
       <div className="border-t border-hairline p-2">
         <button
+          type="button"
           onClick={onToggleCollapsed}
           aria-label={collapsed ? 'Expand navigation rail' : 'Collapse navigation rail'}
           aria-expanded={!collapsed}
