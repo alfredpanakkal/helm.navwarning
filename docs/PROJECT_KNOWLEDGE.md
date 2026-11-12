@@ -254,3 +254,14 @@ description of the current system; live code wins.
 - **#97–#99** public IA: one top nav on all pages, map control stack, sources registry merged into the combined info surface.
 - **#100/#101** `/about` merged into the Info tab at `/?tab=info` (`/about`, `/sources` → 301); info tab decluttered (fake "Sources" section removed, static registry is the single source list).
 - **#102–#104 (merged 2026-11-03)** console design critique: full-width shell + single 56px header bar (#102); 220px fixed left rail, view-title type scale, map-toolbar dialect reconciliation (#103); WarningEditModal → right-side 560px drawer, settings-popover "Advanced layers" disclosure, popover density fixes (#104). Deferred to a follow-up: Data Bank sticky columns/column-visibility + keyboard shortcuts (60KB grid component, needs runtime testing).
+
+## 7. Competitor Warning Design Study (approved 2026-11-12)
+
+- **Design Study Specification**: [`docs/COMPETITOR_WARNING_DESIGN_STUDY.md`](COMPETITOR_WARNING_DESIGN_STUDY.md)
+- **Implementation Checklist**: [`docs/TODO_WARNING_DESIGN_STUDY.md`](TODO_WARNING_DESIGN_STUDY.md)
+- **Core Invariant**: 4 independent visual dimensions (Symbol, Colour, Geometry, Cluster).
+  - Symbol: 6 primary glyphs (General, Military, Drifting, AtoN, Subsea, Wreck). All 16 internal categories preserved via non-destructive soft mapping.
+  - Colour: 3 severity ring states (`--sev-critical`, `--sev-high`, `--accent`), decoupled from category.
+  - Geometry: 7 explicit types (Point, Line, Polygon, Circle, Sector, Corridor, Displacement). Multi-zone preserves 1 warning → N labeled zones.
+  - Cluster: Numeric dual-ring clusters apply strictly to point markers.
+- **Execution**: 5-phase PR rollout (PRs #161–#165) delivering the 6-symbol system (#161), sector arcs/relocation (#162), multi-zone labeled splitting (#163), zoom hierarchy & boundary semantics (#164), and multi-theme contrast & golden validation suite (#165). Tracked in [`docs/TODO_WARNING_DESIGN_STUDY.md`](TODO_WARNING_DESIGN_STUDY.md).
