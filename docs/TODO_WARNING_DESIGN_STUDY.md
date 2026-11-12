@@ -82,12 +82,12 @@ Phase 5: Verification, Cross-Theme Parity & Golden Dataset Tests [PENDING]
 
 ## Phase 4 — Zoom Hierarchy & Decluttering
 
-- [ ] **4.1 Scale-Dependent Display Rules**
+- [x] **4.1 Scale-Dependent Display Rules**
   - At global zoom ($z \le 5$): suppress complex vertices, display centroid points with cluster groups.
   - At regional zoom ($z = 6 \dots 9$): show simplified polygon borders, suppress vertex numbers.
   - At detailed zoom ($z \ge 10$): show full interactive vertex pills ($V_1 \dots V_n$) and measurement swaths.
 
-- [ ] **4.2 Boundary Semantics**
+- [x] **4.2 Boundary Semantics**
   - Enforce visual hierarchy:
     - Solid border: `EXPLICIT` geometry.
     - Dashed border: `INFERRED` geometry.
