@@ -1394,7 +1394,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             <button
               type="button"
               onClick={() => setIsTopFiltersOpen(false)}
-              className="p-1 rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all"
+              className="p-2 min-h-[32px] min-w-[32px] flex items-center justify-center rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all"
               title="Close filter menu"
               aria-label="Close filter menu"
             >
@@ -1855,11 +1855,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               setCopiedCoordNotice(true);
               setTimeout(() => setCopiedCoordNotice(false), 2000);
             }}
-            className="p-1 hover:bg-gw-secondary rounded text-gw-primary transition-colors ml-1"
+            className="p-2 min-h-[32px] min-w-[32px] flex items-center justify-center hover:bg-gw-secondary rounded text-gw-primary transition-colors ml-1"
             title="Copy coordinate"
           >
             {copiedCoordNotice ? (
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <Check className="w-3.5 h-3.5 text-gw-primary" />
             ) : (
               <Copy className="w-3.5 h-3.5 text-gw-accent" />
             )}
@@ -1917,7 +1917,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             >
               <span className="flex items-center gap-2">
                 {contextMenuCopySuccess ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <Check className="w-3.5 h-3.5 text-gw-primary" />
                 ) : (
                   <Copy className="w-3.5 h-3.5 text-gw-accent" />
                 )}
@@ -2064,7 +2064,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               onClick={() =>
                 setBottomSheetState(bottomSheetState === 'minimized' ? 'normal' : 'minimized')
               }
-              className="p-1 rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all"
+              className="p-2 min-h-[32px] min-w-[32px] flex items-center justify-center rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all"
               title={bottomSheetState === 'minimized' ? 'Expand drawer' : 'Minimize drawer'}
               aria-label="Toggle drawer minimize"
             >
@@ -2079,7 +2079,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
               onClick={() =>
                 setBottomSheetState(bottomSheetState === 'maximized' ? 'normal' : 'maximized')
               }
-              className="p-1 rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all hidden sm:inline-flex"
+              className="p-2 min-h-[32px] min-w-[32px] hidden sm:inline-flex items-center justify-center rounded text-gw-accent hover:text-gw-primary hover:bg-gw-secondary transition-all"
               title={bottomSheetState === 'maximized' ? 'Restore drawer height' : 'Maximize drawer height'}
               aria-label="Toggle drawer maximize"
             >

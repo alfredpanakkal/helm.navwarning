@@ -367,7 +367,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                       type="button"
                       disabled={idx === 0}
                       onClick={() => handleMovePoint(idx, 'up')}
-                      className="p-1 text-gw-primary hover:bg-gw-panel rounded disabled:opacity-30"
+                      className="p-2 min-h-[32px] min-w-[32px] flex items-center justify-center text-gw-primary hover:bg-gw-panel rounded disabled:opacity-30 transition-colors"
                       title="Move Point Up"
                       aria-label="Move point up"
                     >
@@ -377,7 +377,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                       type="button"
                       disabled={idx === layer.features.length - 1}
                       onClick={() => handleMovePoint(idx, 'down')}
-                      className="p-1 text-gw-primary hover:bg-gw-panel rounded disabled:opacity-30"
+                      className="p-2 min-h-[32px] min-w-[32px] flex items-center justify-center text-gw-primary hover:bg-gw-panel rounded disabled:opacity-30 transition-colors"
                       title="Move Point Down"
                       aria-label="Move point down"
                     >
@@ -386,7 +386,7 @@ export const EcdisFeatureEditor: React.FC<EcdisFeatureEditorProps> = ({
                     <button
                       type="button"
                       onClick={() => handleDeletePoint(feat.id)}
-                      className="p-1 text-red-600 hover:bg-red-100 rounded"
+                      className="p-2 min-h-[32px] min-w-[32px] flex items-center justify-center text-red-600 hover:bg-red-100 rounded transition-colors"
                       title="Delete Point"
                       aria-label="Delete point"
                     >
