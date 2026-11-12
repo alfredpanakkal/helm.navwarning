@@ -327,6 +327,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                           {onVerifyWarning && (w.status === 'unverified' || w.extraction_confidence < 1) && (
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleVerify(w.warning_id);
@@ -338,6 +339,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                             </button>
                           )}
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               onLocate(w);
@@ -433,6 +435,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
               No active warnings match the current search and filters — clear them to see every published warning.
             </p>
             <button
+              type="button"
               onClick={handleResetFilters}
               className="px-3 py-1.5 bg-gw-primary text-gw-bg rounded text-xs font-bold hover:bg-gw-accent transition-colors"
             >
@@ -461,6 +464,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                   </div>
                   <div className="px-1 pb-2.5 flex items-center gap-3 flex-wrap">
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         onLocate(w);
@@ -472,6 +476,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       <span>View on map</span>
                     </button>
                     <button
+                      type="button"
                       onClick={(e) => toggleExpand(cardId, e)}
                       aria-expanded={isExpanded}
                       aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
@@ -482,6 +487,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                     </button>
                     {canVerify && (
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleVerify(w.warning_id);
@@ -529,6 +535,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                   <div className="flex items-center gap-1 shrink-0">
                     {onVerifyWarning && (w.status === 'unverified' || w.extraction_confidence < 1) && (
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleVerify(w.warning_id);
@@ -542,6 +549,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                     )}
 
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         onLocate(w);
@@ -554,7 +562,9 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                     </button>
 
                     <button
+                      type="button"
                       onClick={(e) => toggleExpand(cardId, e)}
+                      aria-expanded={isExpanded}
                       className="p-1.5 bg-gw-bg border border-gw-secondary rounded text-gw-primary hover:bg-gw-primary hover:text-gw-bg transition-colors"
                       aria-label={isExpanded ? 'Collapse warning details' : 'Expand warning details'}
                     >
@@ -610,6 +620,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                         <div className="flex justify-between items-center mb-0.5">
                           <span className="text-[10px] font-bold uppercase text-gw-accent">Parsed Coordinates</span>
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleCopyFeedback(`${w.source_warning_id || w.warning_id}:coords`, formatSpatialCoordinates(w.spatial));
@@ -641,6 +652,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                       <div className="flex justify-between items-center mb-0.5">
                         <span className="text-[10px] font-bold uppercase text-gw-accent">Full Raw Telemetry</span>
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleCopyFeedback(`${w.source_warning_id || w.warning_id}:raw`, getWarningBulletinText(w));
@@ -974,6 +986,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                 <div className="sticky right-0 bg-gw-panel group-hover:bg-gw-bg/60 flex justify-end gap-1 pr-1 transition-colors">
                   {onVerifyWarning && (w.status === 'unverified' || w.extraction_confidence < 1) && (
                     <button
+                      type="button"
                       aria-label={`Quick verify warning ${w.source_warning_id}`}
                       title="Quick Verify candidate"
                       onClick={(e) => {
@@ -987,6 +1000,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                     </button>
                   )}
                   <button
+                    type="button"
                     aria-label={`Locate warning ${w.source_warning_id} on map`}
                     title={`Locate warning ${w.source_warning_id} on map`}
                     onClick={(e) => {
@@ -1020,6 +1034,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
                   <WarningHierarchyLines warning={w} sources={sources} />
                   <div className="mt-2 flex items-center gap-3">
                     <button
+                      type="button"
                       aria-label={`Locate warning ${w.source_warning_id} on map`}
                       title={`Locate warning ${w.source_warning_id} on map`}
                       onClick={(e) => {
