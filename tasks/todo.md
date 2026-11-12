@@ -22,14 +22,14 @@
 - [x] `type="button"` on all 8 buttons in `App.tsx`
 - [x] `type="button"` on all buttons in `NavRail.tsx`
 - [x] `aria-label` added to icon-only nav buttons; `aria-current="page"` on active item
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #166](https://github.com/alfredpanakkal/helm.navwarning/pull/166))
 
 ### 1-C · Header + WorkspaceView attrs
-- [ ] Branch `fix-buttons-header-workspace-attrs` created
-- [ ] `type="button"` on ~18 buttons across both files
-- [ ] `aria-pressed` on mobile-menu + panel-collapse toggles
-- [ ] `aria-expanded` + `aria-controls` on disclosure triggers
-- [ ] `isLoggingIn` disabled guard verified still connected (no change needed if correct)
+- [x] Branch `fix-buttons-header-workspace-attrs` created
+- [x] `type="button"` on ~18 buttons across both files
+- [x] `aria-pressed` on mobile-menu + panel-collapse toggles
+- [x] `aria-expanded` + `aria-controls` on disclosure triggers
+- [x] `isLoggingIn` disabled guard verified still connected (no change needed if correct)
 - [ ] PR opened, reviewed, merged ✅
 
 ### 1-D · DataBank layer attrs

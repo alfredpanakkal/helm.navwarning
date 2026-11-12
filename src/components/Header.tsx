@@ -195,6 +195,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setMenuOpen((o) => !o)}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
+              aria-controls="mobile-console-menu"
               aria-label="Open console menu"
               className="w-full min-h-[44px] flex items-center justify-between gap-2 px-3 rounded border border-border-input text-xs font-medium text-ink-primary cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
             >
@@ -211,6 +212,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="fixed inset-x-0 bottom-0 top-[57px] z-console-chrome bg-black/30 cursor-default"
                 />
                 <div
+                  id="mobile-console-menu"
                   role="menu"
                   aria-label="Console menu"
                   className="fixed inset-x-0 top-[57px] z-console-chrome max-h-[calc(100dvh-57px)] overflow-y-auto bg-canvas border-b border-hairline p-3 space-y-3"
@@ -270,6 +272,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Admin Lock / Sign In Status */}
             {isAdminMode ? (
               <button
+                type="button"
                 onClick={() => {
                   if (signOutConfirm) {
                     handleLockAdmin();
@@ -291,7 +294,9 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             ) : (
               <button
+                type="button"
                 onClick={() => setShowAdminModal(true)}
+                aria-haspopup="dialog"
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium text-ink-secondary bg-transparent hover:bg-surface-subtle border border-border-input transition-all cursor-pointer"
                 title="Unlock Console Administrator Access"
               >
@@ -319,6 +324,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <span id="admin-gate-title">Admin access gate</span>
               </div>
               <button
+                type="button"
                 onClick={() => {
                   setShowAdminModal(false);
                   setAuthErrorMessage(null);
