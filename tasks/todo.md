@@ -99,14 +99,14 @@
 - [x] `CsvUploaderView:1605` staged save: same substitution
 - [x] `MapGeometryEditor:770` "Finish shape": same substitution
 - [x] No `emerald-` token on primary action buttons in these three files
-- [ ] PR opened, reviewed, merged ✅
+- [x] PR opened, reviewed, merged ✅ ([PR #176](https://github.com/alfredpanakkal/helm.navwarning/pull/176))
 
 ### 2-D · Deviant palette + motion cleanup
-- [ ] Branch `fix-buttons-deviant-palette` created
-- [ ] `SupabaseStatusView:328`: removed `active:scale-95`, `shadow-md`, `border-indigo-700`; `bg-indigo-600` → `bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)]`
-- [ ] `AdminDataBankTools:353`: `bg-amber-600` → ghost `border border-[var(--accent)] text-[var(--accent)] bg-transparent hover:bg-[var(--accent)]/8`
-- [ ] `font-bold`/`font-semibold` on buttons in both files → `font-medium`
-- [ ] No `active:scale-*`, `shadow-*`, `indigo-*`, `amber-*` on any button in either file
+- [x] Branch `fix-buttons-deviant-palette` created
+- [x] `SupabaseStatusView:328`: removed `active:scale-95`, `shadow-md`, `border-indigo-700`; `bg-indigo-600` → `bg-[var(--accent)] hover:brightness-110 text-[var(--canvas)]`
+- [x] `AdminDataBankTools:353`: `bg-amber-600` → ghost `border border-[var(--accent)] text-[var(--accent)] bg-transparent hover:bg-[var(--accent)]/8`
+- [x] `font-bold`/`font-semibold` on buttons in both files → `font-medium`
+- [x] No `active:scale-*`, `shadow-*`, `indigo-*`, `amber-*` on any button in either file
 - [ ] PR opened, reviewed, merged ✅
 
 ---
