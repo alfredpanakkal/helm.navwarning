@@ -368,8 +368,9 @@ export function useDataBankModel({
         }
       }
       if (selectedCategory !== 'ALL' && item.category !== selectedCategory) return false;
-      // Severity bands are now derived from backend triage signals:
-      // critical = Tier A + EXPLICIT + no flags; high = any Tier A.
+      // Confidence bands are derived from backend triage signals (parser
+      // quality, NOT maritime hazard severity):
+      // verified = Tier A + EXPLICIT + no flags; high = any Tier A.
       if (selectedSeverity === 'critical' && !isTierAClean(w)) return false;
       if (selectedSeverity === 'high') {
         const tier = (w as any).triage_tier;

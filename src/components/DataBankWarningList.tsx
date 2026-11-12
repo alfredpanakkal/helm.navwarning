@@ -39,7 +39,7 @@ const V2_SORT_BUTTONS: { field: SortField; label: string }[] = [
   { field: 'id', label: 'ID' },
   { field: 'area', label: 'AREA' },
   { field: 'title', label: 'TITLE' },
-  { field: 'severity', label: 'SEVERITY' },
+  { field: 'severity', label: 'CONFIDENCE' },
   { field: 'coords', label: 'COORDS' },
   { field: 'issued', label: 'ISSUED' },
   { field: 'status', label: 'STATUS' },
@@ -388,7 +388,7 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
               <option value="id-asc">ID (A-Z / Low-High)</option>
               <option value="id-desc">ID (High-Low)</option>
               <option value="area-asc">NAVAREA (Asc)</option>
-              <option value="severity-desc">Severity (High First)</option>
+              <option value="severity-desc">Confidence (High First)</option>
               <option value="status-asc">Status (Active First)</option>
             </select>
           </div>
@@ -813,10 +813,10 @@ export const DataBankWarningList: React.FC<DataBankWarningListProps> = ({
  ? 'bg-gw-bg/20 text-gw-bg font-medium ring-1 ring-gw-bg/40 '
  : 'text-gw-bg/90 hover:bg-gw-panel/10 hover:text-gw-bg'
  }`}
-            title={getSortLabel('severity', 'Severity & Confidence')}
+            title={getSortLabel('severity', 'Data confidence')}
             aria-sort={sortField === 'severity' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
           >
-            <span className="truncate">SEVERITY</span>
+            <span className="truncate">CONFIDENCE</span>
             {sortField === 'severity' ? (
               sortDirection === 'asc' ? (
                 <ArrowUp className="w-3 h-3 text-gw-bg shrink-0" />
