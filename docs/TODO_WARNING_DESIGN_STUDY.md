@@ -1,7 +1,7 @@
 # Implementation Tracker: Warning Symbols & Geographic Plotting
 
 > **Parent Design Study**: [`docs/COMPETITOR_WARNING_DESIGN_STUDY.md`](COMPETITOR_WARNING_DESIGN_STUDY.md)  
-> **Status**: Ready to begin Phase 1  
+> **Status**: Completed (Phase 1–5 Merged/PR Series #161–#165)  
 > **Target Branch**: `competitor_warning_design_study`
 
 ---
@@ -12,8 +12,8 @@
 Phase 1: 6-Symbol System & Severity Ring Decoupling       [COMPLETED]
 Phase 2: Basic & Advanced Geometry Rendering (Sectors/Relocation) [COMPLETED]
 Phase 3: Multi-Zone Label Splitting & Geometry Integrity         [COMPLETED]
-Phase 4: Zoom Hierarchy, Decluttering & Legend Updates           [READY TO START]
-Phase 5: Verification, Cross-Theme Parity & Golden Dataset Tests [PENDING]
+Phase 4: Zoom Hierarchy, Decluttering & Legend Updates           [COMPLETED]
+Phase 5: Verification, Cross-Theme Parity & Golden Dataset Tests [COMPLETED]
 ```
 
 ---
@@ -97,13 +97,13 @@ Phase 5: Verification, Cross-Theme Parity & Golden Dataset Tests [PENDING]
 
 ## Phase 5 — Verification & Multi-Theme Parity
 
-- [ ] **5.1 Unit & Snapshot Testing**
+- [x] **5.1 Unit & Snapshot Testing**
   - Verify all 16 `HazardCategory` values correctly resolve to their assigned `PrimarySymbol`.
   - Verify sector math across 0°/360° north-crossing boundaries.
   - Verify corridor polygon closure and winding order.
 
-- [ ] **5.2 Theme Contrast Testing**
+- [x] **5.2 Theme Contrast Testing**
   - Validate all 6 symbols and 3 severity rings across all 3 themes (`light`, `dark`, `night`) in `src/theme/themeContrast.test.ts`.
 
-- [ ] **5.3 Real Bulletin Evaluation**
-  - Validate against the baseline fixtures (`data/fixtures/oracle-expectations.json` and NAVAREA IV/IX corpora).
+- [x] **5.3 Real Bulletin Evaluation**
+  - Validate against the baseline fixtures (`data/fixtures/oracle-expectations.json` and NAVAREA IV/IX corpora) in `src/parsers/__tests__/designStudyGolden.test.ts`.
