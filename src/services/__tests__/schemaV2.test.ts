@@ -218,6 +218,9 @@ describe('mapSupabaseRowToNavWarning (20261019/20 schema)', () => {
     expect(w.spatial.geometries[0].type).toBe('Point');
     expect(w.spatial.geometries[0].coordinates[1]).toBeCloseTo(35.2, 4);
     expect(w.spatial.geometries[0].coordinates[0]).toBeCloseTo(140.25, 4);
+    // Fallback must stay explicitly flagged so the map can refuse to plot it
+    // as a real position while the Data Bank "with coords" filter still works.
+    expect(w.spatial.validation_status).toBe('parsed_from_text');
   });
 
   it('derives categories fallback and maps cancelled status', () => {

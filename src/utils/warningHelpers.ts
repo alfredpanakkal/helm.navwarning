@@ -39,6 +39,36 @@ export function getWarningDate(w?: Partial<NavWarning> | null): string {
   return 'N/A';
 }
 
+/**
+ * True when the warning's spatial data was derived in the browser from
+ * raw_text (the mapSupabaseRowToNavWarning regex fallback, flagged
+ * validation_status 'parsed_from_text') rather than persisted by the
+ * backend. Persisted backend geometry is authoritative; text-derived
+ * geometry must never be plotted as if it were a real map position.
+ */
+export function isTextDerivedGeometryOnly(w?: Partial<NavWarning> | null): boolean {
+  return w?.spatial?.validation_status === 'parsed_from_text';
+}
+
+/**
+ * Polygon presence for map rendering decisions. Persisted geometry wins:
+ * browser-parsed polygons are only considered when the warning has no
+ * persisted geometries at all (the explicit fallback render path), so a
+ * text parse can never suppress or reshape a persisted feature.
+ */
+export function hasRenderablePolygons(
+  w?: Partial<NavWarning> | null,
+  parsedPolygons?: unknown[] | null
+): boolean {
+  const persistedPolygon = w?.spatial?.geometries?.some(
+    (g) => g.type === 'Polygon' && Array.isArray(g.coordinates) && g.coordinates.length > 0
+  );
+  if (persistedPolygon) return true;
+  const hasPersistedGeometries = Boolean(w?.spatial?.geometries && w.spatial.geometries.length > 0);
+  if (hasPersistedGeometries) return false;
+  return Boolean(parsedPolygons && parsedPolygons.length > 0);
+}
+
 export function getWarningPositionCount(w?: Partial<NavWarning> | null): number {
   if (!w) return 0;
   if (w.spatial?.circles && w.spatial.circles.length > 0) {
