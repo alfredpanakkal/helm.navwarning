@@ -119,7 +119,7 @@ export function bufferCirclesFromGeometries(
       return;
     }
 
-    // buffer_nm is a Postgres double precision field; Supabase returns it as a number.
+    // The view contract types buffer_nm as a number; reject malformed values rather than coercing them.
     const radius = g.buffer_nm;
     if (typeof radius !== 'number' || !Number.isFinite(radius) || radius <= 0) return;
 
