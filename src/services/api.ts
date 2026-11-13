@@ -96,19 +96,40 @@ export function bufferCirclesFromGeometries(
   fallbackLabel?: string
 ): SpatialCircle[] {
   const circles: SpatialCircle[] = [];
-  (geometries ?? []).forEach((g: any) => {
+
+  if (!Array.isArray(geometries)) return circles;
+
+  geometries.forEach((g: any) => {
+    if (!g || typeof g !== 'object' || g.type !== 'Point') return;
+
+    const coordinates = g.coordinates;
+    if (!Array.isArray(coordinates) || coordinates.length !== 2) return;
+
+    const [longitude, latitude] = coordinates;
     if (
-      (g.type === 'Point' || g.feature_type === 'POINT') &&
-      Number(g.buffer_nm) > 0 &&
-      Array.isArray(g.coordinates)
+      typeof longitude !== 'number' ||
+      typeof latitude !== 'number' ||
+      !Number.isFinite(longitude) ||
+      !Number.isFinite(latitude) ||
+      longitude < -180 ||
+      longitude > 180 ||
+      latitude < -90 ||
+      latitude > 90
     ) {
-      circles.push({
-        center: g.coordinates,
-        radius_nm: Number(g.buffer_nm),
-        label: g.label || fallbackLabel,
-      });
+      return;
     }
+
+    // buffer_nm is a Postgres double precision field; Supabase returns it as a number.
+    const radius = g.buffer_nm;
+    if (typeof radius !== 'number' || !Number.isFinite(radius) || radius <= 0) return;
+
+    circles.push({
+      center: [longitude, latitude],
+      radius_nm: radius,
+      label: g.label || fallbackLabel,
+    });
   });
+
   return circles;
 }
 
@@ -137,23 +158,19 @@ export function mapSupabaseRowToNavWarning(
   // 1) Geometry from geojson_blob (nav_warnings_active_spatial view row)
   let spatial: any = null;
   if (row.geojson_blob && typeof row.geojson_blob === 'object' && row.geojson_blob.type) {
-    const isPointWithBuffer = (row.geojson_blob.type === 'Point' || row.feature_type === 'POINT') && Number(row.buffer_nm) > 0;
+    const geometryLabel = row.zone_label || row.title || canonicalId;
+    const geometry = {
+      type: row.geojson_blob.type,
+      coordinates: row.geojson_blob.coordinates,
+      label: geometryLabel,
+      buffer_nm: Number(row.buffer_nm) || 0,
+    };
     spatial = {
-      geometries: [
-        {
-          type: row.geojson_blob.type,
-          coordinates: row.geojson_blob.coordinates,
-          label: row.zone_label || row.title || canonicalId,
-          buffer_nm: Number(row.buffer_nm) || 0,
-        },
-      ],
-      circles: isPointWithBuffer ? [
-        {
-          center: row.geojson_blob.coordinates,
-          radius_nm: Number(row.buffer_nm),
-          label: row.zone_label || row.title || canonicalId,
-        }
-      ] : [],
+      geometries: [geometry],
+      circles: bufferCirclesFromGeometries(
+        [{ ...geometry, buffer_nm: row.buffer_nm }],
+        geometryLabel
+      ),
       raw_coordinate_text: [],
       validation_status: 'passed',
     };
