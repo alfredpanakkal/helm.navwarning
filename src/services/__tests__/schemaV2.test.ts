@@ -186,6 +186,24 @@ describe('mapSupabaseRowToNavWarning (20261019/20 schema)', () => {
     expect(w.validation.geometry).toBe('pending');
   });
 
+  it('prefers the complete _geometries array over a single geojson_blob (no sibling loss)', () => {
+    const w: any = mapSupabaseRowToNavWarning({
+      canonical_id: 'NAVAREA XI 0451/26',
+      navarea: 'NAVAREA XI',
+      title: 'GROUPED VIEW ROW',
+      status: 'active',
+      geojson_blob: { type: 'Point', coordinates: [134.6583, 16.9017] },
+      buffer_nm: 0,
+      _geometries: [
+        { type: 'Point', coordinates: [134.6583, 16.9017], buffer_nm: 2.5, label: 'WRECK' },
+        { type: 'Polygon', coordinates: [[[140, 35], [141, 35], [141, 34], [140, 35]]], label: 'AREA A' },
+        { type: 'LineString', coordinates: [[140, 35], [141, 36]], label: 'ROUTE' },
+      ],
+    });
+    expect(w.spatial.geometries).toHaveLength(3);
+    expect(w.spatial.circles).toHaveLength(1);
+  });
+
   it('maps a pre-grouped _geometries row: all geometries kept, buffered points become circles', () => {
     const w: any = mapSupabaseRowToNavWarning({
       canonical_id: 'NAVAREA XI 0451/26',

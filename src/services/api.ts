@@ -134,9 +134,21 @@ export function mapSupabaseRowToNavWarning(
     || (subjectLine ? subjectLine.slice(0, 200) : null)
     || issuedDateStr;
 
-  // 1) Geometry from geojson_blob (nav_warnings_active_spatial view row)
+  // 1) Geometry pre-grouped by fetchActiveSpatialRows (one warning, many geometries).
+  // The complete array ALWAYS wins over a single geojson_blob: a row carrying
+  // both (e.g. a grouped view row) must never drop its sibling geometries.
   let spatial: any = null;
-  if (row.geojson_blob && typeof row.geojson_blob === 'object' && row.geojson_blob.type) {
+  if (Array.isArray(row._geometries) && row._geometries.length > 0) {
+    spatial = {
+      geometries: row._geometries,
+      circles: bufferCirclesFromGeometries(row._geometries, row.title || canonicalId),
+      raw_coordinate_text: [],
+      validation_status: 'passed',
+    };
+  }
+
+  // 2) Single geometry from geojson_blob (direct spatial-view row, not grouped)
+  if (!spatial && row.geojson_blob && typeof row.geojson_blob === 'object' && row.geojson_blob.type) {
     const isPointWithBuffer = (row.geojson_blob.type === 'Point' || row.feature_type === 'POINT') && Number(row.buffer_nm) > 0;
     spatial = {
       geometries: [
@@ -154,16 +166,6 @@ export function mapSupabaseRowToNavWarning(
           label: row.zone_label || row.title || canonicalId,
         }
       ] : [],
-      raw_coordinate_text: [],
-      validation_status: 'passed',
-    };
-  }
-
-  // 2) Geometry pre-grouped by fetchActiveSpatialRows (one warning, many geometries)
-  if ((!spatial || spatial.geometries.length === 0) && Array.isArray(row._geometries) && row._geometries.length > 0) {
-    spatial = {
-      geometries: row._geometries,
-      circles: bufferCirclesFromGeometries(row._geometries, row.title || canonicalId),
       raw_coordinate_text: [],
       validation_status: 'passed',
     };
