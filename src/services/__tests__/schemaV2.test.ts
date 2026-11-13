@@ -101,6 +101,36 @@ describe('groupSpatialRowsByCanonicalId', () => {
     expect(geoms[1].corridor_half_width_nm).toBeNull();
   });
 
+  it('hydrates production-shaped buffered view rows into circles after grouping', () => {
+    // Production Supabase view returns one row per geometry. Current live data
+    // contains buffered POINT rows with buffer_nm = 1 (double precision).
+    const rows = [
+      viewRow({ buffer_nm: 1, geojson_blob: { type: 'Point', coordinates: [67.2545, 24.7867] } }),
+      viewRow({
+        geom_id: '33333333-3333-3333-3333-333333333333',
+        zone_label: 'SECOND POSITION',
+        buffer_nm: 0,
+        geojson_blob: { type: 'Point', coordinates: [67.2612, 24.7880] },
+      }),
+      viewRow({
+        geom_id: '44444444-4444-4444-4444-444444444444',
+        zone_label: 'AREA',
+        feature_type: 'POLYGON',
+        buffer_nm: 0,
+        geojson_blob: { type: 'Polygon', coordinates: [[[67.25, 24.78], [67.27, 24.78], [67.27, 24.80], [67.25, 24.78]]] },
+      }),
+    ];
+
+    const grouped = groupSpatialRowsByCanonicalId(rows);
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0]._geometries).toHaveLength(3);
+
+    const circles = bufferCirclesFromGeometries(grouped[0]._geometries);
+    expect(circles).toEqual([
+      { center: [67.2545, 24.7867], radius_nm: 1, label: 'HATCH COVER' },
+    ]);
+  });
+
   it('keeps a warning with only malformed geometry rows as zero geometries', () => {
     const grouped = groupSpatialRowsByCanonicalId([
       viewRow({ geojson_blob: { type: 'Feature' } as any }),
