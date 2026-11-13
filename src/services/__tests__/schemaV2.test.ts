@@ -143,6 +143,36 @@ describe('bufferCirclesFromGeometries', () => {
     expect(bufferCirclesFromGeometries(null)).toEqual([]);
     expect(bufferCirclesFromGeometries(undefined)).toEqual([]);
   });
+
+  it('rejects malformed, non-finite and out-of-range point coordinates', () => {
+    const invalidGeometries = [
+      { type: 'Point', coordinates: [], buffer_nm: 1 },
+      { type: 'Point', coordinates: [140], buffer_nm: 1 },
+      { type: 'Point', coordinates: [140, 35, 10], buffer_nm: 1 },
+      { type: 'Point', coordinates: ['140', 35], buffer_nm: 1 },
+      { type: 'Point', coordinates: [Number.NaN, 35], buffer_nm: 1 },
+      { type: 'Point', coordinates: [140, Number.POSITIVE_INFINITY], buffer_nm: 1 },
+      { type: 'Point', coordinates: [181, 35], buffer_nm: 1 },
+      { type: 'Point', coordinates: [140, -91], buffer_nm: 1 },
+      { type: 'Point', coordinates: [[140, 35], [141, 36]], buffer_nm: 1 },
+      { type: 'Polygon', feature_type: 'POINT', coordinates: [140, 35], buffer_nm: 1 },
+      null,
+    ];
+
+    for (const geometry of invalidGeometries) {
+      expect(bufferCirclesFromGeometries([geometry as any])).toEqual([]);
+    }
+  });
+
+  it('rejects non-finite, non-positive and non-numeric buffer radii', () => {
+    const invalidRadii = [0, -1, Number.NaN, Number.POSITIVE_INFINITY, '2'];
+
+    for (const radius of invalidRadii) {
+      expect(bufferCirclesFromGeometries([
+        { type: 'Point', coordinates: [140, 35], buffer_nm: radius },
+      ])).toEqual([]);
+    }
+  });
 });
 
 describe('mapSupabaseRowToNavWarning (20261019/20 schema)', () => {
@@ -203,6 +233,30 @@ describe('mapSupabaseRowToNavWarning (20261019/20 schema)', () => {
     expect(w.spatial.circles).toHaveLength(1);
     expect(w.spatial.circles[0].radius_nm).toBe(2.5);
     expect(w.spatial.circles[0].center).toEqual([134.6583, 16.9017]);
+  });
+
+  it('uses shared circle validation for direct geojson_blob rows', () => {
+    const valid: any = mapSupabaseRowToNavWarning({
+      canonical_id: 'NAVAREA XI 0453/26',
+      navarea: 'NAVAREA XI',
+      title: 'BUFFERED POINT',
+      geojson_blob: { type: 'Point', coordinates: [140, 35] },
+      feature_type: 'POINT',
+      buffer_nm: 2.5,
+    });
+    expect(valid.spatial.circles).toEqual([
+      { center: [140, 35], radius_nm: 2.5, label: 'BUFFERED POINT' },
+    ]);
+
+    const contradictory: any = mapSupabaseRowToNavWarning({
+      canonical_id: 'NAVAREA XI 0454/26',
+      navarea: 'NAVAREA XI',
+      title: 'POLYGON',
+      geojson_blob: { type: 'Polygon', coordinates: [[[140, 35], [141, 35], [141, 34], [140, 35]]] },
+      feature_type: 'POINT',
+      buffer_nm: 2.5,
+    });
+    expect(contradictory.spatial.circles).toEqual([]);
   });
 
   it('falls back to raw-text coordinate extraction when no geometry exists', () => {
