@@ -83,7 +83,7 @@ function parseCanonicalIdentity(canonicalId: string): { number: string | null; y
  * - Stable key is canonical_id; row may carry db uuid under `id`.
  * - Geometry comes from geojson_blob (active_spatial view) or a grouped
  *   `_geometries` array; flat latitude/longitude/spatial columns do NOT exist.
- * - categories is TEXT[]; there is no category/severity/risk_level.
+ * - categories is TEXT[]; severity is nullable until the additive severity migration is applied.
  * - valid_to NULL means "in force until cancelled".
  */
 /**
@@ -299,6 +299,7 @@ export function mapSupabaseRowToNavWarning(
     charts: null,
     categories: categories.length > 0 ? categories : ['general'],
     hazard_category: categories[0] || 'general',
+    severity: ['critical', 'high', 'moderate'].includes(row.severity) ? row.severity : null,
     web_link: row.web_link || null,
     source_url: row.source_url || '',
     raw_artifact_ref: '',
