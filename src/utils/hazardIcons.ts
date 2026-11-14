@@ -15,7 +15,7 @@ export const SEVERITY_RING_COLORS: Record<'critical' | 'high' | 'moderate' | 'ca
   critical: { stroke: '#B42318', fill: 'rgba(180, 35, 24, 0.16)', bg: '#B42318' },
   high: { stroke: '#8C5208', fill: 'rgba(140, 82, 8, 0.16)', bg: '#8C5208' },
   moderate: { stroke: '#2F6B4F', fill: 'rgba(47, 107, 79, 0.16)', bg: '#2F6B4F' },
-  caution: { stroke: '#8C5208', fill: 'rgba(140, 82, 8, 0.16)', bg: '#8C5208' },
+  caution: { stroke: '#2F6B4F', fill: 'rgba(47, 107, 79, 0.16)', bg: '#2F6B4F' },
   info: { stroke: '#2F6B4F', fill: 'rgba(47, 107, 79, 0.16)', bg: '#2F6B4F' },
 };
 
