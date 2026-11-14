@@ -1439,25 +1439,6 @@ function plotWarning(w) {
     }];
   }
 
-  // Fallback: If no structured geometry exists, extract from raw bulletin text
-  if (geoms.length === 0) {
-    const rawBulletin = w.raw_text || w.bulletin || w.text || '';
-    if (typeof extractGeometriesFromRawText === 'function' && rawBulletin) {
-      geoms = extractGeometriesFromRawText(rawBulletin, w.title || wid);
-    }
-    if (geoms.length === 0) {
-      const repLat = Number(w.latitude ?? w.lat);
-      const repLng = Number(w.longitude ?? w.lng);
-      if (!isNaN(repLat) && !isNaN(repLng) && (repLat !== 0 || repLng !== 0)) {
-        geoms.push({
-          feature_type: 'POINT',
-          buffer_nm: Number(w.buffer_nm) || 0,
-          geojson_blob: { type: 'Point', coordinates: [repLng, repLat] },
-          zone_label: w.title || wid,
-        });
-      }
-    }
-  }
 
   // 2. Render each geometry with appropriate cartographic geometry
   for (const geom of geoms) {
@@ -2955,15 +2936,26 @@ async function updateDataFreshness() {
 }
 
 async function loadWarnings() {
-  if (window.hwDb) {
+  let loadError = null;
+  try {
+    if (!window.hwDb) throw new Error('Warning data client is unavailable');
     const data = await window.hwDb.fetchActiveWarnings();
-    warnings = Array.isArray(data) ? data : [];
-  } else {
+    if (!Array.isArray(data)) throw new Error('Warning data response is invalid');
+    warnings = data;
+  } catch (error) {
+    console.warn('Public warning data unavailable:', error);
     warnings = [];
+    loadError = error;
   }
   updateStats(); populateTable(); populateCards();
   updateDataFreshness();
   filterMapByNavArea(currentSelectedNavArea);
+  if (loadError) {
+    const badge = document.getElementById('mapLiveBadge');
+    if (badge) badge.textContent = 'Data unavailable';
+    const subtitle = document.getElementById('mapSubtitle');
+    if (subtitle) subtitle.textContent = 'Unable to load authoritative warning geometry. Please try again.';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async ()=>{
