@@ -26,7 +26,7 @@ function makeClient(scenario: Scenario, calls: string[], orderCalls: unknown[][]
           let from = 0;
           let to = Number.MAX_SAFE_INTEGER;
           const isSpatial = table === 'nav_warnings_active_spatial';
-          const isText = table === 'nav_warnings' && columns === 'id, raw_text, issued_at';
+          const isText = table === 'nav_warnings' && columns === 'id, raw_text, issued_at, parsing_method, qa_flags';
           if (!isSpatial && !isText) throw new Error('Unexpected public query: ' + table + ' / ' + columns);
           const builder = {
             eq: () => builder,
@@ -190,6 +190,44 @@ describe('public spatial warning fetch', () => {
     const entries = await loaded.fetchActiveWarnings() as Row[];
     expect(entries).toHaveLength(1);
     expect(entries[0].geometries).toHaveLength(1);
+  });
+
+  it('hydrates Tier-A verification and the explicit issue date from the bulletin', async () => {
+    const loaded = load({
+      spatialRows: [spatialRow()],
+      textResult: {
+        data: [{
+          id: 'uuid-1',
+          raw_text: 'NO.26-0507 Date:2026/11/10 12 UTC\\nAREA BOUNDED BY',
+          issued_at: null,
+          parsing_method: 'RULE',
+          qa_flags: ['geometry_basis:keyword:area_bounded'],
+        }],
+        error: null,
+      },
+    });
+    const entries = await loaded.fetchActiveWarnings() as Row[];
+    expect(entries[0].is_verified).toBe(true);
+    expect(entries[0].issued_date).toBe('2026-11-10');
+    expect(entries[0].issued_at).toBe('2026-11-10T12:00:00.000Z');
+  });
+
+  it('does not mark non-explicit or review-flagged rows as verified', async () => {
+    const loaded = load({
+      spatialRows: [spatialRow()],
+      textResult: {
+        data: [{
+          id: 'uuid-1',
+          raw_text: 'NO.26-0507',
+          issued_at: null,
+          parsing_method: 'AI',
+          qa_flags: ['VALIDATION_FAILED'],
+        }],
+        error: null,
+      },
+    });
+    const entries = await loaded.fetchActiveWarnings() as Row[];
+    expect(entries[0].is_verified).toBe(false);
   });
 
   it('does not contain a renderer fallback that reconstructs geometry from bulletin text or coordinates', () => {
