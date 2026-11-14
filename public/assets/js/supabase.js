@@ -66,6 +66,22 @@ function isValidPublicGeoJSON(blob) {
   }
 }
 
+// Extract only an explicitly labelled issue date from the source bulletin.
+// Invalid calendar dates are rejected; no dates are inferred from ingestion time.
+function extractBulletinIssuedAt(rawText) {
+  if (typeof rawText !== 'string') return null;
+  const match = rawText.match(/\\bDate\\s*:\\s*(\\d{4})[\\/. -](\\d{1,2})[\\/. -](\\d{1,2})(?:\\s+(\\d{2})(?::?(\\d{2}))?\\s*UTC)?/i);
+  if (!match) return null;
+  const [, yearText, monthText, dayText, hourText, minuteText] = match;
+  const year = Number(yearText), month = Number(monthText), day = Number(dayText);
+  const hour = hourText === undefined ? 0 : Number(hourText);
+  const minute = minuteText === undefined ? 0 : Number(minuteText);
+  const date = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 ||
+      date.getUTCDate() !== day || hour > 23 || minute > 59) return null;
+  return date.toISOString();
+}
+
 // Group authoritative spatial rows and hydrate their warning text.
 function mergeSpatialAndTextRows(spatialData, textRows) {
   // Group geometries by canonical_id to prevent multi-row fragmentation
@@ -87,6 +103,7 @@ function mergeSpatialAndTextRows(spatialData, textRows) {
         title: row.title || row.canonical_id,
         area_text: row.area_text,
         severity: row.triage_tier === 'A' ? 'high' : 'caution',
+        is_verified: false,
         category: primaryCategory,
         categories: Array.isArray(row.categories) && row.categories.length > 0 ? row.categories : [primaryCategory],
         status: row.status || 'active',
@@ -119,20 +136,31 @@ function mergeSpatialAndTextRows(spatialData, textRows) {
     }
   }
 
-  // Merge raw_text / issued_at from the parallel master-table query
-  // (keyed by uuid). Non-fatal on failure — entries simply stay lighter.
+  // Merge source text and authoritative parser metadata from the master row.
+  // Tier A + EXPLICIT + RULE is the backend's published verification contract.
   if (textRows.length > 0) {
     try {
       const textMap = new Map(textRows.map(t => [t.id, t]));
       for (const entry of warningMap.values()) {
         const tr = textMap.get(entry.id);
         if (tr) {
-          entry.raw_text = tr.raw_text || '';
-          entry.bulletin = tr.raw_text || '';
-          entry.text = tr.raw_text || '';
-          entry.issued_at = tr.issued_at || null;
-          entry.issued_date = tr.issued_at ? String(tr.issued_at).slice(0, 10) : null;
-          entry.issued_text = tr.issued_at || null;
+          const rawText = tr.raw_text || '';
+          const flags = Array.isArray(tr.qa_flags) ? tr.qa_flags : [];
+          entry.raw_text = rawText;
+          entry.bulletin = rawText;
+          entry.text = rawText;
+          entry.parsing_method = tr.parsing_method || null;
+          entry.qa_flags = flags;
+          entry.is_verified = entry.status === 'active' &&
+            entry.triage_tier === 'A' &&
+            entry.data_quality === 'EXPLICIT' &&
+            entry.parsing_method === 'RULE' &&
+            !flags.some(flag => flag && !String(flag).startsWith('geometry_basis:'));
+
+          const issuedAt = tr.issued_at || extractBulletinIssuedAt(rawText);
+          entry.issued_at = issuedAt || null;
+          entry.issued_date = issuedAt ? String(issuedAt).slice(0, 10) : null;
+          entry.issued_text = issuedAt || null;
         }
       }
     } catch (textEx) {
@@ -202,7 +230,7 @@ async function fetchActiveWarnings() {
   try {
     textPromise = Promise.resolve(window.hwSupabase
       .from('nav_warnings')
-      .select('id, raw_text, issued_at')
+      .select('id, raw_text, issued_at, parsing_method, qa_flags')
       .eq('status', 'active'))
       .catch((textQueryError) => {
         console.warn('Warning text hydration unavailable:', textQueryError);
