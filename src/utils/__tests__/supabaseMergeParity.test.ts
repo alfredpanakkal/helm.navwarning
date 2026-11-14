@@ -197,5 +197,7 @@ describe('public spatial warning fetch', () => {
     expect(source).not.toContain('extractGeometriesFromRawText');
     expect(source).not.toContain('const rawBulletin = w.raw_text');
     expect(source).not.toContain('const repLat = Number(w.latitude ?? w.lat)');
+    expect(source).toContain('return !loadError;');
+    expect(source).toContain('Data unavailable — authoritative warning geometry could not be loaded');
   });
 });
