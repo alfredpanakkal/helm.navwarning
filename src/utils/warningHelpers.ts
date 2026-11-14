@@ -1,4 +1,5 @@
 import { NavWarning } from '../types';
+import { getLeafletLatLng } from './coordinateParser';
 
 export function getWarningBulletinText(w?: Partial<NavWarning> | null): string {
   if (!w) return 'No additional bulletin text available.';
@@ -48,6 +49,20 @@ export function getWarningDate(w?: Partial<NavWarning> | null): string {
  */
 export function isTextDerivedGeometryOnly(w?: Partial<NavWarning> | null): boolean {
   return w?.spatial?.validation_status === 'parsed_from_text';
+}
+
+/**
+ * Matches the map's warning-level render gate. Keep this shared by the map
+ * layer and its unplotted notice so the count cannot drift from rendering.
+ */
+export function isWarningMapRenderable(w?: Partial<NavWarning> | null): boolean {
+  if (!w) return false;
+  if (w.data_quality === 'AMBIGUOUS' || w.data_quality === 'INVALID') return false;
+  if (w.ambiguous_positions && w.ambiguous_positions.length > 0) return false;
+  if (isTextDerivedGeometryOnly(w)) return false;
+
+  const [lat, lng] = getLeafletLatLng(w.spatial, w.latitude, w.longitude);
+  return Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0);
 }
 
 /**

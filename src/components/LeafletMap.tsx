@@ -17,6 +17,7 @@ import {
   EyeOff,
   Navigation,
   Crosshair,
+  MapPinOff,
   ExternalLink,
   CornerDownRight,
   AlertCircle,
@@ -31,7 +32,7 @@ import {
   Info,
 } from 'lucide-react';
 import { getLeafletLatLng } from '../utils/coordinateParser';
-import { hasRenderablePolygons, isTextDerivedGeometryOnly } from '../utils/warningHelpers';
+import { hasRenderablePolygons, isWarningMapRenderable } from '../utils/warningHelpers';
 import { useMapNavigation } from '../hooks/useMapNavigation';
 import { useMapFocus } from '../hooks/useMapFocus';
 import { formatDecimalCoordinates, formatPositionDisplay, type CoordinateParseError } from '../utils/coordinateConversion';
@@ -546,15 +547,16 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   });
 
   const renderedWarnings = filteredWarnings.filter(
-    (w) =>
-      w.status === 'active' &&
-      !hiddenWarningIds.has(w.warning_id) &&
-      w.data_quality !== 'AMBIGUOUS' &&
-      w.data_quality !== 'INVALID' &&
-      (!w.ambiguous_positions || w.ambiguous_positions.length === 0) &&
-      // Text-derived fallback geometry is not a verified map position.
-      !isTextDerivedGeometryOnly(w)
+    (w) => w.status === 'active' && !hiddenWarningIds.has(w.warning_id) && isWarningMapRenderable(w)
   );
+
+  // Count active warnings matching the current filters that the map render gate
+  // excludes. Hidden warnings and isolated-warning mode are intentionally omitted.
+  const unplottedCount = isolatedWarning
+    ? 0
+    : filteredWarnings.filter(
+        (w) => w.status === 'active' && !hiddenWarningIds.has(w.warning_id) && !isWarningMapRenderable(w)
+      ).length;
 
   const autoFrameMap = useCallback((activeList: NavWarning[]) => {
     if (!leafletInstance.current) return;
@@ -1329,6 +1331,22 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         aria-label="Interactive chart of live navigational warnings. Use arrow keys to pan and plus or minus to zoom."
         className="absolute inset-0 z-0 w-full h-full"
       ></div>
+
+      {unplottedCount > 0 && (
+        <div className="absolute bottom-3 left-3 z-[450] max-w-[calc(100%-24px)] pointer-events-none">
+          <div
+            role="status"
+            aria-live="polite"
+            className="bg-gw-panel/95 backdrop-blur-sm border border-gw-secondary rounded-lg shadow-md px-2.5 py-1.5 text-[11px] text-gw-accent flex items-center gap-1.5"
+          >
+            <MapPinOff className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              <span className="font-bold text-gw-primary">{unplottedCount}</span>{' '}
+              active notice{unplottedCount === 1 ? '' : 's'} matching current filters {unplottedCount === 1 ? 'is' : 'are'} not plotted.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ISOLATION MODE BANNER */}
       {isolatedWarning && (
