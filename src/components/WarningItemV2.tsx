@@ -90,15 +90,15 @@ export const WarningConfidenceBadge: React.FC<{ warning: NavWarning; className?:
   warning,
   className = '',
 }) => {
-  const sev = warningConfidence(warning);
+  const confidence = warningConfidence(warning);
   const dotColor =
-    sev.label === 'FULL_CONFIDENCE'
+    confidence.label === 'FULL_CONFIDENCE'
       ? 'var(--sev-critical, #c44536)'
-      : sev.label === 'HIGH_CONFIDENCE'
+      : confidence.label === 'HIGH_CONFIDENCE'
       ? 'var(--sev-high, #c07a2b)'
       : 'var(--sev-medium, #6b8f9c)';
   const labelText =
-    sev.label === 'FULL_CONFIDENCE' ? 'Full conf.' : sev.label === 'HIGH_CONFIDENCE' ? 'High conf.' : 'Needs review';
+    confidence.label === 'FULL_CONFIDENCE' ? 'Full conf.' : confidence.label === 'HIGH_CONFIDENCE' ? 'High conf.' : 'Needs review';
 
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs text-[var(--ink-body,#1f2937)] font-[450] shrink-0 ${className}`}>
