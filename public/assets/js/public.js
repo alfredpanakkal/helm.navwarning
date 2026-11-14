@@ -2582,9 +2582,13 @@ window.refreshData = async function(btn){
   const target = btn || document.querySelector('button[onclick*="refreshData"]');
   if (target) target.disabled = true;
   try {
-    await loadWarnings();
-    filterMapByNavArea(currentSelectedNavArea);
-    showToast('Data refreshed — latest published generation loaded');
+    const loaded = await loadWarnings();
+    if (loaded) {
+      filterMapByNavArea(currentSelectedNavArea);
+      showToast('Data refreshed — latest published generation loaded');
+    } else {
+      showToast('Data unavailable — authoritative warning geometry could not be loaded');
+    }
   } finally {
     if (target) target.disabled = false;
   }
@@ -2600,9 +2604,13 @@ window.refreshSupabaseConnection = async function(){
   }
   showToast('Refreshing connection with Supabase...');
   try {
-    await loadWarnings();
-    filterMapByNavArea(currentSelectedNavArea);
-    showToast(`Supabase live: ${warnings.length} active warnings synchronized`);
+    const loaded = await loadWarnings();
+    if (loaded) {
+      filterMapByNavArea(currentSelectedNavArea);
+      showToast(`Supabase live: ${warnings.length} active warnings synchronized`);
+    } else {
+      showToast('Supabase connection notice: authoritative warning data unavailable');
+    }
   } catch (err) {
     showToast('Supabase connection notice: ' + (err.message || 'Failed to reconnect'));
   } finally {
@@ -2956,6 +2964,7 @@ async function loadWarnings() {
     const subtitle = document.getElementById('mapSubtitle');
     if (subtitle) subtitle.textContent = 'Unable to load authoritative warning geometry. Please try again.';
   }
+  return !loadError;
 }
 
 document.addEventListener('DOMContentLoaded', async ()=>{
