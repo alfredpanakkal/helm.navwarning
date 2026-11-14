@@ -996,6 +996,37 @@ function calculateLineMidpoint(coords: number[][]): [number, number] {
   return [0, 0];
 }
 
+function isValidCircleCenter(center: unknown): center is [number, number] {
+  if (!Array.isArray(center) || center.length !== 2) return false;
+  const [lng, lat] = center;
+  return (
+    typeof lng === 'number' &&
+    Number.isFinite(lng) &&
+    lng >= -180 &&
+    lng <= 180 &&
+    typeof lat === 'number' &&
+    Number.isFinite(lat) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    (lng !== 0 || lat !== 0)
+  );
+}
+
+/** A circle is drawable only when its WGS84 center and positive radius are valid. */
+export function isRenderableCircle(circle?: Partial<SpatialCircle> | null): boolean {
+  return Boolean(
+    circle &&
+    isValidCircleCenter(circle.center) &&
+    typeof circle.radius_nm === 'number' &&
+    Number.isFinite(circle.radius_nm) &&
+    circle.radius_nm > 0
+  );
+}
+
+export function hasRenderableCircles(spatial?: SpatialData | null): boolean {
+  return Boolean(spatial?.circles?.some(isRenderableCircle));
+}
+
 export function getLeafletLatLng(
   spatial: SpatialData | undefined | null,
   directLat?: number | null,
@@ -1021,12 +1052,17 @@ export function getLeafletLatLng(
     return [0, 0];
   }
   
-  // Circles: return center
+  // Prefer a circle that the map can actually draw. If only its radius is
+  // invalid, retain a valid center as a point-marker fallback.
   if (spatial.circles && spatial.circles.length > 0) {
-    for (const c of spatial.circles) {
-      if (Array.isArray(c.center) && c.center.length >= 2 && typeof c.center[0] === 'number' && typeof c.center[1] === 'number') {
-        return [c.center[1], c.center[0]];
-      }
+    const renderableCircle = spatial.circles.find(isRenderableCircle);
+    if (renderableCircle && isValidCircleCenter(renderableCircle.center)) {
+      return [renderableCircle.center[1], renderableCircle.center[0]];
+    }
+
+    const centerFallback = spatial.circles.find((circle) => isValidCircleCenter(circle.center));
+    if (centerFallback && isValidCircleCenter(centerFallback.center)) {
+      return [centerFallback.center[1], centerFallback.center[0]];
     }
   }
   
