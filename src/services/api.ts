@@ -37,10 +37,10 @@ export function normalizeNavarea(name: unknown): string {
  * Derives a triage-based confidence score from the 20261019/20 backend
  * signals (triage_tier / data_quality / qa_flags) instead of the removed
  * risk_level column:
- *   Tier A + EXPLICIT + no flags + active  -> 1.0 (matches the Critical filter)
- *   Tier A with inferred data or qa_flags -> 0.9  (matches the High filter;
+ *   Tier A + EXPLICIT + no flags + active  -> 1.0 (matches Clean Tier A)
+ *   Tier A with inferred data or qa_flags -> 0.9  (high-confidence Tier A;
  *   'verified_by_admin' is exempt - a human VERIFY clears the review queue)
- *   Tier B (review queue)                 -> 0.6  (below the 0.8 verify threshold)
+ *   Tier B (review queue)                 -> 0.6  (below the 0.8 confidence threshold)
  *   Tier C (blocked)                      -> 0.3
  * The legacy confidence-threshold UI (>= 0.8, >= 1.0 bands) keeps working
  * and now reflects actual backend data quality.
