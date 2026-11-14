@@ -1477,7 +1477,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
  : 'text-gw-accent hover:text-gw-primary hover:bg-gw-panel'
  }`}
                   >
-                    {sev === 'critical' ? 'Full' : sev === 'moderate' ? 'Med' : sev.slice(0, 4)}
+                    {sev === 'all' ? 'All' : sev === 'critical' ? 'Full' : sev === 'high' ? 'High' : 'Med'}
                   </button>
                 ))}
               </div>
