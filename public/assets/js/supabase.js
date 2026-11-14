@@ -8,12 +8,6 @@
 //   - Stable human key is canonical_id; DB key is the uuid column "id".
 // See docs/supabase-backend-contract.md and src/services/navWarningQueries.ts.
 
-// Columns that actually exist on nav_warnings (20261019/20 schema).
-const LIGHT_COLUMNS =
-  'id, canonical_id, navarea, source_id, title, area_text, categories, ' +
-  'status, triage_tier, data_quality, valid_from, valid_to, issued_at, ' +
-  'raw_text, created_at, updated_at';
-
 // Use environment variables if bundled, otherwise fallback to project keys
 const SUPABASE_URL = (typeof process !== 'undefined' && process.env.VITE_SUPABASE_URL) || 'https://ocqpfbkuiomzhbxxvemi.supabase.co';
 const SUPABASE_PUBLIC_KEY =
@@ -50,270 +44,35 @@ function computePolygonCentroid(coords) {
   return count > 0 ? [sumLat / count, sumLng / count] : [0, 0];
 }
 
-/**
- * Parses coordinates and geometry from raw text if PostGIS geometry is absent.
- * Supports:
- * - Rig Warnings / RIGLISTs with multiple rigs and 500m safety exclusion zones
- * - Multi-Area and Multi-Sector warnings (Area Alfa, Area Bravo, Sector 1, etc.)
- * - Polygons (3+ coords), Safety Circles (radius NM or meters), Corridors/Tracks, and Points
- */
-function extractGeometriesFromRawText(text, fallbackTitle) {
-  if (!text || typeof text !== 'string') return [];
-  const upper = text.toUpperCase();
+// Reject malformed GeoJSON before it reaches the public Leaflet renderer.
+function isValidPublicGeoJSON(blob) {
+  if (!blob || typeof blob !== 'object') return false;
+  const isPosition = (position) => Array.isArray(position) && position.length >= 2 &&
+    Number.isFinite(position[0]) && Number.isFinite(position[1]) &&
+    position[0] >= -180 && position[0] <= 180 && position[1] >= -90 && position[1] <= 90;
+  const isLine = (line) => Array.isArray(line) && line.length >= 2 && line.every(isPosition);
+  const isRing = (ring) => Array.isArray(ring) && ring.length >= 4 && ring.every(isPosition) &&
+    ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1];
 
-  // Helper: extracts all [lng, lat] coordinate pairs from a string
-  function extractCoords(str) {
-    const list = [];
-    const coordRegex = /(\d{1,2})[-°](\d{1,2}(?:\.\d+)?)[ '"]*([NS])\s*(\d{1,3})[-°](\d{1,2}(?:\.\d+)?)[ '"]*([EW])/gi;
-    let m;
-    while ((m = coordRegex.exec(str)) !== null) {
-      let lat = parseFloat(m[1]) + parseFloat(m[2]) / 60;
-      if (m[3].toUpperCase() === 'S') lat = -lat;
-      let lng = parseFloat(m[4]) + parseFloat(m[5]) / 60;
-      if (m[6].toUpperCase() === 'W') lng = -lng;
-      list.push([lng, lat]);
-    }
-    return list;
+  switch (blob.type) {
+    case 'Point': return isPosition(blob.coordinates);
+    case 'MultiPoint': return Array.isArray(blob.coordinates) && blob.coordinates.length > 0 && blob.coordinates.every(isPosition);
+    case 'LineString': return isLine(blob.coordinates);
+    case 'MultiLineString': return Array.isArray(blob.coordinates) && blob.coordinates.length > 0 && blob.coordinates.every(isLine);
+    case 'Polygon': return Array.isArray(blob.coordinates) && blob.coordinates.length > 0 && blob.coordinates.every(isRing);
+    case 'MultiPolygon': return Array.isArray(blob.coordinates) && blob.coordinates.length > 0 &&
+      blob.coordinates.every((polygon) => Array.isArray(polygon) && polygon.length > 0 && polygon.every(isRing));
+    default: return false;
   }
-
-  // Helper: extracts radius in Nautical Miles from a string
-  function extractRadiusNm(str) {
-    const radiusMatch = str.match(/(?:WITHIN\s+|RADIUS\s+(?:OF\s+)?|CLEARANCE\s+(?:OF\s+)?|SAFETY\s+ZONE\s+(?:OF\s+)?)(\d+(?:\.\d+)?)\s*(NM|NAUTICAL\s+MILES?|METERS?|M\b)?/i);
-    if (!radiusMatch) return 0;
-    const val = parseFloat(radiusMatch[1]);
-    const unit = (radiusMatch[2] || '').toUpperCase();
-    return /METERS?|M\b/.test(unit) ? val / 1852 : val;
-  }
-
-  // ════════ 1. RIG WARNING / RIGLIST MULTI-RIG DETECTION ════════
-  const isRigWarning = /\b(?:RIGLIST|RIG\s+LIST|DRILLING\s+RIGS?|MOBILE\s+OIL\s+RIGS?|MODU|DRILLSHIP|OIL\s+RIGS?)\b/i.test(upper);
-  if (isRigWarning) {
-    const rigGeoms = [];
-    const lines = text.split('\n');
-    let rigIndex = 1;
-
-    for (const rawLine of lines) {
-      const line = rawLine.trim();
-      if (!line || /^(?:NAVAREA|NOTES?|CORRECT\s+AT|1\.\s+RIGLIST)/i.test(line)) continue;
-
-      const lineCoords = extractCoords(line);
-      if (lineCoords.length === 1) {
-        // Extract rig name
-        let rigName = line
-          .replace(/^(?:NEW\s+|\d+\.\s+|[A-Z]\.\s+)/i, '')
-          .replace(/(\d{1,2})[-°](\d{1,2}(?:\.\d+)?)[ '"]*[NS]\s*(\d{1,3})[-°](\d{1,2}(?:\.\d+)?)[ '"]*[EW]/gi, '')
-          .replace(/\s*\(EX[^)]*\)\s*/g, ' ')
-          .replace(/\s+ACP\b.*$/i, '')
-          .replace(/\b(?:500\s*M|SAFETY\s+ZONE|WIDE\s+BERTH)\b.*$/i, '')
-          .trim();
-
-        if (!rigName || rigName.length < 2) {
-          rigName = `Drilling Rig #${rigIndex}`;
-        }
-
-        const rigRadius = extractRadiusNm(line) || 0.27; // Standard 500m (0.27 NM) safety zone
-
-        // A. Rig platform marker
-        rigGeoms.push({
-          feature_type: 'POINT',
-          buffer_nm: 0,
-          geojson_blob: {
-            type: 'Point',
-            coordinates: lineCoords[0],
-          },
-          zone_label: `Rig: ${rigName}`,
-          is_rig: true,
-        });
-
-        // B. 500m Safety zone circle
-        if (rigRadius > 0) {
-          rigGeoms.push({
-            feature_type: 'POINT',
-            buffer_nm: rigRadius,
-            geojson_blob: {
-              type: 'Point',
-              coordinates: lineCoords[0],
-            },
-            zone_label: `500m Safety Zone - ${rigName}`,
-            is_rig: true,
-          });
-        }
-        rigIndex++;
-      }
-    }
-
-    if (rigGeoms.length > 0) {
-      return rigGeoms;
-    }
-  }
-
-  // ════════ 2. MULTI-AREA / MULTI-SECTOR SEGMENTATION ════════
-  const subAreaHeaderRegex = /(?:^|\n|;\s+)(?:(?:(?:SUB-AREA|SUB\s+AREA|AREA|SECTOR|ZONE|FIRING\s+AREA|DANGER\s+AREA|DROP\s+ZONE)\s+([A-Z0-9]+|\([A-Z0-9]+\)|ALFA|BRAVO|CHARLIE|DELTA|ECHO|FOXTROT|GOLF|HOTEL|INDIA|JULIETT|KILO|LIMA|MIKE|NOVEMBER|OSCAR|PAPA|QUEBEC|ROMEO|SIERRA|TANGO|UNIFORM|VICTOR|WHISKEY|XRAY|YANKEE|ZULU)\b)|(?:\(([A-Z0-9]+)\))|(?:([A-Z0-9])\.\s+(?=[A-Z0-9'"])))/gi;
-
-  const headerMatches = [];
-  let hm;
-  while ((hm = subAreaHeaderRegex.exec(text)) !== null) {
-    const rawLabel = (hm[1] || hm[2] || hm[3] || '').trim();
-    if (rawLabel) {
-      let cleanLabel = rawLabel;
-      if (hm[0].toUpperCase().includes('SECTOR')) cleanLabel = `Sector ${rawLabel}`;
-      else if (hm[0].toUpperCase().includes('SUB-AREA') || hm[0].toUpperCase().includes('SUB AREA')) cleanLabel = `Sub-Area ${rawLabel}`;
-      else if (hm[0].toUpperCase().includes('ZONE')) cleanLabel = `Zone ${rawLabel}`;
-      else if (hm[0].toUpperCase().includes('FIRING')) cleanLabel = `Firing Area ${rawLabel}`;
-      else cleanLabel = `Area ${rawLabel}`;
-
-      headerMatches.push({
-        label: cleanLabel,
-        index: hm.index,
-      });
-    }
-  }
-
-  if (headerMatches.length >= 2) {
-    const subGeoms = [];
-    for (let i = 0; i < headerMatches.length; i++) {
-      const cur = headerMatches[i];
-      const start = cur.index;
-      const end = i + 1 < headerMatches.length ? headerMatches[i + 1].index : text.length;
-      const chunk = text.slice(start, end).trim();
-      const chunkCoords = extractCoords(chunk);
-      if (chunkCoords.length === 0) continue;
-
-      const chunkUpper = chunk.toUpperCase();
-      const chunkRadius = extractRadiusNm(chunk);
-      const isPolygon = (chunkCoords.length >= 3 && /(?:BOUNDED\s+BY|HAZARD|DANGER|FIRING|POLYGON)/i.test(chunkUpper)) || chunkCoords.length >= 4;
-      const isLine = chunkCoords.length >= 2 && !isPolygon && /(?:LINE|TRACK|ROUTE|CABLE|PIPELINE|JOINING)/i.test(chunkUpper);
-
-      if (isPolygon) {
-        subGeoms.push({
-          feature_type: 'POLYGON',
-          geojson_blob: {
-            type: 'Polygon',
-            coordinates: [chunkCoords],
-          },
-          zone_label: `${cur.label} (Danger Area)`,
-        });
-      } else if (chunkRadius > 0 && chunkCoords.length >= 1) {
-        subGeoms.push({
-          feature_type: 'POINT',
-          buffer_nm: chunkRadius,
-          geojson_blob: {
-            type: 'Point',
-            coordinates: chunkCoords[0],
-          },
-          zone_label: `${cur.label} (${chunkRadius} NM Radius)`,
-        });
-        subGeoms.push({
-          feature_type: 'POINT',
-          buffer_nm: 0,
-          geojson_blob: {
-            type: 'Point',
-            coordinates: chunkCoords[0],
-          },
-          zone_label: cur.label,
-        });
-      } else if (isLine) {
-        subGeoms.push({
-          feature_type: 'LINE',
-          corridor_half_width_nm: chunkRadius || 1.5,
-          geojson_blob: {
-            type: 'LineString',
-            coordinates: chunkCoords,
-          },
-          zone_label: `${cur.label} (Corridor)`,
-        });
-      } else {
-        chunkCoords.forEach((c, idx) => {
-          subGeoms.push({
-            feature_type: 'POINT',
-            buffer_nm: 0,
-            geojson_blob: {
-              type: 'Point',
-              coordinates: c,
-            },
-            zone_label: chunkCoords.length > 1 ? `${cur.label} - Pt ${idx + 1}` : cur.label,
-          });
-        });
-      }
-    }
-
-    if (subGeoms.length > 0) {
-      return subGeoms;
-    }
-  }
-
-  // ════════ 3. STANDARD SINGLE GEOMETRY FALLBACK ════════
-  const coords = extractCoords(text);
-  if (coords.length === 0) return [];
-
-  const radiusNm = extractRadiusNm(text) || (/\b(?:MODU|RIG|DRILLSHIP|PLATFORM)\b/i.test(upper) ? 0.27 : 0);
-  const isPolygon = (coords.length >= 3 && /(?:AREA\s+BOUNDED\s+BY|HAZARD\s+AREA|DANGER\s+AREA|FIRING\s+AREA|POLYGON)/i.test(upper)) || coords.length >= 4;
-  const isLine = coords.length >= 2 && !isPolygon && /(?:LINE\s+JOINING|TRACK|ROUTE|SUBSEA\s+CABLE|PIPELINE)/i.test(upper);
-
-  if (isPolygon) {
-    return [{
-      feature_type: 'POLYGON',
-      geojson_blob: {
-        type: 'Polygon',
-        coordinates: [coords],
-      },
-      zone_label: fallbackTitle || 'Danger Area',
-    }];
-  }
-
-  if (isLine) {
-    return [{
-      feature_type: 'LINE',
-      geojson_blob: {
-        type: 'LineString',
-        coordinates: coords,
-      },
-      corridor_half_width_nm: radiusNm || 1.5,
-      zone_label: fallbackTitle || 'Corridor Track',
-    }];
-  }
-
-  if (radiusNm > 0 && coords.length >= 1) {
-    return [
-      {
-        feature_type: 'POINT',
-        buffer_nm: radiusNm,
-        geojson_blob: {
-          type: 'Point',
-          coordinates: coords[0],
-        },
-        zone_label: fallbackTitle || `Safety Zone (${radiusNm >= 1 ? radiusNm.toFixed(1) + ' NM' : (radiusNm * 1852).toFixed(0) + 'm'})`,
-      },
-      {
-        feature_type: 'POINT',
-        buffer_nm: 0,
-        geojson_blob: {
-          type: 'Point',
-          coordinates: coords[0],
-        },
-        zone_label: fallbackTitle || 'Hazard Location',
-      }
-    ];
-  }
-
-  return coords.map((c, i) => ({
-    feature_type: 'POINT',
-    buffer_nm: 0,
-    geojson_blob: {
-      type: 'Point',
-      coordinates: c,
-    },
-    zone_label: `${fallbackTitle || 'Hazard'} - Pt ${i + 1}`,
-  }));
 }
 
-// Pure merge of nav_warnings_active_spatial rows with nav_warnings text rows.
-// Moved out of fetchActiveWarnings unchanged so it can be tested on its own.
+// Group authoritative spatial rows and hydrate their warning text.
 function mergeSpatialAndTextRows(spatialData, textRows) {
   // Group geometries by canonical_id to prevent multi-row fragmentation
   const warningMap = new Map();
 
   for (const row of spatialData) {
+    if (row.status !== 'active' || row.triage_tier !== 'A') continue;
     const key = row.canonical_id || row.warning_id;
     if (!key) continue;
 
@@ -345,7 +104,7 @@ function mergeSpatialAndTextRows(spatialData, textRows) {
       warningMap.set(key, entry);
     }
 
-    if (row.geojson_blob) {
+    if (isValidPublicGeoJSON(row.geojson_blob)) {
       entry.geometries.push({
         geom_id: row.geom_id,
         feature_type: row.feature_type || row.geojson_blob.type,
@@ -425,160 +184,79 @@ function mergeSpatialAndTextRows(spatialData, textRows) {
           label: g.zone_label,
         })),
       raw_coordinate_text: [],
-      validation_status: 'passed',
+      validation_status: entry.geometries.length > 0 ? 'passed' : 'not_present',
     };
   }
 
   return Array.from(warningMap.values());
 }
 
+const SPATIAL_PAGE_SIZE = 1000;
+
 async function fetchActiveWarnings() {
-  if (window.hwSupabase) {
-    // 1. Prioritize pre-calculated PostGIS dynamic spatial view (active + Tier A)
-    try {
-      // Performance: both queries run in parallel. The spatial view is read with
-      // an explicit light column list (the browser only consumes geojson_blob —
-      // geom_postgis EWKB blobs and altitude fields were pure transfer waste),
-      // and the master-table raw_text/issued_at hydration no longer waits for
-      // the view's ids first — previously this was a second sequential
-      // round-trip that delayed the first map render.
-      const spatialQuery = window.hwSupabase
-        .from('nav_warnings_active_spatial')
-        .select('warning_id, canonical_id, navarea, title, area_text, categories, status, triage_tier, data_quality, valid_from, valid_to, radio_frequencies, space_launch_mission, geom_id, zone_label, feature_type, buffer_nm, corridor_half_width_nm, geojson_blob');
-      const textQuery = window.hwSupabase
-        .from('nav_warnings')
-        .select('id, raw_text, issued_at')
-        .eq('status', 'active');
-      const [spatialRes, textRes] = await Promise.all([spatialQuery, textQuery]);
-      const spatialData = spatialRes.data;
-      const spatialErr = spatialRes.error;
-      const textRows = (textRes && Array.isArray(textRes.data)) ? textRes.data : [];
-
-      if (!spatialErr && Array.isArray(spatialData) && spatialData.length > 0) {
-        return mergeSpatialAndTextRows(spatialData, textRows);
-      }
-      if (spatialErr) {
-        console.warn('nav_warnings_active_spatial query notice, falling back to master:', spatialErr.message);
-      }
-    } catch (spatialEx) {
-      console.warn('nav_warnings_active_spatial query notice, falling back to master:', spatialEx);
-    }
-
-    // 2. Fallback to master nav_warnings table (with client-side geometry extraction)
-    try {
-      const { data, error } = await window.hwSupabase
-        .from('nav_warnings')
-        .select(LIGHT_COLUMNS)
-        .eq('status', 'active')
-        .order('updated_at', { ascending: false });
-
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data.map(w => {
-          const primaryCategory = Array.isArray(w.categories) && w.categories.length > 0 ? w.categories[0] : 'general';
-          const raw = w.raw_text || '';
-          const extractedGeoms = extractGeometriesFromRawText(raw, w.title || w.canonical_id);
-
-          let repLat = null;
-          let repLng = null;
-          if (extractedGeoms.length > 0) {
-            const first = extractedGeoms[0];
-            if (first.geojson_blob.type === 'Point') {
-              repLng = first.geojson_blob.coordinates[0];
-              repLat = first.geojson_blob.coordinates[1];
-            } else if (first.geojson_blob.type === 'Polygon') {
-              const [cLat, cLng] = computePolygonCentroid(first.geojson_blob.coordinates);
-              repLat = cLat;
-              repLng = cLng;
-            } else if (first.geojson_blob.type === 'LineString') {
-              const mid = first.geojson_blob.coordinates[Math.floor(first.geojson_blob.coordinates.length / 2)];
-              if (mid) {
-                repLng = mid[0];
-                repLat = mid[1];
-              }
-            }
-          }
-
-          return {
-            ...w,
-            id: w.id,
-            warning_id: w.canonical_id || w.id,
-            canonical_id: w.canonical_id || w.id,
-            severity: w.triage_tier === 'A' ? 'high' : 'caution',
-            category: primaryCategory,
-            categories: w.categories && w.categories.length ? w.categories : [primaryCategory],
-            issued_date: w.issued_at ? String(w.issued_at).slice(0, 10) : null,
-            issued_text: w.issued_at || null,
-            latitude: repLat,
-            longitude: repLng,
-            raw_text: raw,
-            bulletin: raw,
-            text: raw,
-            geometries: extractedGeoms,
-            spatial: {
-              geometries: extractedGeoms.map(g => ({
-                type: g.geojson_blob.type,
-                coordinates: g.geojson_blob.coordinates,
-                label: g.zone_label,
-              })),
-              circles: extractedGeoms
-                .filter(g => g.buffer_nm > 0)
-                .map(g => ({
-                  center: g.geojson_blob.coordinates,
-                  radius_nm: g.buffer_nm,
-                  label: g.zone_label,
-                })),
-              raw_coordinate_text: [],
-              validation_status: 'passed',
-            },
-          };
-        });
-      }
-      if (error) {
-        console.warn('Supabase direct query notice, checking server API cache:', error.message);
-      }
-    } catch (e) {
-      console.warn('Supabase query error, checking server API cache:', e);
-    }
+  if (!window.hwSupabase) {
+    throw new Error('Supabase client is unavailable');
   }
 
-  // Resilient fallback: Query server API (/api/warnings) hydrated from Supabase
+  let textPromise = null;
   try {
-    const res = await fetch('/api/warnings?status=active');
-    if (res.ok) {
-      const serverData = await res.json();
-      if (Array.isArray(serverData) && serverData.length > 0) {
-        return serverData.map(w => {
-          const raw = w.bulletin || w.raw_text || w.text || w.rawText || w.raw_nav_warning || w.body || w.details;
-          const categories = Array.isArray(w.categories) ? w.categories : [];
-          const primaryCategory = categories[0] || w.hazard_category || 'general';
-          return {
-            id: w.db_uuid || w.warning_id || w.id,
-            warning_id: w.warning_id || w.source_warning_id || w.id,
-            canonical_id: w.warning_id || w.source_warning_id,
-            navarea: w.navarea,
-            title: w.title,
-            severity: w.risk_level || w.severity || 'high',
-            category: primaryCategory,
-            categories: categories.length ? categories : [primaryCategory],
-            issued_date: w.issued_date || (w.issued_at ? w.issued_at.split('T')[0] : null) || w.issued,
-            issued_text: w.issued_text || w.issued_date || w.issued,
-            issued_at: w.issued_at,
-            coordinates: w.spatial?.raw_coordinate_text?.[0] || w.coordinates,
-            latitude: w.latitude ?? null,
-            longitude: w.longitude ?? null,
-            status: w.status,
-            raw_text: raw,
-            bulletin: raw,
-            text: raw,
-          };
-        });
-      }
-    }
-  } catch (err) {
-    console.warn('Server API fallback notice:', err);
+    textPromise = Promise.resolve(window.hwSupabase
+      .from('nav_warnings')
+      .select('id, raw_text, issued_at')
+      .eq('status', 'active'))
+      .catch((textQueryError) => {
+        console.warn('Warning text hydration unavailable:', textQueryError);
+        return { data: null, error: textQueryError };
+      });
+  } catch (textQueryError) {
+    console.warn('Warning text hydration unavailable:', textQueryError);
   }
 
-  return [];
+  const spatialRows = new Map();
+  for (let from = 0; ; from += SPATIAL_PAGE_SIZE) {
+    let result;
+    try {
+      result = await window.hwSupabase
+        .from('nav_warnings_active_spatial')
+        .select('warning_id, canonical_id, navarea, title, area_text, categories, status, triage_tier, data_quality, valid_from, valid_to, radio_frequencies, space_launch_mission, geom_id, zone_label, feature_type, buffer_nm, corridor_half_width_nm, geojson_blob')
+        .order('geom_id', { ascending: true })
+        .range(from, from + SPATIAL_PAGE_SIZE - 1);
+    } catch (queryError) {
+      throw new Error('Authoritative spatial query failed: ' + (queryError?.message || queryError));
+    }
+
+    if (result.error) {
+      throw new Error('Authoritative spatial query failed: ' + result.error.message);
+    }
+    if (!Array.isArray(result.data)) {
+      throw new Error('Authoritative spatial query returned an invalid response');
+    }
+
+    for (const row of result.data) {
+      if (!row.geom_id) {
+        throw new Error('Authoritative spatial row is missing geom_id');
+      }
+      if (!spatialRows.has(row.geom_id)) spatialRows.set(row.geom_id, row);
+    }
+
+    if (result.data.length < SPATIAL_PAGE_SIZE) break;
+  }
+
+  let textRows = [];
+  if (textPromise) {
+    try {
+      const textResult = await textPromise;
+      if (!textResult.error && Array.isArray(textResult.data)) {
+        textRows = textResult.data;
+      } else if (textResult.error) {
+        console.warn('Warning text hydration unavailable:', textResult.error.message);
+      }
+    } catch (textError) {
+      console.warn('Warning text hydration unavailable:', textError);
+    }
+  }
+
+  return mergeSpatialAndTextRows(Array.from(spatialRows.values()), textRows);
 }
 
 async function fetchWarningDetails(identifier) {
