@@ -203,7 +203,11 @@ async function fetchActiveWarnings() {
     textPromise = Promise.resolve(window.hwSupabase
       .from('nav_warnings')
       .select('id, raw_text, issued_at')
-      .eq('status', 'active'));
+      .eq('status', 'active'))
+      .catch((textQueryError) => {
+        console.warn('Warning text hydration unavailable:', textQueryError);
+        return { data: null, error: textQueryError };
+      });
   } catch (textQueryError) {
     console.warn('Warning text hydration unavailable:', textQueryError);
   }
