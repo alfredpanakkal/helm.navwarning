@@ -6,6 +6,7 @@ import {
   RawArtifact,
   PipelineSystemStatus,
   PipelineRunRecord,
+  SpatialCircle,
 } from '../types';
 
 export async function fetchSources(): Promise<SourceRegistryItem[]> {
@@ -85,6 +86,53 @@ function parseCanonicalIdentity(canonicalId: string): { number: string | null; y
  * - categories is TEXT[]; there is no category/severity/risk_level.
  * - valid_to NULL means "in force until cancelled".
  */
+/**
+ * Derives map circles from buffered point geometries. buffer_nm is persisted
+ * backend metadata (nav_warning_geometries.buffer_nm); a zero/missing buffer
+ * produces no circle — never fabricate a default radius.
+ */
+export function bufferCirclesFromGeometries(
+  geometries: any[] | null | undefined,
+  fallbackLabel?: string
+): SpatialCircle[] {
+  const circles: SpatialCircle[] = [];
+
+  if (!Array.isArray(geometries)) return circles;
+
+  geometries.forEach((g: any) => {
+    if (!g || typeof g !== 'object' || g.type !== 'Point') return;
+
+    const coordinates = g.coordinates;
+    if (!Array.isArray(coordinates) || coordinates.length !== 2) return;
+
+    const [longitude, latitude] = coordinates;
+    if (
+      typeof longitude !== 'number' ||
+      typeof latitude !== 'number' ||
+      !Number.isFinite(longitude) ||
+      !Number.isFinite(latitude) ||
+      longitude < -180 ||
+      longitude > 180 ||
+      latitude < -90 ||
+      latitude > 90
+    ) {
+      return;
+    }
+
+    // The view contract types buffer_nm as a number; reject malformed values rather than coercing them.
+    const radius = g.buffer_nm;
+    if (typeof radius !== 'number' || !Number.isFinite(radius) || radius <= 0) return;
+
+    circles.push({
+      center: [longitude, latitude],
+      radius_nm: radius,
+      label: g.label || fallbackLabel,
+    });
+  });
+
+  return circles;
+}
+
 export function mapSupabaseRowToNavWarning(
   row: any,
   fallbackStatus: string = 'active'
@@ -110,23 +158,19 @@ export function mapSupabaseRowToNavWarning(
   // 1) Geometry from geojson_blob (nav_warnings_active_spatial view row)
   let spatial: any = null;
   if (row.geojson_blob && typeof row.geojson_blob === 'object' && row.geojson_blob.type) {
-    const isPointWithBuffer = (row.geojson_blob.type === 'Point' || row.feature_type === 'POINT') && Number(row.buffer_nm) > 0;
+    const geometryLabel = row.zone_label || row.title || canonicalId;
+    const geometry = {
+      type: row.geojson_blob.type,
+      coordinates: row.geojson_blob.coordinates,
+      label: geometryLabel,
+      buffer_nm: Number(row.buffer_nm) || 0,
+    };
     spatial = {
-      geometries: [
-        {
-          type: row.geojson_blob.type,
-          coordinates: row.geojson_blob.coordinates,
-          label: row.zone_label || row.title || canonicalId,
-          buffer_nm: Number(row.buffer_nm) || 0,
-        },
-      ],
-      circles: isPointWithBuffer ? [
-        {
-          center: row.geojson_blob.coordinates,
-          radius_nm: Number(row.buffer_nm),
-          label: row.zone_label || row.title || canonicalId,
-        }
-      ] : [],
+      geometries: [geometry],
+      circles: bufferCirclesFromGeometries(
+        [{ ...geometry, buffer_nm: row.buffer_nm }],
+        geometryLabel
+      ),
       raw_coordinate_text: [],
       validation_status: 'passed',
     };
@@ -134,20 +178,9 @@ export function mapSupabaseRowToNavWarning(
 
   // 2) Geometry pre-grouped by fetchActiveSpatialRows (one warning, many geometries)
   if ((!spatial || spatial.geometries.length === 0) && Array.isArray(row._geometries) && row._geometries.length > 0) {
-    const circles: any[] = [];
-    row._geometries.forEach((g: any) => {
-      if ((g.type === 'Point' || g.feature_type === 'POINT') && Number(g.buffer_nm) > 0) {
-        circles.push({
-          center: g.coordinates,
-          radius_nm: Number(g.buffer_nm),
-          label: g.label || row.title || canonicalId,
-        });
-      }
-    });
-
     spatial = {
       geometries: row._geometries,
-      circles,
+      circles: bufferCirclesFromGeometries(row._geometries, row.title || canonicalId),
       raw_coordinate_text: [],
       validation_status: 'passed',
     };

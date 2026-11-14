@@ -3,7 +3,7 @@
 // Fixture rows mirror what the backend actually writes (docs/supabase-backend-contract.md).
 
 import { describe, it, expect } from 'vitest';
-import { mapSupabaseRowToNavWarning, normalizeNavarea } from '../api';
+import { mapSupabaseRowToNavWarning, normalizeNavarea, bufferCirclesFromGeometries } from '../api';
 import { groupSpatialRowsByCanonicalId, geojsonBlobToGeometry, type ActiveSpatialRow } from '../navWarningQueries';
 
 const viewRow = (over: Partial<ActiveSpatialRow> = {}): ActiveSpatialRow => ({
@@ -74,6 +74,135 @@ describe('groupSpatialRowsByCanonicalId', () => {
     expect((first._geometries as any[])).toHaveLength(2);
     expect(first._geojson).toBeTruthy();
   });
+
+  it('preserves every geometry row for a warning in deterministic order', () => {
+    const rows = [
+      viewRow(),
+      viewRow({ geom_id: '33333333-3333-3333-3333-333333333333', zone_label: 'AREA B', geojson_blob: { type: 'Point', coordinates: [140.0, 35.0] } }),
+      viewRow({ geom_id: '44444444-4444-4444-4444-444444444444', zone_label: 'AREA C', geojson_blob: { type: 'LineString', coordinates: [[140, 35], [141, 36]] } }),
+    ];
+    const grouped = groupSpatialRowsByCanonicalId(rows);
+    expect(grouped).toHaveLength(1);
+    const geoms = grouped[0]._geometries as any[];
+    expect(geoms).toHaveLength(3);
+    expect(geoms.map((g) => g.label)).toEqual(['HATCH COVER', 'AREA B', 'AREA C']);
+  });
+
+  it('carries persisted buffer_nm and corridor_half_width_nm onto every geometry entry', () => {
+    const rows = [
+      viewRow({ buffer_nm: 2.5, corridor_half_width_nm: 1 }),
+      viewRow({ geom_id: '33333333-3333-3333-3333-333333333333', buffer_nm: 0, corridor_half_width_nm: null, geojson_blob: { type: 'Point', coordinates: [140.0, 35.0] } }),
+    ];
+    const grouped = groupSpatialRowsByCanonicalId(rows);
+    const geoms = grouped[0]._geometries as any[];
+    expect(geoms[0].buffer_nm).toBe(2.5);
+    expect(geoms[0].corridor_half_width_nm).toBe(1);
+    expect(geoms[1].buffer_nm).toBe(0);
+    expect(geoms[1].corridor_half_width_nm).toBeNull();
+  });
+
+  it('hydrates production-shaped buffered view rows into circles after grouping', () => {
+    // Production Supabase view returns one row per geometry. Current live data
+    // contains buffered POINT rows with buffer_nm = 1 (double precision).
+    const rows = [
+      viewRow({ buffer_nm: 1, geojson_blob: { type: 'Point', coordinates: [67.2545, 24.7867] } }),
+      viewRow({
+        geom_id: '33333333-3333-3333-3333-333333333333',
+        zone_label: 'SECOND POSITION',
+        buffer_nm: 0,
+        geojson_blob: { type: 'Point', coordinates: [67.2612, 24.7880] },
+      }),
+      viewRow({
+        geom_id: '44444444-4444-4444-4444-444444444444',
+        zone_label: 'AREA',
+        feature_type: 'POLYGON',
+        buffer_nm: 0,
+        geojson_blob: { type: 'Polygon', coordinates: [[[67.25, 24.78], [67.27, 24.78], [67.27, 24.80], [67.25, 24.78]]] },
+      }),
+    ];
+
+    const grouped = groupSpatialRowsByCanonicalId(rows);
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0]._geometries).toHaveLength(3);
+
+    const circles = bufferCirclesFromGeometries(grouped[0]._geometries);
+    expect(circles).toEqual([
+      { center: [67.2545, 24.7867], radius_nm: 1, label: 'HATCH COVER' },
+    ]);
+  });
+
+  it('keeps a warning with only malformed geometry rows as zero geometries', () => {
+    const grouped = groupSpatialRowsByCanonicalId([
+      viewRow({ geojson_blob: { type: 'Feature' } as any }),
+      viewRow({ geom_id: '33333333-3333-3333-3333-333333333333', geojson_blob: null }),
+    ]);
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0]._geometries).toHaveLength(0);
+    expect(grouped[0]._geojson).toBeNull();
+  });
+
+  it('does not discard sibling geometry rows when one row is malformed', () => {
+    const grouped = groupSpatialRowsByCanonicalId([
+      viewRow({ geojson_blob: { garbage: true } as any }),
+      viewRow({ geom_id: '33333333-3333-3333-3333-333333333333', zone_label: 'AREA B', geojson_blob: { type: 'Point', coordinates: [140.0, 35.0] } }),
+    ]);
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0]._geometries).toHaveLength(1);
+    expect((grouped[0]._geometries as any[])[0].label).toBe('AREA B');
+  });
+});
+
+describe('bufferCirclesFromGeometries', () => {
+  it('derives one circle per buffered point using the persisted buffer_nm', () => {
+    const circles = bufferCirclesFromGeometries([
+      { type: 'Point', coordinates: [134.6583, 16.9017], buffer_nm: 2.5, label: 'WRECK' },
+      { type: 'Point', coordinates: [140.0, 35.0], buffer_nm: 0.5 },
+    ], 'FALLBACK');
+    expect(circles).toHaveLength(2);
+    expect(circles[0]).toEqual({ center: [134.6583, 16.9017], radius_nm: 2.5, label: 'WRECK' });
+    expect(circles[1].label).toBe('FALLBACK');
+  });
+
+  it('never fabricates circles for unbuffered points, polygons or missing metadata', () => {
+    expect(bufferCirclesFromGeometries([
+      { type: 'Point', coordinates: [134.6583, 16.9017], buffer_nm: 0 },
+      { type: 'Point', coordinates: [140.0, 35.0] },
+      { type: 'Polygon', coordinates: [[[140, 35], [141, 35], [141, 34], [140, 35]]], buffer_nm: 3 },
+      { type: 'Point', coordinates: 'not-an-array', buffer_nm: 2 },
+    ])).toEqual([]);
+    expect(bufferCirclesFromGeometries(null)).toEqual([]);
+    expect(bufferCirclesFromGeometries(undefined)).toEqual([]);
+  });
+
+  it('rejects malformed, non-finite and out-of-range point coordinates', () => {
+    const invalidGeometries = [
+      { type: 'Point', coordinates: [], buffer_nm: 1 },
+      { type: 'Point', coordinates: [140], buffer_nm: 1 },
+      { type: 'Point', coordinates: [140, 35, 10], buffer_nm: 1 },
+      { type: 'Point', coordinates: ['140', 35], buffer_nm: 1 },
+      { type: 'Point', coordinates: [Number.NaN, 35], buffer_nm: 1 },
+      { type: 'Point', coordinates: [140, Number.POSITIVE_INFINITY], buffer_nm: 1 },
+      { type: 'Point', coordinates: [181, 35], buffer_nm: 1 },
+      { type: 'Point', coordinates: [140, -91], buffer_nm: 1 },
+      { type: 'Point', coordinates: [[140, 35], [141, 36]], buffer_nm: 1 },
+      { type: 'Polygon', feature_type: 'POINT', coordinates: [140, 35], buffer_nm: 1 },
+      null,
+    ];
+
+    for (const geometry of invalidGeometries) {
+      expect(bufferCirclesFromGeometries([geometry as any])).toEqual([]);
+    }
+  });
+
+  it('rejects non-finite, non-positive and non-numeric buffer radii', () => {
+    const invalidRadii = [0, -1, Number.NaN, Number.POSITIVE_INFINITY, '2'];
+
+    for (const radius of invalidRadii) {
+      expect(bufferCirclesFromGeometries([
+        { type: 'Point', coordinates: [140, 35], buffer_nm: radius },
+      ])).toEqual([]);
+    }
+  });
 });
 
 describe('mapSupabaseRowToNavWarning (20261019/20 schema)', () => {
@@ -115,6 +244,49 @@ describe('mapSupabaseRowToNavWarning (20261019/20 schema)', () => {
     expect(w.spatial.geometries).toHaveLength(0);
     expect(w.spatial.validation_status).toBe('not_present');
     expect(w.validation.geometry).toBe('pending');
+  });
+
+  it('maps a pre-grouped _geometries row: all geometries kept, buffered points become circles', () => {
+    const w: any = mapSupabaseRowToNavWarning({
+      canonical_id: 'NAVAREA XI 0451/26',
+      navarea: 'NAVAREA XI',
+      title: 'MULTI GEOMETRY',
+      categories: ['drifting'],
+      status: 'active',
+      _geometries: [
+        { type: 'Point', coordinates: [134.6583, 16.9017], buffer_nm: 2.5, label: 'WRECK' },
+        { type: 'Polygon', coordinates: [[[140, 35], [141, 35], [141, 34], [140, 35]]], label: 'AREA A' },
+        { type: 'Point', coordinates: [140.0, 35.0], buffer_nm: 0, label: 'UNBUFFERED' },
+      ],
+    });
+    expect(w.spatial.geometries).toHaveLength(3);
+    expect(w.spatial.circles).toHaveLength(1);
+    expect(w.spatial.circles[0].radius_nm).toBe(2.5);
+    expect(w.spatial.circles[0].center).toEqual([134.6583, 16.9017]);
+  });
+
+  it('uses shared circle validation for direct geojson_blob rows', () => {
+    const valid: any = mapSupabaseRowToNavWarning({
+      canonical_id: 'NAVAREA XI 0453/26',
+      navarea: 'NAVAREA XI',
+      title: 'BUFFERED POINT',
+      geojson_blob: { type: 'Point', coordinates: [140, 35] },
+      feature_type: 'POINT',
+      buffer_nm: 2.5,
+    });
+    expect(valid.spatial.circles).toEqual([
+      { center: [140, 35], radius_nm: 2.5, label: 'BUFFERED POINT' },
+    ]);
+
+    const contradictory: any = mapSupabaseRowToNavWarning({
+      canonical_id: 'NAVAREA XI 0454/26',
+      navarea: 'NAVAREA XI',
+      title: 'POLYGON',
+      geojson_blob: { type: 'Polygon', coordinates: [[[140, 35], [141, 35], [141, 34], [140, 35]]] },
+      feature_type: 'POINT',
+      buffer_nm: 2.5,
+    });
+    expect(contradictory.spatial.circles).toEqual([]);
   });
 
   it('falls back to raw-text coordinate extraction when no geometry exists', () => {

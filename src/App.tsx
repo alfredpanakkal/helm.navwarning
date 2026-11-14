@@ -34,6 +34,7 @@ import {
   fetchArchivedWarnings,
   deriveExtractionConfidence,
   mapSupabaseRowToNavWarning,
+  bufferCirclesFromGeometries,
 } from './services/api';
 import { saveWarningEdit } from './services/warningEditApi';
 import { parseCoordinatesDeterministic } from './utils/coordinateParser';
@@ -244,7 +245,10 @@ export default function App() {
                   ...w,
                   spatial: {
                     geometries,
-                    circles: [],
+                    // Persisted point buffers (nav_warning_geometries.buffer_nm) must
+                    // render on the full-load path exactly as on the single-warning
+                    // repaint path — never silently dropped here.
+                    circles: bufferCirclesFromGeometries(g._geometries, w.title || w.warning_id),
                     raw_coordinate_text: [],
                     validation_status: 'passed' as const,
                   },
