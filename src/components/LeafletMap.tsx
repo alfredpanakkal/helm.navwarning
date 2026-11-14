@@ -40,10 +40,11 @@ import { NAVAREA_ZONE_LIST, NAVAREA_ZONES_BY_ID } from '../utils/navareaZones';
 import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
 import { useMapLayers, WarningSeverityLevel } from '../hooks/useMapLayers';
 import { WarningHierarchyLines } from './WarningItemV2';
-import { classifyWarning } from '../parsers/warningClassifier';
 import { extractGeometry } from '../parsers/geometryExtractor';
 import { renderHazardBadgeHtml, renderPrimarySymbolSvg } from '../utils/hazardIcons';
-import { toPrimarySymbol, PRIMARY_SYMBOLS, PrimarySymbol } from '../utils/symbolMapping';
+import { PRIMARY_SYMBOLS, PrimarySymbol } from '../utils/symbolMapping';
+import { resolveWarningVisuals } from '../utils/warningVisuals';
+import type { HazardCategory } from '../types/navarea';
 import { parseBerthAndRadius } from '../parsers/berthParser';
 import {
   computeDistanceNm,
@@ -613,7 +614,12 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       }
 
       const isIsolated = isolatedWarning?.warning_id === w.warning_id;
-      const classification = classifyWarning(w.raw_text || w.area_text || '');
+      const visuals = resolveWarningVisuals(w.categories, w.severity, w.raw_text || w.area_text || '');
+      const classification = {
+        category: visuals.category as HazardCategory,
+        severity: visuals.legacySeverity,
+        displayStyle: visuals.displayStyle,
+      };
       const statedBerth = parseBerthAndRadius(w.raw_text || '');
       // 2026-10-26: Tier B / INFERRED warnings render dashed amber "Unverified"
       // — their geometry is provisional (AI escalation or a NAVAREA move copy).
@@ -637,7 +643,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       // Render Point Marker only if center point is NOT suppressed
       if (!hideCenterPoint && activeMarkerLayer) {
-        const primarySymbol = toPrimarySymbol(classification.category);
+        const primarySymbol = visuals.symbol;
         const badgeHtml = renderHazardBadgeHtml(
           primarySymbol,
           classification.displayStyle,
