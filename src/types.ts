@@ -149,7 +149,7 @@ export interface SpatialData {
   geometries: SpatialGeometry[];
   circles: SpatialCircle[];
   raw_coordinate_text: string[];
-  validation_status: 'passed' | 'out_of_bounds' | 'not_present' | 'invalid_format' | 'warning';
+  validation_status: 'passed' | 'out_of_bounds' | 'not_present' | 'invalid_format' | 'warning' | 'parsed_from_text';
   data_quality?: DataQualityRating;
   ambiguous_positions?: AmbiguousPosition[];
   radius_specifications?: RadiusSpecification[];

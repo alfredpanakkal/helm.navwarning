@@ -31,6 +31,7 @@ import {
   Info,
 } from 'lucide-react';
 import { getLeafletLatLng } from '../utils/coordinateParser';
+import { hasRenderablePolygons, isTextDerivedGeometryOnly } from '../utils/warningHelpers';
 import { useMapNavigation } from '../hooks/useMapNavigation';
 import { useMapFocus } from '../hooks/useMapFocus';
 import { formatDecimalCoordinates, formatPositionDisplay, type CoordinateParseError } from '../utils/coordinateConversion';
@@ -550,7 +551,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       !hiddenWarningIds.has(w.warning_id) &&
       w.data_quality !== 'AMBIGUOUS' &&
       w.data_quality !== 'INVALID' &&
-      (!w.ambiguous_positions || w.ambiguous_positions.length === 0)
+      (!w.ambiguous_positions || w.ambiguous_positions.length === 0) &&
+      // Text-derived fallback geometry is not a verified map position.
+      !isTextDerivedGeometryOnly(w)
   );
 
   const autoFrameMap = useCallback((activeList: NavWarning[]) => {
@@ -617,11 +620,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       // Determine geometry presence
       const parsedGeom = extractGeometry(w.raw_text || '');
       const dataQuality = (w.data_quality || (parsedGeom as any).dataQuality || 'EXPLICIT').toUpperCase();
-      const hasPolygons = Boolean(
-        w.spatial?.geometries?.some(
-          (g) => g.type === 'Polygon' && Array.isArray(g.coordinates) && g.coordinates.length > 0
-        ) || (parsedGeom.geometry.polygons && parsedGeom.geometry.polygons.length > 0)
-      );
+      // Persisted geometry wins; parsed polygons are fallback-only.
+      const hasPolygons = hasRenderablePolygons(w, parsedGeom.geometry.polygons);
       const hasCircles = Boolean(w.spatial?.circles && w.spatial.circles.length > 0);
 
       // Phase 4.1 & User Decision: At global zoom (z <= 5), show centroid points with cluster groups.
@@ -666,19 +666,25 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             leafletInstance.current.removeLayer(hoverHaloLayerRef.current);
             hoverHaloLayerRef.current = null;
           }
-          const radiusNm = statedBerth?.radiusNm ?? statedBerth?.clearanceNm ?? 0.5;
-          const radiusMeters = radiusNm * 1852;
-          const haloColor = classification.displayStyle === 'critical' ? '#B42318' : '#8C5208';
-          const halo = L.circle(coords, {
-            pane: 'navWarnHaloPane',
-            radius: radiusMeters,
-            color: haloColor,
-            weight: 1.5,
-            dashArray: '4, 4',
-            fillColor: haloColor,
-            fillOpacity: 0.14,
-          }).addTo(leafletInstance.current);
-          hoverHaloLayerRef.current = halo;
+          // Persisted buffer_nm wins; explicit text-parsed radius is fallback.
+          const persistedBufferNm = w.spatial?.geometries?.find(
+            (g) => g.type === 'Point' && typeof g.buffer_nm === 'number' && Number.isFinite(g.buffer_nm) && g.buffer_nm > 0
+          )?.buffer_nm;
+          const radiusNm = persistedBufferNm ?? statedBerth?.radiusNm ?? statedBerth?.clearanceNm ?? null;
+          if (typeof radiusNm === 'number' && Number.isFinite(radiusNm) && radiusNm > 0) {
+            const radiusMeters = radiusNm * 1852;
+            const haloColor = classification.displayStyle === 'critical' ? '#B42318' : '#8C5208';
+            const halo = L.circle(coords, {
+              pane: 'navWarnHaloPane',
+              radius: radiusMeters,
+              color: haloColor,
+              weight: 1.5,
+              dashArray: '4, 4',
+              fillColor: haloColor,
+              fillOpacity: 0.14,
+            }).addTo(leafletInstance.current);
+            hoverHaloLayerRef.current = halo;
+          }
         });
 
         m.on('mouseout', () => {
@@ -852,12 +858,22 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   vectorGroup.addLayer(endMarker);
                 }
 
-                // Corridor calculation & Gold Swath Rendering
+                // Persisted half-width wins; explicit text clearance is fallback.
                 const directive = parseClearanceDirective(w.raw_text || w.issued_text || '');
-                const corridorWidth = directive ? (directive.radiusNm * 2) : 6.0; // 6 NM Swath Default
-                const corridor = computeLineCorridor(latLngs, corridorWidth);
+                const persistedHalfWidthNm =
+                  typeof geom.corridor_half_width_nm === 'number' && Number.isFinite(geom.corridor_half_width_nm) && geom.corridor_half_width_nm > 0
+                    ? geom.corridor_half_width_nm
+                    : null;
+                const corridorWidthNm = persistedHalfWidthNm != null
+                  ? persistedHalfWidthNm * 2
+                  : directive
+                    ? directive.radiusNm * 2
+                    : null;
+                const corridor = corridorWidthNm != null && Number.isFinite(corridorWidthNm) && corridorWidthNm > 0
+                  ? computeLineCorridor(latLngs, corridorWidthNm)
+                  : null;
 
-                if (corridor.boundaryPolygon && corridor.boundaryPolygon.length > 2) {
+                if (corridor && corridor.boundaryPolygon && corridor.boundaryPolygon.length > 2) {
                   const corridorPoly = L.polygon(corridor.boundaryPolygon, {
                     color: '#eab308',
                     weight: 1.5,
