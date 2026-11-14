@@ -244,11 +244,16 @@ export async function fetchSingleWarning(canonicalId: string): Promise<{
   geometries: Record<string, unknown>[];
 }> {
   if (!anonClient) return { row: null, geometries: [] };
-  const { data: row, error } = await anonClient
+  let { data: row, error } = await anonClient
     .from('nav_warnings')
     .select(LIST_COLUMNS)
     .eq('canonical_id', canonicalId)
     .maybeSingle();
+  if (isMissingSeverityColumn(error)) {
+    const legacy = await anonClient.from('nav_warnings').select(LIST_COLUMNS_LEGACY).eq('canonical_id', canonicalId).maybeSingle();
+    row = legacy.data;
+    error = legacy.error;
+  }
   if (error || !row) {
     console.warn('[navWarningQueries] single warning query notice:', error?.message);
     return { row: null, geometries: [] };
@@ -256,10 +261,16 @@ export async function fetchSingleWarning(canonicalId: string): Promise<{
   // Tier A rows hydrate from the active_spatial view; Tier B rows from the
   // unverified_spatial view — a single-warning refetch must return the real
   // geometry for BOTH tiers (the post-save and realtime repaints depend on it).
-  const [activeRes, unverifiedRes]: any = await Promise.all([
+  let [activeRes, unverifiedRes]: any = await Promise.all([
     anonClient.from('nav_warnings_active_spatial').select(VIEW_COLUMNS).eq('canonical_id', canonicalId),
     anonClient.from('nav_warnings_unverified_spatial').select(VIEW_COLUMNS).eq('canonical_id', canonicalId),
   ]);
+  if (isMissingSeverityColumn(activeRes?.error) || isMissingSeverityColumn(unverifiedRes?.error)) {
+    [activeRes, unverifiedRes] = await Promise.all([
+      anonClient.from('nav_warnings_active_spatial').select(VIEW_COLUMNS_LEGACY).eq('canonical_id', canonicalId),
+      anonClient.from('nav_warnings_unverified_spatial').select(VIEW_COLUMNS_LEGACY).eq('canonical_id', canonicalId),
+    ]);
+  }
   const spatial = [
     ...((activeRes?.data || []) as ActiveSpatialRow[]),
     ...((unverifiedRes?.data || []) as ActiveSpatialRow[]),
@@ -298,11 +309,17 @@ export async function fetchArchivedNavWarnings(opts?: { serverClient?: boolean }
   let hasMore = true;
   while (hasMore) {
     const to = from + PAGE_SIZE - 1;
-    const { data, error } = await client
+    let { data, error } = await client
       .from('nav_warnings_archive')
       .select(ARCHIVE_COLUMNS)
       .order('status_changed_at', { ascending: false, nullsFirst: false })
       .range(from, to);
+    if (isMissingSeverityColumn(error)) {
+      const legacy = await client.from('nav_warnings_archive').select(ARCHIVE_COLUMNS_LEGACY)
+        .order('status_changed_at', { ascending: false, nullsFirst: false }).range(from, to);
+      data = legacy.data;
+      error = legacy.error;
+    }
     if (error) {
       console.warn('[navWarningQueries] archive query notice:', error.message);
       break;
@@ -362,9 +379,15 @@ export async function fetchIngestionGenerations(
 export async function fetchReviewQueueRows(opts?: { serverClient?: boolean }): Promise<Record<string, unknown>[]> {
   const client = resolveClient(opts?.serverClient);
   if (!client) return [];
-  const { data, error } = await client
+  let { data, error } = await client
     .from('nav_warnings_review_queue')
     .select('warning_id: id, canonical_id, navarea, title, area_text, categories, severity, status, triage_tier, data_quality, parsing_method, qa_flags, unplotted_reason, duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at');
+  if (isMissingSeverityColumn(error)) {
+    const legacy = await client.from('nav_warnings_review_queue')
+      .select('warning_id: id, canonical_id, navarea, title, area_text, categories, status, triage_tier, data_quality, parsing_method, qa_flags, unplotted_reason, duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at');
+    data = legacy.data;
+    error = legacy.error;
+  }
   if (error) {
     console.warn('[navWarningQueries] review_queue query notice:', error.message);
     return [];
