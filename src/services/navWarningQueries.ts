@@ -14,6 +14,7 @@ export interface ActiveSpatialRow {
   title: string;
   area_text: string | null;
   categories: string[] | null;
+  severity: 'critical' | 'high' | 'moderate' | null;
   status: string;
   triage_tier: string;
   data_quality: string;
@@ -43,12 +44,12 @@ export interface NavWarningListFilters {
 }
 
 const VIEW_COLUMNS =
-  'warning_id, canonical_id, navarea, title, area_text, categories, status, ' +
+  'warning_id, canonical_id, navarea, title, area_text, categories, severity, status, ' +
   'triage_tier, data_quality, valid_from, valid_to, feature_type, zone_label, ' +
   'buffer_nm, corridor_half_width_nm, geojson_blob';
 
 const LIST_COLUMNS =
-  'id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, ' +
+  'id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, severity, ' +
   'status, triage_tier, data_quality, parsing_method, qa_flags, unplotted_reason, ' +
   'valid_from, valid_to, issued_at, created_at, updated_at';
 
@@ -251,7 +252,7 @@ export async function fetchSingleWarning(canonicalId: string): Promise<{
 }
 
 const ARCHIVE_COLUMNS =
-  'id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, ' +
+  'id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, severity, ' +
   'status, status_basis, status_changed_at, triage_tier, data_quality, parsing_method, ' +
   'qa_flags, unplotted_reason, valid_from, valid_to, created_at, updated_at';
 
@@ -335,7 +336,7 @@ export async function fetchReviewQueueRows(opts?: { serverClient?: boolean }): P
   if (!client) return [];
   const { data, error } = await client
     .from('nav_warnings_review_queue')
-    .select('warning_id: id, canonical_id, navarea, title, area_text, categories, status, triage_tier, data_quality, parsing_method, qa_flags, unplotted_reason, duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at');
+    .select('warning_id: id, canonical_id, navarea, title, area_text, categories, severity, status, triage_tier, data_quality, parsing_method, qa_flags, unplotted_reason, duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at');
   if (error) {
     console.warn('[navWarningQueries] review_queue query notice:', error.message);
     return [];
