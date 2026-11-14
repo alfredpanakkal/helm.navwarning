@@ -117,6 +117,17 @@ describe('public spatial warning fetch', () => {
     expect(loaded.orderCalls).toEqual([['geom_id', { ascending: true }]]);
   });
 
+  it('never includes Tier B or Tier C rows even if returned by the spatial view', async () => {
+    const loaded = load({
+      spatialRows: [
+        spatialRow({ geom_id: 'g-tier-b', canonical_id: 'TIER-B/26', triage_tier: 'B' }),
+        spatialRow({ geom_id: 'g-tier-c', canonical_id: 'TIER-C/26', triage_tier: 'C' }),
+      ],
+      textResult: EMPTY_TEXT,
+    });
+    await expect(loaded.fetchActiveWarnings()).resolves.toEqual([]);
+  });
+
   it('treats a successful empty spatial view as a legitimate empty result', async () => {
     const loaded = load({ spatialRows: [], textResult: EMPTY_TEXT });
     await expect(loaded.fetchActiveWarnings()).resolves.toEqual([]);
