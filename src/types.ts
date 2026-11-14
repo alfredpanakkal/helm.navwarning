@@ -197,6 +197,8 @@ export interface NavWarning {
   authority?: string | null;
   sub_area?: string | null;
   risk_level?: string | null;
+  /** Canonical maritime hazard severity; independent of parser triage A/B/C. */
+  severity?: 'critical' | 'high' | 'moderate' | null;
   latitude?: number | null;
   longitude?: number | null;
   valid_until?: string | null;
