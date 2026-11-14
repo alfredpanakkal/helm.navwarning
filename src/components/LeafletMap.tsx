@@ -31,7 +31,7 @@ import {
   RotateCcw,
   Info,
 } from 'lucide-react';
-import { getLeafletLatLng } from '../utils/coordinateParser';
+import { getLeafletLatLng, hasRenderableCircles, isRenderableCircle } from '../utils/coordinateParser';
 import { hasRenderablePolygons, isWarningMapRenderable } from '../utils/warningHelpers';
 import { useMapNavigation } from '../hooks/useMapNavigation';
 import { useMapFocus } from '../hooks/useMapFocus';
@@ -624,7 +624,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       const dataQuality = (w.data_quality || (parsedGeom as any).dataQuality || 'EXPLICIT').toUpperCase();
       // Persisted geometry wins; parsed polygons are fallback-only.
       const hasPolygons = hasRenderablePolygons(w, parsedGeom.geometry.polygons);
-      const hasCircles = Boolean(w.spatial?.circles && w.spatial.circles.length > 0);
+      const hasCircles = hasRenderableCircles(w.spatial);
 
       // Phase 4.1 & User Decision: At global zoom (z <= 5), show centroid points with cluster groups.
       // At regional and detailed zoom (z > 5), hide center point if polygon or circle is visible.
@@ -1009,7 +1009,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             ...(isUnverified ? { color: '#8C5208', fillColor: '#8C5208' } : {}),
           };
           w.spatial.circles.forEach((circ) => {
-            if (circ.center && Array.isArray(circ.center) && circ.radius_nm) {
+            if (isRenderableCircle(circ)) {
               try {
                 const center: [number, number] = [circ.center[1], circ.center[0]];
                 const radiusM = circ.radius_nm * 1852;
