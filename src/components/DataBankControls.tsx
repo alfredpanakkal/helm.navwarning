@@ -261,9 +261,9 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 setCurrentPage(1);
               }}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-medium cursor-pointer"
-              title="Clear severity filter"
+              title="Clear confidence filter"
             >
-              <span>Severity: {selectedSeverity}</span>
+              <span>Confidence: {selectedSeverity}</span>
               <X className="w-3 h-3" />
             </button>
           )}
@@ -414,7 +414,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex items-center">
               <select
-                aria-label="Filter by severity"
+                aria-label="Filter by data confidence"
                 value={selectedSeverity}
                 onChange={(e) => {
                   setSelectedSeverity(e.target.value);
@@ -422,9 +422,9 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 }}
                 className={selectClass(selectedSeverity !== 'ALL')}
               >
-                <option value="ALL">All Severities</option>
+                <option value="ALL">All Confidence Levels</option>
                 <option value="critical">Clean Tier A (explicit, no QA flags)</option>
-                <option value="high">High (Tier A)</option>
+                <option value="high">High confidence (Tier A)</option>
               </select>
               {selectChevron(selectedSeverity !== 'ALL')}
             </div>
