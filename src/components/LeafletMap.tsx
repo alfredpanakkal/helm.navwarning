@@ -317,14 +317,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           markers.forEach((m) => {
             const w = (m as any).warningData as NavWarning | undefined;
             if (w) {
-              const cls = classifyWarning(w.raw_text || w.area_text || '');
-              if (cls.displayStyle === 'critical' && highestRank < 3) {
+              const visuals = resolveWarningVisuals(w.categories, w.severity, w.raw_text || w.area_text || '');
+              if (visuals.severity === 'critical' && highestRank < 3) {
                 ringColor = '#B42318'; // Critical (--sev-critical)
                 highestRank = 3;
-              } else if (cls.displayStyle === 'high' && highestRank < 2) {
+              } else if (visuals.severity === 'high' && highestRank < 2) {
                 ringColor = '#8C5208'; // High (--sev-high)
                 highestRank = 2;
-              } else if (cls.displayStyle === 'active' && highestRank < 1) {
+              } else if (visuals.severity === 'moderate' && highestRank < 1) {
                 ringColor = '#2F6B4F'; // Moderate / Active (--accent)
                 highestRank = 1;
               }
@@ -2145,13 +2145,13 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   const isHidden = hiddenWarningIds.has(w.warning_id);
                   const isExpanded = expandedWarningId === w.warning_id;
                   const coastal = isCoastalWarning(w);
-                  const classification = classifyWarning(w.raw_text || w.area_text || '');
+                  const visuals = resolveWarningVisuals(w.categories, w.severity, w.raw_text || w.area_text || '');
                   const sevColor =
-                    classification.displayStyle === 'critical'
-                      ? '#dc2626'
-                      : classification.displayStyle === 'high'
-                      ? '#ea580c'
-                      : '#059669';
+                    visuals.severity === 'critical'
+                      ? '#B42318'
+                      : visuals.severity === 'high'
+                      ? '#8C5208'
+                      : '#2F6B4F';
 
                   return (
                     <div
