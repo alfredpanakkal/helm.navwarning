@@ -66,8 +66,7 @@ function isValidPublicGeoJSON(blob) {
   }
 }
 
-// Pure merge of nav_warnings_active_spatial rows with nav_warnings text rows.
-// Moved out of fetchActiveWarnings unchanged so it can be tested on its own.
+// Group authoritative spatial rows and hydrate their warning text.
 function mergeSpatialAndTextRows(spatialData, textRows) {
   // Group geometries by canonical_id to prevent multi-row fragmentation
   const warningMap = new Map();
