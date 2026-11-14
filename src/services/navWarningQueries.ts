@@ -294,6 +294,7 @@ const ARCHIVE_COLUMNS =
   'id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, severity, ' +
   'status, status_basis, status_changed_at, triage_tier, data_quality, parsing_method, ' +
   'qa_flags, unplotted_reason, valid_from, valid_to, created_at, updated_at';
+const ARCHIVE_COLUMNS_LEGACY = ARCHIVE_COLUMNS.replace('categories, severity,', 'categories,');
 
 /**
  * Archived warnings (status <> 'active') from the nav_warnings_archive view
