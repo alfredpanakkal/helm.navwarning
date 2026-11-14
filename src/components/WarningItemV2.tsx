@@ -15,11 +15,11 @@ export type WarningConfidenceBand = 'FULL_CONFIDENCE' | 'HIGH_CONFIDENCE' | 'NEE
  * parser triage confidence — NOT maritime hazard severity; the backend
  * contract has no severity field.
  */
-export function warningConfidence(w: NavWarning): { label: WarningConfidenceBand; className: string } {
+export function warningConfidence(w: NavWarning): WarningConfidenceBand {
   const c = w.extraction_confidence;
-  if (c === 1) return { label: 'FULL_CONFIDENCE', className: 'bg-rose-50 text-rose-700 border border-rose-200 font-bold' };
-  if (typeof c === 'number' && c >= 0.8) return { label: 'HIGH_CONFIDENCE', className: 'bg-orange-50 text-orange-700 border border-orange-200 font-bold' };
-  return { label: 'NEEDS_REVIEW', className: 'bg-gw-secondary text-gw-accent border border-gw-secondary font-medium' };
+  if (c === 1) return 'FULL_CONFIDENCE';
+  if (typeof c === 'number' && c >= 0.8) return 'HIGH_CONFIDENCE';
+  return 'NEEDS_REVIEW';
 }
 
 export function warningHeadline(w: NavWarning): string {
@@ -92,13 +92,13 @@ export const WarningConfidenceBadge: React.FC<{ warning: NavWarning; className?:
 }) => {
   const confidence = warningConfidence(warning);
   const dotColor =
-    confidence.label === 'FULL_CONFIDENCE'
-      ? 'var(--sev-critical, #c44536)'
-      : confidence.label === 'HIGH_CONFIDENCE'
-      ? 'var(--sev-high, #c07a2b)'
-      : 'var(--sev-medium, #6b8f9c)';
+    confidence === 'FULL_CONFIDENCE'
+      ? 'var(--ink-primary, #1D211E)'
+      : confidence === 'HIGH_CONFIDENCE'
+      ? 'var(--ink-secondary, #5D665F)'
+      : 'var(--ink-tertiary, #687169)';
   const labelText =
-    confidence.label === 'FULL_CONFIDENCE' ? 'Full conf.' : confidence.label === 'HIGH_CONFIDENCE' ? 'High conf.' : 'Needs review';
+    confidence === 'FULL_CONFIDENCE' ? 'Full conf.' : confidence === 'HIGH_CONFIDENCE' ? 'High conf.' : 'Needs review';
 
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs text-[var(--ink-body,#1f2937)] font-[450] shrink-0 ${className}`}>

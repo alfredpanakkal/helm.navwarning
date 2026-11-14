@@ -149,6 +149,11 @@ describe('groupSpatialRowsByCanonicalId', () => {
     expect(grouped).toHaveLength(1);
     expect(grouped[0]._geometries).toHaveLength(1);
     expect((grouped[0]._geometries as any[])[0].label).toBe('AREA B');
+
+    const mapped = mapSupabaseRowToNavWarning({ ...grouped[0], raw_text: '' });
+    expect(mapped.spatial.geometries).toHaveLength(1);
+    expect(mapped.spatial.geometries[0].label).toBe('AREA B');
+    expect(mapped.spatial.validation_status).toBe('passed');
   });
 });
 
@@ -219,6 +224,12 @@ describe('mapSupabaseRowToNavWarning (20261019/20 schema)', () => {
     expect(w.triage_tier).toBe('A');
   });
 
+  it('preserves every backend category without replacing the source array', () => {
+    const warning: any = mapSupabaseRowToNavWarning(viewRow({ categories: ['military', 'subsea'] }));
+    expect(warning.categories).toEqual(['military', 'subsea']);
+    expect(warning.hazard_category).toBe('military');
+  });
+
   it('maps a bare nav_warnings table row (no geometry, null dates)', () => {
     const w: any = mapSupabaseRowToNavWarning({
       id: '55555555-5555-5555-5555-555555555555',
@@ -257,11 +268,14 @@ describe('mapSupabaseRowToNavWarning (20261019/20 schema)', () => {
       _geometries: [
         { type: 'Point', coordinates: [134.6583, 16.9017], buffer_nm: 2.5, label: 'WRECK' },
         { type: 'Polygon', coordinates: [[[140, 35], [141, 35], [141, 34], [140, 35]]], label: 'AREA A' },
-        { type: 'LineString', coordinates: [[140, 35], [141, 36]], label: 'ROUTE' },
+        { type: 'LineString', coordinates: [[140, 35], [141, 36]], label: 'ROUTE', corridor_half_width_nm: 1.25 },
       ],
     });
 
     expect(w.spatial.geometries).toHaveLength(3);
+    expect(w.spatial.geometries.map((geometry: any) => geometry.label)).toEqual(['WRECK', 'AREA A', 'ROUTE']);
+    expect((w.spatial.geometries[2] as any).corridor_half_width_nm).toBe(1.25);
+    expect(w.spatial.validation_status).toBe('passed');
     expect(w.spatial.circles).toEqual([
       { center: [134.6583, 16.9017], radius_nm: 2.5, label: 'WRECK' },
     ]);

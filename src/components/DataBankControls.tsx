@@ -263,7 +263,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
               className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gw-bg border border-gw-primary/30 rounded text-gw-primary hover:bg-gw-primary hover:text-white transition-colors font-medium cursor-pointer"
               title="Clear confidence filter"
             >
-              <span>Confidence: {selectedSeverity === 'critical' ? 'Clean Tier A' : 'High confidence (Tier A)'}</span>
+              <span>Confidence: {selectedSeverity === 'critical' ? 'Clean Tier A' : 'All Tier A (includes Clean Tier A)'}</span>
               <X className="w-3 h-3" />
             </button>
           )}
@@ -424,7 +424,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
               >
                 <option value="ALL">All Confidence Levels</option>
                 <option value="critical">Clean Tier A (explicit, no QA flags)</option>
-                <option value="high">High confidence (Tier A)</option>
+                <option value="high">All Tier A (includes Clean Tier A)</option>
               </select>
               {selectChevron(selectedSeverity !== 'ALL')}
             </div>

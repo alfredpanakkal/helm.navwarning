@@ -534,11 +534,11 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
                 <div className="p-4 rounded-xl border bg-amber-50 border-amber-300 text-amber-900 space-y-1">
                   <div className="font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
                     <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>{warning.unplotted_reason ? 'Not Plotted — Awaiting Review' : 'No Persisted Backend Geometry'}</span>
+                    <span>{warning.unplotted_reason ? 'Not Plotted — No Valid Geometry' : 'No Persisted Backend Geometry'}</span>
                   </div>
                   <p className="text-xs">
                     {warning.unplotted_reason
-                      ? `Backend review reason: ${warning.unplotted_reason}. This notice is intentionally not plotted on the map.`
+                      ? `Backend reason: ${warning.unplotted_reason}. No valid persisted geometry is available to plot.`
                       : 'No backend-persisted geometry exists for this notice; it is intentionally not plotted on the map.'}
                   </p>
                 </div>
