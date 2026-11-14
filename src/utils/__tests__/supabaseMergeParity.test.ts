@@ -113,7 +113,7 @@ describe('public spatial warning fetch', () => {
     const loaded = load({ spatialRows: rows, textResult: EMPTY_TEXT });
     const entries = await loaded.fetchActiveWarnings() as Row[];
     expect(entries.map((entry) => entry.canonical_id)).toEqual(['POINT/26', 'POLY/26', 'LINE/26']);
-    expect(entries.find((entry) => entry.canonical_id === 'POLY/26').spatial.validation_status).toBe('passed');
+    expect(entries.find((entry) => entry.canonical_id === 'POLY/26')?.spatial.validation_status).toBe('passed');
     expect(loaded.orderCalls).toEqual([['geom_id', { ascending: true }]]);
   });
 
