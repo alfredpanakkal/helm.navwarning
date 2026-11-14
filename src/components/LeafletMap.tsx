@@ -1463,7 +1463,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-gw-secondary">
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-gw-accent mb-1">
-                Severity Level
+                Confidence Level
               </label>
               <div className="grid grid-cols-4 gap-1 bg-gw-bg p-1 rounded-lg border border-gw-secondary">
                 {['all', 'critical', 'high', 'moderate'].map((sev) => (
@@ -1477,7 +1477,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
  : 'text-gw-accent hover:text-gw-primary hover:bg-gw-panel'
  }`}
                   >
-                    {sev === 'critical' ? 'Crit' : sev === 'moderate' ? 'Mod' : sev.slice(0, 4)}
+                    {sev === 'critical' ? 'Full' : sev === 'moderate' ? 'Med' : sev.slice(0, 4)}
                   </button>
                 ))}
               </div>
