@@ -37,10 +37,10 @@ export function normalizeNavarea(name: unknown): string {
  * Derives a triage-based confidence score from the 20261019/20 backend
  * signals (triage_tier / data_quality / qa_flags) instead of the removed
  * risk_level column:
- *   Tier A + EXPLICIT + no flags + active  -> 1.0 (matches the Critical filter)
- *   Tier A with inferred data or qa_flags -> 0.9  (matches the High filter;
+ *   Tier A + EXPLICIT + no flags + active  -> 1.0 (matches Clean Tier A)
+ *   Tier A with inferred data or qa_flags -> 0.9  (high-confidence Tier A;
  *   'verified_by_admin' is exempt - a human VERIFY clears the review queue)
- *   Tier B (review queue)                 -> 0.6  (below the 0.8 verify threshold)
+ *   Tier B (review queue)                 -> 0.6  (below the 0.8 confidence threshold)
  *   Tier C (blocked)                      -> 0.3
  * The legacy confidence-threshold UI (>= 0.8, >= 1.0 bands) keeps working
  * and now reflects actual backend data quality.
@@ -155,9 +155,21 @@ export function mapSupabaseRowToNavWarning(
     || (subjectLine ? subjectLine.slice(0, 200) : null)
     || issuedDateStr;
 
-  // 1) Geometry from geojson_blob (nav_warnings_active_spatial view row)
+  // 1) Geometry pre-grouped by fetchActiveSpatialRows (one warning, many geometries).
+  // The complete array ALWAYS wins over a single geojson_blob: a row carrying
+  // both (e.g. a grouped view row) must never drop its sibling geometries.
   let spatial: any = null;
-  if (row.geojson_blob && typeof row.geojson_blob === 'object' && row.geojson_blob.type) {
+  if (Array.isArray(row._geometries) && row._geometries.length > 0) {
+    spatial = {
+      geometries: row._geometries,
+      circles: bufferCirclesFromGeometries(row._geometries, row.title || canonicalId),
+      raw_coordinate_text: [],
+      validation_status: 'passed',
+    };
+  }
+
+  // 2) Single geometry from geojson_blob (direct spatial-view row, not grouped)
+  if (!spatial && row.geojson_blob && typeof row.geojson_blob === 'object' && row.geojson_blob.type) {
     const geometryLabel = row.zone_label || row.title || canonicalId;
     const geometry = {
       type: row.geojson_blob.type,
@@ -171,16 +183,6 @@ export function mapSupabaseRowToNavWarning(
         [{ ...geometry, buffer_nm: row.buffer_nm }],
         geometryLabel
       ),
-      raw_coordinate_text: [],
-      validation_status: 'passed',
-    };
-  }
-
-  // 2) Geometry pre-grouped by fetchActiveSpatialRows (one warning, many geometries)
-  if ((!spatial || spatial.geometries.length === 0) && Array.isArray(row._geometries) && row._geometries.length > 0) {
-    spatial = {
-      geometries: row._geometries,
-      circles: bufferCirclesFromGeometries(row._geometries, row.title || canonicalId),
       raw_coordinate_text: [],
       validation_status: 'passed',
     };

@@ -528,6 +528,21 @@ export const WarningDetailModal: React.FC<WarningDetailModalProps> = ({
           {/* TAB 2: GEOMETRY */}
           {activeTab === 'geometry' && (
             <div className="space-y-5">
+              {/* Backend review state: why this notice may have no plotted map feature.
+                  Persisted backend decisions are shown verbatim — never inferred. */}
+              {(warning.unplotted_reason || warning.spatial?.validation_status === 'parsed_from_text') && (
+                <div className="p-4 rounded-xl border bg-amber-50 border-amber-300 text-amber-900 space-y-1">
+                  <div className="font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>{warning.unplotted_reason ? 'Not Plotted — No Valid Geometry' : 'No Persisted Backend Geometry'}</span>
+                  </div>
+                  <p className="text-xs">
+                    {warning.unplotted_reason
+                      ? `Backend reason: ${warning.unplotted_reason}. No valid persisted geometry is available to plot.`
+                      : 'No backend-persisted geometry exists for this notice; it is intentionally not plotted on the map.'}
+                  </p>
+                </div>
+              )}
               {/* Parsed Coordinate Points Table */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

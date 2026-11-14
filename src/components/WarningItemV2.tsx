@@ -7,18 +7,19 @@ import { resolveIssuingAuthority } from '../utils/warningAnalyzer';
 import { WarningStatusBadge } from './WarningStatusBadge';
 import { getWarningBulletinText, getWarningDate, getWarningPositionCount } from '../utils/warningHelpers';
 
-export type WarningSeverityBand = 'CRITICAL' | 'HIGH' | 'MODERATE';
+export type WarningConfidenceBand = 'FULL_CONFIDENCE' | 'HIGH_CONFIDENCE' | 'NEEDS_REVIEW';
 
 /**
- * Standardized v2 severity banding, aligned with the map marker bands
- * (critical = confidence 1, high >= 0.8, otherwise moderate) and with the
- * status bar "N High" count (confidence >= 0.8).
+ * Standardized v2 data-confidence banding, aligned with the map marker bands
+ * (full confidence = 1, high >= 0.8, otherwise needs review). This is
+ * parser triage confidence — NOT maritime hazard severity; the backend
+ * contract has no severity field.
  */
-export function warningSeverity(w: NavWarning): { label: WarningSeverityBand; className: string } {
+export function warningConfidence(w: NavWarning): WarningConfidenceBand {
   const c = w.extraction_confidence;
-  if (c === 1) return { label: 'CRITICAL', className: 'bg-rose-50 text-rose-700 border border-rose-200 font-bold' };
-  if (typeof c === 'number' && c >= 0.8) return { label: 'HIGH', className: 'bg-orange-50 text-orange-700 border border-orange-200 font-bold' };
-  return { label: 'MODERATE', className: 'bg-gw-secondary text-gw-accent border border-gw-secondary font-medium' };
+  if (c === 1) return 'FULL_CONFIDENCE';
+  if (typeof c === 'number' && c >= 0.8) return 'HIGH_CONFIDENCE';
+  return 'NEEDS_REVIEW';
 }
 
 export function warningHeadline(w: NavWarning): string {
@@ -85,19 +86,19 @@ function statusTextClass(status: NavWarning['status']): string {
   return status === 'active' ? 'text-green-700' : status === 'unverified' ? 'text-amber-700' : 'text-gw-accent';
 }
 
-export const WarningSeverityBadge: React.FC<{ warning: NavWarning; className?: string }> = ({
+export const WarningConfidenceBadge: React.FC<{ warning: NavWarning; className?: string }> = ({
   warning,
   className = '',
 }) => {
-  const sev = warningSeverity(warning);
+  const confidence = warningConfidence(warning);
   const dotColor =
-    sev.label === 'CRITICAL'
-      ? 'var(--sev-critical, #c44536)'
-      : sev.label === 'HIGH'
-      ? 'var(--sev-high, #c07a2b)'
-      : 'var(--sev-medium, #6b8f9c)';
+    confidence === 'FULL_CONFIDENCE'
+      ? 'var(--ink-primary, #1D211E)'
+      : confidence === 'HIGH_CONFIDENCE'
+      ? 'var(--ink-secondary, #5D665F)'
+      : 'var(--ink-tertiary, #687169)';
   const labelText =
-    sev.label === 'CRITICAL' ? 'Critical' : sev.label === 'HIGH' ? 'High' : 'Moderate';
+    confidence === 'FULL_CONFIDENCE' ? 'Full conf.' : confidence === 'HIGH_CONFIDENCE' ? 'High conf.' : 'Needs review';
 
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs text-[var(--ink-body,#1f2937)] font-[450] shrink-0 ${className}`}>
@@ -114,7 +115,7 @@ export const WarningSeverityBadge: React.FC<{ warning: NavWarning; className?: s
 export interface WarningHierarchyLinesProps {
   warning: NavWarning;
   sources?: SourceRegistryItem[];
-  /** Extra controls rendered just before the severity badge on line 1 (drawer eye toggle). */
+  /** Extra controls rendered just before the confidence badge on line 1 (drawer eye toggle). */
   line1Right?: React.ReactNode;
   /** Append the status dot+label to line 3 (table/grouped/mobile; omitted in the drawer). */
   showStatus?: boolean;
@@ -166,7 +167,7 @@ export const WarningHierarchyLines: React.FC<WarningHierarchyLinesProps> = ({
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {line1Right}
-          <WarningSeverityBadge warning={w} />
+          <WarningConfidenceBadge warning={w} />
         </div>
       </div>
 
