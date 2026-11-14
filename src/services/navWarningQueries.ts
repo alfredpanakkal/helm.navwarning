@@ -380,9 +380,11 @@ export async function fetchIngestionGenerations(
 export async function fetchReviewQueueRows(opts?: { serverClient?: boolean }): Promise<Record<string, unknown>[]> {
   const client = resolveClient(opts?.serverClient);
   if (!client) return [];
-  let { data, error } = await client
+  let data: any;
+  let error: any;
+  ({ data, error } = await client
     .from('nav_warnings_review_queue')
-    .select('warning_id: id, canonical_id, navarea, title, area_text, categories, severity, status, triage_tier, data_quality, parsing_method, qa_flags, unplotted_reason, duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at');
+    .select('warning_id: id, canonical_id, navarea, title, area_text, categories, severity, status, triage_tier, data_quality, parsing_method, qa_flags, unplotted_reason, duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at'));
   if (isMissingSeverityColumn(error)) {
     const legacy = await client.from('nav_warnings_review_queue')
       .select('warning_id: id, canonical_id, navarea, title, area_text, categories, status, triage_tier, data_quality, parsing_method, qa_flags, unplotted_reason, duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at');
