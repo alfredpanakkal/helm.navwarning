@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { hasRenderablePolygons, isTextDerivedGeometryOnly, isWarningMapRenderable } from '../warningHelpers';
 import { NavWarning } from '../../types';
+import { getLeafletLatLng, hasRenderableCircles, isRenderableCircle } from '../coordinateParser';
 
 const warningWithSpatial = (spatial: any): NavWarning =>
   ({ warning_id: 'NAVAREA XI 0451/26', spatial } as unknown as NavWarning);
@@ -137,6 +138,59 @@ describe('hasRenderablePolygons', () => {
   });
 });
 
+
+
+describe('circle render eligibility', () => {
+  it('accepts only circles with a valid non-Null-Island center and positive finite radius', () => {
+    expect(isRenderableCircle({ center: [140.25, 35.2], radius_nm: 2 })).toBe(true);
+
+    const invalidCircles = [
+      { center: [140.25, 35.2], radius_nm: 0 },
+      { center: [140.25, 35.2], radius_nm: -1 },
+      { center: [140.25, 35.2], radius_nm: Number.POSITIVE_INFINITY },
+      { center: [181, 35.2], radius_nm: 2 },
+      { center: [140.25, 91], radius_nm: 2 },
+      { center: [0, 0], radius_nm: 2 },
+    ];
+    invalidCircles.forEach((circle) => expect(isRenderableCircle(circle as any)).toBe(false));
+  });
+
+  it('prefers a later drawable circle when an earlier circle is malformed', () => {
+    const spatial = {
+      geometries: [],
+      circles: [
+        { center: [0, 0], radius_nm: 10 },
+        { center: [140.25, 35.2], radius_nm: 2 },
+      ],
+    };
+
+    expect(hasRenderableCircles(spatial as any)).toBe(true);
+    expect(getLeafletLatLng(spatial as any)).toEqual([35.2, 140.25]);
+    expect(isWarningMapRenderable(warningWithSpatial(spatial))).toBe(true);
+  });
+
+  it('uses a valid center as a point fallback when only the circle radius is invalid', () => {
+    const spatial = {
+      geometries: [],
+      circles: [{ center: [140.25, 35.2], radius_nm: 0 }],
+    };
+
+    expect(hasRenderableCircles(spatial as any)).toBe(false);
+    expect(getLeafletLatLng(spatial as any)).toEqual([35.2, 140.25]);
+    expect(isWarningMapRenderable(warningWithSpatial(spatial))).toBe(true);
+  });
+
+  it('does not treat a Null-Island-only circle as a plotted warning', () => {
+    expect(
+      isWarningMapRenderable(
+        warningWithSpatial({
+          geometries: [],
+          circles: [{ center: [0, 0], radius_nm: 2 }],
+        })
+      )
+    ).toBe(false);
+  });
+});
 
 describe('isWarningMapRenderable', () => {
   it('accepts persisted point, polygon, line and circle positions', () => {
