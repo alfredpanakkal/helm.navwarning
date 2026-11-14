@@ -70,7 +70,7 @@ function isValidPublicGeoJSON(blob) {
 // Invalid calendar dates are rejected; no dates are inferred from ingestion time.
 function extractBulletinIssuedAt(rawText) {
   if (typeof rawText !== 'string') return null;
-  const match = rawText.match(/\\bDate\\s*:\\s*(\\d{4})[\\/. -](\\d{1,2})[\\/. -](\\d{1,2})(?:\\s+(\\d{2})(?::?(\\d{2}))?\\s*UTC)?/i);
+  const match = rawText.match(/\bDate\s*:\s*(\d{4})[\/. -](\d{1,2})[\/. -](\d{1,2})(?:\s+(\d{2})(?::?(\d{2}))?\s*UTC)?/i);
   if (!match) return null;
   const [, yearText, monthText, dayText, hourText, minuteText] = match;
   const year = Number(yearText), month = Number(monthText), day = Number(dayText);
