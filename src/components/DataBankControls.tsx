@@ -423,7 +423,7 @@ export const DataBankControls: React.FC<{ model: DataBankModel }> = ({ model }) 
                 className={selectClass(selectedSeverity !== 'ALL')}
               >
                 <option value="ALL">All Severities</option>
-                <option value="critical">Critical (Tier A, no flags)</option>
+                <option value="critical">Clean Tier A (explicit, no QA flags)</option>
                 <option value="high">High (Tier A)</option>
               </select>
               {selectChevron(selectedSeverity !== 'ALL')}
