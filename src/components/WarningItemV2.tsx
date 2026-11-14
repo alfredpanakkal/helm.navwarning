@@ -167,7 +167,7 @@ export const WarningHierarchyLines: React.FC<WarningHierarchyLinesProps> = ({
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {line1Right}
-          <WarningSeverityBadge warning={w} />
+          <WarningConfidenceBadge warning={w} />
         </div>
       </div>
 
