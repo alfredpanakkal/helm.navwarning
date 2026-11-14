@@ -73,6 +73,7 @@ function mergeSpatialAndTextRows(spatialData, textRows) {
   const warningMap = new Map();
 
   for (const row of spatialData) {
+    if (row.status !== 'active' || row.triage_tier !== 'A') continue;
     const key = row.canonical_id || row.warning_id;
     if (!key) continue;
 
@@ -198,12 +199,12 @@ async function fetchActiveWarnings() {
     throw new Error('Supabase client is unavailable');
   }
 
-  let textQuery = null;
+  let textPromise = null;
   try {
-    textQuery = window.hwSupabase
+    textPromise = Promise.resolve(window.hwSupabase
       .from('nav_warnings')
       .select('id, raw_text, issued_at')
-      .eq('status', 'active');
+      .eq('status', 'active'));
   } catch (textQueryError) {
     console.warn('Warning text hydration unavailable:', textQueryError);
   }
@@ -239,9 +240,9 @@ async function fetchActiveWarnings() {
   }
 
   let textRows = [];
-  if (textQuery) {
+  if (textPromise) {
     try {
-      const textResult = await textQuery;
+      const textResult = await textPromise;
       if (!textResult.error && Array.isArray(textResult.data)) {
         textRows = textResult.data;
       } else if (textResult.error) {
