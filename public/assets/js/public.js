@@ -1409,11 +1409,11 @@ function getWarningPrimarySymbol(w) {
 
 const WARNING_SYMBOL_SVG = {
   general: '<polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5" fill="currentColor"/>',
-  military: '<circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M12 2v5m0 10v5M2 12h5m10 0h5" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>',
-  drifting: '<path d="M3 15h18l-3 4H6z" fill="currentColor"/><path d="M12 4v9m0-7 5 4h-5z" stroke="currentColor" stroke-width="2" fill="currentColor"/>',
-  aton: '<path d="M9 20h6L13 8h-2z" fill="currentColor"/><rect x="10" y="5" width="4" height="3" fill="currentColor"/><path d="M12 2 8 5h8zM4 6l3 1m13-1-3 1" stroke="currentColor" stroke-width="1.5" fill="currentColor"/>',
-  subsea: '<circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M4 17q4-7 8-5t8-5" stroke="currentColor" stroke-width="2" fill="none"/>',
-  wreck: '<path d="M4 18h16M6 18q6-6 12 0M12 8v8m-3-5h6" stroke="currentColor" stroke-width="2" fill="none"/>'
+  military: '<circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1.8" fill="none"/><line x1="12" y1="2" x2="12" y2="7" stroke="currentColor" stroke-width="2"/><line x1="12" y1="17" x2="12" y2="22" stroke="currentColor" stroke-width="2"/><line x1="2" y1="12" x2="7" y2="12" stroke="currentColor" stroke-width="2"/><line x1="17" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>',
+  drifting: '<path d="M3 15 L21 15 L18 19 L6 19 Z" fill="currentColor"/><path d="M12 4 L12 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 6 L17 10 L12 11 Z" fill="currentColor"/>',
+  aton: '<polygon points="9,20 15,20 13,8 11,8" stroke="currentColor" stroke-width="1.5" fill="currentColor"/><rect x="10" y="5" width="4" height="3" fill="currentColor"/><polygon points="12,2 8,5 16,5" fill="currentColor"/><line x1="4" y1="6" x2="7" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="20" y1="6" x2="17" y2="7" stroke="currentColor" stroke-width="1.5"/>',
+  subsea: '<circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M4 17 Q8 10 12 12 T20 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>',
+  wreck: '<line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" stroke-width="2"/><path d="M6 18 Q12 12 18 18" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/><line x1="9" y1="11" x2="15" y2="11" stroke="currentColor" stroke-width="2"/>'
 };
 
 function createWarningMarkerIcon(w) {
