@@ -1374,12 +1374,12 @@ function getWarningSeverity(w) {
   const text = [w?.title, w?.raw_text, w?.category].filter(Boolean).join(' ').toUpperCase();
   const cats = getWarningCategories(w);
   if (
-    /\b(DRIFTING MINE|SEA MINE|UNEXPLODED ORDNANCE|ORDNANCE DISPOSAL|DISTRESS ALERT|SEARCH AND RESCUE|MAN OVERBOARD|PERSON OVERBOARD|GUNNERY|FIRING EXERCISE|MILITARY FIRING|MISSILE FIRING|NAVAL FIRING|ROCKET LAUNCH|TSUNAMI|CYCLONE|TYPHOON|HURRICANE)\b/i.test(text) ||
-    cats.some(category => ['uxo', 'sar', 'mil_fire', 'weather'].includes(category))
+    /\b(DRIFTING MINE|SEA MINE|DISTRESS ALERT|SEARCH AND RESCUE|MAN OVERBOARD|PERSON OVERBOARD|GUNNERY|FIRING EXERCISE|MILITARY FIRING|MISSILE FIRING|NAVAL FIRING|ROCKET LAUNCH|TSUNAMI|CYCLONE|TYPHOON|HURRICANE)\b/i.test(text) ||
+    cats.some(category => ['sar', 'mil_fire', 'weather'].includes(category))
   ) return 'critical';
   if (
-    /\b(SECURITY ADVISORY|PIRACY|SUSPICIOUS SKIFF|ATTACK|BOARDED|DERELICT|ADRIFT|DRIFTING VESSEL|DRIFTING BARGE|DRIFTING CONTAINER|ICEBERG|SEA ICE|DANGEROUS WRECK|SUNKEN WRECK|SUBMERGED OBSTRUCTION|COLLISION|UNLIT|DAMAGED|DESTROYED|OFF STATION|UNDER TOW|ALERT)\b/i.test(text) ||
-    cats.some(category => ['security', 'drift', 'drifting', 'ice', 'wreck'].includes(category))
+    /\b(UNEXPLODED ORDNANCE|ORDNANCE DISPOSAL|EXPLOSIVE ORDNANCE|SECURITY ADVISORY|PIRACY|SUSPICIOUS SKIFF|ATTACK|BOARDED|DERELICT|ADRIFT|DRIFTING VESSEL|DRIFTING BARGE|DRIFTING CONTAINER|ICEBERG|SEA ICE|DANGEROUS WRECK|SUNKEN WRECK|SUBMERGED OBSTRUCTION|COLLISION|UNLIT|DAMAGED|DESTROYED|OFF STATION|UNDER TOW|ALERT)\b/i.test(text) ||
+    cats.some(category => ['uxo', 'security', 'drift', 'drifting', 'ice', 'wreck'].includes(category))
   ) return 'high';
   if (cats.includes('aton') && /\b(UNLIT|DAMAGED|DESTROYED|OFF STATION|WITHDRAWN)\b/i.test(text)) return 'high';
   if (cats.includes('rig') && /\b(ALERT|UNDER TOW|ADRIFT)\b/i.test(text)) return 'high';
