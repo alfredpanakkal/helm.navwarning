@@ -14,7 +14,7 @@ export interface ActiveSpatialRow {
   title: string;
   area_text: string | null;
   categories: string[] | null;
-  severity: 'critical' | 'high' | 'moderate' | null;
+  severity?: 'critical' | 'high' | 'moderate' | null;
   status: string;
   triage_tier: string;
   data_quality: string;
@@ -48,10 +48,20 @@ const VIEW_COLUMNS =
   'triage_tier, data_quality, valid_from, valid_to, feature_type, zone_label, ' +
   'buffer_nm, corridor_half_width_nm, geojson_blob';
 
+const VIEW_COLUMNS_LEGACY = VIEW_COLUMNS.replace('categories, severity, status', 'categories, status');
+
 const LIST_COLUMNS =
   'id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, severity, ' +
   'status, triage_tier, data_quality, parsing_method, qa_flags, unplotted_reason, ' +
   'valid_from, valid_to, issued_at, created_at, updated_at';
+const LIST_COLUMNS_LEGACY = LIST_COLUMNS.replace('categories, severity,', 'categories,');
+
+function isMissingSeverityColumn(error: any): boolean {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes('severity') && (
+    message.includes('does not exist') || message.includes('schema cache') || error?.code === '42703' || error?.code === 'PGRST204'
+  );
+}
 
 const PAGE_SIZE = 1000; // PostgREST server-side max range
 
@@ -72,10 +82,15 @@ export async function fetchActiveSpatialRows(opts?: { serverClient?: boolean }):
   let hasMore = true;
   while (hasMore) {
     const to = from + PAGE_SIZE - 1;
-    const { data, error } = await client
+    let { data, error } = await client
       .from('nav_warnings_active_spatial')
       .select(VIEW_COLUMNS)
       .range(from, to);
+    if (isMissingSeverityColumn(error)) {
+      const legacy = await client.from('nav_warnings_active_spatial').select(VIEW_COLUMNS_LEGACY).range(from, to);
+      data = legacy.data;
+      error = legacy.error;
+    }
     if (error) {
       console.warn('[navWarningQueries] active_spatial query notice:', error.message);
       break;
@@ -105,10 +120,15 @@ export async function fetchUnverifiedSpatialRows(opts?: { serverClient?: boolean
   let hasMore = true;
   while (hasMore) {
     const to = from + PAGE_SIZE - 1;
-    const { data, error } = await client
+    let { data, error } = await client
       .from('nav_warnings_unverified_spatial')
       .select(VIEW_COLUMNS)
       .range(from, to);
+    if (isMissingSeverityColumn(error)) {
+      const legacy = await client.from('nav_warnings_unverified_spatial').select(VIEW_COLUMNS_LEGACY).range(from, to);
+      data = legacy.data;
+      error = legacy.error;
+    }
     if (error) {
       console.warn('[navWarningQueries] unverified_spatial query notice:', error.message);
       break;
@@ -181,14 +201,22 @@ export async function fetchNavWarningsList(params?: NavWarningListFilters & { se
   let hasMore = true;
   while (hasMore) {
     const to = from + PAGE_SIZE - 1;
-    let query = client.from('nav_warnings').select(LIST_COLUMNS).order('updated_at', { ascending: false }).range(from, to);
-    if (params?.sourceId) query = query.eq('source_id', params.sourceId);
-    if (params?.navarea) query = query.eq('navarea', params.navarea);
-    if (params?.status) query = query.eq('status', params.status);
-    if (params?.triageTier) query = query.eq('triage_tier', params.triageTier);
-    if (params?.triageTiers && params.triageTiers.length > 0) query = query.in('triage_tier', params.triageTiers);
-    if (params?.category) query = query.contains('categories', [params.category]);
-    const { data, error } = await query;
+    const buildQuery = (columns: string) => {
+      let query = client.from('nav_warnings').select(columns).order('updated_at', { ascending: false }).range(from, to);
+      if (params?.sourceId) query = query.eq('source_id', params.sourceId);
+      if (params?.navarea) query = query.eq('navarea', params.navarea);
+      if (params?.status) query = query.eq('status', params.status);
+      if (params?.triageTier) query = query.eq('triage_tier', params.triageTier);
+      if (params?.triageTiers && params.triageTiers.length > 0) query = query.in('triage_tier', params.triageTiers);
+      if (params?.category) query = query.contains('categories', [params.category]);
+      return query;
+    };
+    let { data, error } = await buildQuery(LIST_COLUMNS);
+    if (isMissingSeverityColumn(error)) {
+      const legacy = await buildQuery(LIST_COLUMNS_LEGACY);
+      data = legacy.data;
+      error = legacy.error;
+    }
     if (error) {
       console.warn('[navWarningQueries] nav_warnings list query notice:', error.message);
       break;
