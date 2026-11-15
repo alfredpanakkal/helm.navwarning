@@ -51,14 +51,14 @@
     return '<details class="warn-item">' +
       '<summary>' +
         '<span class="warn-id">' + esc(id) + '</span>' +
-        '<span class="warn-title">' + esc(title) + '</span>' +
+        '<span class="warn-title">' + (detailHref ? '<a href="' + detailHref + '">' + esc(title) + '</a>' : esc(title)) + '</span>' +
         (issued ? '<span class="warn-date">Issued ' + esc(issued) + '</span>' : '') +
       '</summary>' +
       '<div class="warn-body">' +
         '<pre class="warn-text">' + esc(w.raw_text || w.area_text || 'Original bulletin text is not available for this record.') + '</pre>' +
         (tier ? '<p class="warn-meta">Geometry tier: ' + esc(tier) + (w.data_quality ? ' &middot; ' + esc(w.data_quality) : '') + '</p>' : '') +
         '<a class="warn-maplink" href="' + mapHref + '">View ' + esc(cfg.code) + ' region on the live map</a>' +
-        (detailHref ? '<a class="warn-maplink" href="' + detailHref + '">Warning detail page</a>' : '') +
+
       '</div>' +
     '</details>';
   }
