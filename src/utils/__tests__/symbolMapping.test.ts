@@ -21,6 +21,7 @@ describe('symbolMapping — primary warning symbols', () => {
 
     // 4. Submarine cable has its own symbol.
     expect(toPrimarySymbol('cable')).toBe('cable');
+    expect(toPrimarySymbol(' CABLE ')).toBe('cable');
 
     // 5. Offshore / subsea operations.
     expect(toPrimarySymbol('survey')).toBe('subsea');
