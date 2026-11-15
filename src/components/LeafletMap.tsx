@@ -311,7 +311,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           const count = cluster.getChildCount();
           const markers = cluster.getAllChildMarkers();
           
-          let ringColor = '#687169'; // Default neutral ink-tertiary
+          let severityFill = '#687169'; // Default neutral ink-tertiary
           let highestRank = 0;
 
           markers.forEach((m) => {
@@ -319,13 +319,13 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
             if (w) {
               const visuals = resolveWarningVisuals(w.categories, w.severity, w.raw_text || w.area_text || '');
               if (visuals.severity === 'critical' && highestRank < 3) {
-                ringColor = '#B42318'; // Critical (--sev-critical)
+                severityFill = '#B42318'; // Critical (--sev-critical)
                 highestRank = 3;
               } else if (visuals.severity === 'high' && highestRank < 2) {
-                ringColor = '#8C5208'; // High (--sev-high)
+                severityFill = '#8C5208'; // High (--sev-high)
                 highestRank = 2;
               } else if (visuals.severity === 'moderate' && highestRank < 1) {
-                ringColor = '#2F6B4F'; // Moderate / Active (--accent)
+                severityFill = '#2F6B4F'; // Moderate / Active (--accent)
                 highestRank = 1;
               }
             }
@@ -334,15 +334,16 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           return L.divIcon({
             html: `<div style="
               width: 36px; height: 36px; border-radius: 50%;
-              background: #14161c;
-              border: 3px solid ${ringColor};
+              background: ${severityFill};
+              border: 1.5px solid #111827;
+              outline: 1px solid rgba(255,255,255,0.95);
               color: #ffffff;
               font-family: monospace;
               font-size: 13px; font-weight: 700;
               display: flex; align-items: center; justify-content: center;
               box-shadow: 0 4px 10px rgba(0,0,0,0.4);
             ">${count}</div>`,
-            className: 'nw-dual-ring-cluster',
+            className: 'nw-severity-fill-cluster',
             iconSize: [36, 36],
             iconAnchor: [18, 18],
           });
