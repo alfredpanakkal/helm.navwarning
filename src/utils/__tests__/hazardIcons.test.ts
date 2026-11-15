@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderHazardBadgeHtml } from '../hazardIcons';
+import { renderHazardBadgeHtml, renderPrimarySymbolSvg } from '../hazardIcons';
 
 describe('renderHazardBadgeHtml', () => {
   it.each([
@@ -17,8 +17,7 @@ describe('renderHazardBadgeHtml', () => {
   });
 });
 
-it('renders cable and offshore operations with distinct glyphs', async () => {
-  const { renderPrimarySymbolSvg } = await import('../hazardIcons');
+it('renders cable and offshore operations with distinct glyphs', () => {
   const cable = renderPrimarySymbolSvg('cable');
   const subsea = renderPrimarySymbolSvg('subsea');
 
