@@ -1488,7 +1488,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 Confidence Level
               </label>
               <div className="grid grid-cols-4 gap-1 bg-gw-bg p-1 rounded-lg border border-gw-secondary">
-                {['all', 'critical', 'high', 'moderate'].map((sev) => (
+                {(['all', 'critical', 'high', 'moderate'] as SeverityFilter[]).map((sev) => (
                   <button
                     key={sev}
                     type="button"
