@@ -16,3 +16,13 @@ describe('renderHazardBadgeHtml', () => {
     expect(html).not.toContain('background: #14161c');
   });
 });
+
+it('renders cable and offshore operations with distinct glyphs', async () => {
+  const { renderPrimarySymbolSvg } = await import('../hazardIcons');
+  const cable = renderPrimarySymbolSvg('cable');
+  const subsea = renderPrimarySymbolSvg('subsea');
+
+  expect(cable).toContain('Q8 10 12 12 T20 7');
+  expect(subsea).toContain('x1="7" y1="19" x2="10" y2="7"');
+  expect(cable).not.toBe(subsea);
+});
