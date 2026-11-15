@@ -321,7 +321,15 @@ export const DETAIL_CSS = [
   '.meta-value{color:var(--text-muted);font-weight:500}',
   '.backlinks{margin:14px 0 0;font-size:13.5px}',
   '.backlinks a{margin-right:14px}',
-  '#warningDetail{margin:0 0 14px}'
+  '#warningDetail{margin:0 0 14px}',
+  '.warning-facts{display:grid;grid-template-columns:minmax(120px,0.7fr) 1.3fr;gap:8px 16px;font-size:14px}',
+  '.warning-facts dt{color:var(--text-muted)}',
+  '.warning-facts dd{margin:0;overflow-wrap:anywhere}',
+  '.prompt-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}',
+  '.prompt-copy-btn{display:inline-flex;align-items:center;padding:10px 16px;min-height:var(--touch-min);border:1px solid var(--border);border-radius:var(--radius);background:var(--verified);color:var(--canvas);font:inherit;font-weight:600;cursor:pointer}',
+  '.prompt-panel details{margin-top:12px}',
+  '.prompt-panel summary{cursor:pointer}',
+  '.prompt-panel pre{max-height:420px;overflow:auto;white-space:pre-wrap;word-break:break-word}'
 ].join('');
 
 function metaRow(label, value) {
@@ -430,7 +438,7 @@ export function buildWarningPageHtml(r, w) {
     '<meta name="twitter:description" content="' + escapeHtml(description) + '">',
     '<script type="application/ld+json">' + jsonLd + '</' + 'script>',
     '<link rel="stylesheet" href="/assets/css/tokens.css">',
-    '<style>' + PAGE_CSS + DETAIL_CSS + '.warning-facts{display:grid;grid-template-columns:minmax(120px,0.7fr) 1.3fr;gap:8px 16px;font-size:14px}.warning-facts dt{color:var(--text-muted)}.warning-facts dd{margin:0;overflow-wrap:anywhere}.prompt-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}.prompt-copy-btn{display:inline-flex;align-items:center;padding:10px 16px;min-height:var(--touch-min);border:1px solid var(--border);border-radius:var(--radius);background:var(--verified);color:var(--canvas);font:inherit;font-weight:600;cursor:pointer}.prompt-panel details{margin-top:12px}.prompt-panel summary{cursor:pointer}.prompt-panel pre{max-height:420px;overflow:auto;white-space:pre-wrap;word-break:break-word}', '</style>',
+    '<style>' + PAGE_CSS + DETAIL_CSS + '</style>',
     '</head>',
     '<body>',
     siteHeader('map'),
@@ -539,6 +547,7 @@ export function buildWarningShellHtml() {
     '<script defer src="https://unpkg.com/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" integrity="sha256-1qXEQUpdTOZG2cHeIjqnBn0/9mTBU5T/63/P/HYzVKM=" crossorigin="anonymous"></' + 'script>',
     '<script defer src="/assets/js/supabase.js"></' + 'script>',
     '<script defer src="/assets/js/warning-detail.js"></' + 'script>',
+    '<script defer src="/assets/js/warning-prompt.js"></' + 'script>',
     '</body>',
     '</html>'
   ];
