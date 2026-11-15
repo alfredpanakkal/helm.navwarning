@@ -1,6 +1,5 @@
 // src/utils/hazardIcons.ts
-// Maritime SVG iconography & badge registry adhering to the 6-Symbol System
-// and decoupled severity ring specification (docs/COMPETITOR_WARNING_DESIGN_STUDY.md).
+// Maritime SVG iconography and solid severity-filled marker badges.
 
 import type { HazardCategory, DisplayStyle, Severity } from '../types/navarea';
 import { type PrimarySymbol, toPrimarySymbol } from './symbolMapping';
@@ -63,13 +62,22 @@ export const PRIMARY_SVG_PATHS: Record<PrimarySymbol, string> = {
     <line x1="4" y1="6" x2="7" y2="7" stroke="currentColor" stroke-width="1.5"/>
     <line x1="20" y1="6" x2="17" y2="7" stroke="currentColor" stroke-width="1.5"/>
   `,
-  // 5. Subsea & Offshore: cable spool & pipeline curve
+  // 5. Offshore / subsea operations: existing rig silhouette
   subsea: `
+    <line x1="7" y1="19" x2="10" y2="7" stroke="currentColor" stroke-width="1.8"/>
+    <line x1="17" y1="19" x2="14" y2="7" stroke="currentColor" stroke-width="1.8"/>
+    <line x1="7" y1="15" x2="17" y2="15" stroke="currentColor" stroke-width="1.5"/>
+    <line x1="9" y1="11" x2="15" y2="11" stroke="currentColor" stroke-width="1.5"/>
+    <rect x="8" y="5" width="8" height="2.5" fill="currentColor"/>
+    <line x1="12" y1="2" x2="12" y2="5" stroke="currentColor" stroke-width="2"/>
+  `,
+  // 6. Submarine cable: existing cable spool and route glyph
+  cable: `
     <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/>
     <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
     <path d="M4 17 Q8 10 12 12 T20 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
   `,
-  // 6. Wrecks & Obstructions: submerged mast
+  // 7. Wrecks & Obstructions: submerged mast
   wreck: `
     <line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" stroke-width="2"/>
     <path d="M6 18 Q12 12 18 18" stroke="currentColor" stroke-width="2" fill="none"/>
@@ -104,7 +112,7 @@ export const HAZARD_SVG_PATHS: Record<HazardCategory, string> = {
     <line x1="17.5" y1="17.5" x2="14.5" y2="14.5" stroke="currentColor" stroke-width="2.5"/>
   `,
   aton: PRIMARY_SVG_PATHS.aton,
-  cable: PRIMARY_SVG_PATHS.subsea,
+  cable: PRIMARY_SVG_PATHS.cable,
   survey: `
     <circle cx="12" cy="17" r="2" fill="currentColor"/>
     <path d="M7 13 A7 7 0 0 1 17 13" stroke="currentColor" stroke-width="1.8" fill="none"/>
@@ -153,7 +161,7 @@ export const HAZARD_SVG_PATHS: Record<HazardCategory, string> = {
 };
 
 function isPrimarySymbol(val: any): val is PrimarySymbol {
-  return ['general', 'military', 'drifting', 'aton', 'subsea', 'wreck'].includes(val);
+  return ['general', 'military', 'drifting', 'aton', 'subsea', 'cable', 'wreck'].includes(val);
 }
 
 /**
@@ -169,11 +177,8 @@ export function renderPrimarySymbolSvg(symbol: PrimarySymbol, size = 16, color =
 }
 
 /**
- * Renders a circular map marker HTML string adhering strictly to the 4 independent properties:
- * 1. Symbol: One of 6 primary glyphs
- * 2. Colour: Outer ring dictated by severity
- * 3. Geometry: Never dictated by this marker
- * 4. Cluster: Rendered outside this marker
+ * Renders a circular map marker with severity as the solid fill.
+ * Category glyph and warning geometry remain independent of severity.
  */
 export function renderHazardBadgeHtml(
   categoryOrSymbol: HazardCategory | PrimarySymbol,
@@ -203,7 +208,7 @@ export function renderHazardBadgeHtml(
     : '';
 
   return `
-    <div class="nw-hazard-badge ${isPulsing ? 'is-pulsing' : ''}" style="color: #ffffff; border-color: ${colors.stroke}; background: #14161c; width: 26px; height: 26px; border-radius: 50%; border: 2px solid ${colors.stroke}; display: flex; align-items: center; justify-content: center; position: relative; box-sizing: border-box; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">
+    <div class="nw-hazard-badge ${isPulsing ? 'is-pulsing' : ''}" style="color: #ffffff; background: ${colors.bg}; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid #111827; display: flex; align-items: center; justify-content: center; position: relative; box-sizing: border-box; box-shadow: 0 0 0 1px rgba(255,255,255,0.95), 0 2px 6px rgba(0,0,0,0.45);">
       ${pulseRing}
       <svg viewBox="0 0 24 24" style="width: 14px; height: 14px;" fill="none" xmlns="http://www.w3.org/2000/svg">
         ${path}
