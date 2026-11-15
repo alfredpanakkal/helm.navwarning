@@ -67,7 +67,7 @@ export const PRIMARY_SYMBOLS: Record<PrimarySymbol, PrimarySymbolMeta> = {
 };
 
 /**
- * Soft-maps any of the 16 granular HazardCategory types to one of the 6 primary symbols.
+ * Soft-maps any of the 16 granular HazardCategory types to one of the primary symbols.
  * Preserves high-resolution category in data while simplifying map presentation.
  */
 export function toPrimarySymbol(category?: HazardCategory | string | null): PrimarySymbol {
