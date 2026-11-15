@@ -1459,6 +1459,9 @@ function plotWarning(w) {
   const isMobile = document.body.classList.contains('is-mobile');
   const color = getWarningColor(w);
   const wid = w.canonical_id || w.warning_id || w.id;
+  const categories = getWarningCategories(w);
+  const isCableRoute = categories.includes('cable');
+  const isRestrictedArea = categories.includes('restricted');
   const isMilitary = getWarningSeverity(w) === 'critical';
 
   w._layers = [];
@@ -1512,7 +1515,8 @@ function plotWarning(w) {
           const centroid = computeCentroid(latLngs);
 
           const poly = L.polygon(latLngs, {
-            color: color,
+            // Restricted-area boundary is S-52-informed; severity remains in the fill.
+            color: isRestrictedArea ? '#D946EF' : color,
             weight: 2,
             opacity: 0.95,
             fillColor: color,
@@ -1598,7 +1602,7 @@ function plotWarning(w) {
           // Wide translucent corridor swath underlay if corridor has half width
           if (bufferNm > 0) {
             const swath = L.polyline(latLngs, {
-              color: '#06b6d4',
+              color: isCableRoute ? '#D946EF' : '#06b6d4',
               weight: Math.min(24, Math.max(8, bufferNm * 6)),
               opacity: 0.25,
             });
@@ -1607,8 +1611,9 @@ function plotWarning(w) {
             w._layers.push(swath);
           }
 
+          // Cable routes use a chart-familiar magenta line; geometry is unchanged.
           const mainLine = L.polyline(latLngs, {
-            color: '#0891b2',
+            color: isCableRoute ? '#D946EF' : '#0891b2',
             weight: 3,
             opacity: 0.95,
             dashArray: '6, 4',
@@ -1621,8 +1626,9 @@ function plotWarning(w) {
           if (!w._primaryLayer) w._primaryLayer = mainLine;
 
           // Termini markers (A and B) without permanent cluttering tooltips
-          const pA = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="nw-terminus-pin">A</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
-          const pB = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="nw-terminus-pin">B</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
+          const endpointClass = isCableRoute ? 'nw-terminus-pin nw-cable-terminus' : 'nw-terminus-pin';
+          const pA = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="${endpointClass}">A</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
+          const pB = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="${endpointClass}">B</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
 
           const markA = L.marker(latLngs[0], { icon: pA });
           const markB = L.marker(latLngs[latLngs.length - 1], { icon: pB });
