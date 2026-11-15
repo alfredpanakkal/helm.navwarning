@@ -8,8 +8,8 @@
 // only the live warning list is hydrated client-side via the existing public
 // anon Supabase access (assets/js/supabase.js).
 //
-// Stored warning records use navarea codes like 'NA I' ... 'NA XXI'
-// (see public/index.html map filter and src/services/navWarningQueries.ts).
+// Warning records may store the bare Roman numeral ('I'), the legacy 'NA I'
+// form, or a 'NAVAREA I' label. Regional pages accept all three forms.
 
 export const SITE_URL = 'https://navarea.helmology.com';
 
