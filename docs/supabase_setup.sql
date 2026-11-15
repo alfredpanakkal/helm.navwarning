@@ -10,7 +10,7 @@
 -- The LIVE database contract is the 20261019/20 schema documented in
 -- docs/supabase-backend-contract.md (authoritative):
 --   * PK/keys: id (uuid) + canonical_id - NO warning_id column
---   * NO latitude/longitude/spatial/category/severity/risk_level columns
+--   * NO latitude/longitude/spatial/category/risk_level columns
 --   * Geometry lives in nav_warning_geometries (PostGIS) /
 --     nav_warnings_active_spatial (geojson_blob)
 --   * NO per-NAVAREA schemas - everything is in public
