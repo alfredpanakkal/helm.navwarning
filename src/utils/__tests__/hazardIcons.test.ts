@@ -17,6 +17,13 @@ describe('renderHazardBadgeHtml', () => {
   });
 });
 
+it('renders a dedicated wreck cue rather than the generic hazard glyph', () => {
+  const wreck = renderPrimarySymbolSvg('wreck');
+  const general = renderPrimarySymbolSvg('general');
+  expect(wreck).toContain('Q12 12 18 18');
+  expect(wreck).not.toBe(general);
+});
+
 it('renders cable and offshore operations with distinct glyphs', () => {
   const cable = renderPrimarySymbolSvg('cable');
   const subsea = renderPrimarySymbolSvg('subsea');

@@ -42,7 +42,7 @@ import { useMapLayers, WarningSeverityLevel } from '../hooks/useMapLayers';
 import { WarningHierarchyLines } from './WarningItemV2';
 import { extractGeometry } from '../parsers/geometryExtractor';
 import { renderHazardBadgeHtml, renderPrimarySymbolSvg } from '../utils/hazardIcons';
-import { PRIMARY_SYMBOLS, PrimarySymbol } from '../utils/symbolMapping';
+import { isCableCategory, isRestrictedAreaCategory, PRIMARY_SYMBOLS, PrimarySymbol } from '../utils/symbolMapping';
 import { matchesSeverityFilter, resolveWarningVisuals, type SeverityFilter } from '../utils/warningVisuals';
 import type { HazardCategory } from '../types/navarea';
 import { parseBerthAndRadius } from '../parsers/berthParser';
@@ -704,6 +704,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       // Geometries rendered in navWarnVectorPane (z-index 400)
       if (showPolygons && vectorGroup) {
         const polyStyle = getVectorStyle(classification.severity as WarningSeverityLevel, isIsolated);
+        const isRestrictedArea = isRestrictedAreaCategory(classification.category);
+        const isCableRoute = isCableCategory(classification.category);
 
         // 1. Polygons & Polylines / Corridors
         if (w.spatial?.geometries) {
@@ -716,8 +718,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 const zoneLabel = geom.label || (geom as any).zone_label || (geom as any).zoneLabel;
                 const isZoneSelected = (zoneLabel && selectedZoneLabel === zoneLabel) || isIsolated;
 
-                const polyColor = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
-                const polyFill = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                const severityAreaColor = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                // S-52-informed restricted-area boundary; severity remains encoded by the fill.
+                const polyColor = isRestrictedArea ? '#D946EF' : severityAreaColor;
+                const polyFill = severityAreaColor;
                 const borderDashArray = getBoundaryDashArray(isUnverified, dataQuality);
 
                 const poly = L.polygon(latLngs, {
@@ -819,8 +823,9 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 const latLngs: [number, number][] = (geom.coordinates as any[]).map((pt) => [pt[1], pt[0]]);
                 
                 // Pass 1: Casing Glow Line Underneath
+                const routeColor = isCableRoute ? '#D946EF' : (isUnverified ? '#d97706' : classification.displayStyle === 'critical' ? '#dc2626' : '#0284c7');
                 const casingLine = L.polyline(latLngs, {
-                  color: '#06b6d4',
+                  color: isCableRoute ? '#D946EF' : '#06b6d4',
                   weight: 6,
                   opacity: 0.35,
                   pane: 'navWarnVectorPane',
@@ -829,7 +834,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 // Pass 2: Primary Core Track Line On Top
                 const lineDashArray = getBoundaryDashArray(isUnverified, dataQuality);
                 const coreLine = L.polyline(latLngs, {
-                  color: isUnverified ? '#d97706' : classification.displayStyle === 'critical' ? '#dc2626' : '#0284c7',
+                  color: routeColor,
                   weight: 3,
                   dashArray: lineDashArray,
                   pane: 'navWarnVectorPane',
@@ -843,8 +848,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 if (latLngs.length >= 2 && currentZoom >= 6) {
                   const startMarker = L.circleMarker(latLngs[0], {
                     radius: 4,
-                    fillColor: '#38bdf8',
-                    color: '#0284c7',
+                    fillColor: isCableRoute ? routeColor : '#38bdf8',
+                    color: isCableRoute ? routeColor : '#0284c7',
                     weight: 1.5,
                     fillOpacity: 1,
                     pane: 'navWarnVectorPane'
@@ -854,8 +859,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
                   const endMarker = L.circleMarker(latLngs[latLngs.length - 1], {
                     radius: 4,
-                    fillColor: '#38bdf8',
-                    color: '#0284c7',
+                    fillColor: isCableRoute ? routeColor : '#38bdf8',
+                    color: isCableRoute ? routeColor : '#0284c7',
                     weight: 1.5,
                     fillOpacity: 1,
                     pane: 'navWarnVectorPane'
@@ -929,8 +934,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 const zoneLabel = parsedGeom.geometry.zoneLabels?.[idx] || polyCoords[0]?.label || `Zone ${idx + 1}`;
                 const isZoneSelected = selectedZoneLabel === zoneLabel || isIsolated;
 
-                const polyColor = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
-                const polyFill = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                const severityAreaColor = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                // S-52-informed restricted-area boundary; severity remains encoded by the fill.
+                const polyColor = isRestrictedArea ? '#D946EF' : severityAreaColor;
+                const polyFill = severityAreaColor;
                 const fallbackDashArray = getBoundaryDashArray(isUnverified, dataQuality);
 
                 const poly = L.polygon(latLngs, {

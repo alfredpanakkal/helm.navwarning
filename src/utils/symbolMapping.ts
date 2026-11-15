@@ -67,13 +67,26 @@ export const PRIMARY_SYMBOLS: Record<PrimarySymbol, PrimarySymbolMeta> = {
 };
 
 /**
+ * Geometry-aware categories use their feature portrayal rather than a point glyph.
+ * These predicates intentionally do not alter the compact primary-symbol set.
+ */
+export function isCableCategory(category?: string | null): boolean {
+  return typeof category === 'string' && category.trim().toLowerCase() === 'cable';
+}
+
+export function isRestrictedAreaCategory(category?: string | null): boolean {
+  return typeof category === 'string' && category.trim().toLowerCase() === 'restricted';
+}
+
+/**
  * Soft-maps any of the 16 granular HazardCategory types to one of the primary symbols.
  * Preserves high-resolution category in data while simplifying map presentation.
+ * Restricted areas remain geometry-led and therefore retain the general fallback for point-only records.
  */
 export function toPrimarySymbol(category?: HazardCategory | string | null): PrimarySymbol {
-  if (!category) return 'general';
+  if (typeof category !== 'string' || !category.trim()) return 'general';
 
-  switch (category) {
+  switch (category.trim().toLowerCase()) {
     // 1. Military Operations & UXO
     case 'mil_fire':
     case 'uxo':

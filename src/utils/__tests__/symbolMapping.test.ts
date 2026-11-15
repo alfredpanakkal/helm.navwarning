@@ -1,6 +1,6 @@
 // src/utils/__tests__/symbolMapping.test.ts
 import { describe, it, expect } from 'vitest';
-import { toPrimarySymbol, PRIMARY_SYMBOLS, PrimarySymbol } from '../symbolMapping';
+import { isCableCategory, isRestrictedAreaCategory, toPrimarySymbol, PRIMARY_SYMBOLS, PrimarySymbol } from '../symbolMapping';
 import type { HazardCategory } from '../../types/navarea';
 
 describe('symbolMapping — primary warning symbols', () => {
@@ -21,6 +21,7 @@ describe('symbolMapping — primary warning symbols', () => {
 
     // 4. Submarine cable has its own symbol.
     expect(toPrimarySymbol('cable')).toBe('cable');
+    expect(toPrimarySymbol(' CABLE ')).toBe('cable');
 
     // 5. Offshore / subsea operations.
     expect(toPrimarySymbol('survey')).toBe('subsea');
@@ -43,6 +44,16 @@ describe('symbolMapping — primary warning symbols', () => {
     expect(toPrimarySymbol('sar')).toBe('general');
     expect(toPrimarySymbol('weather')).toBe('general');
     expect(toPrimarySymbol('ice')).toBe('general');
+  });
+
+  it('identifies cable routes and restricted areas without adding new point symbols', () => {
+    expect(isCableCategory('cable')).toBe(true);
+    expect(isCableCategory(' CABLE ')).toBe(true);
+    expect(isCableCategory('subsea')).toBe(false);
+    expect(isRestrictedAreaCategory('restricted')).toBe(true);
+    expect(isRestrictedAreaCategory('RESTRICTED')).toBe(true);
+    expect(isRestrictedAreaCategory('wreck')).toBe(false);
+    expect(toPrimarySymbol('restricted')).toBe('general');
   });
 
   it('safely handles null, undefined, empty, and unknown category strings with general fallback', () => {

@@ -77,7 +77,8 @@ export const PRIMARY_SVG_PATHS: Record<PrimarySymbol, string> = {
     <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
     <path d="M4 17 Q8 10 12 12 T20 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
   `,
-  // 7. Wrecks & Obstructions: submerged mast
+  // 7. Wreck / obstruction cue, not a literal S-52 symbol.
+  // S-52 wreck portrayal is conditional on ENC attributes (e.g. depth, water level and wreck category).
   wreck: `
     <line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" stroke-width="2"/>
     <path d="M6 18 Q12 12 18 18" stroke="currentColor" stroke-width="2" fill="none"/>
