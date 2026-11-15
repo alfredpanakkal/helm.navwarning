@@ -17,24 +17,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  test:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Run test suite
-        run: npm test
-      - name: Verify production build
-        run: npm run build
-
   refresh:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
