@@ -1626,9 +1626,8 @@ function plotWarning(w) {
           if (!w._primaryLayer) w._primaryLayer = mainLine;
 
           // Termini markers (A and B) without permanent cluttering tooltips
-          const endpointClass = isCableRoute ? 'nw-terminus-pin nw-cable-terminus' : 'nw-terminus-pin';
-          const pA = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="${endpointClass}">A</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
-          const pB = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="${endpointClass}">B</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
+          const pA = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="nw-terminus-pin">A</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
+          const pB = L.divIcon({ className: 'nw-terminus-wrap', html: `<div class="nw-terminus-pin">B</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
 
           const markA = L.marker(latLngs[0], { icon: pA });
           const markB = L.marker(latLngs[latLngs.length - 1], { icon: pB });
