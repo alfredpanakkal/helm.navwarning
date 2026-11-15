@@ -123,7 +123,7 @@
     return window.hwSupabase
       .from('nav_warnings')
       .select('id, canonical_id, navarea, title, area_text, categories, status, triage_tier, data_quality, valid_from, valid_to, issued_at, raw_text, created_at, updated_at', { count: 'exact' })
-      .eq('navarea', cfg.code)
+      .in('navarea', [cfg.id, cfg.code, 'NAVAREA ' + cfg.id])
       .eq('status', 'active')
       .order('issued_at', { ascending: false, nullsFirst: false })
       .range(start, end);
@@ -158,7 +158,7 @@
       return window.hwSupabase
         .from('nav_warnings')
         .select('updated_at')
-        .eq('navarea', cfg.code)
+        .in('navarea', [cfg.id, cfg.code, 'NAVAREA ' + cfg.id])
         .order('updated_at', { ascending: false })
         .limit(1)
         .then(function (u) {
