@@ -122,6 +122,7 @@ CREATE TABLE public.nav_warnings (
   raw_text TEXT NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('active','cancelled','expired','superseded','unverified')),
   categories TEXT[] NOT NULL,
+  severity TEXT CHECK (severity IS NULL OR severity IN ('critical','high','moderate')),
   triage_tier TEXT NOT NULL CHECK (triage_tier IN ('A','B','C')),
   data_quality TEXT NOT NULL CHECK (data_quality IN ('EXPLICIT','INFERRED','AMBIGUOUS','INVALID')),
   parsing_method TEXT NOT NULL CHECK (parsing_method IN ('RULE','AI')),
@@ -142,7 +143,10 @@ CREATE TABLE public.nav_warnings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 -- NOTE: there are NO latitude / longitude / spatial / warning_id /
--- issued_date / issued_text / category / severity / risk_level / hazard_category columns.
+-- issued_date / issued_text / category / risk_level / hazard_category columns.
+-- Canonical severity is stored separately from triage_tier; it is nullable
+-- at schema level for migration compatibility and constrained to the three
+-- maritime values when present.
 
 CREATE TABLE public.nav_warning_geometries (
   geom_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
