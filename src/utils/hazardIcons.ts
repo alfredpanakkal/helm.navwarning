@@ -10,7 +10,7 @@ import { type PrimarySymbol, toPrimarySymbol } from './symbolMapping';
  * High:     --sev-high (#8C5208)
  * Moderate: --accent (#2F6B4F)
  */
-export const SEVERITY_RING_COLORS: Record<'critical' | 'high' | 'moderate' | 'caution' | 'info', { stroke: string; fill: string; bg: string }> = {
+export const SEVERITY_FILL_COLORS: Record<'critical' | 'high' | 'moderate' | 'caution' | 'info', { stroke: string; fill: string; bg: string }> = {
   critical: { stroke: '#B42318', fill: 'rgba(180, 35, 24, 0.16)', bg: '#B42318' },
   high: { stroke: '#8C5208', fill: 'rgba(140, 82, 8, 0.16)', bg: '#8C5208' },
   moderate: { stroke: '#2F6B4F', fill: 'rgba(47, 107, 79, 0.16)', bg: '#2F6B4F' },
@@ -32,7 +32,7 @@ export const SEVERITY_COLORS: Record<DisplayStyle, { stroke: string; fill: strin
 };
 
 /**
- * 6 Primary SVG Symbol Paths (24x24 viewBox)
+ * 7 Primary SVG Symbol Paths (24x24 viewBox)
  */
 export const PRIMARY_SVG_PATHS: Record<PrimarySymbol, string> = {
   // 1. General Navigational Hazard: 8-point compass star
@@ -194,13 +194,13 @@ export function renderHazardBadgeHtml(
 
   // 2. Resolve ring color
   const colors = customSeverity
-    ? (SEVERITY_RING_COLORS[customSeverity] || SEVERITY_RING_COLORS.moderate)
+    ? (SEVERITY_FILL_COLORS[customSeverity] || SEVERITY_FILL_COLORS.moderate)
     : (SEVERITY_COLORS[displayStyle] || SEVERITY_COLORS.critical);
 
   const path = PRIMARY_SVG_PATHS[primarySym] || PRIMARY_SVG_PATHS.general;
 
   const pulseRing = isPulsing
-    ? `<div class="nw-pulse-ring" style="position: absolute; inset: -4px; border-radius: 50%; border: 2px solid ${colors.stroke}; opacity: 0.7; animation: pulse 2s infinite ease-out;"></div>`
+    ? `<div class="nw-pulse-ring" style="position: absolute; inset: -4px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.9); opacity: 0.7; animation: pulse 2s infinite ease-out;"></div>`
     : '';
 
   const labelBadge = label
