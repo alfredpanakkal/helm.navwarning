@@ -84,9 +84,9 @@ export function isRestrictedAreaCategory(category?: string | null): boolean {
  * Restricted areas remain geometry-led and therefore retain the general fallback for point-only records.
  */
 export function toPrimarySymbol(category?: HazardCategory | string | null): PrimarySymbol {
-  if (!category) return 'general';
+  if (typeof category !== 'string' || !category.trim()) return 'general';
 
-  switch (category) {
+  switch (category.trim().toLowerCase()) {
     // 1. Military Operations & UXO
     case 'mil_fire':
     case 'uxo':
