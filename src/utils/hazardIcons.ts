@@ -187,12 +187,12 @@ export function renderHazardBadgeHtml(
   label?: string,
   customSeverity?: Severity
 ): string {
-  // 1. Resolve to one of the 6 primary symbols
+  // 1. Resolve the category glyph
   const primarySym: PrimarySymbol = isPrimarySymbol(categoryOrSymbol)
     ? categoryOrSymbol
     : toPrimarySymbol(categoryOrSymbol);
 
-  // 2. Resolve ring color
+  // 2. Resolve the severity fill
   const colors = customSeverity
     ? (SEVERITY_FILL_COLORS[customSeverity] || SEVERITY_FILL_COLORS.moderate)
     : (SEVERITY_COLORS[displayStyle] || SEVERITY_COLORS.critical);
