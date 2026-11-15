@@ -1,11 +1,6 @@
 // public/assets/js/navarea-page.js
-// Client logic for the 21 prerendered NAVAREA regional pages
-// (/navarea/I ... /navarea/XXI). Static regional copy is baked into the HTML at
-// build time (scripts/navarea-pages/); this script only hydrates the live
-// warning list through the same public anon Supabase access the map uses
-// (see assets/js/supabase.js). Server-side filtering: the Supabase query
-// filters by the stored navarea code and status='active' — the full global
-// dataset is never fetched into the browser.
+// Snapshot-first hydration for the 21 prerendered NAVAREA regional pages.
+// Static JSON is served from Vercel's CDN; Supabase remains authoritative.
 (function () {
   var cfgEl = document.getElementById('navareaPageConfig');
   if (!cfgEl) return;
@@ -14,6 +9,7 @@
   var listEl = document.getElementById('warningList');
   var emptyEl = document.getElementById('emptyState');
   var errorEl = document.getElementById('errorState');
+  var statusEl = document.getElementById('dataStatus');
   var loadMoreBtn = document.getElementById('loadMore');
   var countEl = document.getElementById('statCount');
   var updatedEl = document.getElementById('statUpdated');
@@ -21,7 +17,10 @@
   var offset = 0;
   var seen = {};
   var busy = false;
-  var firstLoad = true;
+  var hasSnapshot = false;
+  var snapshotRows = [];
+  var snapshotGeneratedAt = '';
+  var liveAvailable = false;
 
   function esc(s) {
     return String(s === null || s === undefined ? '' : s)
@@ -41,9 +40,9 @@
 
   function warningRow(w) {
     var id = w.canonical_id || w.id || 'Unknown';
-  var tail = String(id).split(' ').pop();
-  var detailHref = /^\d+\/\d+$/.test(tail) ? ('/navarea/' + cfg.id + '/warning/' + tail.replace(/\//g, '-')) : '';
-    if (seen[id]) return null; // dedupe by canonical id, never count duplicates twice
+    var tail = String(id).split(' ').pop();
+    var detailHref = /^\d+\/\d+$/.test(tail) ? ('/navarea/' + cfg.id + '/warning/' + tail.replace(/\//g, '-')) : '';
+    if (seen[id]) return null;
     seen[id] = true;
     var title = w.title || id;
     var issued = fmtDate(w.issued_at);
@@ -64,73 +63,151 @@
     '</details>';
   }
 
-  function fetchPage() {
+  function renderRows(rows, append) {
+    if (!append) {
+      seen = {};
+      listEl.innerHTML = '';
+    }
+    var html = [];
+    for (var i = 0; i < rows.length; i++) {
+      var piece = warningRow(rows[i]);
+      if (piece) html.push(piece);
+    }
+    if (html.length) listEl.insertAdjacentHTML('beforeend', html.join(''));
+  }
+
+  function setStatus(message) {
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.hidden = !message;
+  }
+
+  function setCount(count) {
+    countEl.textContent = count + (count === 1 ? ' in-force warning' : ' in-force warnings');
+  }
+
+  function applySnapshot(snapshot) {
+    if (!snapshot || snapshot.schemaVersion !== 1 || snapshot.navarea !== cfg.code ||
+        !Array.isArray(snapshot.warnings)) return false;
+    var rows = snapshot.warnings.filter(function (w) {
+      return w && w.status === 'active';
+    });
+    hasSnapshot = true;
+    snapshotRows = rows;
+    snapshotGeneratedAt = fmtDate(snapshot.generatedAt) || 'an earlier build';
+    renderRows(rows.slice(0, PAGE_SIZE), false);
+    offset = Math.min(rows.length, PAGE_SIZE);
+    loadMoreBtn.hidden = rows.length <= PAGE_SIZE;
+    emptyEl.hidden = true; // A zero snapshot is not proof that the live database is empty.
+    if (rows.length) {
+      setCount(rows.length);
+      setStatus('Showing saved warning snapshot from ' + (snapshotGeneratedAt) + '. Checking live data…');
+    } else {
+      countEl.textContent = 'Checking live data…';
+      setStatus('No warnings in the saved snapshot. Checking the live database…');
+    }
+    return true;
+  }
+
+  function loadSnapshot() {
+    return fetch('/navarea/' + encodeURIComponent(cfg.id) + '/warnings.json', { cache: 'no-cache' })
+      .then(function (res) {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then(function (snapshot) {
+        return applySnapshot(snapshot);
+      })
+      .catch(function () { return false; });
+  }
+
+  function fetchPage(start, end) {
     return window.hwSupabase
       .from('nav_warnings')
-      .select('id, canonical_id, navarea, title, area_text, categories, status, triage_tier, data_quality, valid_from, valid_to, issued_at, raw_text, created_at, updated_at')
-      .eq('navarea', cfg.code)
+      .select('id, canonical_id, navarea, title, area_text, categories, status, triage_tier, data_quality, valid_from, valid_to, issued_at, raw_text, created_at, updated_at', { count: 'exact' })
+      .in('navarea', [cfg.id, cfg.code, 'NAVAREA ' + cfg.id])
       .eq('status', 'active')
       .order('issued_at', { ascending: false, nullsFirst: false })
-      .range(offset, offset + PAGE_SIZE - 1);
+      .range(start, end);
   }
 
-  function showError() {
+  function showRefreshError() {
+    errorEl.textContent = hasSnapshot
+      ? 'Live data could not be refreshed. Showing the saved snapshot from ' + (snapshotGeneratedAt || 'the last successful build') + '. Verify current broadcasts with the official coordinator.'
+      : 'The saved warning snapshot is unavailable and the live warning list could not be loaded. Retry later or check the official coordinator broadcasts.';
     errorEl.hidden = false;
-    if (loadMoreBtn) loadMoreBtn.hidden = true;
+    setStatus(hasSnapshot ? 'Offline copy shown · live refresh failed' : 'Warning data is temporarily unavailable');
+    if (loadMoreBtn) loadMoreBtn.hidden = !(hasSnapshot && snapshotRows.length > offset);
+    if (!hasSnapshot) countEl.textContent = 'Unavailable';
   }
 
-  function load() {
-    if (busy) return;
-    busy = true;
-    fetchPage().then(function (res) {
+  function refreshLive() {
+    if (!window.hwSupabase) {
+      showRefreshError();
+      return Promise.resolve();
+    }
+    return fetchPage(0, PAGE_SIZE - 1).then(function (res) {
       if (res.error) throw res.error;
       var rows = res.data || [];
-      var html = [];
-      for (var i = 0; i < rows.length; i++) {
-        var piece = warningRow(rows[i]);
-        if (piece) html.push(piece);
-      }
-      listEl.insertAdjacentHTML('beforeend', html.join(''));
-      offset += PAGE_SIZE;
-      loadMoreBtn.hidden = rows.length < PAGE_SIZE;
-      if (firstLoad && Object.keys(seen).length === 0) emptyEl.hidden = false;
-      firstLoad = false;
+      liveAvailable = true;
+      renderRows(rows, false);
+      offset = rows.length;
+      var total = typeof res.count === 'number' ? res.count : rows.length;
+      setCount(total);
+      emptyEl.hidden = total !== 0;
+      errorEl.hidden = true;
+      loadMoreBtn.hidden = rows.length < PAGE_SIZE || rows.length >= total;
+      setStatus('Live warning data refreshed successfully.');
+      return window.hwSupabase
+        .from('nav_warnings')
+        .select('updated_at')
+        .in('navarea', [cfg.id, cfg.code, 'NAVAREA ' + cfg.id])
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .then(function (u) {
+          var ts = u.data && u.data[0] && u.data[0].updated_at;
+          if (ts) updatedEl.textContent = fmtDate(ts);
+        })
+        .catch(function () { /* keep the snapshot or previous timestamp */ });
     }).catch(function () {
-      showError();
+      showRefreshError();
+    });
+  }
+
+  function loadMore() {
+    if (busy) return;
+    if (!liveAvailable && hasSnapshot) {
+      var cachedRows = snapshotRows.slice(offset, offset + PAGE_SIZE);
+      renderRows(cachedRows, true);
+      offset += cachedRows.length;
+      loadMoreBtn.hidden = offset >= snapshotRows.length;
+      return;
+    }
+    if (!window.hwSupabase) return;
+    busy = true;
+    fetchPage(offset, offset + PAGE_SIZE - 1).then(function (res) {
+      if (res.error) throw res.error;
+      var rows = res.data || [];
+      renderRows(rows, true);
+      offset += rows.length;
+      var total = typeof res.count === 'number' ? res.count : offset;
+      loadMoreBtn.hidden = rows.length < PAGE_SIZE || offset >= total;
+    }).catch(function () {
+      errorEl.textContent = 'More warnings could not be loaded. The warnings already displayed are still available.';
+      errorEl.hidden = false;
     }).finally(function () {
       busy = false;
     });
   }
 
   function hydrate() {
-    if (!window.hwSupabase) {
-      showError();
-      return;
-    }
-    window.hwSupabase
-      .from('nav_warnings')
-      .select('id', { count: 'exact', head: true })
-      .eq('navarea', cfg.code)
-      .eq('status', 'active')
-      .then(function (c) {
-        if (!c.error && typeof c.count === 'number') {
-          countEl.textContent = c.count + (c.count === 1 ? ' in-force warning' : ' in-force warnings');
-        }
-      }).catch(function () { /* keep placeholder */ });
-    window.hwSupabase
-      .from('nav_warnings')
-      .select('updated_at')
-      .eq('navarea', cfg.code)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .then(function (u) {
-        var ts = u.data && u.data[0] && u.data[0].updated_at;
-        if (ts) updatedEl.textContent = fmtDate(ts);
-      }).catch(function () { /* keep placeholder */ });
-    load();
+    setStatus('Loading saved warning snapshot…');
+    loadSnapshot().then(function () {
+      refreshLive();
+    });
   }
 
-  if (loadMoreBtn) loadMoreBtn.addEventListener('click', load);
+  if (loadMoreBtn) loadMoreBtn.addEventListener('click', loadMore);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', hydrate);
   } else {

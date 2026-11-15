@@ -15,14 +15,10 @@ import {
   buildSitemapXml, warningDetailPath, NAVAREA_REGIONS, normalizeStoredNavarea,
 } from './navareaConfig.mjs';
 import { fetchActiveWarnings } from './fetchActiveWarnings.mjs';
+import { buildNavareaSnapshots } from './snapshotData.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-for (const r of NAVAREA_REGIONS) {
-  const dir = path.join(root, 'public', 'navarea', r.id);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'index.html'), buildPageHtml(r));
-}
 // Combined About + Source Registry page replaces the old static about.html;
 // the retired /sources directory is removed so no deploy serves the stale hub
 // (vercel.json redirects /sources to /about).
@@ -32,10 +28,43 @@ const shellDir = path.join(root, 'public', 'warning-shell');
 fs.mkdirSync(shellDir, { recursive: true });
 fs.writeFileSync(path.join(shellDir, 'index.html'), buildWarningShellHtml());
 
+// Read active warnings once for both regional snapshots and warning detail pages.
+// null means the request failed; [] means Supabase successfully returned no active rows.
+const fetchedWarnings = await fetchActiveWarnings();
+const warnings = fetchedWarnings || [];
+const previousSnapshotWarningCount = NAVAREA_REGIONS.reduce(function (total, region) {
+  try {
+    const snapshot = JSON.parse(fs.readFileSync(path.join(root, 'public', 'navarea', region.id, 'warnings.json'), 'utf8'));
+    return total + (Array.isArray(snapshot.warnings) ? snapshot.warnings.length : 0);
+  } catch (e) { return total; }
+}, 0);
+const suspiciousEmptyResult = fetchedWarnings !== null && warnings.length === 0 &&
+  previousSnapshotWarningCount > 0 && process.env.ALLOW_EMPTY_NAVAREA_SNAPSHOT !== 'true';
+if (fetchedWarnings !== null && !suspiciousEmptyResult) {
+  const generatedAt = new Date().toISOString();
+  const snapshots = buildNavareaSnapshots(warnings, generatedAt);
+  for (const r of NAVAREA_REGIONS) {
+    const dir = path.join(root, 'public', 'navarea', r.id);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'warnings.json'), JSON.stringify(snapshots.get(r.id)));
+  }
+  console.log('Generated 21 NAVAREA warning snapshots from Supabase');
+} else if (suspiciousEmptyResult) {
+  console.warn('Supabase returned zero active warnings while committed snapshots contain ' + previousSnapshotWarningCount + '; preserving snapshots. Set ALLOW_EMPTY_NAVAREA_SNAPSHOT=true only after verifying a genuine global zero.');
+} else {
+  console.warn('Supabase unavailable during build; existing warning snapshots were left untouched');
+}
+
+// Regional pages are deterministic and can be generated after snapshot refresh.
+for (const r of NAVAREA_REGIONS) {
+  const dir = path.join(root, 'public', 'navarea', r.id);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'index.html'), buildPageHtml(r));
+}
+
 // Warning detail pages: prerender the current active set. Fresh warnings and
 // warnings removed since the last build are handled by the /warning-shell
 // rewrite at runtime (no 404s, no stale pages).
-const warnings = await fetchActiveWarnings();
 const byPath = new Map();
 for (const w of warnings) {
   const regionId = normalizeStoredNavarea(w.navarea) || normalizeStoredNavarea(w.canonical_id);

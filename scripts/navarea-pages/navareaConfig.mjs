@@ -8,8 +8,8 @@
 // only the live warning list is hydrated client-side via the existing public
 // anon Supabase access (assets/js/supabase.js).
 //
-// Stored warning records use navarea codes like 'NA I' ... 'NA XXI'
-// (see public/index.html map filter and src/services/navWarningQueries.ts).
+// Warning records may store the bare Roman numeral ('I'), the legacy 'NA I'
+// form, or a 'NAVAREA I' label. Regional pages accept all three forms.
 
 export const SITE_URL = 'https://navarea.helmology.com';
 
@@ -238,6 +238,7 @@ export function buildPageHtml(r) {
     '',
     '  <section>',
     '    <h2>In-force warnings</h2>',
+    '    <p id="dataStatus" class="lead-note" role="status">Loading saved warning snapshot&hellip;</p>',
     '    <div id="warningList" aria-live="polite"></div>',
     '    <p id="emptyState" class="empty" hidden>No in-force warnings for NAVAREA ' + r.id + ' are currently held in the Helm.Warning database. The region may genuinely have no active broadcasts, or the daily ingestion pipeline may not have run recently &mdash; always verify with the official coordinator broadcasts described below.</p>',
     '    <p id="errorState" class="error" hidden role="alert">The live warning list for NAVAREA ' + r.id + ' could not be loaded right now. The regional information on this page is still valid &mdash; retry later, use the live map, or check the official coordinator broadcasts.</p>',
