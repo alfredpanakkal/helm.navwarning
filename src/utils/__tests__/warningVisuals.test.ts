@@ -11,6 +11,7 @@ describe('resolveWarningVisuals', () => {
   it('supports legacy category values already stored in Supabase', () => {
     expect(resolveWarningVisuals(['military'], 'critical', '').symbol).toBe('military');
     expect(resolveWarningVisuals(['drifting'], 'high', '').symbol).toBe('drifting');
+    expect(resolveWarningVisuals(['cable'], 'moderate', '').symbol).toBe('cable');
     expect(resolveWarningVisuals(['offshore'], 'moderate', '').symbol).toBe('subsea');
     expect(resolveWarningVisuals(['subsea'], 'moderate', '').symbol).toBe('subsea');
   });
