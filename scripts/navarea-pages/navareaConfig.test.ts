@@ -70,6 +70,8 @@ describe('NAVAREA regional routes and configuration', () => {
 
   it('normalizes stored navarea values to canonical ids', () => {
     expect(normalizeStoredNavarea('NA I')).toBe('I');
+    expect(normalizeStoredNavarea('I')).toBe('I');
+    expect(normalizeStoredNavarea('NAVAREA I')).toBe('I');
     expect(normalizeStoredNavarea('na xii')).toBe('XII');
     expect(normalizeStoredNavarea('NAVAREA IV')).toBe('IV');
     expect(normalizeStoredNavarea('XXII')).toBeNull();
@@ -98,6 +100,7 @@ describe('NAVAREA regional routes and configuration', () => {
       expect(html).toContain('aria-label="Breadcrumb"');
       expect(html).toContain('{"id":"' + r.id + '","code":"NA ' + r.id + '"}');
       expect(html).toContain('Ingestion status: <strong>' + feedStatus(r.id).label + '</strong>');
+      expect(html).toContain('id="dataStatus"');
       if (r.sourceUrl) {
         expect(html).toContain('Official source: <a href="' + r.sourceUrl + '" target="_blank" rel="noopener noreferrer">' + r.sourceLabel + '</a>');
       }
