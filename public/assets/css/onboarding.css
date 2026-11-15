@@ -1,0 +1,50 @@
+/* Public NAVAREA first-visit guide */
+.navarea-onboarding[hidden] { display: none !important; }
+.navarea-onboarding {
+  position: fixed; inset: 0; z-index: 5000; display: grid; place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  background: rgba(7, 12, 10, .62); backdrop-filter: blur(5px);
+  opacity: 0; transition: opacity .18s ease;
+}
+.navarea-onboarding.is-open { opacity: 1; }
+.navarea-onboarding-dialog {
+  width: min(100%, 520px); max-height: min( min(720px, 88dvh), 760px); overflow-y: auto;
+  background: var(--canvas); color: var(--ink-primary); border: 1px solid var(--border);
+  border-radius: 16px; box-shadow: 0 24px 80px rgba(0,0,0,.28);
+  padding: clamp(20px, 5vw, 32px); position: relative;
+}
+.navarea-onboarding-close {
+  position: absolute; top: 14px; right: 14px; width: 40px; height: 40px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
+  color: var(--ink-secondary); font-size: 22px; line-height: 1; cursor: pointer;
+}
+.navarea-onboarding-close:focus-visible,
+.navarea-onboarding button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.navarea-onboarding-eyebrow { margin: 0 48px 14px 0; color: var(--accent); font: 600 11px/1.4 var(--font-family-base); letter-spacing: .12em; }
+.navarea-onboarding h2 { margin: 0 42px 14px 0; color: var(--ink-primary); font: 600 clamp(24px, 5vw, 32px)/1.15 var(--font-family-base); letter-spacing: -.035em; }
+.navarea-onboarding-body { margin: 0 0 18px; color: var(--ink-body); font: 400 15px/1.7 var(--font-family-base); }
+.navarea-onboarding-note { margin: 0; padding: 12px 14px; border-left: 3px solid var(--sev-high); background: var(--surface-subtle); border-radius: 0 9px 9px 0; color: var(--ink-secondary); font: 400 13px/1.6 var(--font-family-base); }
+.navarea-onboarding-footer { display: flex; align-items: center; gap: 12px; margin-top: 26px; }
+.navarea-onboarding-count { margin-right: auto; color: var(--ink-tertiary); font: 500 12px var(--font-family-base); font-variant-numeric: tabular-nums; }
+.navarea-onboarding-back, .navarea-onboarding-next, .navarea-onboarding-skip {
+  min-height: 44px; border-radius: 9px; padding: 0 16px; font: 600 13px var(--font-family-base); cursor: pointer;
+}
+.navarea-onboarding-back { border: 1px solid var(--border); background: var(--surface); color: var(--ink-primary); }
+.navarea-onboarding-back:disabled { opacity: .4; cursor: default; }
+.navarea-onboarding-next { border: 1px solid var(--accent); background: var(--accent); color: var(--canvas); }
+.navarea-onboarding-skip { border: 0; background: transparent; color: var(--ink-secondary); padding: 0 8px; }
+.navarea-onboarding-progress { height: 3px; margin: 22px 0 0; border-radius: 99px; background: var(--hairline); overflow: hidden; }
+.navarea-onboarding-progress span { display: block; height: 100%; width: 25%; background: var(--accent); transition: width .2s ease; }
+.navarea-onboarding-dots { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+.navarea-onboarding-dots button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%; background: var(--border-input); cursor: pointer; }
+.navarea-onboarding-dots button[aria-current="step"] { width: 24px; border-radius: 99px; background: var(--accent); }
+@media (max-width: 520px) {
+  .navarea-onboarding { align-items: end; padding: 10px 10px max(10px, env(safe-area-inset-bottom)); }
+  .navarea-onboarding-dialog { width: 100%; max-height: min(82dvh, 680px); border-radius: 16px; padding: 24px 20px 20px; }
+  .navarea-onboarding-footer { gap: 8px; flex-wrap: wrap; }
+  .navarea-onboarding-count { flex: 1 0 100%; order: -1; }
+  .navarea-onboarding-back, .navarea-onboarding-next { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .navarea-onboarding, .navarea-onboarding-progress span { transition: none; }
+}
