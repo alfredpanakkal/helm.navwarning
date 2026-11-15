@@ -321,7 +321,15 @@ export const DETAIL_CSS = [
   '.meta-value{color:var(--text-muted);font-weight:500}',
   '.backlinks{margin:14px 0 0;font-size:13.5px}',
   '.backlinks a{margin-right:14px}',
-  '#warningDetail{margin:0 0 14px}'
+  '#warningDetail{margin:0 0 14px}',
+  '.warning-facts{display:grid;grid-template-columns:minmax(120px,0.7fr) 1.3fr;gap:8px 16px;font-size:14px}',
+  '.warning-facts dt{color:var(--text-muted)}',
+  '.warning-facts dd{margin:0;overflow-wrap:anywhere}',
+  '.prompt-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}',
+  '.prompt-copy-btn{display:inline-flex;align-items:center;padding:10px 16px;min-height:var(--touch-min);border:1px solid var(--border);border-radius:var(--radius);background:var(--verified);color:var(--canvas);font:inherit;font-weight:600;cursor:pointer}',
+  '.prompt-panel details{margin-top:12px}',
+  '.prompt-panel summary{cursor:pointer}',
+  '.prompt-panel pre{max-height:420px;overflow:auto;white-space:pre-wrap;word-break:break-word}'
 ].join('');
 
 function metaRow(label, value) {
@@ -330,6 +338,56 @@ function metaRow(label, value) {
 
 // Fully static detail page: the complete original warning text is in the
 // initial HTML (crawlable without JS). No hydration scripts included.
+function buildWarningAnalysisPrompt(r, w) {
+  const fields = [
+    ['NAVAREA', r.id],
+    ['Warning identifier', w.canonical_id],
+    ['Title', w.title],
+    ['Status in Helm.Warning', w.status],
+    ['Issued at', w.issued_at],
+    ['Valid from', w.valid_from],
+    ['Valid to', w.valid_to],
+    ['Area description', w.area_text],
+    ['Categories recorded', Array.isArray(w.categories) ? w.categories.join(', ') : w.categories],
+    ['Geometry tier', w.triage_tier],
+    ['Data quality', w.data_quality],
+    ['Last updated in Helm.Warning', w.updated_at]
+  ];
+  const data = fields.map(([label, value]) => label + ': ' + (value === null || value === undefined || value === '' ? 'Not supplied in this record' : String(value))).join('\n');
+  return [
+    'ROLE',
+    'Act as a careful maritime navigational-warning analyst. Analyse the source record below for a deck officer. Do not claim to be the issuing authority.',
+    '',
+    'SOURCE RECORD — HELM.WARNING CONVENIENCE COPY',
+    data,
+    '',
+    'ORIGINAL BULLETIN (preserve and analyse exactly as supplied)',
+    String(w.raw_text || 'Original bulletin text is not available in this record.'),
+    '',
+    'REQUIRED OUTPUT',
+    '1. Executive summary in clear maritime English.',
+    '2. Line-by-line technical interpretation of the original bulletin; explain abbreviations, signal terms and actions only when supported.',
+    '3. Warning type, reported event or hazard, and what is explicitly stated versus inferred.',
+    '4. Extract every coordinate, bearing, distance, time, date, depth and boundary exactly as printed. Preserve hemisphere and notation. Do not silently correct or infer missing values.',
+    '5. Describe the affected geographical area only to the extent supported by the bulletin. If geometry cannot be determined, say so.',
+    '6. Explain potential relevance to merchant vessels and bridge operations without assuming a particular vessel or route is affected.',
+    '7. Provide a practical OOW / bridge-team verification checklist, clearly labelled as general checks rather than official instructions.',
+    '8. Assess validity, cancellation or supersession only if evidence is supplied. Do not assume a warning remains in force based solely on this copied status.',
+    '9. List missing, ambiguous, contradictory or low-confidence data and questions requiring confirmation.',
+    '10. Finish with a table separating (a) facts explicitly in the bulletin, (b) reasonable interpretation, and (c) items requiring official verification.',
+    '',
+    'STRICT SAFETY AND EVIDENCE RULES',
+    '- Do not invent coordinates, locations, restrictions, hazards, dates, distances, chart references or source statements.',
+    '- Do not alter the original bulletin. Quote short relevant excerpts when explaining it.',
+    '- Never guess a hemisphere or complete an incomplete coordinate.',
+    '- Do not declare a route safe or unsafe without route and vessel context.',
+    '- Clearly state when information is insufficient. Do not present AI interpretation as official navigational advice.',
+    '- Tell the user to verify current status and details against the responsible NAVAREA coordinator and official GMDSS / NAVTEX / SafetyNET broadcasts and applicable charts/publications.',
+    '',
+    'Use concise but technically detailed maritime language. Include all uncertainty explicitly.'
+  ].join('\n');
+}
+
 export function buildWarningPageHtml(r, w) {
   const slug = warningSlug(w.canonical_id);
   if (!slug) throw new Error('Cannot build warning page for canonical_id: ' + String(w.canonical_id));
@@ -398,6 +456,28 @@ export function buildWarningPageHtml(r, w) {
     '  </section>',
     '',
     '  <section>',
+    '    <h2>Warning record details</h2>',
+    '    <dl class="warning-facts">' +
+      '<dt>Warning ID</dt><dd>' + escapeHtml(idText) + '</dd>' +
+      '<dt>Region coordinator</dt><dd>' + escapeHtml(r.authority) + '</dd>' +
+      '<dt>Area description</dt><dd>' + escapeHtml(String(w.area_text || 'Not supplied')) + '</dd>' +
+      '<dt>Categories</dt><dd>' + escapeHtml(cats || 'Not supplied') + '</dd>' +
+      '<dt>Geometry tier</dt><dd>' + escapeHtml(String(w.triage_tier || 'Not supplied')) + '</dd>' +
+      '<dt>Data quality</dt><dd>' + escapeHtml(String(w.data_quality || 'Not supplied')) + '</dd>' +
+      '<dt>Record updated</dt><dd>' + escapeHtml(fmtDate(w.updated_at) || 'Not supplied') + '</dd>' +
+    '</dl>',
+    '    <p class="lead-note">These fields describe what is present in the Helm.Warning record. Missing values are not inferred.</p>',
+    '  </section>',
+    '',
+    '  <section class="prompt-panel">',
+    '    <h2>AI Warning Analysis Prompt</h2>',
+    '    <p>Generate a detailed prompt from this warning and copy it into ChatGPT, Gemini, Claude or another AI assistant. Helm.Warning does not perform AI analysis or send warning data to an AI provider.</p>',
+    '    <button type="button" class="prompt-copy-btn" data-copy-warning-prompt>Copy analysis prompt</button>',
+    '    <details><summary>Preview generated prompt</summary><pre class="warn-text" data-warning-prompt>' + escapeHtml(buildWarningAnalysisPrompt(r, w)) + '</pre></details>',
+    '    <p class="lead-note" data-prompt-status aria-live="polite"></p>',
+    '  </section>',
+    '',
+    '  <section>',
     '    <h2>About this warning</h2>',
     '    <p>' + escapeHtml(idText) + ' is a navigational warning for NAVAREA ' + r.id + ' (' + r.shortLabel + '), broadcast by ' + r.authority + ' under the World-Wide Navigational Warning Service (WWNWS). Helm.Warning aggregates these broadcasts daily and plots warnings with resolved geometry on the <a href="' + navareaMapHref(r.id) + '">live map</a>.</p>',
     '    <p>Helm.Warning is a convenience copy of these broadcasts, not an official source of Maritime Safety Information. Always verify against official channels (NAVTEX, Inmarsat SafetyNET) as required by SOLAS &mdash; see the <a href="/about">about and disclaimer</a> page for the full safety notice.</p>',
@@ -412,6 +492,7 @@ export function buildWarningPageHtml(r, w) {
     '  <p><a href="/">Live warnings map</a> &middot; <a href="/about">About &amp; Disclaimer</a></p>',
     '</footer>',
     '',
+    '<script defer src="/assets/js/warning-prompt.js"></' + 'script>',
     '</body>',
     '</html>'
   ];
@@ -466,6 +547,7 @@ export function buildWarningShellHtml() {
     '<script defer src="https://unpkg.com/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" integrity="sha256-1qXEQUpdTOZG2cHeIjqnBn0/9mTBU5T/63/P/HYzVKM=" crossorigin="anonymous"></' + 'script>',
     '<script defer src="/assets/js/supabase.js"></' + 'script>',
     '<script defer src="/assets/js/warning-detail.js"></' + 'script>',
+    '<script defer src="/assets/js/warning-prompt.js"></' + 'script>',
     '</body>',
     '</html>'
   ];

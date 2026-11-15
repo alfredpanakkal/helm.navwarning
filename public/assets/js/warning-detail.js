@@ -59,6 +59,52 @@
     })
     .catch(fail);
 
+  function buildPrompt(rn, w) {
+    var lines = [
+      'ROLE',
+      'Act as a careful maritime navigational-warning analyst. Analyse the source record below for a deck officer. Do not claim to be the issuing authority.',
+      '',
+      'SOURCE RECORD — HELM.WARNING CONVENIENCE COPY',
+      'NAVAREA: ' + rn,
+      'Warning identifier: ' + (w.canonical_id || 'Not supplied'),
+      'Title: ' + (w.title || 'Not supplied'),
+      'Status in Helm.Warning: ' + (w.status || 'Not supplied'),
+      'Issued at: ' + (w.issued_at || 'Not supplied'),
+      'Valid from: ' + (w.valid_from || 'Not supplied'),
+      'Valid to: ' + (w.valid_to || 'Not supplied'),
+      'Area description: ' + (w.area_text || 'Not supplied'),
+      'Categories: ' + (Array.isArray(w.categories) ? w.categories.join(', ') : (w.categories || 'Not supplied')),
+      'Geometry tier: ' + (w.triage_tier || 'Not supplied'),
+      'Data quality: ' + (w.data_quality || 'Not supplied'),
+      'Last updated in Helm.Warning: ' + (w.updated_at || 'Not supplied'),
+      '',
+      'ORIGINAL BULLETIN (preserve and analyse exactly as supplied)',
+      w.raw_text || 'Original bulletin text is not available in this record.',
+      '',
+      'REQUIRED OUTPUT',
+      '1. Executive summary in clear maritime English.',
+      '2. Line-by-line technical interpretation; explain abbreviations only when supported.',
+      '3. Identify the warning type, reported event or hazard, and distinguish explicit facts from inference.',
+      '4. Extract every coordinate, bearing, distance, time, date, depth and boundary exactly as printed. Never guess a hemisphere or correct a value silently.',
+      '5. Describe the affected area only as supported by the bulletin; state when geometry is insufficient.',
+      '6. Explain potential relevance to merchant vessels without assuming a specific route is affected.',
+      '7. Give a practical OOW / bridge-team verification checklist, clearly labelled as general checks.',
+      '8. Discuss validity, cancellation or supersession only when evidence is supplied.',
+      '9. List missing, ambiguous, contradictory or low-confidence information.',
+      '10. Separate source facts, interpretation and items requiring official verification.',
+      '',
+      'STRICT RULES',
+      '- Do not invent coordinates, locations, restrictions, hazards, dates, distances or chart references.',
+      '- Do not alter the original bulletin.',
+      '- Do not declare a route safe or unsafe without vessel and route context.',
+      '- Never present AI interpretation as official navigational advice.',
+      '- Verify current status with the responsible NAVAREA coordinator and official GMDSS / NAVTEX / SafetyNET broadcasts and applicable charts/publications.',
+      '',
+      'Use technically detailed maritime language and make uncertainty explicit.'
+    ];
+    return lines.join('\\n');
+  }
+
   function metaRow(label, value) {
     return value ? '<span class="meta-row"><span class="meta-label">' + label + '</span><span class="meta-value">' + value + '</span></span>' : '';
   }
@@ -84,6 +130,18 @@
     if (w.triage_tier) html += metaRow('Geometry tier:', esc(w.triage_tier) + (w.data_quality ? ' &middot; ' + esc(w.data_quality) : ''));
     html += '</div>';
     html += '<section><h2>Original bulletin text</h2><pre class="warn-text">' + esc(w.raw_text || 'Original bulletin text is not available for this record.') + '</pre></section>';
+    html += '<section><h2>Warning record details</h2><dl class="warning-facts">';
+    html += '<dt>Region coordinator</dt><dd>' + esc('NAVAREA ' + rn) + '</dd>';
+    html += '<dt>Area description</dt><dd>' + esc(w.area_text || 'Not supplied') + '</dd>';
+    html += '<dt>Categories</dt><dd>' + esc(cats || 'Not supplied') + '</dd>';
+    html += '<dt>Geometry tier</dt><dd>' + esc(w.triage_tier || 'Not supplied') + '</dd>';
+    html += '<dt>Data quality</dt><dd>' + esc(w.data_quality || 'Not supplied') + '</dd>';
+    html += '<dt>Record updated</dt><dd>' + esc(fmtDate(w.updated_at) || 'Not supplied') + '</dd>';
+    html += '</dl><p class="lead-note">Missing values are not inferred.</p></section>';
+    html += '<section class="prompt-panel"><h2>AI Warning Analysis Prompt</h2>';
+    html += '<p>Copy a detailed prompt containing this warning record into ChatGPT, Gemini, Claude or another AI assistant. Helm.Warning does not run AI analysis or send your warning data to an AI provider.</p>';
+    html += '<button type="button" class="prompt-copy-btn" data-copy-warning-prompt>Copy analysis prompt</button>';
+    html += '<details><summary>Preview generated prompt</summary><pre class="warn-text" data-warning-prompt>' + esc(buildPrompt(rn, w)) + '</pre></details><p class="lead-note" data-prompt-status aria-live="polite"></p></section>';
     html += '<p class="backlinks"><a href="' + regionHref + '">All NAVAREA ' + rn + ' warnings</a><a href="' + mapHref + '">View on the live map</a><a href="/about#source-registry">Source registry</a></p>';
     detailEl.innerHTML = html;
   }

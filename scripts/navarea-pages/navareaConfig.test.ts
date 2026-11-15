@@ -198,6 +198,12 @@ describe('Warning detail pages', () => {
     expect(html).toContain('href="/navarea/IV"');
     expect(html).toContain('href="/?navarea=NA%20IV"');
     expect(html).toContain('href="/about#source-registry"');
+    expect(html).toContain('Warning record details');
+    expect(html).toContain('AI Warning Analysis Prompt');
+    expect(html).toContain('data-copy-warning-prompt');
+    expect(html).toContain('FULL &lt;TEXT&gt; &amp; MORE');
+    expect(html).toContain('Never guess a hemisphere');
+    expect(html).toContain('warning-prompt.js');
     // No hydration scripts on prerendered detail pages.
     expect(html).not.toContain('supabase');
     expect(html).not.toContain('warning-detail.js');
@@ -211,6 +217,7 @@ describe('Warning detail pages', () => {
     expect(html).toContain('id="emptyState"');
     expect(html).toContain('id="errorState"');
     expect(html).toContain('warning-detail.js');
+    expect(html).toContain('warning-prompt.js');
   });
 
   it('includes detail URLs in the sitemap when provided', () => {
