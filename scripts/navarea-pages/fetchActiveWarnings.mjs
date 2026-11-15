@@ -1,9 +1,8 @@
 // scripts/navarea-pages/fetchActiveWarnings.mjs
 // Build-time read of active warnings through the SAME public anon Supabase
 // access the site uses at runtime (publishable key only — no service role,
-// no secrets). Fail-open: on any error the build continues with zero
-// prerendered detail pages; runtime then serves everything through the
-// /warning-shell rewrite. Never let this break a deploy.
+// no secrets). Returns null on failure so callers can preserve the last
+// generated snapshots; an empty array is a successful, genuinely empty result.
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://ocqpfbkuiomzhbxxvemi.supabase.co';
 const SUPABASE_ANON_KEY =
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY ||
@@ -28,13 +27,14 @@ export async function fetchActiveWarnings() {
       });
       if (!res.ok) throw new Error('Supabase REST ' + res.status);
       const data = await res.json();
-      if (!Array.isArray(data) || data.length === 0) break;
+      if (!Array.isArray(data)) throw new Error('Supabase REST returned a non-array response');
+      if (data.length === 0) break;
       rows.push(...data);
       if (data.length < PAGE_SIZE) break;
     }
     return rows;
   } catch (e) {
-    console.warn('Warning prerender skipped (build continues, shell serves detail URLs): ' + e.message);
-    return [];
+    console.warn('Warning snapshot refresh skipped; preserving previous snapshots: ' + e.message);
+    return null;
   }
 }
