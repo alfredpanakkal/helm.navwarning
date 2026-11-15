@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { toPrimarySymbol, PRIMARY_SYMBOLS, PrimarySymbol } from '../symbolMapping';
 import type { HazardCategory } from '../../types/navarea';
 
-describe('symbolMapping — 6 Primary Symbol System', () => {
+describe('symbolMapping — primary warning symbols', () => {
   it('maps all 16 HazardCategory values to their correct PrimarySymbol', () => {
     // 1. Military
     expect(toPrimarySymbol('mil_fire')).toBe('military');
@@ -19,19 +19,21 @@ describe('symbolMapping — 6 Primary Symbol System', () => {
     // 3. AtoN
     expect(toPrimarySymbol('aton')).toBe('aton');
 
-    // 4. Subsea
-    expect(toPrimarySymbol('cable')).toBe('subsea');
+    // 4. Submarine cable has its own symbol.
+    expect(toPrimarySymbol('cable')).toBe('cable');
+
+    // 5. Offshore / subsea operations.
     expect(toPrimarySymbol('survey')).toBe('subsea');
     expect(toPrimarySymbol('rig')).toBe('subsea');
     expect(toPrimarySymbol('subsea')).toBe('subsea');
     expect(toPrimarySymbol('offshore')).toBe('subsea');
     expect(toPrimarySymbol('drilling operations')).toBe('subsea');
 
-    // 5. Wreck / Obstruction
+    // 6. Wreck / Obstruction (security is not a wreck).
     expect(toPrimarySymbol('wreck')).toBe('wreck');
-    expect(toPrimarySymbol('security')).toBe('wreck');
+    expect(toPrimarySymbol('security')).toBe('general');
 
-    // 6. General
+    // 7. General
     expect(toPrimarySymbol('general_chart')).toBe('general');
     expect(toPrimarySymbol('ops')).toBe('general');
     expect(toPrimarySymbol('service_status')).toBe('general');
@@ -51,7 +53,7 @@ describe('symbolMapping — 6 Primary Symbol System', () => {
   });
 
   it('ensures all 6 primary symbols have valid metadata and canonical glyphs', () => {
-    const requiredSymbols: PrimarySymbol[] = ['general', 'military', 'drifting', 'aton', 'subsea', 'wreck'];
+    const requiredSymbols: PrimarySymbol[] = ['general', 'military', 'drifting', 'aton', 'subsea', 'cable', 'wreck'];
 
     requiredSymbols.forEach((sym) => {
       const meta = PRIMARY_SYMBOLS[sym];
