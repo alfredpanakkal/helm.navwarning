@@ -1,10 +1,9 @@
 // ════════════ SUPABASE INIT ════════════
-// 20261019/20 backend schema contract:
-//   - nav_warnings: canonical_id, categories TEXT[], triage_tier, data_quality,
-//     status, valid_from/valid_to, issued_at, updated_at. NO severity / risk_level /
-//     category / issued_date / latitude / longitude / is_verified columns.
+// 20261019/20 backend schema contract (severity added 20261115):
+//   - nav_warnings: canonical_id, categories TEXT[], severity, triage_tier,
+//     data_quality, status, valid_from/valid_to, issued_at, updated_at.
 //   - Geometry lives in nav_warning_geometries / the nav_warnings_active_spatial
-//     view (geojson_blob), never in flat columns on nav_warnings.
+//     view (geojson_blob); the spatial view also exposes canonical severity.
 //   - Stable human key is canonical_id; DB key is the uuid column "id".
 // See docs/supabase-backend-contract.md and src/services/navWarningQueries.ts.
 
@@ -102,7 +101,7 @@ function mergeSpatialAndTextRows(spatialData, textRows) {
         navarea: row.navarea,
         title: row.title || row.canonical_id,
         area_text: row.area_text,
-        severity: row.triage_tier === 'A' ? 'high' : 'caution',
+        severity: ['critical', 'high', 'moderate'].includes(row.severity) ? row.severity : 'moderate',
         is_verified: false,
         category: primaryCategory,
         categories: Array.isArray(row.categories) && row.categories.length > 0 ? row.categories : [primaryCategory],
@@ -246,7 +245,7 @@ async function fetchActiveWarnings() {
     try {
       result = await window.hwSupabase
         .from('nav_warnings_active_spatial')
-        .select('warning_id, canonical_id, navarea, title, area_text, categories, status, triage_tier, data_quality, valid_from, valid_to, radio_frequencies, space_launch_mission, geom_id, zone_label, feature_type, buffer_nm, corridor_half_width_nm, geojson_blob')
+        .select('warning_id, canonical_id, navarea, title, area_text, categories, severity, status, triage_tier, data_quality, valid_from, valid_to, radio_frequencies, space_launch_mission, geom_id, zone_label, feature_type, buffer_nm, corridor_half_width_nm, geojson_blob')
         .order('geom_id', { ascending: true })
         .range(from, from + SPATIAL_PAGE_SIZE - 1);
     } catch (queryError) {
@@ -303,7 +302,7 @@ async function fetchWarningDetails(identifier) {
 
       let query = window.hwSupabase
         .from('nav_warnings')
-        .select('id, canonical_id, navarea, title, area_text, categories, status, triage_tier, data_quality, valid_from, valid_to, issued_at, raw_text, created_at, updated_at');
+        .select('id, canonical_id, navarea, title, area_text, categories, severity, status, triage_tier, data_quality, valid_from, valid_to, issued_at, raw_text, created_at, updated_at');
 
       if (isUuid) {
         query = query.eq('id', targetId);
