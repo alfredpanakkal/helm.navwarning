@@ -32,7 +32,15 @@ fs.writeFileSync(path.join(shellDir, 'index.html'), buildWarningShellHtml());
 // null means the request failed; [] means Supabase successfully returned no active rows.
 const fetchedWarnings = await fetchActiveWarnings();
 const warnings = fetchedWarnings || [];
-if (fetchedWarnings !== null) {
+const previousSnapshotWarningCount = NAVAREA_REGIONS.reduce(function (total, region) {
+  try {
+    const snapshot = JSON.parse(fs.readFileSync(path.join(root, 'public', 'navarea', region.id, 'warnings.json'), 'utf8'));
+    return total + (Array.isArray(snapshot.warnings) ? snapshot.warnings.length : 0);
+  } catch (e) { return total; }
+}, 0);
+const suspiciousEmptyResult = fetchedWarnings !== null && warnings.length === 0 &&
+  previousSnapshotWarningCount > 0 && process.env.ALLOW_EMPTY_NAVAREA_SNAPSHOT !== 'true';
+if (fetchedWarnings !== null && !suspiciousEmptyResult) {
   const generatedAt = new Date().toISOString();
   const snapshots = buildNavareaSnapshots(warnings, generatedAt);
   for (const r of NAVAREA_REGIONS) {
@@ -41,6 +49,8 @@ if (fetchedWarnings !== null) {
     fs.writeFileSync(path.join(dir, 'warnings.json'), JSON.stringify(snapshots.get(r.id)));
   }
   console.log('Generated 21 NAVAREA warning snapshots from Supabase');
+} else if (suspiciousEmptyResult) {
+  console.warn('Supabase returned zero active warnings while committed snapshots contain ' + previousSnapshotWarningCount + '; preserving snapshots. Set ALLOW_EMPTY_NAVAREA_SNAPSHOT=true only after verifying a genuine global zero.');
 } else {
   console.warn('Supabase unavailable during build; existing warning snapshots were left untouched');
 }
