@@ -8,6 +8,7 @@ on:
       - 'vercel.json'
       - 'package.json'
       - 'package-lock.json'
+      - '.github/workflows/refresh-navarea-snapshots.yml'
   push:
     branches: [main]
     paths-ignore:
