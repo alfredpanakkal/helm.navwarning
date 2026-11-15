@@ -111,13 +111,13 @@ no hover lift/scale, Inter only, tokens over hardcoded values. Details:
 is fluid full-width with a fixed left rail; the warning editor is a
 right-side drawer.
 
-### Warning symbols & geographic plotting system (approved 2026-11-12)
+### Warning symbols & geographic plotting system (updated 2026-11-15)
 4 strictly independent visual properties:
-- **Symbol**: 6 primary display glyphs (General, Military, Drifting, AtoN, Subsea, Wreck/Obstruction). Classification parsers preserve all 16 internal categories (`HazardCategory`); display markers soft-map to the 6 glyphs via `toPrimarySymbol()`. Never create a new pin per bulletin or category.
-- **Colour**: 3 severity ring states (`--sev-critical: #B42318`, `--sev-high: #8C5208`, `--accent: #2F6B4F`), rule-derived and decoupled from the category glyph.
+- **Symbol**: compact primary display glyphs; submarine cables have a dedicated cable glyph, and wreck/obstruction remains distinct. Classification parsers preserve all 16 internal categories (`HazardCategory`); display markers soft-map via `toPrimarySymbol()`. Do not create a new pin per bulletin.
+- **Colour**: 3 severity fill states (`--sev-critical: #B42318`, `--sev-high: #8C5208`, `--accent: #2F6B4F`). Severity fills the marker; the category glyph remains white. Use a dark border with a light outer keyline for map contrast.
 - **Geometry**: 7 explicit rendering types (Point, Line, Polygon, Circle, Sector, Corridor, Displacement). Pin symbol must never dictate geometry. Multi-zone warnings maintain 1 record $\to$ N labeled zone features.
-- **Clusters**: Apply to point markers only; never cluster polygons, lines, or circles.
-Full specification: [`docs/COMPETITOR_WARNING_DESIGN_STUDY.md`](docs/COMPETITOR_WARNING_DESIGN_STUDY.md); implementation tracker: [`docs/TODO_WARNING_DESIGN_STUDY.md`](docs/TODO_WARNING_DESIGN_STUDY.md).
+- **Clusters**: Apply to point markers only; never cluster polygons, lines, or circles. Cluster fill reflects the highest-severity member.
+Full specification history: [`docs/COMPETITOR_WARNING_DESIGN_STUDY.md`](docs/COMPETITOR_WARNING_DESIGN_STUDY.md); implementation tracker: [`docs/TODO_WARNING_DESIGN_STUDY.md`](docs/TODO_WARNING_DESIGN_STUDY.md).
 
 ## 4. Required agent workflow (for every change)
 
