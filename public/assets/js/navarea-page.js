@@ -18,7 +18,8 @@
   var seen = {};
   var busy = false;
   var hasSnapshot = false;
-  var snapshotCount = 0;
+  var snapshotRows = [];
+  var liveAvailable = false;
 
   function esc(s) {
     return String(s === null || s === undefined ? '' : s)
@@ -91,7 +92,7 @@
       return w && w.status === 'active';
     });
     hasSnapshot = true;
-    snapshotCount = rows.length;
+    snapshotRows = rows;
     renderRows(rows.slice(0, PAGE_SIZE), false);
     offset = Math.min(rows.length, PAGE_SIZE);
     loadMoreBtn.hidden = rows.length <= PAGE_SIZE;
@@ -135,7 +136,7 @@
       : 'The saved warning snapshot is unavailable and the live warning list could not be loaded. Retry later or check the official coordinator broadcasts.';
     errorEl.hidden = false;
     setStatus(hasSnapshot ? 'Offline copy shown · live refresh failed' : 'Warning data is temporarily unavailable');
-    if (loadMoreBtn) loadMoreBtn.hidden = true;
+    if (loadMoreBtn) loadMoreBtn.hidden = !(hasSnapshot && snapshotRows.length > offset);
     if (!hasSnapshot) countEl.textContent = 'Unavailable';
   }
 
@@ -147,6 +148,7 @@
     return fetchPage(0, PAGE_SIZE - 1).then(function (res) {
       if (res.error) throw res.error;
       var rows = res.data || [];
+      liveAvailable = true;
       renderRows(rows, false);
       offset = rows.length;
       var total = typeof res.count === 'number' ? res.count : rows.length;
@@ -172,7 +174,15 @@
   }
 
   function loadMore() {
-    if (busy || !window.hwSupabase) return;
+    if (busy) return;
+    if (!liveAvailable && hasSnapshot) {
+      var cachedRows = snapshotRows.slice(offset, offset + PAGE_SIZE);
+      renderRows(cachedRows, true);
+      offset += cachedRows.length;
+      loadMoreBtn.hidden = offset >= snapshotRows.length;
+      return;
+    }
+    if (!window.hwSupabase) return;
     busy = true;
     fetchPage(offset, offset + PAGE_SIZE - 1).then(function (res) {
       if (res.error) throw res.error;
