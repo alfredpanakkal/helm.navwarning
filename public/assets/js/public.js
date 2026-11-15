@@ -1398,8 +1398,8 @@ function getWarningPrimarySymbol(w) {
     mil_fire: 'military', uxo: 'military', military: 'military', military_ops: 'military', 'mines area': 'military',
     drift: 'drifting', drifting: 'drifting',
     aton: 'aton',
-    cable: 'subsea', survey: 'subsea', rig: 'subsea', subsea: 'subsea', offshore: 'subsea', 'drilling operations': 'subsea',
-    wreck: 'wreck', security: 'wreck',
+    cable: 'cable', survey: 'subsea', rig: 'subsea', subsea: 'subsea', offshore: 'subsea', 'drilling operations': 'subsea',
+    wreck: 'wreck',
     sar: 'general', weather: 'general', ice: 'general', ops: 'general', service_status: 'general',
     general_chart: 'general', general: 'general', electronic: 'general', restricted: 'general', 'in force': 'general'
   };
@@ -1412,7 +1412,8 @@ const WARNING_SYMBOL_SVG = {
   military: '<circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1.8" fill="none"/><line x1="12" y1="2" x2="12" y2="7" stroke="currentColor" stroke-width="2"/><line x1="12" y1="17" x2="12" y2="22" stroke="currentColor" stroke-width="2"/><line x1="2" y1="12" x2="7" y2="12" stroke="currentColor" stroke-width="2"/><line x1="17" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>',
   drifting: '<path d="M3 15 L21 15 L18 19 L6 19 Z" fill="currentColor"/><path d="M12 4 L12 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 6 L17 10 L12 11 Z" fill="currentColor"/>',
   aton: '<polygon points="9,20 15,20 13,8 11,8" stroke="currentColor" stroke-width="1.5" fill="currentColor"/><rect x="10" y="5" width="4" height="3" fill="currentColor"/><polygon points="12,2 8,5 16,5" fill="currentColor"/><line x1="4" y1="6" x2="7" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="20" y1="6" x2="17" y2="7" stroke="currentColor" stroke-width="1.5"/>',
-  subsea: '<circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M4 17 Q8 10 12 12 T20 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>',
+  subsea: '<line x1="7" y1="19" x2="10" y2="7" stroke="currentColor" stroke-width="1.8"/><line x1="17" y1="19" x2="14" y2="7" stroke="currentColor" stroke-width="1.8"/><line x1="7" y1="15" x2="17" y2="15" stroke="currentColor" stroke-width="1.5"/><line x1="9" y1="11" x2="15" y2="11" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="5" width="8" height="2.5" fill="currentColor"/><line x1="12" y1="2" x2="12" y2="5" stroke="currentColor" stroke-width="2"/>',
+  cable: '<circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M4 17 Q8 10 12 12 T20 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>',
   wreck: '<line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" stroke-width="2"/><path d="M6 18 Q12 12 18 18" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/><line x1="9" y1="11" x2="15" y2="11" stroke="currentColor" stroke-width="2"/>'
 };
 
@@ -1420,8 +1421,8 @@ function createWarningMarkerIcon(w) {
   const symbol = getWarningPrimarySymbol(w);
   const severityColor = getWarningColor(w);
   const html = '<div role="img" aria-label="' + symbol + ' warning" title="' + symbol + ' warning" ' +
-    'style="width:26px;height:26px;border-radius:50%;background:#14161c;border:2px solid ' + severityColor + ';' +
-    'color:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box;box-shadow:0 2px 6px rgba(0,0,0,.4)">' +
+    'style="width:26px;height:26px;border-radius:50%;background:' + severityColor + ';border:1.5px solid #111827;' +
+    'color:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box;box-shadow:0 0 0 1px rgba(255,255,255,.95),0 2px 6px rgba(0,0,0,.45)">' +
     '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
     WARNING_SYMBOL_SVG[symbol] + '</svg></div>';
   return L.divIcon({ className: 'nw-public-warning-marker', html, iconSize: [26, 26], iconAnchor: [13, 13] });

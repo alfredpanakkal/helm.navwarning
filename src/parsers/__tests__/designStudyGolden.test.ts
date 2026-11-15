@@ -25,17 +25,17 @@ import {
   shouldHideCenterPoint,
 } from '../../utils/boundaryStyles';
 
-describe('Phase 5.1: 6-Symbol System Resolution (All 16 Categories)', () => {
+describe('Phase 5.1: Primary Symbol Resolution (All 16 Categories)', () => {
   const categoryExpectations: Record<HazardCategory, PrimarySymbol> = {
     mil_fire: 'military',
     uxo: 'military',
     drift: 'drifting',
     aton: 'aton',
-    cable: 'subsea',
+    cable: 'cable',
     survey: 'subsea',
     rig: 'subsea',
     wreck: 'wreck',
-    security: 'wreck',
+    security: 'general',
     general_chart: 'general',
     ops: 'general',
     service_status: 'general',
@@ -53,7 +53,7 @@ describe('Phase 5.1: 6-Symbol System Resolution (All 16 Categories)', () => {
     });
   });
 
-  it('only produces one of the 6 canonical primary symbols', () => {
+  it('only produces a canonical primary symbol', () => {
     (Object.keys(categoryExpectations) as HazardCategory[]).forEach((cat) => {
       const symbol = toPrimarySymbol(cat);
       expect(PRIMARY_SYMBOLS[symbol]).toBeDefined();
@@ -186,7 +186,7 @@ describe('Phase 5.3: Real Bulletin Golden Evaluation Suite', () => {
     WIDE BERTH OF 2 NM REQUESTED.`;
 
     const classification = classifyWarning(bulletin);
-    expect(toPrimarySymbol(classification.category)).toBe('subsea');
+    expect(toPrimarySymbol(classification.category)).toBe('cable');
 
     const geom = extractGeometry(bulletin);
     expect(geom.geometry.archetype).toBe('corridor');

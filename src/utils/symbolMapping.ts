@@ -1,6 +1,6 @@
 // src/utils/symbolMapping.ts
 // Authoritative consolidation of 16 granular HazardCategory classifications
-// into 6 primary display symbols, as specified in docs/COMPETITOR_WARNING_DESIGN_STUDY.md.
+// into a compact set of primary display symbols.
 
 import type { HazardCategory } from '../types/navarea';
 
@@ -10,6 +10,7 @@ export type PrimarySymbol =
   | 'drifting'
   | 'aton'
   | 'subsea'
+  | 'cable'
   | 'wreck';
 
 export interface PrimarySymbolMeta {
@@ -47,20 +48,26 @@ export const PRIMARY_SYMBOLS: Record<PrimarySymbol, PrimarySymbolMeta> = {
   },
   subsea: {
     id: 'subsea',
-    label: 'Subsea & Offshore',
-    description: 'Submarine cables, pipelines, seismic/hydrographic surveys, and offshore rigs',
+    label: 'Offshore / Subsea Operations',
+    description: 'Offshore structures, drilling operations, and subsea survey activity',
+    canonicalGlyph: 'rig',
+  },
+  cable: {
+    id: 'cable',
+    label: 'Submarine Cable',
+    description: 'Submarine cable routes, installation, repair, and maintenance',
     canonicalGlyph: 'cable',
   },
   wreck: {
     id: 'wreck',
     label: 'Wreck / Obstruction',
-    description: 'Dangerous sunken wrecks, submerged obstructions, and maritime security advisories',
+    description: 'Dangerous wrecks and submerged navigational obstructions',
     canonicalGlyph: 'wreck',
   },
 };
 
 /**
- * Soft-maps any of the 16 granular HazardCategory types to one of the 6 primary symbols.
+ * Soft-maps any of the 16 granular HazardCategory types to one of the primary symbols.
  * Preserves high-resolution category in data while simplifying map presentation.
  */
 export function toPrimarySymbol(category?: HazardCategory | string | null): PrimarySymbol {
@@ -84,8 +91,11 @@ export function toPrimarySymbol(category?: HazardCategory | string | null): Prim
     case 'aton':
       return 'aton';
 
-    // 4. Subsea Infrastructure, Surveys & Offshore Rigs
+    // 4. Submarine cables use their own existing cable glyph.
     case 'cable':
+      return 'cable';
+
+    // 5. Offshore structures and subsea operations.
     case 'survey':
     case 'rig':
     case 'subsea':
@@ -93,12 +103,11 @@ export function toPrimarySymbol(category?: HazardCategory | string | null): Prim
     case 'drilling operations':
       return 'subsea';
 
-    // 5. Wrecks, Submerged Obstructions & Security Advisories
+    // 6. Wrecks and submerged obstructions only.
     case 'wreck':
-    case 'security':
       return 'wreck';
 
-    // 6. General Navigational Hazards, Weather, Ice, SAR & Operations
+    // 7. General Navigational Hazards, Weather, Ice, SAR & Operations
     case 'general_chart':
     case 'general':
     case 'electronic':
