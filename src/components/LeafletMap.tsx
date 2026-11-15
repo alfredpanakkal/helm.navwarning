@@ -848,8 +848,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 if (latLngs.length >= 2 && currentZoom >= 6) {
                   const startMarker = L.circleMarker(latLngs[0], {
                     radius: 4,
-                    fillColor: routeColor,
-                    color: routeColor,
+                    fillColor: isCableRoute ? routeColor : '#38bdf8',
+                    color: isCableRoute ? routeColor : '#0284c7',
                     weight: 1.5,
                     fillOpacity: 1,
                     pane: 'navWarnVectorPane'
@@ -859,8 +859,8 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
                   const endMarker = L.circleMarker(latLngs[latLngs.length - 1], {
                     radius: 4,
-                    fillColor: routeColor,
-                    color: routeColor,
+                    fillColor: isCableRoute ? routeColor : '#38bdf8',
+                    color: isCableRoute ? routeColor : '#0284c7',
                     weight: 1.5,
                     fillOpacity: 1,
                     pane: 'navWarnVectorPane'
