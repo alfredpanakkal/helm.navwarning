@@ -112,7 +112,7 @@ geojson_blob   -- JSONB from ST_AsGeoJSON, ready for Leaflet
 ### 3.2 Secondary: `public.nav_warnings_review_queue` view
 
 Tier B, non-cancelled warnings (admin triage UI):
-`id, canonical_id, navarea, title, area_text, categories, status,
+`id, canonical_id, navarea, title, area_text, categories, severity, status,
 triage_tier, data_quality, parsing_method, qa_flags, unplotted_reason,
 duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at`.
 
@@ -139,9 +139,11 @@ duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at`.
 3. **Navarea normalization:** backend stores `NAVAREA XI` / `NAVAREA BALTIC`;
    strip the `NAVAREA ` prefix and uppercase remainder to get the dropdown
    id (`XI`, `BALTIC`). Add one shared helper; keep dropdown ids unchanged.
-4. **Categories/severity:** read `categories` (TEXT[] → PostgREST returns a
-   JSON array). Map to UI chips; replace `severity`/`risk_level` sorting
-   with triage_tier/data_quality or drop it.
+4. **Categories, severity and triage are separate:** read `categories`
+   (TEXT[] → PostgREST returns a JSON array) for hazard type and `severity`
+   (`critical|high|moderate`) for maritime risk. `triage_tier` and
+   `data_quality` describe parsing/verification only; never substitute
+   them for severity.
 5. **Dates:** `issued_at`/created_at for "issued"; `valid_from`/`valid_to`
    may be NULL — treat null `valid_to` as "in force until cancelled".
    Expiry filter: `status='active' AND (valid_to IS NULL OR valid_to > now())`.
@@ -161,7 +163,7 @@ duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at`.
     `SRID=4326;...` EWKT into `nav_warning_geometries` — ideally via the
     `upsert_nav_warning` RPC to stay atomic. Do NOT write
     `latitude/longitude/spatial/category` columns (they do not exist).
-11. **Filter columns that exist:** `navarea`, `status`, `triage_tier`,
+11. **Filter columns that exist:** `navarea`, `status`, `severity`, `triage_tier`,
     `categories` (use `cs`/`ov` PostgREST array operators), `valid_from`,
     `valid_to`, `source_id`. All indexed except categories.
 
@@ -171,14 +173,14 @@ duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at`.
 // Map layer
 const { data } = await supabase
   .from('nav_warnings_active_spatial')
-  .select('warning_id, canonical_id, navarea, title, area_text, categories,'
+  .select('warning_id, canonical_id, navarea, title, area_text, categories, severity,'
         + ' valid_from, valid_to, feature_type, zone_label, buffer_nm, geojson_blob');
 // → group rows by canonical_id, render each geojson_blob with L.geoJSON
 
 // Databank list (all statuses)
 const { data } = await supabase
   .from('nav_warnings')
-  .select('id, canonical_id, navarea, title, area_text, raw_text, categories,'
+  .select('id, canonical_id, navarea, title, area_text, raw_text, categories, severity,'
         + ' status, triage_tier, data_quality, valid_from, valid_to, issued_at, updated_at')
   .order('updated_at', { ascending: false });
 
