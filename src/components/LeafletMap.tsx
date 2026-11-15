@@ -1782,7 +1782,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           <div className="settings-body space-y-3">
             {/* 6 Primary Symbols */}
             <div>
-              <div className="settings-section-title mb-2">6 Primary Warning Symbols</div>
+              <div className="settings-section-title mb-2">Primary Warning Symbols</div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {(Object.keys(PRIMARY_SYMBOLS) as PrimarySymbol[]).map((symKey) => {
                   const item = PRIMARY_SYMBOLS[symKey];
