@@ -5,28 +5,28 @@
   var STORAGE_KEY = 'hw-navarea-onboarding-v1';
   var steps = [
     {
-      eyebrow: 'WELCOME ABOARD',
-      title: 'Your worldwide NAVAREA picture',
-      body: 'Helm.Warning brings navigational warnings from official maritime sources into one map. Use it as a convenient overview when preparing or reviewing a passage.',
-      note: 'No account is required. The map is a supporting reference—not a replacement for official MSI broadcasts, publications or the Master’s judgment.'
+      eyebrow: 'WELCOME',
+      title: 'What is Helm.Warning?',
+      body: 'Helm.Warning puts navigational warnings from different official sources on one map. It helps you see warnings around the world when planning or checking a voyage.',
+      note: 'You can use the map without signing in. Always use official warnings and onboard information for navigation.'
     },
     {
-      eyebrow: '01 · READ THE CHART',
-      title: 'Understand what the map shows',
-      body: 'Warnings may be plotted as a point, a line or a bounded area, depending on the information available in the source bulletin.',
-      note: 'Select a plotted warning to open its details. Check the displayed geometry against the original warning text before relying on a position.'
+      eyebrow: 'THE MAP',
+      title: 'How do I read the map?',
+      body: 'Each mark shows a warning location. A warning may appear as a point, a line or a shaded area. Tap or click a mark to see more information.',
+      note: 'The map position may not be exact. Read the warning text and check the position before using it.'
     },
     {
-      eyebrow: '02 · NARROW YOUR VIEW',
-      title: 'Find warnings that matter',
-      body: 'Choose a NAVAREA to focus on a region, or return to the global view. Use the map and Data Bank views to browse plotted warnings and their available details.',
-      note: 'A regional filter changes what you see; it does not change the underlying official warning or its geographic scope.'
+      eyebrow: 'FIND WARNINGS',
+      title: 'How do I find my area?',
+      body: 'Choose a NAVAREA to see warnings for that region, or select the global view to see the wider picture. Use the Map and Data Bank views to browse warnings.',
+      note: 'You can also use the available filters to narrow the warnings shown on the screen.'
     },
     {
-      eyebrow: '03 · CHECK THE SOURCE',
-      title: 'Read the details before use',
-      body: 'Review the warning identifier, source text, dates, status and plotted position where available. Pay attention to the validity period and the data update information.',
-      note: 'Aggregated data can be delayed, incomplete or interpreted incorrectly. Always verify navigationally significant information with the relevant official authority and current onboard sources.'
+      eyebrow: 'CHECK BEFORE USE',
+      title: 'What should I check?',
+      body: 'Open a warning and check its number, message, location, dates and status. Make sure it is still in force and read the original message.',
+      note: 'This website is a helper, not an official navigation source. Always confirm important information with current official broadcasts, publications and your onboard systems.'
     }
   ];
 
