@@ -42,6 +42,10 @@ function makeClient(scenario: Scenario, calls: string[], orderCalls: unknown[][]
                 data: scenario.spatialRows.slice(from, to + 1),
                 error: from === 0 ? (scenario.spatialError ?? null) : null,
               };
+              const selected = new Set(columns.split(',').map((column) => column.trim()));
+              if (!selected.has('severity') && Array.isArray(result.data)) {
+                result.data = result.data.map(({ severity: _severity, ...row }) => row);
+              }
               return Promise.resolve(result).then(resolve, reject);
             },
           };
@@ -85,6 +89,7 @@ function spatialRow(over: Row = {}): Row {
     title: 'Test warning',
     area_text: 'Test area',
     categories: ['general'],
+    severity: 'moderate',
     status: 'active',
     triage_tier: 'A',
     data_quality: 'EXPLICIT',
@@ -115,6 +120,31 @@ describe('public spatial warning fetch', () => {
     expect(entries.map((entry) => entry.canonical_id)).toEqual(['POINT/26', 'POLY/26', 'LINE/26']);
     expect(entries.find((entry) => entry.canonical_id === 'POLY/26')?.spatial.validation_status).toBe('passed');
     expect(loaded.orderCalls).toEqual([['geom_id', { ascending: true }]]);
+  });
+
+  it('uses canonical severity from the spatial view independently of parser triage', async () => {
+    const loaded = load({
+      spatialRows: [
+        spatialRow({ geom_id: 'g-critical', canonical_id: 'CRITICAL/26', severity: 'critical' }),
+        spatialRow({ geom_id: 'g-high', canonical_id: 'HIGH/26', severity: 'high' }),
+        spatialRow({ geom_id: 'g-moderate', canonical_id: 'MODERATE/26', severity: 'moderate' }),
+      ],
+      textResult: EMPTY_TEXT,
+    });
+    const entries = await loaded.fetchActiveWarnings() as Row[];
+    expect(entries.map((entry) => entry.severity)).toEqual(['critical', 'high', 'moderate']);
+  });
+
+  it('defaults missing or unknown severity to moderate, never deriving it from triage', async () => {
+    const loaded = load({
+      spatialRows: [
+        spatialRow({ geom_id: 'g-missing', canonical_id: 'MISSING/26', severity: undefined }),
+        spatialRow({ geom_id: 'g-unknown', canonical_id: 'UNKNOWN/26', severity: 'caution' }),
+      ],
+      textResult: EMPTY_TEXT,
+    });
+    const entries = await loaded.fetchActiveWarnings() as Row[];
+    expect(entries.map((entry) => entry.severity)).toEqual(['moderate', 'moderate']);
   });
 
   it('never includes Tier B or Tier C rows even if returned by the spatial view', async () => {
