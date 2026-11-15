@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveWarningVisuals } from '../warningVisuals';
+import { matchesSeverityFilter, resolveWarningVisuals } from '../warningVisuals';
 
 describe('resolveWarningVisuals', () => {
   it('uses the canonical persisted category for the symbol', () => {
@@ -37,5 +37,19 @@ describe('resolveWarningVisuals', () => {
     const result = resolveWarningVisuals(['future_hazard_code'], 'moderate', '');
     expect(result.category).toBe('future_hazard_code');
     expect(result.symbol).toBe('general');
+  });
+});
+
+
+describe('matchesSeverityFilter', () => {
+  it('matches persisted severity, not parser confidence or bulletin keywords', () => {
+    expect(matchesSeverityFilter(['general'], 'critical', 'CHART CORRECTION', 'critical')).toBe(true);
+    expect(matchesSeverityFilter(['general'], 'moderate', 'NAVAL FIRING EXERCISE', 'moderate')).toBe(true);
+    expect(matchesSeverityFilter(['general'], 'moderate', 'NAVAL FIRING EXERCISE', 'critical')).toBe(false);
+  });
+
+  it('uses text classification only for missing legacy severity and keeps All inclusive', () => {
+    expect(matchesSeverityFilter(['mil_fire'], null, 'NAVAL FIRING EXERCISE', 'critical')).toBe(true);
+    expect(matchesSeverityFilter(['general'], 'moderate', '', 'all')).toBe(true);
   });
 });

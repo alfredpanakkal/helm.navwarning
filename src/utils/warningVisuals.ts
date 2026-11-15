@@ -46,3 +46,16 @@ export function resolveWarningVisuals(
     displayStyle: severity === 'moderate' ? 'active' : severity,
   };
 }
+
+
+export type SeverityFilter = 'all' | MaritimeSeverity;
+
+/** Match the console severity filter against canonical maritime severity. */
+export function matchesSeverityFilter(
+  categories: string[] | string | null | undefined,
+  persistedSeverity: unknown,
+  rawText: string,
+  filter: SeverityFilter
+): boolean {
+  return filter === 'all' || resolveWarningVisuals(categories, persistedSeverity, rawText).severity === filter;
+}
