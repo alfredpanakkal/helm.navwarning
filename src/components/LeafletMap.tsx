@@ -43,7 +43,7 @@ import { WarningHierarchyLines } from './WarningItemV2';
 import { extractGeometry } from '../parsers/geometryExtractor';
 import { renderHazardBadgeHtml, renderPrimarySymbolSvg } from '../utils/hazardIcons';
 import { PRIMARY_SYMBOLS, PrimarySymbol } from '../utils/symbolMapping';
-import { resolveWarningVisuals } from '../utils/warningVisuals';
+import { matchesSeverityFilter, resolveWarningVisuals, type SeverityFilter } from '../utils/warningVisuals';
 import type { HazardCategory } from '../types/navarea';
 import { parseBerthAndRadius } from '../parsers/berthParser';
 import {
@@ -171,7 +171,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   // Filter States
   const [scopeFilter, setScopeFilter] = useState<ScopeFilterType>('all');
   const [currentNavArea, setCurrentNavArea] = useState<string>(initialNavArea);
-  const [filterSeverity, setFilterSeverity] = useState('all');
+  const [filterSeverity, setFilterSeverity] = useState<SeverityFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Quick-Jump Navigation State
@@ -530,10 +530,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
     if (currentNavArea !== 'ALL' && w.navarea !== currentNavArea) return false;
 
-    if (filterSeverity === 'critical' && w.extraction_confidence < 1) return false;
-    if (filterSeverity === 'high' && (w.extraction_confidence >= 1 || w.extraction_confidence < 0.8)) return false;
-    if (filterSeverity === 'moderate' && (w.extraction_confidence >= 0.8 || w.extraction_confidence < 0.5)) return false;
-    if (filterSeverity === 'low' && w.extraction_confidence >= 0.5) return false;
+    if (!matchesSeverityFilter(w.categories, w.severity, w.raw_text || w.area_text || '', filterSeverity)) return false;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -1491,7 +1488,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                 Confidence Level
               </label>
               <div className="grid grid-cols-4 gap-1 bg-gw-bg p-1 rounded-lg border border-gw-secondary">
-                {['all', 'critical', 'high', 'moderate'].map((sev) => (
+                {(['all', 'critical', 'high', 'moderate'] as SeverityFilter[]).map((sev) => (
                   <button
                     key={sev}
                     type="button"
@@ -1502,7 +1499,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
  : 'text-gw-accent hover:text-gw-primary hover:bg-gw-panel'
  }`}
                   >
-                    {sev === 'all' ? 'All' : sev === 'critical' ? 'Full' : sev === 'high' ? 'High' : 'Review'}
+                    {sev === 'all' ? 'All' : sev}
                   </button>
                 ))}
               </div>

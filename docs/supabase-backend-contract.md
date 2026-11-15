@@ -16,7 +16,7 @@ The backend was migrated to the **20261019/20 schema** in October 2026. At the t
 | `row.latitude`, `row.longitude`, `row.spatial` | Removed. Geometry lives in `nav_warning_geometries` (PostGIS) / `geojson_blob` in the `nav_warnings_active_spatial` view | Map had no points → blank map |
 | `row.warning_id` (text) | No such column. Keys are `id` (uuid) + `canonical_id` (e.g. `NAVAREA XI 0451/26`) | Junk ids like `warn-1792491234776` |
 | `row.issued_date`, `row.issued_text` | Removed. Dates are `issued_at` / `valid_from` / `valid_to` (timestamptz, nullable) | Dates blank |
-| `row.category` / `severity` / `risk_level` / `hazard_category` | Removed. Single `categories TEXT[]` (lowercase: military, aton, subsea, drifting, offshore, electronic, general) | Category/severity filters found nothing |
+| `row.category` / `risk_level` / `hazard_category` | Removed. `categories TEXT[]` stores hazard categories; `severity` is a separate canonical `critical|high|moderate` field, independent of parser triage | Category/severity filters found nothing |
 | `row.navarea` values like `'I'`, `'XI'`, `'Baltic'` | Backend stores full names: `'NAVAREA I'`, `'NAVAREA XI'`, `'NAVAREA BALTIC'` | Navarea filters matched nothing |
 | `sources_registry`, `ingestion_generations`, `raw_artifacts`, `in_force_snapshots` | These tables are NOT written by the new backend. Audit lives in `raw_messages` | Sources/Evidence/Audit tabs empty |
 | per-navarea schemas (`getNavareaSchemaName` → `navarea_11` etc.) | Does not exist. Everything is in `public.nav_warnings` | Per-schema queries 404'd |
@@ -36,6 +36,7 @@ The backend was migrated to the **20261019/20 schema** in October 2026. At the t
 | `raw_text` | text NOT NULL | Immutable original bulletin text (Rule 125) |
 | `status` | text NOT NULL | `active|cancelled|expired|superseded|unverified` |
 | `categories` | TEXT[] NOT NULL | lowercase, always non-empty, de-duplicated |
+| `severity` | text NOT NULL | canonical `critical|high|moderate`; independent of `triage_tier` |
 | `triage_tier` | text NOT NULL | `A` = auto-plot on map, `B` = review queue, `C` = blocked, never render |
 | `data_quality` | text NOT NULL | `EXPLICIT|INFERRED|AMBIGUOUS|INVALID` |
 | `parsing_method` | text NOT NULL | `RULE|AI` |
@@ -51,8 +52,7 @@ The backend was migrated to the **20261019/20 schema** in October 2026. At the t
 | `created_at`, `updated_at` | timestamptz | |
 
 There are NO columns for: `latitude`, `longitude`, `spatial`,
-`warning_id`, `issued_date`, `issued_text`, `category`, `severity`,
-`risk_level`, `hazard_category`, `sub_area`, `authority`,
+`warning_id`, `issued_date`, `issued_text`, `category`, `risk_level`, `hazard_category`, `sub_area`, `authority`,
 `source_url`, `is_cancelled`.
 
 ### 2.2 `public.nav_warning_geometries` (child, PostGIS)
@@ -96,7 +96,7 @@ with GeoJSON pre-computed:
 
 ```
 warning_id (uuid = nav_warnings.id), canonical_id, navarea, title,
-area_text, categories, status, triage_tier, data_quality,
+area_text, categories, severity, status, triage_tier, data_quality,
 valid_from, valid_to, radio_frequencies, space_launch_mission,
 geom_id, zone_label, feature_type, buffer_nm, corridor_half_width_nm,
 altitude_floor_m, altitude_ceiling_fl,
@@ -112,7 +112,7 @@ geojson_blob   -- JSONB from ST_AsGeoJSON, ready for Leaflet
 ### 3.2 Secondary: `public.nav_warnings_review_queue` view
 
 Tier B, non-cancelled warnings (admin triage UI):
-`id, canonical_id, navarea, title, area_text, categories, status,
+`id, canonical_id, navarea, title, area_text, categories, severity, status,
 triage_tier, data_quality, parsing_method, qa_flags, unplotted_reason,
 duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at`.
 
@@ -139,9 +139,11 @@ duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at`.
 3. **Navarea normalization:** backend stores `NAVAREA XI` / `NAVAREA BALTIC`;
    strip the `NAVAREA ` prefix and uppercase remainder to get the dropdown
    id (`XI`, `BALTIC`). Add one shared helper; keep dropdown ids unchanged.
-4. **Categories/severity:** read `categories` (TEXT[] → PostgREST returns a
-   JSON array). Map to UI chips; replace `severity`/`risk_level` sorting
-   with triage_tier/data_quality or drop it.
+4. **Categories, severity and triage are separate:** read `categories`
+   (TEXT[] → PostgREST returns a JSON array) for hazard type and `severity`
+   (`critical|high|moderate`) for maritime risk. `triage_tier` and
+   `data_quality` describe parsing/verification only; never substitute
+   them for severity.
 5. **Dates:** `issued_at`/created_at for "issued"; `valid_from`/`valid_to`
    may be NULL — treat null `valid_to` as "in force until cancelled".
    Expiry filter: `status='active' AND (valid_to IS NULL OR valid_to > now())`.
@@ -161,7 +163,7 @@ duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at`.
     `SRID=4326;...` EWKT into `nav_warning_geometries` — ideally via the
     `upsert_nav_warning` RPC to stay atomic. Do NOT write
     `latitude/longitude/spatial/category` columns (they do not exist).
-11. **Filter columns that exist:** `navarea`, `status`, `triage_tier`,
+11. **Filter columns that exist:** `navarea`, `status`, `severity`, `triage_tier`,
     `categories` (use `cs`/`ov` PostgREST array operators), `valid_from`,
     `valid_to`, `source_id`. All indexed except categories.
 
@@ -171,14 +173,14 @@ duplicate_of_id, raw_text, valid_from, valid_to, created_at, updated_at`.
 // Map layer
 const { data } = await supabase
   .from('nav_warnings_active_spatial')
-  .select('warning_id, canonical_id, navarea, title, area_text, categories,'
+  .select('warning_id, canonical_id, navarea, title, area_text, categories, severity,'
         + ' valid_from, valid_to, feature_type, zone_label, buffer_nm, geojson_blob');
 // → group rows by canonical_id, render each geojson_blob with L.geoJSON
 
 // Databank list (all statuses)
 const { data } = await supabase
   .from('nav_warnings')
-  .select('id, canonical_id, navarea, title, area_text, raw_text, categories,'
+  .select('id, canonical_id, navarea, title, area_text, raw_text, categories, severity,'
         + ' status, triage_tier, data_quality, valid_from, valid_to, issued_at, updated_at')
   .order('updated_at', { ascending: false });
 

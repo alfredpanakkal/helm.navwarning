@@ -12,8 +12,8 @@ export type WarningConfidenceBand = 'FULL_CONFIDENCE' | 'HIGH_CONFIDENCE' | 'NEE
 /**
  * Standardized v2 data-confidence banding, aligned with the map marker bands
  * (full confidence = 1, high >= 0.8, otherwise needs review). This is
- * parser triage confidence — NOT maritime hazard severity; the backend
- * contract has no severity field.
+ * parser triage confidence — NOT maritime hazard severity. The backend
+ * stores canonical severity separately; this helper remains confidence-only.
  */
 export function warningConfidence(w: NavWarning): WarningConfidenceBand {
   const c = w.extraction_confidence;
