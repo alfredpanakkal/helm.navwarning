@@ -68,6 +68,8 @@
       note.textContent = step.note;
       count.textContent = (current + 1) + ' of ' + steps.length;
       progress.style.width = (((current + 1) / steps.length) * 100) + '%';
+      var progressTrack = progress.parentNode;
+      if (progressTrack) progressTrack.setAttribute('aria-valuenow', String(current + 1));
       back.disabled = current === 0;
       next.textContent = current === steps.length - 1 ? 'Finish' : 'Next';
       dots.forEach(function (dot, index) {
@@ -109,7 +111,7 @@
       if (current < steps.length - 1) {
         current += 1;
         render();
-        title.focus && title.focus();
+        title.focus();
       } else {
         closeGuide(true);
       }
