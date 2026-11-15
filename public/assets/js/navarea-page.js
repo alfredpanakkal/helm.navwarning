@@ -19,6 +19,7 @@
   var busy = false;
   var hasSnapshot = false;
   var snapshotRows = [];
+  var snapshotGeneratedAt = '';
   var liveAvailable = false;
 
   function esc(s) {
@@ -93,18 +94,18 @@
     });
     hasSnapshot = true;
     snapshotRows = rows;
+    snapshotGeneratedAt = fmtDate(snapshot.generatedAt) || 'an earlier build';
     renderRows(rows.slice(0, PAGE_SIZE), false);
     offset = Math.min(rows.length, PAGE_SIZE);
     loadMoreBtn.hidden = rows.length <= PAGE_SIZE;
     emptyEl.hidden = true; // A zero snapshot is not proof that the live database is empty.
     if (rows.length) {
       setCount(rows.length);
-      setStatus('Showing saved warning snapshot from ' + (fmtDate(snapshot.generatedAt) || 'an earlier build') + '. Checking live data…');
+      setStatus('Showing saved warning snapshot from ' + (snapshotGeneratedAt) + '. Checking live data…');
     } else {
       countEl.textContent = 'Checking live data…';
       setStatus('No warnings in the saved snapshot. Checking the live database…');
     }
-    if (snapshot.generatedAt) updatedEl.textContent = fmtDate(snapshot.generatedAt);
     return true;
   }
 
@@ -132,7 +133,7 @@
 
   function showRefreshError() {
     errorEl.textContent = hasSnapshot
-      ? 'Live data could not be refreshed. Showing the saved snapshot from ' + (updatedEl.textContent || 'the last successful build') + '. Verify current broadcasts with the official coordinator.'
+      ? 'Live data could not be refreshed. Showing the saved snapshot from ' + (snapshotGeneratedAt || 'the last successful build') + '. Verify current broadcasts with the official coordinator.'
       : 'The saved warning snapshot is unavailable and the live warning list could not be loaded. Retry later or check the official coordinator broadcasts.';
     errorEl.hidden = false;
     setStatus(hasSnapshot ? 'Offline copy shown · live refresh failed' : 'Warning data is temporarily unavailable');
