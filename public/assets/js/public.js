@@ -1363,23 +1363,68 @@ function bindProgressiveFeatureInteractions(layer, w, summaryText, color) {
 }
 
 // ═══════════ POLYMORPHIC PLOTTING ENGINE ═══════════
-function getWarningColor(w) {
-  const text = ((w.title || '') + ' ' + (w.raw_text || '') + ' ' + (w.category || '')).toUpperCase();
-  const cats = Array.isArray(w.categories) ? w.categories.join(' ').toLowerCase() : (w.category || '').toLowerCase();
+function getWarningCategories(w) {
+  if (Array.isArray(w?.categories)) return w.categories.map(value => String(value || '').trim().toLowerCase()).filter(Boolean);
+  if (typeof w?.categories === 'string' && w.categories.trim()) return [w.categories.trim().toLowerCase()];
+  return [String(w?.category || w?.hazard_category || '').trim().toLowerCase()].filter(Boolean);
+}
 
-  if (w.severity === 'critical' || /FIRING|GUNNERY|MISSILE|ROCKET|UXO|EXPLOSIVE|MINE|BOMBING/i.test(text) || cats.includes('military')) {
-    return '#dc2626'; // --critical
-  }
-  if (w.severity === 'high' || /DANGER\s+AREA|RESTRICTED|DRIFTING|CONTAINER|DERELICT|COLLISION/i.test(text) || cats.includes('drifting')) {
-    return '#ea580c'; // --high
-  }
-  if (/RIG|PLATFORM|DRILLSHIP|MODU/i.test(text) || cats.includes('offshore')) {
-    return '#059669'; // --active (platform safety)
-  }
-  if (/CABLE|PIPELINE|BUOY|LIGHT|ATON|BEACON/i.test(text) || cats.includes('aton') || cats.includes('subsea')) {
-    return '#0d9488'; // --verified
-  }
-  return '#64748b'; // --neutral
+function getWarningSeverity(w) {
+  if (['critical', 'high', 'moderate'].includes(w?.severity)) return w.severity;
+  const text = [w?.title, w?.raw_text, w?.category].filter(Boolean).join(' ').toUpperCase();
+  const cats = getWarningCategories(w);
+  if (
+    /\b(DRIFTING MINE|SEA MINE|DISTRESS ALERT|SEARCH AND RESCUE|MAN OVERBOARD|PERSON OVERBOARD|GUNNERY|FIRING EXERCISE|MILITARY FIRING|MISSILE FIRING|NAVAL FIRING|ROCKET LAUNCH|TSUNAMI|CYCLONE|TYPHOON|HURRICANE)\b/i.test(text) ||
+    cats.some(category => ['sar', 'mil_fire', 'weather'].includes(category))
+  ) return 'critical';
+  if (
+    /\b(UNEXPLODED ORDNANCE|ORDNANCE DISPOSAL|EXPLOSIVE ORDNANCE|SECURITY ADVISORY|PIRACY|SUSPICIOUS SKIFF|ATTACK|BOARDED|DERELICT|ADRIFT|DRIFTING VESSEL|DRIFTING BARGE|DRIFTING CONTAINER|ICEBERG|SEA ICE|DANGEROUS WRECK|SUNKEN WRECK|SUBMERGED OBSTRUCTION|COLLISION|UNLIT|DAMAGED|DESTROYED|OFF STATION|UNDER TOW|ALERT)\b/i.test(text) ||
+    cats.some(category => ['uxo', 'security', 'drift', 'drifting', 'ice', 'wreck'].includes(category))
+  ) return 'high';
+  if (cats.includes('aton') && /\b(UNLIT|DAMAGED|DESTROYED|OFF STATION|WITHDRAWN)\b/i.test(text)) return 'high';
+  if (cats.includes('rig') && /\b(ALERT|UNDER TOW|ADRIFT)\b/i.test(text)) return 'high';
+  return 'moderate';
+}
+
+function getWarningColor(w) {
+  const severity = getWarningSeverity(w);
+  if (severity === 'critical') return '#B42318';
+  if (severity === 'high') return '#8C5208';
+  return '#2F6B4F';
+}
+
+function getWarningPrimarySymbol(w) {
+  const aliases = {
+    mil_fire: 'military', uxo: 'military', military: 'military', military_ops: 'military', 'mines area': 'military',
+    drift: 'drifting', drifting: 'drifting',
+    aton: 'aton',
+    cable: 'subsea', survey: 'subsea', rig: 'subsea', subsea: 'subsea', offshore: 'subsea', 'drilling operations': 'subsea',
+    wreck: 'wreck', security: 'wreck',
+    sar: 'general', weather: 'general', ice: 'general', ops: 'general', service_status: 'general',
+    general_chart: 'general', general: 'general', electronic: 'general', restricted: 'general', 'in force': 'general'
+  };
+  const category = getWarningCategories(w)[0] || 'general';
+  return aliases[category] || 'general';
+}
+
+const WARNING_SYMBOL_SVG = {
+  general: '<polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5" fill="currentColor"/>',
+  military: '<circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1.8" fill="none"/><line x1="12" y1="2" x2="12" y2="7" stroke="currentColor" stroke-width="2"/><line x1="12" y1="17" x2="12" y2="22" stroke="currentColor" stroke-width="2"/><line x1="2" y1="12" x2="7" y2="12" stroke="currentColor" stroke-width="2"/><line x1="17" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>',
+  drifting: '<path d="M3 15 L21 15 L18 19 L6 19 Z" fill="currentColor"/><path d="M12 4 L12 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 6 L17 10 L12 11 Z" fill="currentColor"/>',
+  aton: '<polygon points="9,20 15,20 13,8 11,8" stroke="currentColor" stroke-width="1.5" fill="currentColor"/><rect x="10" y="5" width="4" height="3" fill="currentColor"/><polygon points="12,2 8,5 16,5" fill="currentColor"/><line x1="4" y1="6" x2="7" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="20" y1="6" x2="17" y2="7" stroke="currentColor" stroke-width="1.5"/>',
+  subsea: '<circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M4 17 Q8 10 12 12 T20 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>',
+  wreck: '<line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" stroke-width="2"/><path d="M6 18 Q12 12 18 18" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/><line x1="9" y1="11" x2="15" y2="11" stroke="currentColor" stroke-width="2"/>'
+};
+
+function createWarningMarkerIcon(w) {
+  const symbol = getWarningPrimarySymbol(w);
+  const severityColor = getWarningColor(w);
+  const html = '<div role="img" aria-label="' + symbol + ' warning" title="' + symbol + ' warning" ' +
+    'style="width:26px;height:26px;border-radius:50%;background:#14161c;border:2px solid ' + severityColor + ';' +
+    'color:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box;box-shadow:0 2px 6px rgba(0,0,0,.4)">' +
+    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    WARNING_SYMBOL_SVG[symbol] + '</svg></div>';
+  return L.divIcon({ className: 'nw-public-warning-marker', html, iconSize: [26, 26], iconAnchor: [13, 13] });
 }
 
 function buildPopupHtml(w, label, geomType) {
@@ -1413,7 +1458,7 @@ function plotWarning(w) {
   const isMobile = document.body.classList.contains('is-mobile');
   const color = getWarningColor(w);
   const wid = w.canonical_id || w.warning_id || w.id;
-  const isMilitary = color === '#dc2626';
+  const isMilitary = getWarningSeverity(w) === 'critical';
 
   w._layers = [];
   w._bounds = null;
@@ -1604,39 +1649,15 @@ function plotWarning(w) {
         const pos = [lat, lng];
         allCoordsForBounds.push(pos);
 
-        const isRig = geom.is_rig || /RIG|PLATFORM|MODU|DRILLSHIP/i.test(label) || /RIG|PLATFORM/i.test(w.category || '');
+        const primarySymbol = getWarningPrimarySymbol(w);
+        const severity = getWarningSeverity(w);
+        const pointMarker = L.marker(pos, { icon: createWarningMarkerIcon(w) });
+        const summaryText = `${label} · ${primarySymbol} · ${severity}`;
+        bindProgressiveFeatureInteractions(pointMarker, w, summaryText, color);
 
-        if (isRig) {
-          // Special offshore platform icon
-          const rigIcon = L.divIcon({
-            className: 'nw-rig-wrap',
-            html: `<div class="nw-rig-pin" role="img" aria-label="${label}" title="${label}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2.2" aria-hidden="true" focusable="false"><path d="M12 2L4 22h16L12 2z"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="6" y1="17" x2="18" y2="17"/></svg></div>`,
-            iconSize: [22, 22],
-            iconAnchor: [11, 11]
-          });
-          const rigMarker = L.marker(pos, { icon: rigIcon });
-          const summaryText = `${label} · Offshore Platform`;
-          bindProgressiveFeatureInteractions(rigMarker, w, summaryText, '#059669');
-
-          if (pointsLayer) pointsLayer.addLayer(rigMarker);
-          w._layers.push(rigMarker);
-          if (!w._primaryLayer) w._primaryLayer = rigMarker;
-        } else {
-          const pointMarker = L.circleMarker(pos, {
-            radius: isMobile ? 8 : 6,
-            fillColor: color,
-            color: '#ffffff',
-            weight: 2,
-            fillOpacity: 0.95,
-          });
-
-          const summaryText = `${label} · Point Hazard`;
-          bindProgressiveFeatureInteractions(pointMarker, w, summaryText, color);
-
-          if (pointsLayer) pointsLayer.addLayer(pointMarker);
-          w._layers.push(pointMarker);
-          if (!w._primaryLayer) w._primaryLayer = pointMarker;
-        }
+        if (pointsLayer) pointsLayer.addLayer(pointMarker);
+        w._layers.push(pointMarker);
+        if (!w._primaryLayer) w._primaryLayer = pointMarker;
       } catch (ptErr) {
         console.warn('Point plot notice:', ptErr);
       }

@@ -70,10 +70,14 @@ export function toPrimarySymbol(category?: HazardCategory | string | null): Prim
     // 1. Military Operations & UXO
     case 'mil_fire':
     case 'uxo':
+    case 'military':
+    case 'military_ops':
+    case 'mines area':
       return 'military';
 
     // 2. Drifting Hazards & Derelicts
     case 'drift':
+    case 'drifting':
       return 'drifting';
 
     // 3. Aids to Navigation (AtoN)
@@ -84,6 +88,9 @@ export function toPrimarySymbol(category?: HazardCategory | string | null): Prim
     case 'cable':
     case 'survey':
     case 'rig':
+    case 'subsea':
+    case 'offshore':
+    case 'drilling operations':
       return 'subsea';
 
     // 5. Wrecks, Submerged Obstructions & Security Advisories
@@ -93,6 +100,9 @@ export function toPrimarySymbol(category?: HazardCategory | string | null): Prim
 
     // 6. General Navigational Hazards, Weather, Ice, SAR & Operations
     case 'general_chart':
+    case 'general':
+    case 'electronic':
+    case 'in force':
     case 'ops':
     case 'service_status':
     case 'restricted':

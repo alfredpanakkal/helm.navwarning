@@ -505,6 +505,20 @@ body.is-mobile .site-footer{padding-bottom:calc(24px + var(--safe-bottom))}
 .interrogate-popup-title{font:500 12px/1.45 system-ui,-apple-system,sans-serif;color:var(--text);overflow-wrap:anywhere}
 .interrogate-popup-empty{padding:14px 12px;font:500 12px/1.5 system-ui,-apple-system,sans-serif;color:var(--text-muted,#5b6472)}
 body.interrogate-mode-active .leaflet-container{cursor:crosshair}
+
+/* Warning symbology legend: category glyphs and severity rings are independent. */
+.warning-map-legend{position:absolute;left:10px;bottom:14px;z-index:520;color:var(--text);font:11px system-ui,-apple-system,sans-serif}
+.warning-map-legend>summary{list-style:none;cursor:pointer;padding:6px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface);box-shadow:0 1px 5px rgba(0,0,0,.14);font-weight:650}
+.warning-map-legend>summary::-webkit-details-marker{display:none}
+.warning-map-legend[open]>summary{border-radius:7px 7px 0 0}
+.warning-map-legend-panel{width:min(270px,calc(100vw - 32px));padding:9px 10px;border:1px solid var(--border);border-top:0;border-radius:0 7px 7px 7px;background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,.14)}
+.warning-map-legend-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 10px}
+.warning-map-legend-item{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.warning-map-legend-item svg{width:16px;height:16px;flex:none;color:var(--text)}
+.warning-map-legend-divider{margin:9px 0 7px;border:0;border-top:1px solid var(--border)}
+.warning-map-severity{display:flex;align-items:center;gap:6px;margin-top:5px}
+.warning-map-severity-dot{width:11px;height:11px;border-radius:50%;border:2px solid;box-sizing:border-box;flex:none}
+@media(max-width:640px){.warning-map-legend{bottom:calc(10px + env(safe-area-inset-bottom));left:8px}.warning-map-legend-panel{font-size:10px}}
 </style>
 </head>
 <body class="tab-map-active">
@@ -584,6 +598,24 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   </p>
   <div class="map-container">
     <div id="map"></div>
+    <details class="warning-map-legend" id="warningMapLegend">
+      <summary>Warning symbols &amp; severity</summary>
+      <div class="warning-map-legend-panel">
+        <div class="warning-map-legend-grid" aria-label="Warning category symbols">
+          <div class="warning-map-legend-item"><svg viewBox="0 0 24 24" fill="none"><polygon points="12,2 14.5,9.5 22,12 14.5,14.5 12,22 9.5,14.5 2,12 9.5,9.5" fill="currentColor"/></svg>General</div>
+          <div class="warning-map-legend-item"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v5m0 10v5M2 12h5m10 0h5" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>Military</div>
+          <div class="warning-map-legend-item"><svg viewBox="0 0 24 24" fill="none"><path d="M3 15h18l-3 4H6z" fill="currentColor"/><path d="M12 4v9m0-7 5 4h-5z" stroke="currentColor" stroke-width="2"/></svg>Drifting</div>
+          <div class="warning-map-legend-item"><svg viewBox="0 0 24 24" fill="none"><path d="M9 20h6L13 8h-2z" fill="currentColor"/><rect x="10" y="5" width="4" height="3" fill="currentColor"/><path d="M12 2 8 5h8zM4 6l3 1m13-1-3 1" stroke="currentColor" stroke-width="1.5"/></svg>AtoN</div>
+          <div class="warning-map-legend-item"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M4 17q4-7 8-5t8-5" stroke="currentColor" stroke-width="2"/></svg>Subsea / offshore</div>
+          <div class="warning-map-legend-item"><svg viewBox="0 0 24 24" fill="none"><path d="M4 18h16M6 18q6-6 12 0M12 8v8m-3-5h6" stroke="currentColor" stroke-width="2"/></svg>Wreck / obstruction</div>
+        </div>
+        <hr class="warning-map-legend-divider">
+        <div class="warning-map-severity"><span class="warning-map-severity-dot" style="border-color:#B42318"></span>Critical</div>
+        <div class="warning-map-severity"><span class="warning-map-severity-dot" style="border-color:#8C5208"></span>High</div>
+        <div class="warning-map-severity"><span class="warning-map-severity-dot" style="border-color:#2F6B4F"></span>Moderate</div>
+        <div style="margin-top:7px;color:var(--text-muted);font-size:10px">Symbol = warning type · Ring = severity</div>
+      </div>
+    </details>
 
     <!-- Floating Map Controls Toggle Chip (reveals / collapses top controls) -->
     <button type="button" class="map-controls-chip is-expanded" id="mapControlsChip"

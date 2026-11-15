@@ -40,10 +40,11 @@ import { NAVAREA_ZONE_LIST, NAVAREA_ZONES_BY_ID } from '../utils/navareaZones';
 import { MAP_PANES, BASE_LAYERS, OVERLAY_LAYERS } from '../config/mapLayers';
 import { useMapLayers, WarningSeverityLevel } from '../hooks/useMapLayers';
 import { WarningHierarchyLines } from './WarningItemV2';
-import { classifyWarning } from '../parsers/warningClassifier';
 import { extractGeometry } from '../parsers/geometryExtractor';
 import { renderHazardBadgeHtml, renderPrimarySymbolSvg } from '../utils/hazardIcons';
-import { toPrimarySymbol, PRIMARY_SYMBOLS, PrimarySymbol } from '../utils/symbolMapping';
+import { PRIMARY_SYMBOLS, PrimarySymbol } from '../utils/symbolMapping';
+import { resolveWarningVisuals } from '../utils/warningVisuals';
+import type { HazardCategory } from '../types/navarea';
 import { parseBerthAndRadius } from '../parsers/berthParser';
 import {
   computeDistanceNm,
@@ -316,14 +317,14 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
           markers.forEach((m) => {
             const w = (m as any).warningData as NavWarning | undefined;
             if (w) {
-              const cls = classifyWarning(w.raw_text || w.area_text || '');
-              if (cls.displayStyle === 'critical' && highestRank < 3) {
+              const visuals = resolveWarningVisuals(w.categories, w.severity, w.raw_text || w.area_text || '');
+              if (visuals.severity === 'critical' && highestRank < 3) {
                 ringColor = '#B42318'; // Critical (--sev-critical)
                 highestRank = 3;
-              } else if (cls.displayStyle === 'high' && highestRank < 2) {
+              } else if (visuals.severity === 'high' && highestRank < 2) {
                 ringColor = '#8C5208'; // High (--sev-high)
                 highestRank = 2;
-              } else if (cls.displayStyle === 'active' && highestRank < 1) {
+              } else if (visuals.severity === 'moderate' && highestRank < 1) {
                 ringColor = '#2F6B4F'; // Moderate / Active (--accent)
                 highestRank = 1;
               }
@@ -613,7 +614,12 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
       }
 
       const isIsolated = isolatedWarning?.warning_id === w.warning_id;
-      const classification = classifyWarning(w.raw_text || w.area_text || '');
+      const visuals = resolveWarningVisuals(w.categories, w.severity, w.raw_text || w.area_text || '');
+      const classification = {
+        category: visuals.category as HazardCategory,
+        severity: visuals.legacySeverity,
+        displayStyle: visuals.displayStyle,
+      };
       const statedBerth = parseBerthAndRadius(w.raw_text || '');
       // 2026-10-26: Tier B / INFERRED warnings render dashed amber "Unverified"
       // — their geometry is provisional (AI escalation or a NAVAREA move copy).
@@ -637,7 +643,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
 
       // Render Point Marker only if center point is NOT suppressed
       if (!hideCenterPoint && activeMarkerLayer) {
-        const primarySymbol = toPrimarySymbol(classification.category);
+        const primarySymbol = visuals.symbol;
         const badgeHtml = renderHazardBadgeHtml(
           primarySymbol,
           classification.displayStyle,
@@ -2139,13 +2145,13 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
                   const isHidden = hiddenWarningIds.has(w.warning_id);
                   const isExpanded = expandedWarningId === w.warning_id;
                   const coastal = isCoastalWarning(w);
-                  const classification = classifyWarning(w.raw_text || w.area_text || '');
+                  const visuals = resolveWarningVisuals(w.categories, w.severity, w.raw_text || w.area_text || '');
                   const sevColor =
-                    classification.displayStyle === 'critical'
-                      ? '#dc2626'
-                      : classification.displayStyle === 'high'
-                      ? '#ea580c'
-                      : '#059669';
+                    visuals.severity === 'critical'
+                      ? '#B42318'
+                      : visuals.severity === 'high'
+                      ? '#8C5208'
+                      : '#2F6B4F';
 
                   return (
                     <div

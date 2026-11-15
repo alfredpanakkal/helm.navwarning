@@ -8,9 +8,13 @@ describe('symbolMapping — 6 Primary Symbol System', () => {
     // 1. Military
     expect(toPrimarySymbol('mil_fire')).toBe('military');
     expect(toPrimarySymbol('uxo')).toBe('military');
+    expect(toPrimarySymbol('military')).toBe('military');
+    expect(toPrimarySymbol('military_ops')).toBe('military');
+    expect(toPrimarySymbol('mines area')).toBe('military');
 
     // 2. Drifting
     expect(toPrimarySymbol('drift')).toBe('drifting');
+    expect(toPrimarySymbol('drifting')).toBe('drifting');
 
     // 3. AtoN
     expect(toPrimarySymbol('aton')).toBe('aton');
@@ -19,6 +23,9 @@ describe('symbolMapping — 6 Primary Symbol System', () => {
     expect(toPrimarySymbol('cable')).toBe('subsea');
     expect(toPrimarySymbol('survey')).toBe('subsea');
     expect(toPrimarySymbol('rig')).toBe('subsea');
+    expect(toPrimarySymbol('subsea')).toBe('subsea');
+    expect(toPrimarySymbol('offshore')).toBe('subsea');
+    expect(toPrimarySymbol('drilling operations')).toBe('subsea');
 
     // 5. Wreck / Obstruction
     expect(toPrimarySymbol('wreck')).toBe('wreck');
@@ -28,6 +35,8 @@ describe('symbolMapping — 6 Primary Symbol System', () => {
     expect(toPrimarySymbol('general_chart')).toBe('general');
     expect(toPrimarySymbol('ops')).toBe('general');
     expect(toPrimarySymbol('service_status')).toBe('general');
+    expect(toPrimarySymbol('electronic')).toBe('general');
+    expect(toPrimarySymbol('in force')).toBe('general');
     expect(toPrimarySymbol('restricted')).toBe('general');
     expect(toPrimarySymbol('sar')).toBe('general');
     expect(toPrimarySymbol('weather')).toBe('general');
