@@ -153,10 +153,18 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#dataSubtitle')).toContainText('1 published warning', { timeout: 30_000 });
     await expect(page.locator('#dataCacheStatus')).toBeHidden();
-    const cacheDiagnostics = await page.evaluate(async () => ({
-      indexedDBAvailable: !!window.indexedDB,
-      databases: typeof indexedDB.databases === 'function' ? await indexedDB.databases() : null,
-    }));
+    const cacheDiagnostics = await page.evaluate(async () => {
+      const databases = typeof indexedDB.databases === 'function' ? await indexedDB.databases() : null;
+      const db = await new Promise<IDBDatabase | null>((resolve) => {
+        const request = indexedDB.open('helm-warning-public-cache');
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => resolve(null);
+        request.onblocked = () => resolve(null);
+      });
+      const stores = db ? Array.from(db.objectStoreNames) : [];
+      db?.close();
+      return { indexedDBAvailable: !!window.indexedDB, databases, stores };
+    });
     console.log('[public cache acceptance] IndexedDB diagnostics', JSON.stringify(cacheDiagnostics));
     console.log('[public cache acceptance] mocked API request counts', JSON.stringify({
       spatial: state.spatialRequests || 0,
