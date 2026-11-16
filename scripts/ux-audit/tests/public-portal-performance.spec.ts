@@ -157,6 +157,16 @@ test.describe('public NAVAREA snapshot cache', () => {
 
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#dataSubtitle')).toContainText('1 published warning', { timeout: 30_000 });
+    const apiDiagnostics = await page.evaluate(async () => {
+      const result = await window.hwDb.fetchActiveWarnings();
+      return {
+        source: result.source,
+        complete: result.complete,
+        count: Array.isArray(result.data) ? result.data.length : null,
+        keys: Object.keys(result),
+      };
+    });
+    console.log('[public cache acceptance] fetch result diagnostics', JSON.stringify(apiDiagnostics));
     await expect(page.locator('#dataCacheStatus')).toBeHidden();
     const cacheDiagnostics = await page.evaluate(async () => {
       const databases = typeof indexedDB.databases === 'function' ? await indexedDB.databases() : null;
