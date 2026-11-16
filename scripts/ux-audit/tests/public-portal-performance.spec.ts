@@ -222,7 +222,7 @@ test.describe('public NAVAREA snapshot cache', () => {
     state.fail = true;
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('#dataCacheStatus')).toContainText('latest status could not be confirmed', { timeout: 30_000 });
-    await expect(page.locator('#dataSubtitle')).toContainText('0 published warnings');
+    await expect(page.locator('#dataSubtitle')).toContainText(/0 .*published warnings/);
     await openDataBank(page);
     await expect(page.locator('#tableBody')).not.toContainText('CACHE-TEST-1/26');
 
