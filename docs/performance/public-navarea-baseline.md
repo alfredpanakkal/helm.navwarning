@@ -53,7 +53,7 @@ Source: supplied HAR export for test `6878a88e86400000`.
 - The HAR contains the document, CSS, Leaflet JS, public JS, onboarding JS, the Supabase UMD library and favicon.
 - It contains **no Supabase PostgREST data request and no map tile request**. It therefore measures the static shell and assets, not the asynchronous warning/map-ready experience.
 - The document and same-origin assets were Vercel cache HITs with `public, max-age=0, must-revalidate`; the Supabase UMD library was served from unpkg with a one-year cache lifetime.
-- The measured document host was `helmwarning.vercel.app`, whereas the PSI/DebugBear target was `navarea.helmology.com`. Treat them as separate origins until deployment equivalence is verified.
+- The measured document host was `helmwarning.vercel.app`, whereas the PSI/DebugBear target was `navarea.helmology.com`. A live scrape on 2026-11-16 confirmed both return HTTP 200 and serve the same public `/assets/js/public.js` content (129,723 characters after normalizing host references); both HTML documents also advertise `https://navarea.helmology.com/` as the canonical URL. This verifies the public JavaScript bundle is identical across the two production hostnames. For controlled before/after testing, still use one hostname consistently to avoid edge-routing differences.
 
 ## Verified code findings
 
