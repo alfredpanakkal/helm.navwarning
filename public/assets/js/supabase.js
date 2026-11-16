@@ -309,10 +309,12 @@ async function readPublicWarningSnapshot() {
 }
 
 async function writePublicWarningSnapshot(data, savedAt = new Date().toISOString()) {
+  // Rendering attaches Leaflet layers and callbacks to warning objects.
+  // Persist a detached JSON-safe copy so IndexedDB never sees that live graph.
   const snapshot = {
     schemaVersion: PUBLIC_CACHE_SCHEMA,
     savedAt,
-    data,
+    data: JSON.parse(JSON.stringify(data)),
   };
   memoryPublicSnapshot = snapshot;
 

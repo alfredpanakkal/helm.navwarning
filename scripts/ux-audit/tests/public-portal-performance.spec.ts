@@ -320,7 +320,7 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.locator('#searchInput').fill('');
 
     await page.evaluate(() => {
-      (window as any).openWarningDrawer({
+      (window as any).openWarningDetails({
         id: '44444444-4444-4444-8444-444444444444',
         warning_id: '44444444-4444-4444-8444-444444444444',
         canonical_id: 'FRESH-GEOMETRY-2/26',
