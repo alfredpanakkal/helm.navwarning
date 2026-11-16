@@ -162,6 +162,7 @@ test.describe('public NAVAREA snapshot cache', () => {
       spatial: state.spatialRequests || 0,
       text: state.textRequests || 0,
     }));
+    console.log('[public cache acceptance] stored snapshot record', JSON.stringify(await readPublicSnapshot(page)));
     await openDataBank(page);
     await expect(page.locator('#tableBody')).toContainText('CACHE-TEST-1/26');
 
