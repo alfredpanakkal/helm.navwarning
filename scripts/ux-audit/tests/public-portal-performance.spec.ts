@@ -158,7 +158,7 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#dataSubtitle')).toContainText('1 published warning', { timeout: 30_000 });
     const apiDiagnostics = await page.evaluate(async () => {
-      const result = await window.hwDb.fetchActiveWarnings();
+      const result = await (window as any).hwDb.fetchActiveWarnings();
       return {
         source: result.source,
         complete: result.complete,
