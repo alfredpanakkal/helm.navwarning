@@ -54,6 +54,11 @@ const bulletin = (): Row => ({
 function watchPageErrors(page: Page) {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(String(error)));
+  page.on('console', (message) => {
+    if (message.type() === 'warning' || message.type() === 'error') {
+      console.log(`[public portal browser ${message.type()}] ${message.text()}`);
+    }
+  });
   return errors;
 }
 
