@@ -9,6 +9,8 @@ interface PublicApiState {
   textRows: Row[];
   fail: boolean;
   delayMs: number;
+  spatialRequests?: number;
+  textRequests?: number;
 }
 
 const publicWarning = (): Row => ({
@@ -80,6 +82,8 @@ async function installPublicApiMock(page: Page, state: PublicApiState) {
     }
 
     const table = new URL(request.url()).pathname.split('/').pop();
+    if (table === 'nav_warnings_active_spatial') state.spatialRequests = (state.spatialRequests || 0) + 1;
+    if (table === 'nav_warnings') state.textRequests = (state.textRequests || 0) + 1;
     const rows = table === 'nav_warnings_active_spatial'
       ? state.spatialRows
       : table === 'nav_warnings'
@@ -149,6 +153,15 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#dataSubtitle')).toContainText('1 published warning', { timeout: 30_000 });
     await expect(page.locator('#dataCacheStatus')).toBeHidden();
+    const cacheDiagnostics = await page.evaluate(async () => ({
+      indexedDBAvailable: !!window.indexedDB,
+      databases: typeof indexedDB.databases === 'function' ? await indexedDB.databases() : null,
+    }));
+    console.log('[public cache acceptance] IndexedDB diagnostics', JSON.stringify(cacheDiagnostics));
+    console.log('[public cache acceptance] mocked API request counts', JSON.stringify({
+      spatial: state.spatialRequests || 0,
+      text: state.textRequests || 0,
+    }));
     await openDataBank(page);
     await expect(page.locator('#tableBody')).toContainText('CACHE-TEST-1/26');
 
