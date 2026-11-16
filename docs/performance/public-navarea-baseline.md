@@ -75,12 +75,13 @@ Source: supplied HAR export for test `6878a88e86400000`.
 - Preserve Data Bank full-text search, all 21 NAVAREAs, multi-geometry grouping, warning detail loading, filters, and manual refresh.
 - No service worker, backend/schema migration, new Vercel function, hosting migration, framework migration, or redesign is in scope.
 
-## Validation still required
+## Validation status
 
-- Obtain comparable mobile/desktop before-and-after runs against the same production hostname and test profile.
-- Measure the actual PostgREST request(s), row counts, transfer sizes, and warning-ready time; Pingdom's supplied HAR cannot provide these.
-- Run `npm run lint`, `npm test`, and the relevant Playwright smoke tests in CI/maintainer environment.
-- Manually verify cached startup, successful full-snapshot replacement, failed refresh fallback, cancellation removal after refresh, offline/no-cache behaviour, and absence of any admin/review-queue data in IndexedDB.
+- The GitHub Actions workflow now runs TypeScript, Vitest, the Vite bundle build, and the Playwright browser smoke suite (Chromium). The latest run is pending; record its final result before merge.
+- A dedicated public-portal Playwright suite covers first visit, repeat-visit cached rendering, Tier-B/Tier-C exclusion from IndexedDB, failed-refresh fallback, full-text search, warning details, successful empty-snapshot replacement, and no resurrection after a later failed refresh.
+- The browser suite uses a controlled Supabase REST fixture. It validates application behaviour deterministically; it is not a live production-data or map-tile test.
+- Manual preview verification is still required for offline startup, actual map rendering and all 21 NAVAREAs, mobile/desktop layout, and warning/filter interactions.
+- Obtain comparable mobile/desktop before-and-after runs against the same production hostname and test profile. Measure actual PostgREST request(s), row counts, transfer sizes, and warning-ready time; Pingdom's supplied HAR cannot provide these.
 
 
 ## Changes implemented on `perf/public-navarea-performance`
@@ -94,16 +95,16 @@ The implementation keeps the existing public vanilla-JS + Leaflet portal and the
 - **Freshness UI:** a site-wide status strip labels cached data, shows the last successful client refresh timestamp in UTC, and distinguishes “checking”, “could not confirm”, and partial bulletin-text hydration. The indicator is visible on Map and Data Bank tabs. Cached warning counts and map summaries say “cached” / “last-known in-force”, not “live”.
 - **First-visit guide:** onboarding setup is scheduled for an idle callback (with a bounded timeout) or a short timer fallback; the existing four-step guide and focus/keyboard behaviour remain unchanged.
 - **Connection setup:** added preconnect hints for the configured Supabase project, default OSM tiles, and the default OpenSeaMap seamark overlay; optional Esri layers are not preconnected. No fixed tile is preloaded, and no cache headers were made immutable because the current asset URLs are not content-versioned.
-- **Tests:** expanded the existing Supabase merge parity suite for public-tier filtering, text pagination, memory-cache fallback, and full-snapshot replacement (including removal of a warning absent from the next successful snapshot).
+- **Tests:** expanded the existing Supabase merge parity suite for public-tier filtering, text pagination, memory-cache fallback, and full-snapshot replacement. Added Playwright public-portal scenarios for cached startup, failed refresh, cancellation removal, no resurrection, full-text search, and warning details. GitHub Actions now installs Chromium and runs the browser smoke suite.
 
 ## Review and release status
 
-This branch has been written through the GitHub contents API and the changed files were fetched back from the branch. The fetched files passed a basic mojibake scan. **No local build, browser run, Vitest, TypeScript check, Playwright run, or new PSI/DebugBear measurement has been executed in this environment.** The PR should remain a draft until GitHub CI and maintainer preview checks pass.
+The latest code is committed on `perf/public-navarea-performance`. GitHub CI is now responsible for TypeScript, Vitest, bundle build and Playwright smoke validation; inspect the latest run result before merge. No new PSI/DebugBear measurement has been performed yet.
 
-Before merge, run:
+Before merge:
 
-1. `npm run lint`
-2. `npm test`
-3. `npm run ux:smoke` (including the public map and onboarding flows)
-4. Preview checks for first visit, repeat visit, offline startup, failed refresh, successful full-snapshot replacement, cancelled-warning removal, all NAVAREA filters, full-text search, warning detail loading, and mobile/desktop layouts.
-5. Compare the same mobile PSI/DebugBear profile and hostname against the baseline. Re-run the Pingdom HAR only as a static-shell/network check; it is not a warning-ready or map-ready measurement.
+1. Confirm the latest GitHub Actions run passes, including the new public browser scenarios.
+2. Run the same scenarios against the Vercel preview. The current preview is protected by Vercel authentication, so it has not yet been inspected in an unauthenticated browser.
+3. Verify offline startup, actual map rendering, all NAVAREAs, filters, mobile/desktop layouts and manual refresh.
+4. Compare the same mobile PSI/DebugBear profile and hostname against the baseline. Re-run the Pingdom HAR only as a static-shell/network check; it is not a warning-ready or map-ready measurement.
+5. Resolve the separate Cloudflare `Workers Builds: navarea` failure; the connected Cloudflare API currently returns 403 for build-log retrieval.
