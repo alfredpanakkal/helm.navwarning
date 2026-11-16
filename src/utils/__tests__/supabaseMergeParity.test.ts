@@ -366,14 +366,82 @@ describe('public spatial warning fetch', () => {
     expect(entries[0].spatial.validation_status).toBe('not_present');
   });
 
-  it('does not block the map when optional raw-text hydration fails', async () => {
+  it('shows fresh geometry during incomplete text hydration without replacing the last complete snapshot', async () => {
+    const scenario: Scenario = {
+      spatialRows: [spatialRow()],
+      textResult: {
+        data: [{
+          id: 'uuid-1',
+          raw_text: 'PREVIOUS COMPLETE BULLETIN',
+          issued_at: null,
+          parsing_method: 'RULE',
+          qa_flags: [],
+        }],
+        error: null,
+      },
+    };
+    const loaded = load(scenario);
+    const initial = await loaded.fetchActiveWarnings() as { data: Row[]; source: string; complete: boolean };
+    expect(initial.source).toBe('network');
+    expect(initial.complete).toBe(true);
+    expect(initial.data[0].raw_text).toBe('PREVIOUS COMPLETE BULLETIN');
+
+    scenario.spatialRows = [spatialRow({
+      warning_id: 'uuid-2',
+      canonical_id: 'NEWLY-ISSUED/26',
+      geom_id: 'geom-new',
+      title: 'Newly issued warning',
+    })];
+    scenario.textResult = { data: null, error: { message: 'text unavailable' } };
+
+    const partial = await loaded.fetchActiveWarnings() as { data: Row[]; source: string; complete: boolean };
+    expect(partial.source).toBe('network');
+    expect(partial.complete).toBe(false);
+    expect(partial.data).toHaveLength(1);
+    expect(partial.data[0].canonical_id).toBe('NEWLY-ISSUED/26');
+    expect(partial.data[0].geometries).toHaveLength(1);
+    expect(partial.data[0].raw_text).toBeUndefined();
+
+    // A spatial failure proves partial data did not replace the saved snapshot.
+    scenario.spatialError = { message: 'spatial refresh failed' };
+    const afterSpatialFailure = await loaded.fetchActiveWarnings() as { data: Row[]; source: string };
+    expect(afterSpatialFailure.source).toBe('cache');
+    expect(afterSpatialFailure.data[0].canonical_id).toBe('TEST-1/26');
+    expect(afterSpatialFailure.data[0].raw_text).toBe('PREVIOUS COMPLETE BULLETIN');
+
+    // A complete retry updates the cache with the newly issued warning.
+    scenario.spatialError = null;
+    scenario.textResult = {
+      data: [{
+        id: 'uuid-2',
+        raw_text: 'NEWLY ISSUED COMPLETE BULLETIN',
+        issued_at: null,
+        parsing_method: 'RULE',
+        qa_flags: [],
+      }],
+      error: null,
+    };
+    const recovered = await loaded.fetchActiveWarnings() as { data: Row[]; source: string; complete: boolean };
+    expect(recovered.source).toBe('network');
+    expect(recovered.complete).toBe(true);
+    expect(recovered.data[0].raw_text).toBe('NEWLY ISSUED COMPLETE BULLETIN');
+
+    scenario.spatialError = { message: 'later failure' };
+    const afterRecoveryFailure = await loaded.fetchActiveWarnings() as { data: Row[]; source: string };
+    expect(afterRecoveryFailure.source).toBe('cache');
+    expect(afterRecoveryFailure.data[0].canonical_id).toBe('NEWLY-ISSUED/26');
+  });
+
+  it('marks a successful spatial response with zero text rows as incomplete', async () => {
     const loaded = load({
       spatialRows: [spatialRow()],
-      textResult: { data: null, error: { message: 'text unavailable' } },
+      textResult: { data: [], error: null },
     });
-    const entries = await getEntries(loaded);
-    expect(entries).toHaveLength(1);
-    expect(entries[0].geometries).toHaveLength(1);
+    const result = await loaded.fetchActiveWarnings() as { data: Row[]; complete: boolean };
+    expect(result.complete).toBe(false);
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].raw_text).toBeUndefined();
+    expect(result.data[0].geometries).toHaveLength(1);
   });
 
   it('hydrates Tier-A verification and the explicit issue date from the bulletin', async () => {

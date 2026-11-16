@@ -460,7 +460,7 @@ function fetchActiveWarnings(options = {}) {
     const outcome = await freshPromise;
     refreshSettled = true;
 
-    if (outcome.error || !outcome.value.complete) {
+    if (outcome.error) {
       const cached = await cachedPromise;
       if (cached) {
         if (!cachedRendered && typeof options.onCached === 'function') {
@@ -474,12 +474,16 @@ function fetchActiveWarnings(options = {}) {
           data: cached.data,
           source: 'cache',
           savedAt: cached.savedAt,
-          refreshError: outcome.error?.message || 'Public warning text could not be fully refreshed',
+          refreshError: outcome.error.message || 'Public warning geometry could not be refreshed',
         };
       }
-      if (outcome.error) throw outcome.error;
+      throw outcome.error;
     }
 
+    // Spatial retrieval is authoritative and complete at this point. If only
+    // optional text hydration is incomplete, display the fresh geometry and
+    // disclose the search limitation. Persistence below remains gated on
+    // fresh.complete, preserving the previous complete snapshot.
     const fresh = outcome.value;
     const savedAt = fresh.complete ? new Date().toISOString() : null;
     if (fresh.complete) {

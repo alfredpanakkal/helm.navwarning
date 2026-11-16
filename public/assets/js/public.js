@@ -1,10 +1,17 @@
 // ═══════════ STATE ═══════════
 let warnings = [];
 let publicWarningsAreCached = false;
+let publicWarningTextIncomplete = false;
 
 function setMapWarningBadge(count) {
   const badge = document.getElementById('mapLiveBadge');
-  if (badge) badge.innerHTML = `<span class="dot"></span> ${count} ${publicWarningsAreCached ? 'cached' : 'live'}`;
+  if (!badge) return;
+  const freshnessLabel = publicWarningsAreCached
+    ? 'cached'
+    : publicWarningTextIncomplete
+      ? 'fresh geometry · text incomplete'
+      : 'live';
+  badge.innerHTML = `<span class="dot"></span> ${count} ${freshnessLabel}`;
 }
 
 
@@ -946,7 +953,9 @@ window.openWarningDetails = function(w) {
   const navarea = w.navarea || 'NAVAREA';
   const color = getWarningColor(w);
   const issuedText = formatWarningIssuedText(w);
-  const text = getBulletinText(w) || w.raw_text || 'No raw bulletin text provided.';
+  const text = w.raw_text === undefined
+    ? 'Bulletin text not yet retrieved — full-text search may be incomplete.'
+    : (getBulletinText(w) || 'No raw bulletin text provided.');
   const cats = Array.isArray(w.categories) ? w.categories.join(' · ') : (w.category || 'General');
 
   if (titleEl) {
@@ -2751,6 +2760,7 @@ async function loadWarnings() {
         if (!Array.isArray(cachedData)) return;
         warnings = cachedData;
         publicWarningsAreCached = true;
+        publicWarningTextIncomplete = false;
         cachedRendered = true;
         cachedAt = metadata && metadata.savedAt;
         renderPublicWarningData();
@@ -2769,6 +2779,7 @@ async function loadWarnings() {
       if (!cachedRendered) {
         warnings = result.data;
         publicWarningsAreCached = true;
+        publicWarningTextIncomplete = false;
         renderPublicWarningData();
       }
       setPublicCacheStatus('stale', cachedAt);
@@ -2779,6 +2790,7 @@ async function loadWarnings() {
 
     warnings = result.data;
     publicWarningsAreCached = false;
+    publicWarningTextIncomplete = result.complete === false;
     renderPublicWarningData();
     setPublicCacheStatus(result.complete === false ? 'partial' : 'fresh');
     updateDataFreshness();
@@ -2788,6 +2800,7 @@ async function loadWarnings() {
     if (!cachedRendered) {
       warnings = [];
       publicWarningsAreCached = false;
+      publicWarningTextIncomplete = false;
       renderPublicWarningData();
       setPublicCacheStatus('unavailable');
       const badge = document.getElementById('mapLiveBadge');

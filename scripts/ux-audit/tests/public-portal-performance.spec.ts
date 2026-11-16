@@ -273,6 +273,81 @@ test.describe('public NAVAREA snapshot cache', () => {
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
 
+  test('fresh geometry replaces the displayed cached map during partial text hydration without overwriting the saved snapshot', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    const state: PublicApiState = {
+      spatialRows: [publicWarning()],
+      textRows: [bulletin()],
+      fail: false,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#dataSubtitle')).toContainText('1 published warning', { timeout: 30_000 });
+    await expect.poll(async () => {
+      const snapshot = await readPublicSnapshot(page) as { data?: Row[] } | null;
+      return snapshot?.data?.length ?? 0;
+    }).toBe(1);
+
+    const savedBefore = await readPublicSnapshot(page) as { data: Row[] };
+    expect(savedBefore.data[0].canonical_id).toBe('CACHE-TEST-1/26');
+
+    state.spatialRows = [{
+      ...publicWarning(),
+      warning_id: '44444444-4444-4444-8444-444444444444',
+      canonical_id: 'FRESH-GEOMETRY-2/26',
+      geom_id: 'fresh-geometry-2',
+      title: 'Fresh geometry warning',
+    }];
+    state.textRows = [];
+    state.delayMs = 700;
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#dataCacheStatus')).toContainText('checking for updates', { timeout: 10_000 });
+    await expect(page.locator('#tableBody')).toContainText('CACHE-TEST-1/26');
+    await expect(page.locator('#mapLiveBadge')).toContainText('cached');
+
+    await expect(page.locator('#dataCacheStatus')).toContainText('full-text search may be incomplete', { timeout: 30_000 });
+    await expect(page.locator('#mapLiveBadge')).toContainText('fresh geometry');
+    await expect(page.locator('#mapLiveBadge')).toContainText('text incomplete');
+    await openDataBank(page);
+    await expect(page.locator('#tableBody')).toContainText('FRESH-GEOMETRY-2/26');
+    await expect(page.locator('#tableBody')).not.toContainText('CACHE-TEST-1/26');
+
+    await page.locator('#searchInput').fill('UNAVAILABLE BULLETIN TOKEN 8842');
+    await expect(page.locator('#tableBody')).not.toContainText('FRESH-GEOMETRY-2/26');
+    await page.locator('#searchInput').fill('');
+
+    await page.evaluate(() => {
+      (window as any).openWarningDrawer({
+        id: '44444444-4444-4444-8444-444444444444',
+        warning_id: '44444444-4444-4444-8444-444444444444',
+        canonical_id: 'FRESH-GEOMETRY-2/26',
+        navarea: 'NA VIII',
+        title: 'Fresh geometry warning',
+        area_text: 'Test area',
+        categories: ['general'],
+        severity: 'moderate',
+      });
+    });
+    await expect(page.locator('#warningDetailsDrawer .warning-expanded-text'))
+      .toContainText('Bulletin text not yet retrieved');
+
+    const preserved = await readPublicSnapshot(page) as { data: Row[] };
+    expect(preserved.data[0].canonical_id).toBe('CACHE-TEST-1/26');
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#tableBody')).toContainText('CACHE-TEST-1/26');
+    await expect(page.locator('#dataCacheStatus')).toContainText('checking for updates', { timeout: 10_000 });
+    await expect(page.locator('#dataCacheStatus')).toContainText('full-text search may be incomplete', { timeout: 30_000 });
+    await expect(page.locator('#tableBody')).toContainText('FRESH-GEOMETRY-2/26');
+    const afterReload = await readPublicSnapshot(page) as { data: Row[] };
+    expect(afterReload.data[0].canonical_id).toBe('CACHE-TEST-1/26');
+
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
   test('first visit with no saved snapshot and failed Supabase access shows unavailable state', async ({ page }) => {
     const errors = watchPageErrors(page);
     const state: PublicApiState = {
