@@ -35,5 +35,5 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run Browser Smoke Suite
-        run: npm run ux:smoke
+      - name: Run Public Portal Browser Tests
+        run: npx playwright test scripts/ux-audit/tests/public-portal-performance.spec.ts
