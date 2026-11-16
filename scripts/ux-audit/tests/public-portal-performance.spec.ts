@@ -152,6 +152,13 @@ test.describe('public NAVAREA snapshot cache', () => {
     await openDataBank(page);
     await expect(page.locator('#tableBody')).toContainText('CACHE-TEST-1/26');
 
+    // Full-text search must still work after the Tier-A bulletin hydration.
+    await page.locator('#searchInput').fill('CACHE ACCEPTANCE UNIQUE BULLETIN TEXT');
+    await expect(page.locator('#tableBody')).toContainText('CACHE-TEST-1/26');
+    await page.locator('#searchInput').fill('');
+    await page.locator('#tableBody tr:not(.table-detail-row)').first().click();
+    await expect(page.locator('#tableBody .table-detail-text')).toContainText('CACHE ACCEPTANCE UNIQUE BULLETIN TEXT');
+
     await expect.poll(async () => {
       const snapshot = await readPublicSnapshot(page) as { data?: Row[] } | null;
       return snapshot?.data?.length ?? 0;
