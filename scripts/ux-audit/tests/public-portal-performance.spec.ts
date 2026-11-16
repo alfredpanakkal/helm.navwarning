@@ -235,4 +235,23 @@ test.describe('public NAVAREA snapshot cache', () => {
 
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
+
+  test('first visit with no saved snapshot and failed Supabase access shows unavailable state', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    const state: PublicApiState = {
+      spatialRows: [],
+      textRows: [],
+      fail: true,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#dataCacheStatus')).toContainText('no saved public snapshot is available', { timeout: 30_000 });
+    await expect(page.locator('#mapSubtitle')).toContainText('Unable to load authoritative warning geometry.');
+    await expect(page.locator('#mapLiveBadge')).toContainText('Data unavailable');
+    await expect.poll(async () => await readPublicSnapshot(page)).toBeNull();
+
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
 });
