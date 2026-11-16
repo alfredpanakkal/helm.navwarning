@@ -239,9 +239,16 @@ function openPublicWarningCache() {
         }
       };
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => resolve(null);
-      request.onblocked = () => resolve(null);
-    } catch (_) {
+      request.onerror = () => {
+        console.warn('Public warning cache open failed:', request.error?.message || 'unknown IndexedDB error');
+        resolve(null);
+      };
+      request.onblocked = () => {
+        console.warn('Public warning cache open was blocked by another connection');
+        resolve(null);
+      };
+    } catch (error) {
+      console.warn('Public warning cache could not be opened:', error?.message || error);
       resolve(null);
     }
   });
@@ -310,7 +317,10 @@ async function writePublicWarningSnapshot(data, savedAt = new Date().toISOString
   memoryPublicSnapshot = snapshot;
 
   const db = await openPublicWarningCache();
-  if (!db) return snapshot;
+  if (!db) {
+    console.warn('Public warning snapshot is memory-only; IndexedDB is unavailable');
+    return snapshot;
+  }
 
   return new Promise((resolve) => {
     try {
@@ -321,14 +331,17 @@ async function writePublicWarningSnapshot(data, savedAt = new Date().toISOString
         resolve(snapshot);
       };
       transaction.onerror = () => {
+        console.warn('Public warning snapshot write failed:', transaction.error?.message || 'IndexedDB transaction error');
         db.close();
         resolve(snapshot);
       };
       transaction.onabort = () => {
+        console.warn('Public warning snapshot write was aborted:', transaction.error?.message || 'IndexedDB transaction aborted');
         db.close();
         resolve(snapshot);
       };
-    } catch (_) {
+    } catch (error) {
+      console.warn('Public warning snapshot could not be written:', error?.message || error);
       try { db.close(); } catch (_) {}
       resolve(snapshot);
     }
