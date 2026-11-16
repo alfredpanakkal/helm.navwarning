@@ -17,7 +17,7 @@ interface Scenario {
   pageOverrides?: Record<number, QueryResult>;
 }
 
-function makeClient(scenario: Scenario, calls: string[], orderCalls: unknown[][]) {
+function makeClient(scenario: Scenario, calls: string[], orderCalls: unknown[][], idFilterCalls: unknown[][]) {
   return {
     from(table: string) {
       calls.push(table);
@@ -29,11 +29,18 @@ function makeClient(scenario: Scenario, calls: string[], orderCalls: unknown[][]
           const isText = table === 'nav_warnings' && columns === 'id, raw_text, issued_at, parsing_method, qa_flags';
           if (!isSpatial && !isText) throw new Error('Unexpected public query: ' + table + ' / ' + columns);
           const builder = {
-            eq: () => builder,
+            eq: (...args: unknown[]) => { idFilterCalls.push(args); return builder; },
+            in: (...args: unknown[]) => { idFilterCalls.push(args); return builder; },
             order: (...args: unknown[]) => { orderCalls.push(args); return builder; },
             range: (start: number, end: number) => { from = start; to = end; return builder; },
             then: (resolve: (value: QueryResult) => unknown, reject?: (error: unknown) => unknown) => {
-              if (isText) return Promise.resolve(scenario.textResult ?? { data: [], error: null }).then(resolve, reject);
+              if (isText) {
+                const textResult = scenario.textResult ?? { data: [], error: null };
+                const pagedTextResult = Array.isArray(textResult.data)
+                  ? { ...textResult, data: textResult.data.slice(from, to + 1) }
+                  : textResult;
+                return Promise.resolve(pagedTextResult).then(resolve, reject);
+              }
               if (scenario.pageErrorAt === from) {
                 return Promise.resolve({ data: null, error: { message: 'page failure' } }).then(resolve, reject);
               }
@@ -57,18 +64,21 @@ function makeClient(scenario: Scenario, calls: string[], orderCalls: unknown[][]
 }
 
 interface Loaded {
-  fetchActiveWarnings: () => Promise<unknown>;
+  fetchActiveWarnings: (options?: { onCached?: (data: Row[], metadata: { savedAt: string }) => void }) => Promise<unknown>;
   calls: string[];
   orderCalls: unknown[][];
+  idFilterCalls: unknown[][];
   warnings: unknown[][];
+  window: Record<string, unknown>;
 }
 
 function load(scenario: Scenario): Loaded {
   const warnings: unknown[][] = [];
   const calls: string[] = [];
   const orderCalls: unknown[][] = [];
-  const win: Record<string, unknown> = {
-    supabase: { createClient: () => makeClient(scenario, calls, orderCalls) },
+  const idFilterCalls: unknown[][] = [];
+  const win: Record<string, any> = {
+    supabase: { createClient: () => makeClient(scenario, calls, orderCalls, idFilterCalls) },
   };
   const sandbox = {
     window: win,
@@ -78,7 +88,12 @@ function load(scenario: Scenario): Loaded {
   const context = vm.createContext(sandbox);
   vm.runInContext(readFileSync(SUPABASE_JS, 'utf8'), context, { filename: 'supabase.js' });
   const hwDb = win.hwDb as { fetchActiveWarnings: () => Promise<unknown> };
-  return { fetchActiveWarnings: hwDb.fetchActiveWarnings, calls, orderCalls, warnings };
+  return { fetchActiveWarnings: hwDb.fetchActiveWarnings, calls, orderCalls, idFilterCalls, warnings, window: win };
+}
+
+async function getEntries(loaded: Loaded): Promise<Row[]> {
+  const result = await loaded.fetchActiveWarnings() as { data: Row[] };
+  return result.data;
 }
 
 function spatialRow(over: Row = {}): Row {
@@ -116,10 +131,32 @@ describe('public spatial warning fetch', () => {
         geojson_blob: { type: 'LineString', coordinates: [[1, 2], [3, 4]] } }),
     ];
     const loaded = load({ spatialRows: rows, textResult: EMPTY_TEXT });
-    const entries = await loaded.fetchActiveWarnings() as Row[];
+    const entries = await getEntries(loaded);
     expect(entries.map((entry) => entry.canonical_id)).toEqual(['POINT/26', 'POLY/26', 'LINE/26']);
     expect(entries.find((entry) => entry.canonical_id === 'POLY/26')?.spatial.validation_status).toBe('passed');
-    expect(loaded.orderCalls).toEqual([['geom_id', { ascending: true }]]);
+    expect(loaded.orderCalls).toEqual([['id', { ascending: true }], ['geom_id', { ascending: true }]]);
+  });
+
+  it('paginates public Tier-A bulletin text beyond the PostgREST row limit', async () => {
+    const spatialRows = Array.from({ length: 1001 }, (_, index) =>
+      spatialRow({
+        warning_id: 'uuid-' + index,
+        canonical_id: 'TEST-' + index + '/26',
+        geom_id: 'geom-' + index,
+      })
+    );
+    const textRows = spatialRows.map((row) => ({
+      id: row.warning_id,
+      raw_text: 'BULLETIN ' + row.canonical_id,
+      issued_at: null,
+      parsing_method: 'RULE',
+      qa_flags: [],
+    }));
+    const loaded = load({ spatialRows, textResult: { data: textRows, error: null } });
+    const entries = await getEntries(loaded);
+    expect(entries).toHaveLength(1001);
+    expect(entries.every((entry) => entry.raw_text.startsWith('BULLETIN '))).toBe(true);
+    expect(loaded.orderCalls.filter((call) => call[0] === 'id')).toHaveLength(2);
   });
 
   it('uses canonical severity from the spatial view independently of parser triage', async () => {
@@ -131,7 +168,7 @@ describe('public spatial warning fetch', () => {
       ],
       textResult: EMPTY_TEXT,
     });
-    const entries = await loaded.fetchActiveWarnings() as Row[];
+    const entries = await getEntries(loaded);
     expect(entries.map((entry) => entry.severity)).toEqual(['critical', 'high', 'moderate']);
   });
 
@@ -143,7 +180,7 @@ describe('public spatial warning fetch', () => {
       ],
       textResult: EMPTY_TEXT,
     });
-    const entries = await loaded.fetchActiveWarnings() as Row[];
+    const entries = await getEntries(loaded);
     expect(entries.map((entry) => entry.severity)).toEqual(['moderate', 'moderate']);
   });
 
@@ -155,12 +192,12 @@ describe('public spatial warning fetch', () => {
       ],
       textResult: EMPTY_TEXT,
     });
-    await expect(loaded.fetchActiveWarnings()).resolves.toEqual([]);
+    await expect(loaded.fetchActiveWarnings()).resolves.toMatchObject({ data: [] });
   });
 
   it('treats a successful empty spatial view as a legitimate empty result', async () => {
     const loaded = load({ spatialRows: [], textResult: EMPTY_TEXT });
-    await expect(loaded.fetchActiveWarnings()).resolves.toEqual([]);
+    await expect(loaded.fetchActiveWarnings()).resolves.toMatchObject({ data: [] });
     expect(loaded.calls).toEqual(['nav_warnings', 'nav_warnings_active_spatial']);
   });
 
@@ -175,7 +212,7 @@ describe('public spatial warning fetch', () => {
       spatialRow({ geom_id: 'geom-' + index, canonical_id: 'TEST-' + index + '/26' })
     );
     const loaded = load({ spatialRows: rows, textResult: EMPTY_TEXT });
-    const entries = await loaded.fetchActiveWarnings() as Row[];
+    const entries = await getEntries(loaded);
     expect(entries).toHaveLength(1505);
   });
 
@@ -196,8 +233,125 @@ describe('public spatial warning fetch', () => {
       pageOverrides: { 1000: { data: [rows[999], rows[1000]], error: null } },
       textResult: EMPTY_TEXT,
     });
-    const entries = await loaded.fetchActiveWarnings() as Row[];
+    const entries = await getEntries(loaded);
     expect(entries).toHaveLength(1001);
+  });
+
+  it('limits text hydration to the public Tier-A tier and returns only spatially published rows', async () => {
+    const loaded = load({
+      spatialRows: [
+        spatialRow({ warning_id: 'public-uuid', geom_id: 'g-public', triage_tier: 'A' }),
+        spatialRow({ warning_id: 'review-uuid', geom_id: 'g-review', canonical_id: 'REVIEW/26', triage_tier: 'B' }),
+      ],
+      textResult: {
+        data: [{
+          id: 'public-uuid',
+          raw_text: 'PUBLIC BULLETIN',
+          issued_at: null,
+          parsing_method: 'RULE',
+          qa_flags: [],
+        }],
+        error: null,
+      },
+    });
+    const entries = await getEntries(loaded);
+    expect(entries).toHaveLength(1);
+    expect(loaded.idFilterCalls).toContainEqual(['triage_tier', 'A']);
+    expect(loaded.idFilterCalls).toContainEqual(['status', 'active']);
+    expect(loaded.calls).toEqual(['nav_warnings', 'nav_warnings_active_spatial']);
+  });
+
+  it('uses the in-memory public snapshot when a later refresh fails', async () => {
+    const loaded = load({
+      spatialRows: [spatialRow()],
+      textResult: {
+        data: [{
+          id: 'uuid-1',
+          raw_text: 'CURRENT BULLETIN',
+          issued_at: null,
+          parsing_method: 'RULE',
+          qa_flags: [],
+        }],
+        error: null,
+      },
+    });
+    await getEntries(loaded);
+    let cachedRows: Row[] = [];
+    loaded.window.hwSupabase = {
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            range: () => Promise.resolve({ data: null, error: { message: 'offline' } }),
+          }),
+        }),
+      }),
+    };
+    const result = await loaded.fetchActiveWarnings({
+      onCached: (data) => { cachedRows = data; },
+    }) as { data: Row[]; source: string };
+    expect(cachedRows).toHaveLength(1);
+    expect(result.source).toBe('cache');
+    expect(result.data[0].raw_text).toBe('CURRENT BULLETIN');
+  });
+
+  it('replaces the complete cached snapshot so a cancelled warning is not retained after refresh', async () => {
+    const loaded = load({
+      spatialRows: [spatialRow()],
+      textResult: {
+        data: [{
+          id: 'uuid-1',
+          raw_text: 'WARNING THAT WILL BE CANCELLED',
+          issued_at: null,
+          parsing_method: 'RULE',
+          qa_flags: [],
+        }],
+        error: null,
+      },
+    });
+    await getEntries(loaded);
+
+    // A successful authoritative refresh returns an empty public view.
+    loaded.window.hwSupabase = {
+      from: () => ({
+        select: () => {
+          const builder: any = {
+            eq: () => builder,
+            order: () => builder,
+            range: () => Promise.resolve({ data: [], error: null }),
+            then: (resolve: (value: QueryResult) => unknown) =>
+              Promise.resolve({ data: [], error: null }).then(resolve),
+          };
+          return builder;
+        },
+      }),
+    };
+    let previousSnapshot: Row[] = [];
+    const refreshed = await loaded.fetchActiveWarnings({
+      onCached: (data) => { previousSnapshot = data; },
+    }) as { data: Row[]; source: string };
+    expect(previousSnapshot).toHaveLength(1);
+    expect(refreshed.source).toBe('network');
+    expect(refreshed.data).toEqual([]);
+
+    // If the next refresh fails, the replaced empty snapshot is what remains.
+    loaded.window.hwSupabase = {
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            range: () => Promise.resolve({ data: null, error: { message: 'offline' } }),
+          }),
+          eq: () => ({
+            eq: () => ({
+              then: (resolve: (value: QueryResult) => unknown) =>
+                Promise.resolve({ data: null, error: { message: 'offline' } }).then(resolve),
+            }),
+          }),
+        }),
+      }),
+    };
+    const afterFailure = await loaded.fetchActiveWarnings() as { data: Row[]; source: string };
+    expect(afterFailure.source).toBe('cache');
+    expect(afterFailure.data).toEqual([]);
   });
 
   it('rejects malformed polygon geometry and does not mark it as passed', async () => {
@@ -206,7 +360,7 @@ describe('public spatial warning fetch', () => {
       geojson_blob: { type: 'Polygon', coordinates: [[[0, 0], [0, 2], [2, 2], [2, 0]]] },
     });
     const loaded = load({ spatialRows: [invalid], textResult: EMPTY_TEXT });
-    const entries = await loaded.fetchActiveWarnings() as Row[];
+    const entries = await getEntries(loaded);
     expect(entries).toHaveLength(1);
     expect(entries[0].geometries).toEqual([]);
     expect(entries[0].spatial.validation_status).toBe('not_present');
@@ -217,7 +371,7 @@ describe('public spatial warning fetch', () => {
       spatialRows: [spatialRow()],
       textResult: { data: null, error: { message: 'text unavailable' } },
     });
-    const entries = await loaded.fetchActiveWarnings() as Row[];
+    const entries = await getEntries(loaded);
     expect(entries).toHaveLength(1);
     expect(entries[0].geometries).toHaveLength(1);
   });
@@ -236,7 +390,7 @@ describe('public spatial warning fetch', () => {
         error: null,
       },
     });
-    const entries = await loaded.fetchActiveWarnings() as Row[];
+    const entries = await getEntries(loaded);
     expect(entries[0].is_verified).toBe(true);
     expect(entries[0].issued_date).toBe('2026-11-10');
     expect(entries[0].issued_at).toBe('2026-11-10T12:00:00.000Z');
@@ -256,7 +410,7 @@ describe('public spatial warning fetch', () => {
         error: null,
       },
     });
-    const entries = await loaded.fetchActiveWarnings() as Row[];
+    const entries = await getEntries(loaded);
     expect(entries[0].is_verified).toBe(false);
   });
 
@@ -265,7 +419,8 @@ describe('public spatial warning fetch', () => {
     expect(source).not.toContain('extractGeometriesFromRawText');
     expect(source).not.toContain('const rawBulletin = w.raw_text');
     expect(source).not.toContain('const repLat = Number(w.latitude ?? w.lat)');
-    expect(source).toContain('return !loadError;');
+    expect(source).not.toContain('SEED_WARNINGS');
+    expect(source).toContain("return result.complete === false ? 'partial' : 'fresh';");
     expect(source).toContain('Data unavailable — authoritative warning geometry could not be loaded');
   });
 });

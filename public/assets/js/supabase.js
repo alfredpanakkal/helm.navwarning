@@ -219,25 +219,150 @@ function mergeSpatialAndTextRows(spatialData, textRows) {
 }
 
 const SPATIAL_PAGE_SIZE = 1000;
+const PUBLIC_TEXT_PAGE_SIZE = 1000;
+const PUBLIC_CACHE_DB = 'helm-warning-public-cache';
+const PUBLIC_CACHE_STORE = 'snapshots';
+const PUBLIC_CACHE_KEY = 'active-warning-snapshot';
+const PUBLIC_CACHE_SCHEMA = 1;
+let memoryPublicSnapshot = null;
+let activeWarningFetchPromise = null;
 
-async function fetchActiveWarnings() {
+function openPublicWarningCache() {
+  if (!window.indexedDB) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    try {
+      const request = window.indexedDB.open(PUBLIC_CACHE_DB, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(PUBLIC_CACHE_STORE)) {
+          db.createObjectStore(PUBLIC_CACHE_STORE);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+      request.onblocked = () => resolve(null);
+    } catch (_) {
+      resolve(null);
+    }
+  });
+}
+
+function isValidPublicSnapshot(snapshot) {
+  return !!snapshot &&
+    snapshot.schemaVersion === PUBLIC_CACHE_SCHEMA &&
+    typeof snapshot.savedAt === 'string' &&
+    Array.isArray(snapshot.data) &&
+    snapshot.data.every((warning) =>
+      warning && warning.status === 'active' && warning.triage_tier === 'A'
+    );
+}
+
+async function readPublicWarningSnapshot() {
+  if (isValidPublicSnapshot(memoryPublicSnapshot)) return memoryPublicSnapshot;
+  const db = await openPublicWarningCache();
+  if (!db) return null;
+
+  return new Promise((resolve) => {
+    try {
+      const transaction = db.transaction(PUBLIC_CACHE_STORE, 'readonly');
+      const request = transaction.objectStore(PUBLIC_CACHE_STORE).get(PUBLIC_CACHE_KEY);
+      request.onsuccess = () => {
+        const snapshot = request.result;
+        if (isValidPublicSnapshot(snapshot)) {
+          memoryPublicSnapshot = snapshot;
+          resolve(snapshot);
+        } else {
+          try {
+            const cleanup = db.transaction(PUBLIC_CACHE_STORE, 'readwrite');
+            cleanup.objectStore(PUBLIC_CACHE_STORE).delete(PUBLIC_CACHE_KEY);
+            cleanup.oncomplete = () => db.close();
+            cleanup.onerror = () => db.close();
+            cleanup.onabort = () => db.close();
+          } catch (_) {
+            try { db.close(); } catch (_) {}
+          }
+          resolve(null);
+          return;
+        }
+        db.close();
+      };
+      request.onerror = () => {
+        db.close();
+        resolve(null);
+      };
+      transaction.onabort = () => {
+        db.close();
+        resolve(null);
+      };
+    } catch (_) {
+      try { db.close(); } catch (_) {}
+      resolve(null);
+    }
+  });
+}
+
+async function writePublicWarningSnapshot(data, savedAt = new Date().toISOString()) {
+  const snapshot = {
+    schemaVersion: PUBLIC_CACHE_SCHEMA,
+    savedAt,
+    data,
+  };
+  memoryPublicSnapshot = snapshot;
+
+  const db = await openPublicWarningCache();
+  if (!db) return snapshot;
+
+  return new Promise((resolve) => {
+    try {
+      const transaction = db.transaction(PUBLIC_CACHE_STORE, 'readwrite');
+      transaction.objectStore(PUBLIC_CACHE_STORE).put(snapshot, PUBLIC_CACHE_KEY);
+      transaction.oncomplete = () => {
+        db.close();
+        resolve(snapshot);
+      };
+      transaction.onerror = () => {
+        db.close();
+        resolve(snapshot);
+      };
+      transaction.onabort = () => {
+        db.close();
+        resolve(snapshot);
+      };
+    } catch (_) {
+      try { db.close(); } catch (_) {}
+      resolve(snapshot);
+    }
+  });
+}
+
+async function fetchFreshActiveWarnings() {
   if (!window.hwSupabase) {
     throw new Error('Supabase client is unavailable');
   }
 
-  let textPromise = null;
-  try {
-    textPromise = Promise.resolve(window.hwSupabase
-      .from('nav_warnings')
-      .select('id, raw_text, issued_at, parsing_method, qa_flags')
-      .eq('status', 'active'))
-      .catch((textQueryError) => {
-        console.warn('Warning text hydration unavailable:', textQueryError);
-        return { data: null, error: textQueryError };
-      });
-  } catch (textQueryError) {
+  // Tier A is the public publication tier. Keep its bulletin-text query
+  // parallel with the spatial query, and paginate so full-text search is
+  // complete even when the public dataset exceeds PostgREST's row limit.
+  const textPromise = (async () => {
+    const rows = [];
+    for (let from = 0; ; from += PUBLIC_TEXT_PAGE_SIZE) {
+      const result = await window.hwSupabase
+        .from('nav_warnings')
+        .select('id, raw_text, issued_at, parsing_method, qa_flags')
+        .eq('status', 'active')
+        .eq('triage_tier', 'A')
+        .order('id', { ascending: true })
+        .range(from, from + PUBLIC_TEXT_PAGE_SIZE - 1);
+      if (result.error) throw new Error(result.error.message);
+      if (!Array.isArray(result.data)) throw new Error('Invalid public bulletin text response');
+      rows.push(...result.data);
+      if (result.data.length < PUBLIC_TEXT_PAGE_SIZE) break;
+    }
+    return { data: rows, error: null };
+  })().catch((textQueryError) => {
     console.warn('Warning text hydration unavailable:', textQueryError);
-  }
+    return { data: null, error: textQueryError };
+  });
 
   const spatialRows = new Map();
   for (let from = 0; ; from += SPATIAL_PAGE_SIZE) {
@@ -270,11 +395,18 @@ async function fetchActiveWarnings() {
   }
 
   let textRows = [];
+  let textHydrationComplete = false;
   if (textPromise) {
     try {
       const textResult = await textPromise;
       if (!textResult.error && Array.isArray(textResult.data)) {
         textRows = textResult.data;
+        const hydratedIds = new Set(textRows.map((row) => row.id));
+        const publicIds = new Set(Array.from(spatialRows.values())
+          .filter((row) => row.status === 'active' && row.triage_tier === 'A')
+          .map((row) => row.warning_id)
+          .filter(Boolean));
+        textHydrationComplete = Array.from(publicIds).every((id) => hydratedIds.has(id));
       } else if (textResult.error) {
         console.warn('Warning text hydration unavailable:', textResult.error.message);
       }
@@ -283,9 +415,79 @@ async function fetchActiveWarnings() {
     }
   }
 
-  return mergeSpatialAndTextRows(Array.from(spatialRows.values()), textRows);
+  return {
+    data: mergeSpatialAndTextRows(Array.from(spatialRows.values()), textRows),
+    complete: textHydrationComplete,
+  };
 }
+function fetchActiveWarnings(options = {}) {
+  if (activeWarningFetchPromise) return activeWarningFetchPromise;
 
+  let refreshSettled = false;
+  let cachedRendered = false;
+  // Read IndexedDB in parallel. If the network wins the race, do not let a
+  // late cache read paint an older snapshot over the fresh result.
+  const cachedPromise = readPublicWarningSnapshot().then((snapshot) => {
+    if (snapshot && !refreshSettled && typeof options.onCached === 'function') {
+      try {
+        options.onCached(snapshot.data, { savedAt: snapshot.savedAt });
+        cachedRendered = true;
+      } catch (renderError) {
+        console.warn('Cached warning snapshot could not be rendered:', renderError);
+      }
+    }
+    return snapshot;
+  }).catch(() => null);
+  const freshPromise = fetchFreshActiveWarnings().then(
+    (value) => ({ value }),
+    (error) => ({ error })
+  );
+
+  activeWarningFetchPromise = (async () => {
+    const outcome = await freshPromise;
+    refreshSettled = true;
+
+    if (outcome.error || !outcome.value.complete) {
+      const cached = await cachedPromise;
+      if (cached) {
+        if (!cachedRendered && typeof options.onCached === 'function') {
+          try {
+            options.onCached(cached.data, { savedAt: cached.savedAt });
+          } catch (renderError) {
+            console.warn('Cached warning snapshot could not be rendered:', renderError);
+          }
+        }
+        return {
+          data: cached.data,
+          source: 'cache',
+          savedAt: cached.savedAt,
+          refreshError: outcome.error?.message || 'Public warning text could not be fully refreshed',
+        };
+      }
+      if (outcome.error) throw outcome.error;
+    }
+
+    const fresh = outcome.value;
+    const savedAt = fresh.complete ? new Date().toISOString() : null;
+    if (fresh.complete) {
+      // The in-memory snapshot is updated synchronously; IndexedDB persistence
+      // continues in the background so storage latency cannot delay rendering.
+      writePublicWarningSnapshot(fresh.data, savedAt).catch((cacheError) => {
+        console.warn('Public warning snapshot could not be persisted:', cacheError);
+      });
+    }
+    return {
+      data: fresh.data,
+      source: 'network',
+      savedAt,
+      complete: fresh.complete,
+    };
+  })().finally(() => {
+    activeWarningFetchPromise = null;
+  });
+
+  return activeWarningFetchPromise;
+}
 async function fetchWarningDetails(identifier) {
   if (!identifier) return null;
   const isObj = typeof identifier === 'object' && identifier !== null;

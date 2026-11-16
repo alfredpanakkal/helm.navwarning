@@ -176,6 +176,16 @@
     if (!hasCompleted()) open();
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  function scheduleInit() {
+    // Keep the first-visit guide, but let the map/data startup reach an idle
+    // opportunity first so the modal setup does not compete with first paint.
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(init, { timeout: 1200 });
+    } else {
+      window.setTimeout(init, 250);
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleInit);
+  else scheduleInit();
 })();
