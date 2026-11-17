@@ -450,7 +450,8 @@ window.resetFilters = function(){
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (document.body.classList.contains('map-focus-active')) {
+    if (document.body.classList.contains('map-focus-active') ||
+        document.querySelector('.public-warning-workspace.is-focus-transition')) {
       toggleMapFocusMode(false);
       return;
     }
@@ -858,12 +859,21 @@ window.toggleMapTopControls = function(forceState) {
   }
 };
 
+let mapFocusTransitionTimer = null;
+
 window.toggleMapFocusMode = function(explicitState) {
-  const isCurrentlyActive = document.body.classList.contains('map-focus-active');
+  const workspace = document.querySelector('.public-warning-workspace');
+  const isDesktopWorkspace = document.body.classList.contains('is-desktop') &&
+    window.matchMedia('(min-width: 1440px)').matches && workspace;
+  const isCurrentlyActive = document.body.classList.contains('map-focus-active') ||
+    Boolean(workspace && workspace.classList.contains('is-focus-transition'));
   const nextState = typeof explicitState === 'boolean' ? explicitState : !isCurrentlyActive;
-  
-  document.body.classList.toggle('map-focus-active', nextState);
-  
+
+  if (mapFocusTransitionTimer) {
+    clearTimeout(mapFocusTransitionTimer);
+    mapFocusTransitionTimer = null;
+  }
+
   const iconMax = document.getElementById('iconMapFocusMax');
   const iconMin = document.getElementById('iconMapFocusMin');
   const btn = document.getElementById('btnMapFocus');
@@ -874,21 +884,48 @@ window.toggleMapFocusMode = function(explicitState) {
   if (btn) {
     btn.classList.toggle('active', nextState);
     btn.setAttribute('aria-pressed', nextState ? 'true' : 'false');
-    btn.setAttribute('aria-label', nextState ? 'Exit focus mode' : 'Maximize map view full screen');
-    btn.title = nextState ? 'Exit Focus Mode (Esc)' : 'Maximize Map View (Focus Mode)';
+    btn.setAttribute('aria-label', nextState ? 'Exit focus mode and restore workspace panels' : 'Maximize map view full screen');
+    btn.title = nextState ? 'Restore workspace panels (Esc)' : 'Maximize Map View (Focus Mode)';
   }
 
-  // Auto-collapse top controls in focus mode
   if (nextState) {
     toggleMapTopControls(false);
   }
 
   const m = getLeafletMap();
+
+  if (isDesktopWorkspace) {
+    if (nextState) {
+      workspace.classList.add('is-focus-transition');
+      mapFocusTransitionTimer = setTimeout(() => {
+        document.body.classList.add('map-focus-active');
+        mapFocusTransitionTimer = null;
+        if (m) {
+          m.invalidateSize();
+          setTimeout(() => m.invalidateSize(), 180);
+        }
+        showToast('Map focus mode active · Press Esc to restore panels');
+      }, 240);
+    } else {
+      document.body.classList.remove('map-focus-active');
+      requestAnimationFrame(() => {
+        workspace.classList.remove('is-focus-transition');
+        if (m) {
+          m.invalidateSize();
+          setTimeout(() => m.invalidateSize(), 280);
+        }
+      });
+      showToast('Workspace panels restored');
+    }
+    return;
+  }
+
+  // Keep the existing focus-mode behavior unchanged on tablet and mobile.
+  document.body.classList.toggle('map-focus-active', nextState);
   if (m) {
     m.invalidateSize();
     setTimeout(() => m.invalidateSize(), 150);
   }
-
   showToast(nextState ? 'Focus Mode active (Press Esc to exit)' : 'Exited Focus Mode');
 };
 
