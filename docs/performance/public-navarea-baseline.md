@@ -77,14 +77,14 @@ Source: supplied HAR export for test `6878a88e86400000`.
 
 ## Validation status
 
-- The GitHub Actions workflow now runs TypeScript, Vitest, the Vite bundle build, and the focused public-portal Playwright acceptance suite (Chromium). The latest run is pending; record its final result before merge. The broader console UX smoke suite remains a separate maintainer regression check.
+- The GitHub Actions run for the initial PR #202 implementation (run #635) passed TypeScript, Vitest, the Vite bundle build, and the focused public-portal Playwright acceptance suite (Chromium). Re-run these checks after any subsequent PR changes. The broader console UX smoke suite remains a separate maintainer regression check.
 - A dedicated public-portal Playwright suite covers first visit, repeat-visit cached rendering, Tier-B/Tier-C exclusion from IndexedDB, failed-refresh fallback, full-text search, warning details, successful empty-snapshot replacement, and no resurrection after a later failed refresh.
 - The browser suite uses a controlled Supabase REST fixture. It validates application behaviour deterministically; it is not a live production-data or map-tile test.
 - Manual preview verification is still required for offline startup, actual map rendering and all 21 NAVAREAs, mobile/desktop layout, and warning/filter interactions.
 - Obtain comparable mobile/desktop before-and-after runs against the same production hostname and test profile. Measure actual PostgREST request(s), row counts, transfer sizes, and warning-ready time; Pingdom's supplied HAR cannot provide these.
 
 
-## Changes implemented on `perf/public-navarea-performance`
+## Changes implemented on `perf/public-navarea-performance-pr202`
 
 The implementation keeps the existing public vanilla-JS + Leaflet portal and the separate React admin console.
 
@@ -99,11 +99,11 @@ The implementation keeps the existing public vanilla-JS + Leaflet portal and the
 
 ## Review and release status
 
-The latest code is committed on `perf/public-navarea-performance`. GitHub CI is now responsible for TypeScript, Vitest, bundle build and Playwright smoke validation; inspect the latest run result before merge. No new PSI/DebugBear measurement has been performed yet.
+The initial PR #202 implementation passed GitHub Actions run #635 (TypeScript, Vitest, Vite build and focused Playwright suite). The audit follow-up changes require a new CI run. No new PSI/DebugBear measurement has been performed, so no performance improvement is claimed.
 
 Before merge:
 
-1. Confirm the latest GitHub Actions run passes, including the focused public browser scenarios. Run `npm run ux:smoke` separately if a full console regression is required.
+1. Confirm the GitHub Actions run for the latest PR #202 head passes. Run `npm run ux:smoke` separately if a full console regression is required.
 2. Run the same scenarios against the Vercel preview. The current preview is protected by Vercel authentication, so it has not yet been inspected in an unauthenticated browser.
 3. Verify offline startup, actual map rendering, all NAVAREAs, filters, mobile/desktop layouts and manual refresh.
 4. Compare the same mobile PSI/DebugBear profile and hostname against the baseline. Re-run the Pingdom HAR only as a static-shell/network check; it is not a warning-ready or map-ready measurement.
