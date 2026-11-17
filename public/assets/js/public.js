@@ -929,6 +929,25 @@ window.toggleMapFocusMode = function(explicitState) {
   showToast(nextState ? 'Focus Mode active (Press Esc to exit)' : 'Exited Focus Mode');
 };
 
+window.toggleSelectedWarningPanel = function(force) {
+  const workspace = document.querySelector('.public-warning-workspace');
+  const drawer = document.getElementById('warningDetailsDrawer');
+  const toggle = document.getElementById('btnShowWarningDetails');
+  if (!workspace || !drawer || !document.body.classList.contains('is-desktop') ||
+      !window.matchMedia('(min-width: 1440px)').matches) return;
+  const shouldShow = typeof force === 'boolean'
+    ? force
+    : workspace.classList.contains('is-details-collapsed');
+  workspace.classList.toggle('is-details-collapsed', !shouldShow);
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', shouldShow ? 'true' : 'false');
+    toggle.hidden = shouldShow;
+  }
+  if (!shouldShow && drawer.contains(document.activeElement) && toggle) toggle.focus();
+  const map = getLeafletMap();
+  if (map) requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+};
+
 function setupDesktopWorkspaceResizers() {
   const workspace = document.querySelector('.public-warning-workspace');
   if (!workspace || workspace.dataset.resizersReady === 'true') return;
@@ -3313,8 +3332,14 @@ document.addEventListener('keydown', (e) => {
       closeWarningModal();
       return;
     }
+    const workspace = document.querySelector('.public-warning-workspace');
+    if (workspace && document.body.classList.contains('map-focus-active') &&
+        !workspace.classList.contains('is-details-collapsed')) {
+      toggleSelectedWarningPanel(false);
+      return;
+    }
     const drawer = document.getElementById('warningDetailsDrawer');
-    if (drawer && drawer.classList.contains('open')) {
+    if (drawer && drawer.classList.contains('open') && !document.body.classList.contains('is-desktop')) {
       closeWarningDrawer();
       return;
     }
