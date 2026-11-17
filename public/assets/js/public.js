@@ -1455,13 +1455,13 @@ window.openWarningDetails = function(w) {
   const existingIndex = selectedDrawerWarnings.findIndex(item =>
     String(item.canonical_id || item.warning_id || item.id || '') === id
   );
-  if (existingIndex < 0) {
-    if (selectedDrawerWarnings.length >= 2) {
-      showToast('Two warnings are already selected. Remove one to inspect another.');
-      return;
-    }
-    selectedDrawerWarnings.push(w);
+  if (existingIndex >= 0) {
+    selectedDrawerWarnings.splice(existingIndex, 1);
   }
+  // Keep the most recently selected warning first; retain only the previous selection.
+  selectedDrawerWarnings.unshift(w);
+  if (selectedDrawerWarnings.length > 2) selectedDrawerWarnings.pop();
+
   currentDrawerWarning = w;
   currentWarning = w;
 
