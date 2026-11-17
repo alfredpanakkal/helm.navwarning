@@ -1198,6 +1198,12 @@ let drawerTriggerElement = null;
 window.openWarningDetails = function(w) {
   currentDrawerWarning = w;
   currentWarning = w;
+  const selectedId = w.canonical_id || w.warning_id || w.id;
+  document.querySelectorAll('#mapWarningList .warning-item').forEach(item => {
+    const selected = item.dataset.warningId === String(selectedId);
+    item.classList.toggle('is-selected', selected);
+    item.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
   const isMob = document.body.classList.contains('is-mobile');
   if (isMob) {
     if (typeof openWarningModal === 'function') {
