@@ -31,3 +31,9 @@ jobs:
 
       - name: Build Applet Bundle
         run: npx vite build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Public Portal Browser Tests
+        run: npx playwright test scripts/ux-audit/tests/public-portal-performance.spec.ts
