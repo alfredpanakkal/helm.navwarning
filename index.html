@@ -822,15 +822,6 @@ body:not(.is-mobile).tab-map-active #tab-map{display:flex;flex-direction:column;
         <h2>Active Warnings</h2>
         <span class="badge-simple badge-active" id="mapLiveBadge"><span class="dot"></span> 0 live</span>
       </div>
-    <div class="map-warning-list-tools" aria-label="Filter active warnings">
-      <label class="sr-only" for="mapWarningSearch">Search active warnings</label>
-      <input id="mapWarningSearch" type="search" placeholder="Search warnings..." oninput="filterMapWarningList()" autocomplete="off">
-      <div class="map-warning-severity-filters" role="group" aria-label="Filter by severity">
-        <button type="button" class="is-active" data-warning-severity-filter="all" aria-pressed="true" onclick="setMapWarningSeverityFilter('all', this)">All</button>
-        <button type="button" data-warning-severity-filter="critical" aria-pressed="false" onclick="setMapWarningSeverityFilter('critical', this)">Critical</button>
-        <button type="button" data-warning-severity-filter="high" aria-pressed="false" onclick="setMapWarningSeverityFilter('high', this)">High</button>
-      </div>
-    </div>
       <div class="panel-actions">
         <button type="button" class="panel-btn" id="btnMinWarningList" onclick="toggleMinimizeWarningList()" title="Minimize" aria-label="Minimize active warnings list" aria-expanded="true" aria-controls="mapWarningList">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -838,6 +829,15 @@ body:not(.is-mobile).tab-map-active #tab-map{display:flex;flex-direction:column;
         <button type="button" class="panel-btn" id="btnMaxWarningList" onclick="toggleMaximizeWarningList()" title="Maximize" aria-label="Maximize active warnings list" aria-expanded="false" aria-controls="mapWarningList">
           <svg id="iconMaxWarningList" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
         </button>
+      </div>
+    </div>
+    <div class="map-warning-list-tools" aria-label="Filter active warnings">
+      <label class="sr-only" for="mapWarningSearch">Search active warnings</label>
+      <input id="mapWarningSearch" type="search" placeholder="Search warnings..." oninput="filterMapWarningList()" autocomplete="off">
+      <div class="map-warning-severity-filters" role="group" aria-label="Filter by severity">
+        <button type="button" class="is-active" data-warning-severity-filter="all" aria-pressed="true" onclick="setMapWarningSeverityFilter('all', this)">All</button>
+        <button type="button" data-warning-severity-filter="critical" aria-pressed="false" onclick="setMapWarningSeverityFilter('critical', this)">Critical</button>
+        <button type="button" data-warning-severity-filter="high" aria-pressed="false" onclick="setMapWarningSeverityFilter('high', this)">High</button>
       </div>
     </div>
   </section>
