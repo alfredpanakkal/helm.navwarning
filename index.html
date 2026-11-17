@@ -324,13 +324,17 @@ body.is-mobile .nw-title-card-pill{width:12px;height:12px}
 .panel-btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none}
 body.is-mobile .panel-btn{width:40px;height:40px}
 .panel-header h2, .panel-header h3{font:600 14px system-ui;margin:0}
-.warning-item{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column;gap:6px;min-height:44px;transition:background .15s,box-shadow .2s}
+.warning-item{padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column;gap:6px;min-height:56px;transition:background .15s,box-shadow .2s}
 .warning-item:hover{background:rgba(15,23,42,.02)}
 .warning-item.expanded{background:var(--bg);border-left:3px solid var(--surface-dark)}
 .warning-item.warning-item-target{box-shadow:inset 0 0 0 2px var(--surface-dark);background:var(--bg);animation:itemHighlightPulse 2s ease}
 @keyframes itemHighlightPulse{0%{box-shadow:inset 0 0 0 3px var(--high);background:var(--sev-high-halo)}50%{box-shadow:inset 0 0 0 2px var(--surface-dark);background:var(--bg)}100%{box-shadow:inset 0 0 0 1px var(--border);background:var(--surface)}}
-.warning-item-header{display:flex;gap:8px;align-items:flex-start;width:100%}
-.warning-item-title-col{flex:1;min-width:0}
+.warning-item-header{display:flex;gap:8px;align-items:center;width:100%}
+.warning-item-title-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.warning-id{font-size:13px;line-height:1.4;font-weight:650;color:var(--text);overflow-wrap:anywhere}
+.warning-meta.warning-category{font-size:12px;line-height:1.4;color:var(--text);white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.warning-meta.warning-issued-date{font-size:11px;line-height:1.35;margin-top:0;color:var(--text-muted)}
+.warning-unscoped-label{display:inline-block;margin-left:6px;padding:1px 6px;border:1px solid var(--border);border-radius:999px;font-size:10px;font-weight:500;color:var(--text-muted);vertical-align:1px}
 .warning-item-chevron{width:16px;height:16px;margin-top:2px;stroke:var(--text-muted);stroke-width:2;fill:none;flex-shrink:0;transition:transform .2s}
 .warning-item.expanded .warning-item-chevron{transform:rotate(180deg)}
 .warning-expanded-body{padding-top:8px;border-top:1px dashed var(--border);display:flex;flex-direction:column;gap:8px;font-size:12px;animation:fadeUp .2s ease}
