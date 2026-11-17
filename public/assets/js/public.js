@@ -905,7 +905,7 @@ window.toggleMapFocusMode = function(explicitState) {
           setTimeout(() => m.invalidateSize(), 180);
         }
         showToast('Map focus mode active · Press Esc to restore panels');
-      }, 240);
+      }, 320);
     } else {
       document.body.classList.remove('map-focus-active');
       requestAnimationFrame(() => {
