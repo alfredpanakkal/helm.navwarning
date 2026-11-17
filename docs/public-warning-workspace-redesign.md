@@ -52,6 +52,45 @@ Use a grid with explicit min-width constraints rather than fixed percentages:
 
 At widths where the three minimum widths plus page gutters cannot fit, switch to the tablet behavior. Do not force 3 columns below the measured minimum.
 
+### Desktop full-screen map: collapsible warning side panels (planned)
+
+When Map Focus Mode is active on desktop (1440px and wider), keep the map at full available size while making both warning panels accessible as independent overlays.
+
+**Panel behavior**
+- Add a compact **Active Warnings** toggle fixed to the left edge of the map viewport.
+- Add a compact **Selected Warning** toggle fixed to the right edge.
+- Each toggle opens its corresponding panel as a floating drawer over the map; opening a drawer must not change the map container's layout width or trigger a grid reflow.
+- Animate drawers with a short slide-and-fade transition. Keep the map visible behind them and preserve map center/zoom.
+- Both drawers may remain open simultaneously. They must have independent open/closed state; opening or closing one must not implicitly close the other.
+- The drawers must be independently scrollable and constrained to the available viewport height. Keep panel headers and close controls reachable.
+- Add clear close controls and accessible names/expanded state to both edge toggles. Support Escape to close the most recently opened drawer first; a subsequent Escape may exit Map Focus Mode.
+- Preserve the existing warning selection as the single source of truth. Opening, closing, or switching between drawers must not clear or replace the selected warning. Selecting a different warning in Active Warnings updates Selected Warning immediately, including while its drawer is open.
+- Reuse the existing list renderer, search/severity filters, details renderer, Copy Bulletin and Locate on Map actions. Do not add duplicate data fetches or a second selected-warning state.
+- Keep the existing **Restore panels** action as the way to leave Map Focus Mode and return to the resizable three-column desktop workspace.
+
+**Implementation approach**
+1. Separate the current focus-mode panel-collapse behavior from drawer visibility state; focus mode should expand the map while leaving both panel elements available for overlay presentation.
+2. Add two small edge-toggle controls within the map workspace and position the corresponding warning panels absolutely/fixed within the workspace stacking context.
+3. Introduce independent state flags for Active Warnings and Selected Warning drawers. Keep these flags separate from the existing selected warning ID and from Map Focus Mode.
+4. Add responsive drawer sizing, safe viewport bounds, z-index ordering above Leaflet controls, backdrop/edge treatment only if needed for legibility, and reduced-motion handling.
+5. Ensure the draggable desktop dividers are hidden/disabled in Map Focus Mode and restored with the normal workspace.
+6. Keep this feature desktop-only. Tablet and mobile must continue using their existing map/list overlay and details drawer/modal behavior without the new edge toggles.
+
+**Acceptance tests**
+- Enter Map Focus Mode: map fills the workspace; both edge toggles are visible.
+- Open Active Warnings: list slides over the map from the left; map dimensions, center and zoom do not change.
+- Open Selected Warning: details slides over the map from the right; map dimensions, center and zoom do not change.
+- Open both drawers together; verify they coexist without covering each other's close controls or making the map unusable.
+- Close either drawer independently; the other remains open.
+- Select a warning, close/reopen either drawer, and verify the same warning remains selected and rendered.
+- Select another warning while both drawers are open; details update to the new selection without an extra fetch.
+- Escape closes the most recently opened drawer before exiting Map Focus Mode.
+- Restore panels returns to the desktop three-column layout with the existing resizer behavior.
+- Verify keyboard operation, focus visibility, accessible expanded state, reduced-motion behavior, and light/dark/night themes.
+- Verify tablet and mobile layouts are unchanged at the existing responsive test sizes.
+
+**Status:** Plan only; do not implement this overlay behavior until separately approved. Existing full-screen behavior remains unchanged in this PR revision.
+
 ### Tablet: map + list, details below
 
 - Keep Map and Active Warnings side by side when there is sufficient width.
