@@ -450,6 +450,12 @@ window.resetFilters = function(){
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
+    const workspace = document.querySelector('.public-warning-workspace');
+    if (document.body.classList.contains('map-focus-active') && workspace &&
+        !workspace.classList.contains('is-details-collapsed')) {
+      toggleSelectedWarningPanel(false);
+      return;
+    }
     if (document.body.classList.contains('map-focus-active') ||
         document.querySelector('.public-warning-workspace.is-focus-transition')) {
       toggleMapFocusMode(false);
