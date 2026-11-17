@@ -1264,10 +1264,15 @@ window.openWarningDetails = function(w) {
 
 window.closeWarningDrawer = function() {
   const drawer = document.getElementById('warningDetailsDrawer');
+  const body = document.getElementById('drawerDetailsBody');
   if (drawer) {
     drawer.classList.remove('open');
-    drawer.setAttribute('aria-hidden', 'true');
+    drawer.setAttribute('aria-hidden', document.body.classList.contains('is-mobile') ? 'true' : 'false');
   }
+  if (body && !document.body.classList.contains('is-mobile')) {
+    body.innerHTML = '<div class="warning-details-empty"><strong>No warning selected</strong><span>Select a warning from the list or a marker on the map to inspect its bulletin and coordinates.</span></div>';
+  }
+  currentDrawerWarning = null;
   if (drawerTriggerElement && typeof drawerTriggerElement.focus === 'function') {
     drawerTriggerElement.focus();
   }
@@ -1805,6 +1810,11 @@ async function toggleInlineWarning(w, itemEl){
 
   expandedWarningId = w.canonical_id || w.warning_id || w.id;
   itemEl.classList.add('expanded');
+
+  // Keep the persistent details panel synchronized with the selected list row.
+  if (!document.body.classList.contains('is-mobile') && typeof window.openWarningDetails === 'function') {
+    window.openWarningDetails(w);
+  }
 
   // Focus map on marker
   const lat = Number(w.latitude ?? w.lat);
