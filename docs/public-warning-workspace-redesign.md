@@ -134,6 +134,13 @@ When Map Focus Mode is active on desktop (1440px and wider), keep the map at ful
 - Keep rows comfortably separated with a compact, consistent hierarchy; long category labels may wrap to two lines.
 - Preserve severity indication, keyboard selection, search/filter behavior, and the special unassigned-NAVAREA context label.
 
+## Two-warning comparison
+
+- On desktop, selecting a warning from the map or Active Warnings opens its full details in the Selected Warning panel.
+- A second distinct map/list selection is added alongside the first; the panel shows no more than two warning detail cards at once.
+- Each card can be removed independently. A third distinct selection is not silently substituted; the user must remove one of the two before adding another.
+- Selecting an already selected warning focuses that warning without creating a duplicate. Mobile retains its existing single-warning modal interaction.
+
 ## Details content and maritime conventions
 
 - Preserve the original bulletin verbatim and the existing Copy Bulletin action.
