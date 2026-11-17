@@ -521,6 +521,39 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
 .warning-map-severity-dot{width:11px;height:11px;border-radius:50%;border:2px solid;box-sizing:border-box;flex:none}
 @media(max-width:640px){.warning-map-legend{bottom:calc(10px + env(safe-area-inset-bottom));left:8px}.warning-map-legend-panel{font-size:10px}}
 </style>
+<style id="public-warning-workspace">
+/* Public warning workspace: map, selection list and details are siblings. */
+body:not(.is-mobile).tab-map-active .main{max-width:none;width:100%;box-sizing:border-box}
+body:not(.is-mobile).tab-map-active #tab-map{display:flex;flex-direction:column;min-height:0}
+.public-warning-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,310px) minmax(320px,360px);gap:12px;flex:1 1 0;min-height:0;width:100%}
+.public-warning-workspace>.map-container{position:relative;min-width:0;min-height:420px;height:auto;flex:1 1 auto}
+.public-warning-workspace .map-warning-list{position:relative;inset:auto;width:auto;max-width:none;height:100%;max-height:none;min-width:0;overflow-y:auto;border-radius:10px;box-shadow:none;z-index:1}
+.public-warning-workspace .map-warning-list.is-minimized{max-height:56px;height:56px}
+.public-warning-workspace .map-warning-list.is-maximized{width:auto;height:100%;max-height:none}
+.public-warning-workspace .warning-details-drawer{position:relative;inset:auto;width:auto;max-width:none;height:100%;min-width:0;transform:none;transition:none;border:1px solid var(--border-input);border-radius:10px;z-index:1}
+.public-warning-workspace .warning-details-drawer.open{transform:none}
+.public-warning-workspace .drawer-details-body{min-height:0}
+.warning-details-empty{display:flex;flex-direction:column;gap:8px;padding:18px 4px;color:var(--ink-secondary);font-size:13px;line-height:1.5}
+.warning-details-empty strong{color:var(--ink-primary);font-size:14px}
+.public-warning-workspace .map-warning-list .warning-item{padding:12px}
+.public-warning-workspace .map-warning-list .warning-item.expanded{background:var(--surface-subtle)}
+.public-warning-workspace .map-warning-list .panel-header{position:sticky;top:0}
+@media(max-width:1200px){
+ .public-warning-workspace{grid-template-columns:minmax(0,1fr) minmax(260px,310px);grid-template-rows:minmax(420px,1fr) minmax(280px,34vh)}
+ .public-warning-workspace>.warning-details-drawer{grid-column:1/-1;height:auto;min-height:280px}
+}
+@media(max-width:768px){
+ body.is-mobile.tab-map-active .main{overflow-y:auto!important;display:block!important;height:auto!important;min-height:0!important}
+ body.is-mobile.tab-map-active #tab-map{display:block!important;height:auto!important;overflow:visible!important}
+ .public-warning-workspace{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:visible;padding:8px}
+ .public-warning-workspace>.map-container{height:52svh!important;min-height:320px!important;flex:none!important;margin:0!important;border-radius:10px!important}
+ .public-warning-workspace>.map-warning-list{height:auto;max-height:34svh;min-height:180px;flex:none;overflow-y:auto}
+ .public-warning-workspace>.warning-details-drawer{display:flex!important;height:auto;min-height:300px;max-height:55svh;flex:none}
+ .public-warning-workspace .map-warning-list.is-minimized{height:56px;min-height:56px}
+ .public-warning-workspace .map-warning-list.is-maximized{height:55svh;max-height:55svh}
+}
+@media(prefers-reduced-motion:reduce){.public-warning-workspace *{scroll-behavior:auto!important;transition:none!important}}
+</style>
 </head>
 <body class="tab-map-active">
 <a href="#main" class="skip-link">Skip to main content</a>
@@ -622,6 +655,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
       <button type="button" class="solas-banner-btn solas-banner-close" aria-label="Dismiss situational awareness notice" title="Dismiss"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </span>
   </p>
+  <div class="public-warning-workspace">
   <div class="map-container">
     <div id="map"></div>
     <details class="warning-map-legend" id="warningMapLegend">
@@ -764,43 +798,42 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
       </div>
     </div>
 
-    <!-- Desktop Warning Details Side Drawer -->
-    <div class="warning-details-drawer" id="warningDetailsDrawer" role="region" aria-label="Warning Details" aria-hidden="true">
-      <div class="drawer-details-header">
-        <div style="font-weight:500;font-size:14px;color:var(--ink-primary, var(--text))" id="drawerDetailsTitle">Warning Details</div>
-        <button type="button" class="settings-close-btn" onclick="closeWarningDrawer()" aria-label="Close drawer">✕</button>
-      </div>
-      <div class="drawer-details-body" id="drawerDetailsBody">
-        <!-- Rendered dynamically -->
-      </div>
-      <div class="drawer-details-footer">
-        <button type="button" class="btn btn-ghost" onclick="closeWarningDrawer()">Close</button>
-        <button type="button" class="btn btn-secondary" id="btnDrawerCopy" onclick="copyCurrentWarningText()">Copy Bulletin</button>
-      </div>
-    </div>
-    <div class="map-warning-list" id="mapWarningList">
-      <div class="panel-header" id="mapWarningListHeader" onclick="onWarningListHeaderClick(event)">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="panel-peek-handle" aria-hidden="true"></span>
-          <h2>Active Warnings</h2>
-          <span class="badge-simple badge-active" id="mapLiveBadge"><span class="dot"></span> 0 live</span>
-        </div>
-        <div class="panel-actions">
-          <button type="button" class="panel-btn" id="btnMinWarningList" onclick="toggleMinimizeWarningList()" title="Minimize" aria-label="Minimize active warnings list" aria-expanded="true" aria-controls="mapWarningList">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-          <button type="button" class="panel-btn" id="btnMaxWarningList" onclick="toggleMaximizeWarningList()" title="Maximize" aria-label="Maximize active warnings list" aria-expanded="false" aria-controls="mapWarningList">
-            <svg id="iconMaxWarningList" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-          </button>
-        </div>
-      </div>
-    </div>
     <div class="coord-panel" id="coordPanel" role="status" aria-live="polite">
       <span class="coord-label" id="coordLabel">Cursor</span>
       <span id="coordText">—</span>
       <button type="button" class="panel-btn" onclick="copyCoordReadout()" title="Copy coordinates" aria-label="Copy coordinates"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
     </div>
     <div class="map-attribution">© OpenStreetMap contributors · CARTO · OpenSeaMap</div>
+  </div>
+  <section class="map-warning-list" id="mapWarningList" aria-label="Active Warnings">
+    <div class="panel-header" id="mapWarningListHeader">
+      <div style="display:flex;align-items:center;gap:8px">
+        <h2>Active Warnings</h2>
+        <span class="badge-simple badge-active" id="mapLiveBadge"><span class="dot"></span> 0 live</span>
+      </div>
+      <div class="panel-actions">
+        <button type="button" class="panel-btn" id="btnMinWarningList" onclick="toggleMinimizeWarningList()" title="Minimize" aria-label="Minimize active warnings list" aria-expanded="true" aria-controls="mapWarningList">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button type="button" class="panel-btn" id="btnMaxWarningList" onclick="toggleMaximizeWarningList()" title="Maximize" aria-label="Maximize active warnings list" aria-expanded="false" aria-controls="mapWarningList">
+          <svg id="iconMaxWarningList" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+  <section class="warning-details-drawer" id="warningDetailsDrawer" role="region" aria-label="Warning Details" aria-hidden="false">
+    <div class="drawer-details-header">
+      <div style="font-weight:500;font-size:14px;color:var(--ink-primary, var(--text))" id="drawerDetailsTitle">Warning Details</div>
+      <button type="button" class="settings-close-btn" onclick="closeWarningDrawer()" aria-label="Clear selected warning">✕</button>
+    </div>
+    <div class="drawer-details-body" id="drawerDetailsBody">
+      <div class="warning-details-empty"><strong>No warning selected</strong><span>Select a warning from the list or a marker on the map to inspect its bulletin and coordinates.</span></div>
+    </div>
+    <div class="drawer-details-footer">
+      <button type="button" class="btn btn-ghost" onclick="closeWarningDrawer()">Clear</button>
+      <button type="button" class="btn btn-secondary" id="btnDrawerCopy" onclick="copyCurrentWarningText()">Copy Bulletin</button>
+    </div>
+  </section>
   </div>
 </div>
 
