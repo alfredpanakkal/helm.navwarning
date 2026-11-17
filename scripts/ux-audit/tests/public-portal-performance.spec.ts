@@ -97,7 +97,7 @@ async function installPublicApiMock(page: Page, state: PublicApiState) {
         : [];
     const rangeHeader = request.headers().range || null;
     if (state.rangeRequests) state.rangeRequests.push({ table: table || '', range: rangeHeader });
-    const rangeMatch = rangeHeader && /^(\\d+)-(\\d+)$/.exec(rangeHeader);
+    const rangeMatch = rangeHeader && /^(\d+)-(\d+)$/.exec(rangeHeader);
     const rangeStart = rangeMatch ? Number(rangeMatch[1]) : 0;
     const rangeEnd = rangeMatch ? Number(rangeMatch[2]) : Math.max(rows.length - 1, 0);
     const pageRows = rows.slice(rangeStart, rangeEnd + 1);
