@@ -2148,13 +2148,17 @@ function rebuildMapList(items = null){
       }
     };
     const c=w.severity==='critical'?'var(--critical)':w.severity==='high'?'var(--high)':'var(--neutral)';
+    const navareaLabel = w.navarea || 'NAVAREA unassigned';
+    const categoryLabel = String(w.category || w.warning_type || w.type || '').trim();
+    const issuedDate = formatWarningDate(w);
+    const hasIssuedDate = issuedDate !== 'Date not stated';
     item.innerHTML=`
       <div class="warning-item-header">
         <span class="severity-dot" style="background:${c}"></span>
         <div class="warning-item-title-col">
-          <div class="warning-id">${wid} · ${w.navarea}${unscopedHere ? '<span title="This warning has no NAVAREA number, so it is shown with NAVAREA I (the Baltic Sea lies in NAVAREA I waters)." style="display:inline-block;margin:2px 0 0 6px;padding:0 6px;border:1px solid var(--border);border-radius:999px;font-size:11px;font-weight:500;color:var(--text-muted)">No NAVAREA · shown with NAVAREA I</span>' : ''}</div>
-          <div class="warning-meta">${w.title}</div>
-          <div class="warning-meta">${formatWarningDate(w)}</div>
+          <div class="warning-id">${wid} · ${navareaLabel}${unscopedHere ? '<span title="This warning has no NAVAREA number, so it is shown with NAVAREA I (the Baltic Sea lies in NAVAREA I waters)." class="warning-unscoped-label">Unassigned · shown in NAVAREA I</span>' : ''}</div>
+          ${categoryLabel ? `<div class="warning-meta warning-category">${categoryLabel}</div>` : ''}
+          ${hasIssuedDate ? `<div class="warning-meta warning-issued-date">${issuedDate}</div>` : ''}
         </div>
         <svg class="warning-item-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"/></svg>
       </div>`;
