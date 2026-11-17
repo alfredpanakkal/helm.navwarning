@@ -1291,6 +1291,7 @@ function attachGearLongPress() {
 let activeTouchFeature = null;
 let activeHighlightedLayer = null;
 let currentDrawerWarning = null;
+let selectedDrawerWarnings = []; // Desktop comparison is limited to two warnings.
 
 function clearActiveFeatureHighlight() {
   if (activeHighlightedLayer) {
@@ -1369,75 +1370,109 @@ window.handleTitleCardClick = function() {
 // be restored to it when the drawer closes.
 let drawerTriggerElement = null;
 
-window.openWarningDetails = function(w) {
-  currentDrawerWarning = w;
-  currentWarning = w;
-  const selectedId = w.canonical_id || w.warning_id || w.id;
-  document.querySelectorAll('#mapWarningList .warning-item').forEach(item => {
-    const selected = item.dataset.warningId === String(selectedId);
-    item.classList.toggle('is-selected', selected);
-    item.setAttribute('aria-pressed', selected ? 'true' : 'false');
-  });
-  const isMob = document.body.classList.contains('is-mobile');
-  if (isMob) {
-    if (typeof openWarningModal === 'function') {
-      openWarningModal(w);
-    }
-    return;
-  }
-
-  // Desktop Side Drawer
-  const drawer = document.getElementById('warningDetailsDrawer');
-  const body = document.getElementById('drawerDetailsBody');
-  const titleEl = document.getElementById('drawerDetailsTitle');
-  if (!drawer || !body) return;
-
+function renderWarningDetailCard(w, index) {
   const wid = w.canonical_id || w.warning_id || w.id || 'Notice';
   const navarea = w.navarea || 'NAVAREA';
   const color = getWarningColor(w);
   const issuedText = formatWarningIssuedText(w);
   const text = getBulletinText(w) || w.raw_text || 'No raw bulletin text provided.';
   const cats = Array.isArray(w.categories) ? w.categories.join(' · ') : (w.category || 'General');
+  const title = w.title || w.area_text || wid;
 
-  if (titleEl) {
-    titleEl.textContent = `${wid} — ${navarea}`;
+  return `
+    <article class="warning-compare-card" style="display:flex;flex-direction:column;gap:12px;padding:12px;border:1px solid var(--border-input);border-radius:8px;background:var(--surface, var(--panel));">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <strong style="font-size:13px;color:var(--ink-primary, var(--text))">${index + 1}. ${wid} — ${navarea}</strong>
+        <button type="button" class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="removeWarningFromDetails(${index})" aria-label="Remove ${wid} from comparison">Remove</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span class="badge-simple" style="background:${color}18;color:${color};font-weight:var(--w-hero, 500)">
+          <span class="dot" style="background:${color}"></span> ${(w.severity || 'ACTIVE').toUpperCase()}
+        </span>
+        <span class="badge-simple badge-neutral">${cats.toUpperCase()}</span>
+        <span class="badge-simple ${w.is_verified ? 'badge-verified' : 'badge-neutral'}">${w.is_verified ? 'VERIFIED' : 'ACTIVE'}</span>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:var(--w-hero, 500);text-transform:uppercase;color:var(--ink-secondary, var(--text-muted));letter-spacing:0.5px">Area / Subject</div>
+        <div style="font-weight:var(--w-hero, 500);font-size:14px;color:var(--ink-primary, var(--text));margin-top:2px">${title}</div>
+        ${w.area_text && w.area_text !== w.title ? `<div style="font-size:12px;color:var(--ink-secondary, var(--text-muted));margin-top:2px">${w.area_text}</div>` : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;background:var(--surface-subtle);padding:10px 12px;border-radius:6px;border:1px solid var(--border-input)">
+        <div>
+          <div style="font-size:10px;font-weight:var(--w-hero, 500);color:var(--ink-secondary, var(--text-muted));text-transform:uppercase">Issued</div>
+          <div style="font-weight:var(--w-hero, 500);color:var(--ink-body, var(--text));font-family:ui-monospace,monospace">${issuedText}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:var(--w-hero, 500);color:var(--ink-secondary, var(--text-muted));text-transform:uppercase">Coordinates</div>
+          <div style="font-weight:var(--w-hero, 500);color:var(--ink-body, var(--text));font-family:ui-monospace,monospace">${warningPositionText(w, 'Spatial Vector')}</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:var(--w-hero, 500);text-transform:uppercase;color:var(--ink-secondary, var(--text-muted));letter-spacing:0.5px;margin-bottom:6px">Raw Bulletin Text</div>
+        <div class="warning-expanded-text" style="max-height:280px;overflow:auto">${text}</div>
+      </div>
+    </article>
+  `;
+}
+
+function renderSelectedWarningDetails() {
+  const body = document.getElementById('drawerDetailsBody');
+  const titleEl = document.getElementById('drawerDetailsTitle');
+  if (!body) return;
+  if (titleEl) titleEl.textContent = `Warning Details · ${selectedDrawerWarnings.length}/2`;
+  body.innerHTML = selectedDrawerWarnings.length
+    ? selectedDrawerWarnings.map(renderWarningDetailCard).join('')
+    : '<div class="warning-details-empty"><strong>No warning selected</strong><span>Select a warning from the list or a marker on the map to inspect its bulletin and coordinates.</span></div>';
+  document.querySelectorAll('#mapWarningList .warning-item').forEach(item => {
+    const selected = selectedDrawerWarnings.some(w => {
+      const id = w.canonical_id || w.warning_id || w.id;
+      return item.dataset.warningId === String(id);
+    });
+    item.classList.toggle('is-selected', selected);
+    item.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+}
+
+window.removeWarningFromDetails = function(index) {
+  if (!Number.isInteger(index) || index < 0 || index >= selectedDrawerWarnings.length) return;
+  const removed = selectedDrawerWarnings.splice(index, 1)[0];
+  if (currentDrawerWarning === removed) currentDrawerWarning = selectedDrawerWarnings[selectedDrawerWarnings.length - 1] || null;
+  currentWarning = currentDrawerWarning;
+  renderSelectedWarningDetails();
+};
+
+window.openWarningDetails = function(w) {
+  if (!w) return;
+  const isMob = document.body.classList.contains('is-mobile');
+  if (isMob) {
+    currentDrawerWarning = w;
+    currentWarning = w;
+    if (typeof openWarningModal === 'function') openWarningModal(w);
+    return;
   }
 
-  body.innerHTML = `
-    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-      <span class="badge-simple" style="background:${color}18;color:${color};font-weight:var(--w-hero, 500)">
-        <span class="dot" style="background:${color}"></span> ${(w.severity || 'ACTIVE').toUpperCase()}
-      </span>
-      <span class="badge-simple badge-neutral">${cats.toUpperCase()}</span>
-      <span class="badge-simple ${w.is_verified ? 'badge-verified' : 'badge-neutral'}">${w.is_verified ? 'VERIFIED' : 'ACTIVE'}</span>
-    </div>
+  const id = String(w.canonical_id || w.warning_id || w.id || '');
+  const existingIndex = selectedDrawerWarnings.findIndex(item =>
+    String(item.canonical_id || item.warning_id || item.id || '') === id
+  );
+  if (existingIndex < 0) {
+    if (selectedDrawerWarnings.length >= 2) {
+      showToast('Two warnings are already selected. Remove one to inspect another.');
+      return;
+    }
+    selectedDrawerWarnings.push(w);
+  }
+  currentDrawerWarning = w;
+  currentWarning = w;
 
-    <div>
-      <div style="font-size:11px;font-weight:var(--w-hero, 500);text-transform:uppercase;color:var(--ink-secondary, var(--text-muted));letter-spacing:0.5px">Area / Subject</div>
-      <div style="font-weight:var(--w-hero, 500);font-size:14px;color:var(--ink-primary, var(--text));margin-top:2px">${w.title || w.area_text || wid}</div>
-      ${w.area_text && w.area_text !== w.title ? `<div style="font-size:12px;color:var(--ink-secondary, var(--text-muted));margin-top:2px">${w.area_text}</div>` : ''}
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;background:var(--surface-subtle);padding:10px 12px;border-radius:6px;border:1px solid var(--border-input)">
-      <div>
-        <div style="font-size:10px;font-weight:var(--w-hero, 500);color:var(--ink-secondary, var(--text-muted));text-transform:uppercase">Issued</div>
-        <div style="font-weight:var(--w-hero, 500);color:var(--ink-body, var(--text));font-family:ui-monospace,monospace">${issuedText}</div>
-      </div>
-      <div>
-        <div style="font-size:10px;font-weight:var(--w-hero, 500);color:var(--ink-secondary, var(--text-muted));text-transform:uppercase">Coordinates</div>
-        <div style="font-weight:var(--w-hero, 500);color:var(--ink-body, var(--text));font-family:ui-monospace,monospace">${warningPositionText(w, 'Spatial Vector')}</div>
-      </div>
-    </div>
-
-    <div>
-      <div style="font-size:11px;font-weight:var(--w-hero, 500);text-transform:uppercase;color:var(--ink-secondary, var(--text-muted));letter-spacing:0.5px;margin-bottom:6px">Raw Bulletin Text</div>
-      <div class="warning-expanded-text" style="max-height:280px">${text}</div>
-    </div>
-  `;
-
+  const drawer = document.getElementById('warningDetailsDrawer');
+  if (!drawer || !document.getElementById('drawerDetailsBody')) return;
+  renderSelectedWarningDetails();
   drawer.classList.add('open');
   drawer.setAttribute('aria-hidden', 'false');
-  drawerTriggerElement = document.activeElement;
+  if (!drawer.classList.contains('open') || !drawerTriggerElement) {
+    drawerTriggerElement = document.activeElement;
+  }
   const drawerCloseBtn = drawer.querySelector('.settings-close-btn') || drawer.querySelector('button');
   if (drawerCloseBtn) setTimeout(() => drawerCloseBtn.focus(), 50);
 };
@@ -1453,6 +1488,7 @@ window.closeWarningDrawer = function() {
     body.innerHTML = '<div class="warning-details-empty"><strong>No warning selected</strong><span>Select a warning from the list or a marker on the map to inspect its bulletin and coordinates.</span></div>';
   }
   currentDrawerWarning = null;
+  selectedDrawerWarnings = [];
   expandedWarningId = null;
   document.querySelectorAll('#mapWarningList .warning-item.is-selected').forEach(el => {
     el.classList.remove('is-selected');
