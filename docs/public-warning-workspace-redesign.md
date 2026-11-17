@@ -1,6 +1,6 @@
 # Public warning workspace — implementation specification
 
-Status: audited implementation plan; no application code changed in this PR.
+Status: implementation updated to match the desktop reference layout; responsive tablet/mobile behavior remains separately adapted.
 
 ## Goal
 
@@ -37,10 +37,12 @@ Repository: `alfredpanakkal/helm.navwarning`, base branch `main`.
 
 Use a grid with explicit min-width constraints rather than fixed percentages:
 
-- Map: flexible primary column.
-- Active Warnings: approximately 280–340px.
-- Warning Details: approximately 320–380px.
-- Use `minmax(0, ...)` for the map and `min-width: 0` on all grid children.
+- Map: `2.5fr` primary column.
+- Active Warnings: `1fr`.
+- Warning Details: `1fr`.
+- At 1440px and wider, the three columns target approximately 55% / 22% / 22% of the workspace, with 12px gaps.
+- Use `minmax(0, ...)` for all columns and `min-width: 0` on all grid children.
+- The list includes an in-panel text search and All / Critical / High severity filters; filtering operates on the already-rendered active warning rows.
 - The list and details panels must be siblings of `.map-container`, never descendants of the Leaflet container.
 - Give the list and details body independent vertical scrolling. Keep their headers and details actions visible.
 - The map remains the largest area and retains all existing map controls, attribution, legend, filters, and layer settings.
@@ -49,20 +51,18 @@ Use a grid with explicit min-width constraints rather than fixed percentages:
 
 At widths where the three minimum widths plus page gutters cannot fit, switch to the tablet behavior. Do not force 3 columns below the measured minimum.
 
-### Tablet: map + list, details drawer
+### Tablet: map + list, details below
 
 - Keep Map and Active Warnings side by side when there is sufficient width.
-- Open Warning Details as a drawer attached to the workspace, not as a child/overlay of the Leaflet map.
-- The drawer must have its own bounded height and scrollable body.
-- On close, return focus to the control that opened it when that control still exists.
-- Avoid a permanent full-width details row; it competes with the map and can grow beyond the viewport with long bulletins.
+- Place Warning Details below the two-column row, outside the Leaflet map container.
+- Keep details content scrollable within its panel.
 
-### Mobile: focused views
+### Mobile: vertically stacked panels
 
 - Do not compress three columns.
-- Use a compact view switcher for Map, Warnings, and Details; keep all three reachable without horizontal scrolling.
-- Selecting a warning from the list should make Details the active view. A map marker selection should select the same warning and provide a clear way to open Details.
-- The Map view must retain map gestures and existing map controls. The list and details must not overlay the map.
+- Stack Map, Active Warnings, and Warning Details vertically; each remains reachable by scrolling.
+- The existing mobile warning modal behavior remains available when a warning is selected.
+- The list and details must not overlay the map.
 - Use the existing safe-area tokens and a stable viewport sizing strategy; avoid repeatedly resizing the map due only to browser chrome movement.
 - Landscape phones are a separate test case, not an assumed tablet layout.
 
@@ -97,9 +97,8 @@ At widths where the three minimum widths plus page gutters cannot fit, switch to
 
 Expected files to touch, subject to the implementation diff:
 
-- `index.html`: workspace structure and responsive layout rules.
-- `public/assets/css/components.css`: details panel presentation, if shared component styles are the appropriate location.
-- `public/assets/js/public.js`: selected-warning synchronization, empty state, responsive view switching, and Leaflet resize only where necessary.
+- `index.html`: workspace structure, desktop panel proportions, responsive layout rules, and list search/severity controls.
+- `public/assets/js/public.js`: selected-warning synchronization and client-side list search/severity filtering.
 - `scripts/ux-audit/tests/`: regression coverage for the public map workspace.
 - `docs/ux-audit/do-not-break.md`: update only where a deliberately changed behavior needs a new explicit invariant.
 
