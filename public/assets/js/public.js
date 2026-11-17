@@ -1467,12 +1467,11 @@ window.openWarningDetails = function(w) {
 
   const drawer = document.getElementById('warningDetailsDrawer');
   if (!drawer || !document.getElementById('drawerDetailsBody')) return;
+  const wasOpen = drawer.classList.contains('open');
   renderSelectedWarningDetails();
   drawer.classList.add('open');
   drawer.setAttribute('aria-hidden', 'false');
-  if (!drawer.classList.contains('open') || !drawerTriggerElement) {
-    drawerTriggerElement = document.activeElement;
-  }
+  if (!wasOpen) drawerTriggerElement = document.activeElement;
   const drawerCloseBtn = drawer.querySelector('.settings-close-btn') || drawer.querySelector('button');
   if (drawerCloseBtn) setTimeout(() => drawerCloseBtn.focus(), 50);
 };
