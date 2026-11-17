@@ -69,7 +69,7 @@ async function installPublicApiMock(page: Page, state: PublicApiState) {
     const corsHeaders = {
       'access-control-allow-origin': '*',
       'access-control-allow-methods': 'GET, HEAD, OPTIONS',
-      'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info, accept-profile, content-profile, range, prefer',
+      'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info, accept-profile, content-profile, range, range-unit, prefer',
       'access-control-expose-headers': 'content-range',
     };
 
