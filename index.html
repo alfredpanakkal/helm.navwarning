@@ -527,7 +527,14 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   body.is-desktop.tab-map-active .main{max-width:none;width:100%;box-sizing:border-box;padding:16px}
   body.is-desktop.tab-map-active .header-inner{max-width:none;width:100%;box-sizing:border-box;padding-left:20px;padding-right:20px}
   body.is-desktop.tab-map-active #tab-map{display:flex;flex-direction:column;min-height:0}
-  .public-warning-workspace{display:grid;grid-template-columns:minmax(0,2.5fr) minmax(280px,1fr) minmax(280px,1fr);gap:12px;flex:1 1 0;min-height:0;width:100%}
+  .public-warning-workspace{display:grid;grid-template-columns:minmax(0,var(--map-panel-fr,2.5fr)) 8px minmax(280px,var(--warnings-panel-fr,1fr)) 8px minmax(280px,var(--details-panel-fr,1fr));gap:8px;flex:1 1 0;min-height:0;width:100%}
+  .workspace-resizer{position:relative;z-index:5;display:flex;align-items:center;justify-content:center;min-width:8px;cursor:col-resize;touch-action:none;outline-offset:2px}
+  .workspace-resizer::before{content:"";position:absolute;inset:0 -4px}
+  .workspace-resizer span{width:3px;height:36px;border-radius:4px;background:var(--border);transition:height .15s ease,background .15s ease,width .15s ease}
+  .workspace-resizer:hover span,.workspace-resizer:focus-visible span,.workspace-resizer.is-dragging span{width:4px;height:52px;background:var(--accent)}
+  .workspace-resizer:focus-visible{outline:2px solid var(--accent);outline-offset:-1px}
+  body.workspace-resizing{cursor:col-resize!important;user-select:none!important}
+  body.workspace-resizing *{cursor:col-resize!important;user-select:none!important}
   .public-warning-workspace>*{min-width:0;min-height:0}
   .public-warning-workspace>.map-container{position:relative;min-width:0;min-height:0;height:auto;flex:1 1 auto;border-radius:12px}
   .public-warning-workspace .map-warning-list{position:relative;inset:auto;width:auto;max-width:none;height:100%;max-height:none;min-width:0;min-height:0;display:flex;flex-direction:column;overflow-y:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:none;z-index:1}
@@ -550,8 +557,9 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   .public-warning-workspace .warning-expanded-text{overflow-wrap:anywhere;white-space:pre-wrap}
   .warning-details-empty{display:flex;flex-direction:column;gap:8px;padding:18px 4px;color:var(--ink-secondary);font-size:13px;line-height:1.5}
   .warning-details-empty strong{color:var(--ink-primary);font-size:14px}
-  .public-warning-workspace.is-focus-transition{grid-template-columns:minmax(0,1fr) minmax(0,0fr) minmax(0,0fr);gap:0;transition:grid-template-columns .32s cubic-bezier(.2,.7,.3,1),gap .32s ease}
+  .public-warning-workspace.is-focus-transition{grid-template-columns:minmax(0,1fr) 0fr 0fr 0fr 0fr;gap:0;transition:grid-template-columns .32s cubic-bezier(.2,.7,.3,1),gap .32s ease}
   .public-warning-workspace.is-focus-transition>.map-container{grid-column:1/-1}
+  .public-warning-workspace.is-focus-transition>.workspace-resizer{opacity:0;pointer-events:none;transition:opacity .18s ease}
   .public-warning-workspace.is-focus-transition>#mapWarningList,
   .public-warning-workspace.is-focus-transition>#warningDetailsDrawer{opacity:0;transform:translate3d(44px,0,0) scale(.97);filter:blur(2px);pointer-events:none;overflow:hidden;border-color:transparent;transition:opacity .22s ease,transform .32s cubic-bezier(.2,.7,.3,1),filter .22s ease,border-color .22s ease}
   .public-warning-workspace.is-focus-transition>#mapWarningList{transition-delay:0s}
@@ -833,6 +841,11 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
     </div>
     <div class="map-attribution">© OpenStreetMap contributors · CARTO · OpenSeaMap</div>
   </div>
+  <div class="workspace-resizer" id="mapWarningsResizer" role="separator" aria-orientation="vertical"
+       aria-label="Resize map and active warnings panels" aria-valuemin="0" aria-valuemax="100"
+       tabindex="0" title="Drag to resize Map and Active Warnings">
+    <span></span>
+  </div>
   <section class="map-warning-list" id="mapWarningList" aria-label="Active Warnings">
     <div class="panel-header" id="mapWarningListHeader">
       <div style="display:flex;align-items:center;gap:8px">
@@ -858,6 +871,11 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
       </div>
     </div>
   </section>
+  <div class="workspace-resizer" id="warningsDetailsResizer" role="separator" aria-orientation="vertical"
+       aria-label="Resize active warnings and selected warning panels" aria-valuemin="0" aria-valuemax="100"
+       tabindex="0" title="Drag to resize Active Warnings and Selected Warning">
+    <span></span>
+  </div>
   <section class="warning-details-drawer" id="warningDetailsDrawer" role="region" aria-label="Warning Details" aria-hidden="false">
     <div class="drawer-details-header">
       <div style="font-weight:500;font-size:14px;color:var(--ink-primary, var(--text))" id="drawerDetailsTitle">Warning Details</div>
