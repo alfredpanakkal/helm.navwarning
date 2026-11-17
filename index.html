@@ -550,6 +550,19 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   .public-warning-workspace .map-warning-list .warning-item.expanded,.public-warning-workspace .map-warning-list .warning-item.is-selected{background:var(--surface-subtle)}
   .public-warning-workspace .warning-details-drawer{position:relative;inset:auto;width:auto;max-width:none;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;transform:none;transition:none;border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;z-index:1}
   .public-warning-workspace .warning-details-drawer.open{transform:none}
+  /* Hide Selected Warning without clearing the current selection. */
+  .public-warning-workspace.is-details-collapsed{grid-template-columns:minmax(0,var(--map-panel-fr,2.5fr)) 8px minmax(280px,var(--warnings-panel-fr,1fr))}
+  .public-warning-workspace.is-details-collapsed>#warningsDetailsResizer,
+  .public-warning-workspace.is-details-collapsed>#warningDetailsDrawer{display:none}
+  .selected-warning-reopen{display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);z-index:8;align-items:center;gap:7px;min-height:38px;padding:0 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--ink-primary);font:600 12px var(--font-family-base);cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+  .selected-warning-reopen:hover{background:var(--surface-subtle);border-color:var(--accent)}
+  .public-warning-workspace.is-details-collapsed>.selected-warning-reopen{display:inline-flex}
+  .public-warning-workspace.is-details-collapsed.is-focus-transition>#warningDetailsDrawer{display:flex;position:fixed;top:16px;right:16px;bottom:16px;left:auto;width:min(420px,calc(100vw - 32px));height:auto;z-index:1240;opacity:1;transform:translate3d(0,0,0);filter:none;pointer-events:auto;overflow:hidden;border-color:var(--border);transition:transform .24s ease,opacity .2s ease}
+  body.map-focus-active .public-warning-workspace>#warningDetailsDrawer{display:flex;position:fixed;top:16px;right:16px;bottom:16px;left:auto;width:min(420px,calc(100vw - 32px));height:auto;z-index:1240;opacity:1;transform:translate3d(0,0,0);filter:none;pointer-events:auto;overflow:hidden;border-color:var(--border)}
+  body.map-focus-active .public-warning-workspace.is-details-collapsed>#warningDetailsDrawer{display:none}
+  body.map-focus-active .public-warning-workspace.is-details-collapsed>.selected-warning-reopen{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:1250;border-radius:8px 0 0 8px}
+  .public-warning-workspace:not(.is-details-collapsed)>.selected-warning-reopen{display:none}
+
   .public-warning-workspace .drawer-details-header{position:relative;flex:none;padding:14px 14px 12px;border-bottom:1px solid var(--hairline);background:var(--surface)}
   .public-warning-workspace .drawer-details-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:14px}
   .public-warning-workspace .drawer-details-footer{position:relative;flex:none;display:flex;gap:8px;padding:10px 14px 14px;background:var(--surface);border-top:1px solid var(--hairline)}
@@ -879,7 +892,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   <section class="warning-details-drawer" id="warningDetailsDrawer" role="region" aria-label="Warning Details" aria-hidden="false">
     <div class="drawer-details-header">
       <div style="font-weight:500;font-size:14px;color:var(--ink-primary, var(--text))" id="drawerDetailsTitle">Warning Details</div>
-      <button type="button" class="settings-close-btn" onclick="closeWarningDrawer()" aria-label="Clear selected warning">✕</button>
+      <button type="button" class="settings-close-btn" onclick="toggleSelectedWarningPanel(false)" aria-label="Hide warning details" title="Hide details">✕</button>
     </div>
     <div class="drawer-details-body" id="drawerDetailsBody">
       <div class="warning-details-empty"><strong>No warning selected</strong><span>Select a warning from the list or a marker on the map to inspect its bulletin and coordinates.</span></div>
@@ -889,6 +902,9 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
       <button type="button" class="btn btn-secondary" id="btnDrawerCopy" onclick="copyCurrentWarningText()">Copy Bulletin</button>
     </div>
   </section>
+  <button type="button" class="selected-warning-reopen" id="btnShowWarningDetails" onclick="toggleSelectedWarningPanel(true)" aria-expanded="false" aria-controls="warningDetailsDrawer">
+    <span aria-hidden="true">‹</span> Show details
+  </button>
   </div>
 </div>
 
