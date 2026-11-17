@@ -43,6 +43,7 @@ Use a grid with explicit min-width constraints rather than fixed percentages:
 - At 1440px and wider, the three columns target approximately 55% / 22% / 22% of the workspace, with 12px gaps.
 - Use `minmax(0, ...)` for all columns and `min-width: 0` on all grid children.
 - The list includes an in-panel text search and All / Critical / High severity filters; filtering operates on the already-rendered active warning rows.
+- Two keyboard-accessible drag dividers resize Map / Active Warnings and Active Warnings / Selected Warning. Default proportions remain 2.5fr / 1fr / 1fr; the resulting ratios adapt when the browser width changes. Minimum panel widths are enforced during dragging.
 - The list and details panels must be siblings of `.map-container`, never descendants of the Leaflet container.
 - Give the list and details body independent vertical scrolling. Keep their headers and details actions visible.
 - The map remains the largest area and retains all existing map controls, attribution, legend, filters, and layer settings.
