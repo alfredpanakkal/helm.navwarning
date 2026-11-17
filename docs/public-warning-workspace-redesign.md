@@ -125,6 +125,15 @@ When Map Focus Mode is active on desktop (1440px and wider), keep the map at ful
 - Clicking/tapping a marker or list row changes selection.
 - Do not add warning selection to the URL in this change. Preserve the current public route grammar and existing standalone warning URLs; revisit a shareable hash only as a separately reviewed routing decision.
 
+## Active Warnings list density
+
+- Treat each row as a scanning and selection control, not a second bulletin preview.
+- Keep the warning identifier and NAVAREA as the primary line; show an existing category/type label only when the record supplies one.
+- Do not render the full bulletin title/raw text in the list row. The complete bulletin remains in the Selected Warning details surface.
+- Omit missing issued-date placeholders instead of repeating “Date not stated” on every row.
+- Keep rows comfortably separated with a compact, consistent hierarchy; long category labels may wrap to two lines.
+- Preserve severity indication, keyboard selection, search/filter behavior, and the special unassigned-NAVAREA context label.
+
 ## Details content and maritime conventions
 
 - Preserve the original bulletin verbatim and the existing Copy Bulletin action.
