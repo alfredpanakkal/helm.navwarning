@@ -57,17 +57,18 @@ Helm.Warning is an automated pipeline, spatial geometry visualizer, and navigati
 ## 📸 Overview & Visual Showcase
 
 ```
-+------------------------------------------------------------------------------------------+
-|  ⚓ Helm.Warning | NAVAREA Maritime Safety Information                     [Sources] [Admin] |
-+------------------------------------+-----------------------------------------------------+
-|  🗺️ INTERACTIVE MARITIME CHART     |  📋 FLOATING WARNINGS DRAWER / DATA BANK           |
-|                                    |                                                     |
-|  - Esri Ocean / Seamark Layers     |  - Real-Time Status Metric Strip                    |
-|  - Polymorphic Vectors (Polygons,  |    (In-Force, Coverage %, Critical, Georeferenced)  |
-|    Lines, Circles, Offshore Rigs)  |  - Inline Accordion Details (No Disruptive Modals)  |
-|  - Antimeridian-Safe Projections   |  - Dual-Mode Minimize (44px) & Maximize Controls    |
-|  - Live Clustering & Pins          |  - Bidirectional Focus: Pin Click <-> Card Scroll   |
-+------------------------------------+-----------------------------------------------------+
++------------------------------------------------------------------------------------------------+
+|  ⚓ Helm.Warning | NAVAREA Maritime Safety Information                         [Data] [More]      |
++------------------------------------------------+----------------------+------------------------+
+|  🗺️ MAP                                         |  📋 ACTIVE WARNINGS   |  📄 WARNING DETAILS    |
+|                                                |                      |                        |
+|  - Esri Ocean / Seamark Layers                 |  - Search             |  - Selected bulletin   |
+|  - Points, Lines, Polygons & Circles           |  - Severity filters  |  - Severity / status  |
+|  - NAVAREA and category filters                |  - Select from list  |  - Coordinates / area  |
+|  - Map focus mode                              |  - Independent scroll|  - Copy / locate       |
++------------------------------------------------+----------------------+------------------------+
+|        Resizable desktop panels (large screens); responsive map/list/details on smaller views  |
++------------------------------------------------------------------------------------------------+
 ```
 
 | Desktop Chart & Floating Warnings Drawer | Inline Accordion Detail & Raw Bulletins |
@@ -136,13 +137,21 @@ flowchart TD
   - Plots points, complex multi-vertex polygons, corridor buffers, firing exercise zones, and line strings.
   - Granular layer toggles for **Points**, **Polygons**, **Circles**, and **Lines**.
   - **Offshore Rig (MODU) Plotting**: Dedicated rig pins (`.nw-rig-pin`) with 500m (0.27 NM) safety exclusion perimeters and crosshairs.
-- **Collapsible Floating Warnings Drawer**:
-  - **Minimize (44px)**: Snaps the drawer down to leave an unobstructed nautical chart view.
-  - **Maximize (520px / 75vh mobile)**: Expands for multi-hazard comparison and inspection.
-- **In-Place Inline Accordions**: Click any hazard to expand full coordinate stamps, metadata chips, authority source tags, and raw immutable WWNWS text directly within the list—**no disruptive modals**.
-- **Bidirectional Geo-Synchronization**:
-  - Click **📍 Focus on Map** inside any warning to pan, center, and smoothly fit map bounds to the hazard envelope.
-  - Click any map pin or geometry on the water to auto-scroll and highlight its corresponding card in the drawer.
+- **Responsive Warning Workspace**:
+  - On large desktop screens (1440px and wider), Map, Active Warnings, and Warning Details are presented as three sibling panels; the warning panels stay outside the Leaflet map container.
+  - Two keyboard-accessible dividers resize the desktop panels while enforcing minimum widths. The map remains the primary workspace.
+  - Active Warnings has in-panel search and All / Critical / High severity filters, with its own scroll area.
+  - Warning Details uses the existing bulletin renderer and keeps warning actions available without covering the map.
+  - Tablet and mobile retain their adapted layouts rather than forcing the desktop three-column arrangement.
+- **Map Focus Mode**: Expands the map for chart inspection. Desktop warning panels can be restored to the workspace, and Leaflet recalculates its size after layout transitions.
+- **Warning Selection & Comparison**:
+  - Selecting a warning from the map or list synchronizes the selected item and its details.
+  - Desktop supports up to two selected warning detail cards at once; selecting an already selected warning focuses it rather than duplicating it.
+  - A newer selection is shown first, with the previous selection retained second; adding a third distinct warning drops the oldest selection.
+  - Mobile retains its existing single-warning modal interaction.
+- **Bidirectional Map Synchronization**:
+  - Selecting a warning from the list focuses its geometry on the map.
+  - Selecting a map marker or geometry updates the corresponding warning selection and details.
 - **Data Bank Metrics Strip**: Live count of active in-force bulletins, NAVAREA coverage percentage, critical hazard tallies, and georeferencing rate.
 - **Watch themes**: Light / dark / night themes for watchkeeping conditions, persisted per user.
 - **NAVAREA Data Bank**: Searchable and filterable by NAVAREA region (`NAVAREA I` through `XXI`, `BALTIC`), status, and category (`military`, `drifting`, `aton`, `subsea`, `offshore`, `electronic`, `general`).
