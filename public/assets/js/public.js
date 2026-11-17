@@ -450,7 +450,14 @@ window.resetFilters = function(){
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (document.body.classList.contains('map-focus-active')) {
+    const workspace = document.querySelector('.public-warning-workspace');
+    if (document.body.classList.contains('map-focus-active') && workspace &&
+        !workspace.classList.contains('is-details-collapsed')) {
+      toggleSelectedWarningPanel(false);
+      return;
+    }
+    if (document.body.classList.contains('map-focus-active') ||
+        document.querySelector('.public-warning-workspace.is-focus-transition')) {
       toggleMapFocusMode(false);
       return;
     }
@@ -858,12 +865,21 @@ window.toggleMapTopControls = function(forceState) {
   }
 };
 
+let mapFocusTransitionTimer = null;
+
 window.toggleMapFocusMode = function(explicitState) {
-  const isCurrentlyActive = document.body.classList.contains('map-focus-active');
+  const workspace = document.querySelector('.public-warning-workspace');
+  const isDesktopWorkspace = document.body.classList.contains('is-desktop') &&
+    window.matchMedia('(min-width: 1440px)').matches && workspace;
+  const isCurrentlyActive = document.body.classList.contains('map-focus-active') ||
+    Boolean(workspace && workspace.classList.contains('is-focus-transition'));
   const nextState = typeof explicitState === 'boolean' ? explicitState : !isCurrentlyActive;
-  
-  document.body.classList.toggle('map-focus-active', nextState);
-  
+
+  if (mapFocusTransitionTimer) {
+    clearTimeout(mapFocusTransitionTimer);
+    mapFocusTransitionTimer = null;
+  }
+
   const iconMax = document.getElementById('iconMapFocusMax');
   const iconMin = document.getElementById('iconMapFocusMin');
   const btn = document.getElementById('btnMapFocus');
@@ -874,23 +890,181 @@ window.toggleMapFocusMode = function(explicitState) {
   if (btn) {
     btn.classList.toggle('active', nextState);
     btn.setAttribute('aria-pressed', nextState ? 'true' : 'false');
-    btn.setAttribute('aria-label', nextState ? 'Exit focus mode' : 'Maximize map view full screen');
-    btn.title = nextState ? 'Exit Focus Mode (Esc)' : 'Maximize Map View (Focus Mode)';
+    btn.setAttribute('aria-label', nextState ? 'Exit focus mode and restore workspace panels' : 'Maximize map view full screen');
+    btn.title = nextState ? 'Restore workspace panels (Esc)' : 'Maximize Map View (Focus Mode)';
   }
 
-  // Auto-collapse top controls in focus mode
   if (nextState) {
     toggleMapTopControls(false);
   }
 
   const m = getLeafletMap();
+
+  if (isDesktopWorkspace) {
+    if (nextState) {
+      workspace.classList.add('is-focus-transition');
+      mapFocusTransitionTimer = setTimeout(() => {
+        document.body.classList.add('map-focus-active');
+        mapFocusTransitionTimer = null;
+        if (m) {
+          m.invalidateSize();
+          setTimeout(() => m.invalidateSize(), 180);
+        }
+        showToast('Map focus mode active · Press Esc to restore panels');
+      }, 320);
+    } else {
+      document.body.classList.remove('map-focus-active');
+      requestAnimationFrame(() => {
+        workspace.classList.remove('is-focus-transition');
+        if (m) {
+          m.invalidateSize();
+          setTimeout(() => m.invalidateSize(), 280);
+        }
+      });
+      showToast('Workspace panels restored');
+    }
+    return;
+  }
+
+  // Keep the existing focus-mode behavior unchanged on tablet and mobile.
+  document.body.classList.toggle('map-focus-active', nextState);
   if (m) {
     m.invalidateSize();
     setTimeout(() => m.invalidateSize(), 150);
   }
-
   showToast(nextState ? 'Focus Mode active (Press Esc to exit)' : 'Exited Focus Mode');
 };
+
+window.toggleSelectedWarningPanel = function(force) {
+  const workspace = document.querySelector('.public-warning-workspace');
+  const drawer = document.getElementById('warningDetailsDrawer');
+  const toggle = document.getElementById('btnShowWarningDetails');
+  if (!workspace || !drawer || !document.body.classList.contains('is-desktop') ||
+      !window.matchMedia('(min-width: 1440px)').matches) return;
+  const shouldShow = typeof force === 'boolean'
+    ? force
+    : workspace.classList.contains('is-details-collapsed');
+  workspace.classList.toggle('is-details-collapsed', !shouldShow);
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', shouldShow ? 'true' : 'false');
+    toggle.hidden = shouldShow;
+  }
+  if (!shouldShow && drawer.contains(document.activeElement) && toggle) toggle.focus();
+  const map = getLeafletMap();
+  if (map) requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+};
+
+function setupDesktopWorkspaceResizers() {
+  const workspace = document.querySelector('.public-warning-workspace');
+  if (!workspace || workspace.dataset.resizersReady === 'true') return;
+  const isDesktop = () => document.body.classList.contains('is-desktop') &&
+    window.matchMedia('(min-width: 1440px)').matches;
+  const mapPanel = workspace.querySelector('.map-container');
+  const warningsPanel = document.getElementById('mapWarningList');
+  const detailsPanel = document.getElementById('warningDetailsDrawer');
+  const handles = [
+    { element: document.getElementById('mapWarningsResizer'), before: mapPanel, after: warningsPanel, minBefore: 420, minAfter: 280 },
+    { element: document.getElementById('warningsDetailsResizer'), before: warningsPanel, after: detailsPanel, minBefore: 280, minAfter: 280 }
+  ];
+  if (!mapPanel || !warningsPanel || !detailsPanel || handles.some(item => !item.element)) return;
+  workspace.dataset.resizersReady = 'true';
+
+  const totalFr = 4.5;
+  let activeDrag = null;
+  let resizeFrame = 0;
+
+  function updateFractions(widths) {
+    const total = widths.map(width => Math.max(0, width)).reduce((sum, width) => sum + width, 0);
+    if (!total) return;
+    workspace.style.setProperty('--map-panel-fr', (widths[0] / total * totalFr) + 'fr');
+    workspace.style.setProperty('--warnings-panel-fr', (widths[1] / total * totalFr) + 'fr');
+    workspace.style.setProperty('--details-panel-fr', (widths[2] / total * totalFr) + 'fr');
+    handles[0].element.setAttribute('aria-valuenow', String(Math.round(widths[0] / total * 100)));
+    handles[1].element.setAttribute('aria-valuenow', String(Math.round(widths[1] / total * 100)));
+  }
+
+  function invalidateMap() {
+    if (resizeFrame) return;
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = 0;
+      const map = getLeafletMap();
+      if (map) map.invalidateSize({ pan: false });
+    });
+  }
+
+  function applyDelta(drag, delta) {
+    const widths = drag.startWidths.slice();
+    const leftIndex = drag.handleIndex;
+    const rightIndex = leftIndex + 1;
+    const leftMin = handles[drag.handleIndex].minBefore;
+    const rightMin = handles[drag.handleIndex].minAfter;
+    const change = Math.max(leftMin - widths[leftIndex],
+      Math.min(delta, widths[rightIndex] - rightMin));
+    widths[leftIndex] += change;
+    widths[rightIndex] -= change;
+    updateFractions(widths);
+    invalidateMap();
+  }
+
+  handles.forEach((handle, handleIndex) => {
+    const element = handle.element;
+    element.addEventListener('pointerdown', event => {
+      if (!isDesktop() || document.body.classList.contains('map-focus-active')) return;
+      if (event.button !== 0 && event.pointerType === 'mouse') return;
+      const rects = [mapPanel, warningsPanel, detailsPanel].map(panel => panel.getBoundingClientRect());
+      activeDrag = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        handleIndex,
+        startWidths: rects.map(rect => rect.width)
+      };
+      element.classList.add('is-dragging');
+      element.setPointerCapture(event.pointerId);
+      document.body.classList.add('workspace-resizing');
+      event.preventDefault();
+    });
+    element.addEventListener('pointermove', event => {
+      if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+      applyDelta(activeDrag, event.clientX - activeDrag.startX);
+    });
+    const stopDrag = event => {
+      if (!activeDrag || (event && event.pointerId !== activeDrag.pointerId)) return;
+      activeDrag = null;
+      handles.forEach(item => item.element.classList.remove('is-dragging'));
+      document.body.classList.remove('workspace-resizing');
+      invalidateMap();
+    };
+    element.addEventListener('pointerup', stopDrag);
+    element.addEventListener('pointercancel', stopDrag);
+    element.addEventListener('lostpointercapture', stopDrag);
+
+    element.addEventListener('keydown', event => {
+      if (!isDesktop() || document.body.classList.contains('map-focus-active')) return;
+      if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      event.preventDefault();
+      const rects = [mapPanel, warningsPanel, detailsPanel].map(panel => panel.getBoundingClientRect());
+      const widths = rects.map(rect => rect.width);
+      const delta = event.key === 'ArrowRight' ? 24 : -24;
+      const pseudoDrag = { startWidths: widths, handleIndex };
+      applyDelta(pseudoDrag, delta);
+    });
+  });
+
+  window.addEventListener('resize', () => {
+    if (!isDesktop()) {
+      workspace.style.removeProperty('--map-panel-fr');
+      workspace.style.removeProperty('--warnings-panel-fr');
+      workspace.style.removeProperty('--details-panel-fr');
+    }
+    invalidateMap();
+  }, { passive: true });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupDesktopWorkspaceResizers, { once: true });
+} else {
+  setupDesktopWorkspaceResizers();
+}
 
 function setupMapInteractionAutoCollapse(mapInstance) {
   if (!mapInstance) return;
@@ -1117,6 +1291,7 @@ function attachGearLongPress() {
 let activeTouchFeature = null;
 let activeHighlightedLayer = null;
 let currentDrawerWarning = null;
+let selectedDrawerWarnings = []; // Desktop comparison is limited to two warnings.
 
 function clearActiveFeatureHighlight() {
   if (activeHighlightedLayer) {
@@ -1195,79 +1370,129 @@ window.handleTitleCardClick = function() {
 // be restored to it when the drawer closes.
 let drawerTriggerElement = null;
 
-window.openWarningDetails = function(w) {
-  currentDrawerWarning = w;
-  currentWarning = w;
-  const isMob = document.body.classList.contains('is-mobile');
-  if (isMob) {
-    if (typeof openWarningModal === 'function') {
-      openWarningModal(w);
-    }
-    return;
-  }
-
-  // Desktop Side Drawer
-  const drawer = document.getElementById('warningDetailsDrawer');
-  const body = document.getElementById('drawerDetailsBody');
-  const titleEl = document.getElementById('drawerDetailsTitle');
-  if (!drawer || !body) return;
-
+function renderWarningDetailCard(w, index) {
   const wid = w.canonical_id || w.warning_id || w.id || 'Notice';
   const navarea = w.navarea || 'NAVAREA';
   const color = getWarningColor(w);
   const issuedText = formatWarningIssuedText(w);
   const text = getBulletinText(w) || w.raw_text || 'No raw bulletin text provided.';
   const cats = Array.isArray(w.categories) ? w.categories.join(' · ') : (w.category || 'General');
+  const title = w.title || w.area_text || wid;
 
-  if (titleEl) {
-    titleEl.textContent = `${wid} — ${navarea}`;
+  return `
+    <article class="warning-compare-card" style="display:flex;flex-direction:column;gap:12px;padding:12px;border:1px solid var(--border-input);border-radius:8px;background:var(--surface, var(--panel));">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <strong style="font-size:13px;color:var(--ink-primary, var(--text))">${index + 1}. ${wid} — ${navarea}</strong>
+        <button type="button" class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="removeWarningFromDetails(${index})" aria-label="Remove ${wid} from comparison">Remove</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span class="badge-simple" style="background:${color}18;color:${color};font-weight:var(--w-hero, 500)">
+          <span class="dot" style="background:${color}"></span> ${(w.severity || 'ACTIVE').toUpperCase()}
+        </span>
+        <span class="badge-simple badge-neutral">${cats.toUpperCase()}</span>
+        <span class="badge-simple ${w.is_verified ? 'badge-verified' : 'badge-neutral'}">${w.is_verified ? 'VERIFIED' : 'ACTIVE'}</span>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:var(--w-hero, 500);text-transform:uppercase;color:var(--ink-secondary, var(--text-muted));letter-spacing:0.5px">Area / Subject</div>
+        <div style="font-weight:var(--w-hero, 500);font-size:14px;color:var(--ink-primary, var(--text));margin-top:2px">${title}</div>
+        ${w.area_text && w.area_text !== w.title ? `<div style="font-size:12px;color:var(--ink-secondary, var(--text-muted));margin-top:2px">${w.area_text}</div>` : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;background:var(--surface-subtle);padding:10px 12px;border-radius:6px;border:1px solid var(--border-input)">
+        <div>
+          <div style="font-size:10px;font-weight:var(--w-hero, 500);color:var(--ink-secondary, var(--text-muted));text-transform:uppercase">Issued</div>
+          <div style="font-weight:var(--w-hero, 500);color:var(--ink-body, var(--text));font-family:ui-monospace,monospace">${issuedText}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:var(--w-hero, 500);color:var(--ink-secondary, var(--text-muted));text-transform:uppercase">Coordinates</div>
+          <div style="font-weight:var(--w-hero, 500);color:var(--ink-body, var(--text));font-family:ui-monospace,monospace">${warningPositionText(w, 'Spatial Vector')}</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:var(--w-hero, 500);text-transform:uppercase;color:var(--ink-secondary, var(--text-muted));letter-spacing:0.5px;margin-bottom:6px">Raw Bulletin Text</div>
+        <div class="warning-expanded-text" style="max-height:280px;overflow:auto">${text}</div>
+      </div>
+    </article>
+  `;
+}
+
+function renderSelectedWarningDetails() {
+  const body = document.getElementById('drawerDetailsBody');
+  const titleEl = document.getElementById('drawerDetailsTitle');
+  if (!body) return;
+  if (titleEl) titleEl.textContent = `Warning Details · ${selectedDrawerWarnings.length}/2`;
+  body.innerHTML = selectedDrawerWarnings.length
+    ? selectedDrawerWarnings.map(renderWarningDetailCard).join('')
+    : '<div class="warning-details-empty"><strong>No warning selected</strong><span>Select a warning from the list or a marker on the map to inspect its bulletin and coordinates.</span></div>';
+  document.querySelectorAll('#mapWarningList .warning-item').forEach(item => {
+    const selected = selectedDrawerWarnings.some(w => {
+      const id = w.canonical_id || w.warning_id || w.id;
+      return item.dataset.warningId === String(id);
+    });
+    item.classList.toggle('is-selected', selected);
+    item.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+}
+
+window.removeWarningFromDetails = function(index) {
+  if (!Number.isInteger(index) || index < 0 || index >= selectedDrawerWarnings.length) return;
+  const removed = selectedDrawerWarnings.splice(index, 1)[0];
+  if (currentDrawerWarning === removed) currentDrawerWarning = selectedDrawerWarnings[selectedDrawerWarnings.length - 1] || null;
+  currentWarning = currentDrawerWarning;
+  renderSelectedWarningDetails();
+};
+
+window.openWarningDetails = function(w) {
+  if (!w) return;
+  const isMob = document.body.classList.contains('is-mobile');
+  if (isMob) {
+    currentDrawerWarning = w;
+    currentWarning = w;
+    if (typeof openWarningModal === 'function') openWarningModal(w);
+    return;
   }
 
-  body.innerHTML = `
-    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-      <span class="badge-simple" style="background:${color}18;color:${color};font-weight:var(--w-hero, 500)">
-        <span class="dot" style="background:${color}"></span> ${(w.severity || 'ACTIVE').toUpperCase()}
-      </span>
-      <span class="badge-simple badge-neutral">${cats.toUpperCase()}</span>
-      <span class="badge-simple ${w.is_verified ? 'badge-verified' : 'badge-neutral'}">${w.is_verified ? 'VERIFIED' : 'ACTIVE'}</span>
-    </div>
+  const id = String(w.canonical_id || w.warning_id || w.id || '');
+  const existingIndex = selectedDrawerWarnings.findIndex(item =>
+    String(item.canonical_id || item.warning_id || item.id || '') === id
+  );
+  if (existingIndex >= 0) {
+    selectedDrawerWarnings.splice(existingIndex, 1);
+  }
+  // Keep the most recently selected warning first; retain only the previous selection.
+  selectedDrawerWarnings.unshift(w);
+  if (selectedDrawerWarnings.length > 2) selectedDrawerWarnings.pop();
 
-    <div>
-      <div style="font-size:11px;font-weight:var(--w-hero, 500);text-transform:uppercase;color:var(--ink-secondary, var(--text-muted));letter-spacing:0.5px">Area / Subject</div>
-      <div style="font-weight:var(--w-hero, 500);font-size:14px;color:var(--ink-primary, var(--text));margin-top:2px">${w.title || w.area_text || wid}</div>
-      ${w.area_text && w.area_text !== w.title ? `<div style="font-size:12px;color:var(--ink-secondary, var(--text-muted));margin-top:2px">${w.area_text}</div>` : ''}
-    </div>
+  currentDrawerWarning = w;
+  currentWarning = w;
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;background:var(--surface-subtle);padding:10px 12px;border-radius:6px;border:1px solid var(--border-input)">
-      <div>
-        <div style="font-size:10px;font-weight:var(--w-hero, 500);color:var(--ink-secondary, var(--text-muted));text-transform:uppercase">Issued</div>
-        <div style="font-weight:var(--w-hero, 500);color:var(--ink-body, var(--text));font-family:ui-monospace,monospace">${issuedText}</div>
-      </div>
-      <div>
-        <div style="font-size:10px;font-weight:var(--w-hero, 500);color:var(--ink-secondary, var(--text-muted));text-transform:uppercase">Coordinates</div>
-        <div style="font-weight:var(--w-hero, 500);color:var(--ink-body, var(--text));font-family:ui-monospace,monospace">${warningPositionText(w, 'Spatial Vector')}</div>
-      </div>
-    </div>
-
-    <div>
-      <div style="font-size:11px;font-weight:var(--w-hero, 500);text-transform:uppercase;color:var(--ink-secondary, var(--text-muted));letter-spacing:0.5px;margin-bottom:6px">Raw Bulletin Text</div>
-      <div class="warning-expanded-text" style="max-height:280px">${text}</div>
-    </div>
-  `;
-
+  const drawer = document.getElementById('warningDetailsDrawer');
+  if (!drawer || !document.getElementById('drawerDetailsBody')) return;
+  const wasOpen = drawer.classList.contains('open');
+  renderSelectedWarningDetails();
   drawer.classList.add('open');
   drawer.setAttribute('aria-hidden', 'false');
-  drawerTriggerElement = document.activeElement;
+  if (!wasOpen) drawerTriggerElement = document.activeElement;
   const drawerCloseBtn = drawer.querySelector('.settings-close-btn') || drawer.querySelector('button');
   if (drawerCloseBtn) setTimeout(() => drawerCloseBtn.focus(), 50);
 };
 
 window.closeWarningDrawer = function() {
   const drawer = document.getElementById('warningDetailsDrawer');
+  const body = document.getElementById('drawerDetailsBody');
   if (drawer) {
     drawer.classList.remove('open');
-    drawer.setAttribute('aria-hidden', 'true');
+    drawer.setAttribute('aria-hidden', document.body.classList.contains('is-mobile') ? 'true' : 'false');
   }
+  if (body && !document.body.classList.contains('is-mobile')) {
+    body.innerHTML = '<div class="warning-details-empty"><strong>No warning selected</strong><span>Select a warning from the list or a marker on the map to inspect its bulletin and coordinates.</span></div>';
+  }
+  currentDrawerWarning = null;
+  selectedDrawerWarnings = [];
+  expandedWarningId = null;
+  document.querySelectorAll('#mapWarningList .warning-item.is-selected').forEach(el => {
+    el.classList.remove('is-selected');
+    el.setAttribute('aria-pressed', 'false');
+  });
   if (drawerTriggerElement && typeof drawerTriggerElement.focus === 'function') {
     drawerTriggerElement.focus();
   }
@@ -1691,6 +1916,10 @@ window.filterMapByNavArea = function(navArea, opts) {
   if (mapSelect && mapSelect.value !== currentSelectedNavArea) {
     mapSelect.value = currentSelectedNavArea;
   }
+  const headerSelect = document.getElementById('headerNavAreaSelect');
+  if (headerSelect && headerSelect.value !== currentSelectedNavArea) {
+    headerSelect.value = currentSelectedNavArea;
+  }
   const dataBankSelect = document.getElementById('filter-navarea');
   if (dataBankSelect && dataBankSelect.value !== currentSelectedNavArea) {
     dataBankSelect.value = currentSelectedNavArea;
@@ -1805,6 +2034,11 @@ async function toggleInlineWarning(w, itemEl){
 
   expandedWarningId = w.canonical_id || w.warning_id || w.id;
   itemEl.classList.add('expanded');
+
+  // Keep the persistent details panel synchronized with the selected list row.
+  if (!document.body.classList.contains('is-mobile') && typeof window.openWarningDetails === 'function') {
+    window.openWarningDetails(w);
+  }
 
   // Focus map on marker
   const lat = Number(w.latitude ?? w.lat);
@@ -1921,15 +2155,49 @@ function rebuildMapList(items = null){
       && isNavAreaUnscoped(w.navarea);
     item.className='warning-item';
     item.dataset.warningId = wid;
-    item.onclick=()=>toggleInlineWarning(w, item);
+    item.dataset.severity = String(w.severity || 'moderate').toLowerCase();
+    item.setAttribute('role', 'button');
+    item.setAttribute('tabindex', '0');
+    item.setAttribute('aria-label', `Select warning ${wid} in ${w.navarea || 'NAVAREA'}`);
+    const selectWarning = () => {
+      if (document.body.classList.contains('is-mobile')) {
+        toggleInlineWarning(w, item);
+        return;
+      }
+      list.querySelectorAll('.warning-item.is-selected').forEach(el => {
+        el.classList.remove('is-selected');
+        el.setAttribute('aria-pressed', 'false');
+      });
+      item.classList.add('is-selected');
+      item.setAttribute('aria-pressed', 'true');
+      expandedWarningId = wid;
+      window.openWarningDetails(w);
+      const lat = Number(w.latitude ?? w.lat);
+      const lng = Number(w.longitude ?? w.lng);
+      const map = getLeafletMap();
+      if (map && Number.isFinite(lat) && Number.isFinite(lng)) {
+        map.panTo([lat, lng], { animate: true });
+      }
+    };
+    item.onclick = selectWarning;
+    item.onkeydown = event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selectWarning();
+      }
+    };
     const c=w.severity==='critical'?'var(--critical)':w.severity==='high'?'var(--high)':'var(--neutral)';
+    const navareaLabel = w.navarea || 'NAVAREA unassigned';
+    const categoryLabel = String(w.category || w.warning_type || w.type || '').trim();
+    const issuedDate = formatWarningDate(w);
+    const hasIssuedDate = issuedDate !== 'Date not stated';
     item.innerHTML=`
       <div class="warning-item-header">
         <span class="severity-dot" style="background:${c}"></span>
         <div class="warning-item-title-col">
-          <div class="warning-id">${wid} · ${w.navarea}${unscopedHere ? '<span title="This warning has no NAVAREA number, so it is shown with NAVAREA I (the Baltic Sea lies in NAVAREA I waters)." style="display:inline-block;margin:2px 0 0 6px;padding:0 6px;border:1px solid var(--border);border-radius:999px;font-size:11px;font-weight:500;color:var(--text-muted)">No NAVAREA · shown with NAVAREA I</span>' : ''}</div>
-          <div class="warning-meta">${w.title}</div>
-          <div class="warning-meta">${formatWarningDate(w)}</div>
+          <div class="warning-id">${wid} · ${navareaLabel}${unscopedHere ? '<span title="This warning has no NAVAREA number, so it is shown with NAVAREA I (the Baltic Sea lies in NAVAREA I waters)." class="warning-unscoped-label">Unassigned · shown in NAVAREA I</span>' : ''}</div>
+          ${categoryLabel ? `<div class="warning-meta warning-category">${categoryLabel}</div>` : ''}
+          ${hasIssuedDate ? `<div class="warning-meta warning-issued-date">${issuedDate}</div>` : ''}
         </div>
         <svg class="warning-item-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"/></svg>
       </div>`;
@@ -1939,7 +2207,29 @@ function rebuildMapList(items = null){
       toggleInlineWarning(w, item);
     }
   });
+  filterMapWarningList();
 }
+
+let activeMapWarningSeverityFilter = 'all';
+window.setMapWarningSeverityFilter = function(severity, button){
+  activeMapWarningSeverityFilter = severity || 'all';
+  document.querySelectorAll('[data-warning-severity-filter]').forEach(el => {
+    const active = el === button || (!button && el.dataset.warningSeverityFilter === activeMapWarningSeverityFilter);
+    el.classList.toggle('is-active', active);
+    el.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  filterMapWarningList();
+};
+window.filterMapWarningList = function(){
+  const list = document.getElementById('mapWarningList');
+  const search = (document.getElementById('mapWarningSearch')?.value || '').trim().toLowerCase();
+  if (!list) return;
+  list.querySelectorAll('.warning-item').forEach(item => {
+    const matchesText = !search || item.textContent.toLowerCase().includes(search);
+    const matchesSeverity = activeMapWarningSeverityFilter === 'all' || item.dataset.severity === activeMapWarningSeverityFilter;
+    item.hidden = !(matchesText && matchesSeverity);
+  });
+};
 window.selectBaseMap = function(id){
   const m = getLeafletMap();
   if(!m || !BASE_MAP_DEFS[id]) return;
@@ -3026,6 +3316,10 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       if (mapSelect && mapSelect.value !== currentSelectedNavArea) mapSelect.value = currentSelectedNavArea;
     } catch (navPrefErr) { currentSelectedNavArea = 'NA VIII'; }
   }
+  // Keep the desktop header selector aligned with deep links and saved preferences.
+  const headerNavAreaSelect = document.getElementById('headerNavAreaSelect');
+  if (headerNavAreaSelect) headerNavAreaSelect.value = currentSelectedNavArea;
+
   // Static-page top-nav deep link: /?tab=data or /?tab=info opens that tab
   // (linked from the prerendered /about, /navarea and warning pages).
   try {
@@ -3091,8 +3385,14 @@ document.addEventListener('keydown', (e) => {
       closeWarningModal();
       return;
     }
+    const workspace = document.querySelector('.public-warning-workspace');
+    if (workspace && document.body.classList.contains('map-focus-active') &&
+        !workspace.classList.contains('is-details-collapsed')) {
+      toggleSelectedWarningPanel(false);
+      return;
+    }
     const drawer = document.getElementById('warningDetailsDrawer');
-    if (drawer && drawer.classList.contains('open')) {
+    if (drawer && drawer.classList.contains('open') && !document.body.classList.contains('is-desktop')) {
       closeWarningDrawer();
       return;
     }
