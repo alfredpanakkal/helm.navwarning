@@ -1273,6 +1273,11 @@ window.closeWarningDrawer = function() {
     body.innerHTML = '<div class="warning-details-empty"><strong>No warning selected</strong><span>Select a warning from the list or a marker on the map to inspect its bulletin and coordinates.</span></div>';
   }
   currentDrawerWarning = null;
+  expandedWarningId = null;
+  document.querySelectorAll('#mapWarningList .warning-item.is-selected').forEach(el => {
+    el.classList.remove('is-selected');
+    el.setAttribute('aria-pressed', 'false');
+  });
   if (drawerTriggerElement && typeof drawerTriggerElement.focus === 'function') {
     drawerTriggerElement.focus();
   }
@@ -1931,7 +1936,36 @@ function rebuildMapList(items = null){
       && isNavAreaUnscoped(w.navarea);
     item.className='warning-item';
     item.dataset.warningId = wid;
-    item.onclick=()=>toggleInlineWarning(w, item);
+    item.setAttribute('role', 'button');
+    item.setAttribute('tabindex', '0');
+    item.setAttribute('aria-label', `Select warning ${wid} in ${w.navarea || 'NAVAREA'}`);
+    const selectWarning = () => {
+      if (document.body.classList.contains('is-mobile')) {
+        toggleInlineWarning(w, item);
+        return;
+      }
+      list.querySelectorAll('.warning-item.is-selected').forEach(el => {
+        el.classList.remove('is-selected');
+        el.setAttribute('aria-pressed', 'false');
+      });
+      item.classList.add('is-selected');
+      item.setAttribute('aria-pressed', 'true');
+      expandedWarningId = wid;
+      window.openWarningDetails(w);
+      const lat = Number(w.latitude ?? w.lat);
+      const lng = Number(w.longitude ?? w.lng);
+      const map = getLeafletMap();
+      if (map && Number.isFinite(lat) && Number.isFinite(lng)) {
+        map.panTo([lat, lng], { animate: true });
+      }
+    };
+    item.onclick = selectWarning;
+    item.onkeydown = event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selectWarning();
+      }
+    };
     const c=w.severity==='critical'?'var(--critical)':w.severity==='high'?'var(--high)':'var(--neutral)';
     item.innerHTML=`
       <div class="warning-item-header">
