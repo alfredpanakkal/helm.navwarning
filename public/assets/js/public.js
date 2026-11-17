@@ -3083,6 +3083,12 @@ async function loadWarnings() {
     publicWarningTextIncomplete = result.complete === false;
     renderPublicWarningData();
     setPublicCacheStatus(result.complete === false ? 'partial' : 'fresh');
+    const freshness = document.getElementById('dataFreshness');
+    if (freshness) {
+      freshness.textContent = result.complete === false
+        ? 'Current warning geometry refreshed; bulletin text is incomplete and full-text search may be incomplete.'
+        : 'Current warning data refreshed from Supabase.';
+    }
     updateDataFreshness();
     return result.complete === false ? 'partial' : 'fresh';
   } catch (error) {
