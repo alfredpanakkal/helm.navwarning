@@ -550,10 +550,16 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   .public-warning-workspace .warning-expanded-text{overflow-wrap:anywhere;white-space:pre-wrap}
   .warning-details-empty{display:flex;flex-direction:column;gap:8px;padding:18px 4px;color:var(--ink-secondary);font-size:13px;line-height:1.5}
   .warning-details-empty strong{color:var(--ink-primary);font-size:14px}
-  .public-warning-workspace.is-focus-transition{grid-template-columns:minmax(0,1fr) minmax(0,0fr) minmax(0,0fr);gap:0;transition:grid-template-columns .24s cubic-bezier(.2,.7,.3,1),gap .24s ease}
+  .public-warning-workspace.is-focus-transition{grid-template-columns:minmax(0,1fr) minmax(0,0fr) minmax(0,0fr);gap:0;transition:grid-template-columns .32s cubic-bezier(.2,.7,.3,1),gap .32s ease}
   .public-warning-workspace.is-focus-transition>.map-container{grid-column:1/-1}
   .public-warning-workspace.is-focus-transition>#mapWarningList,
-  .public-warning-workspace.is-focus-transition>#warningDetailsDrawer{opacity:0;transform:translateX(18px);pointer-events:none;overflow:hidden;border-color:transparent;transition:opacity .18s ease,transform .24s cubic-bezier(.2,.7,.3,1),border-color .18s ease}
+  .public-warning-workspace.is-focus-transition>#warningDetailsDrawer{opacity:0;transform:translate3d(44px,0,0) scale(.97);filter:blur(2px);pointer-events:none;overflow:hidden;border-color:transparent;transition:opacity .22s ease,transform .32s cubic-bezier(.2,.7,.3,1),filter .22s ease,border-color .22s ease}
+  .public-warning-workspace.is-focus-transition>#mapWarningList{transition-delay:0s}
+  .public-warning-workspace.is-focus-transition>#warningDetailsDrawer{transition-delay:.04s}
+  .map-focus-restore{display:none;position:absolute;top:14px;right:14px;z-index:1250;align-items:center;gap:8px;min-height:38px;padding:0 13px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--ink-primary);font:600 12px var(--font-family-base);box-shadow:0 4px 18px rgba(0,0,0,.16);cursor:pointer;opacity:0;transform:translateY(-8px);transition:opacity .2s ease,transform .24s cubic-bezier(.2,.7,.3,1)}
+  .map-focus-restore:hover{background:var(--surface-subtle);border-color:var(--accent)}
+  body.map-focus-active .map-focus-restore{display:inline-flex;opacity:1;transform:translateY(0);animation:mapFocusRestoreIn .28s cubic-bezier(.2,.7,.3,1) both}
+  @keyframes mapFocusRestoreIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 }
 @media (max-width:1439px) {
   /* Restore the existing map-overlay/list and side-drawer layout on tablet and mobile. */
@@ -563,7 +569,8 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
 }
 @media(prefers-reduced-motion:reduce){
   .public-warning-workspace.is-focus-transition,
-  .public-warning-workspace.is-focus-transition>*{transition:none!important}
+  .public-warning-workspace.is-focus-transition>*,
+  .map-focus-restore{transition:none!important;animation:none!important;filter:none!important}
 }
 </style>
 </head>
@@ -669,6 +676,14 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   </p>
   <div class="public-warning-workspace">
   <div class="map-container">
+    <button type="button" class="map-focus-restore" id="btnMapFocusRestore"
+            onclick="toggleMapFocusMode(false)" aria-label="Restore Active Warnings and Selected Warning panels"
+            title="Restore workspace panels (Esc)">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+      </svg>
+      <span>Restore panels</span>
+    </button>
     <div id="map"></div>
     <details class="warning-map-legend" id="warningMapLegend">
       <summary>Warning symbols &amp; severity</summary>
