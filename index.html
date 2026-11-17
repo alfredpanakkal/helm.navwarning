@@ -892,7 +892,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   <section class="warning-details-drawer" id="warningDetailsDrawer" role="region" aria-label="Warning Details" aria-hidden="false">
     <div class="drawer-details-header">
       <div style="font-weight:500;font-size:14px;color:var(--ink-primary, var(--text))" id="drawerDetailsTitle">Warning Details</div>
-      <button type="button" class="settings-close-btn" onclick="toggleSelectedWarningPanel(false)" aria-label="Hide warning details" title="Hide details">✕</button>
+      <button type="button" class="settings-close-btn" onclick="document.body.classList.contains('is-desktop') ? toggleSelectedWarningPanel(false) : closeWarningDrawer()" aria-label="Hide warning details" title="Hide details">✕</button>
     </div>
     <div class="drawer-details-body" id="drawerDetailsBody">
       <div class="warning-details-empty"><strong>No warning selected</strong><span>Select a warning from the list or a marker on the map to inspect its bulletin and coordinates.</span></div>
