@@ -1942,6 +1942,7 @@ function rebuildMapList(items = null){
       && isNavAreaUnscoped(w.navarea);
     item.className='warning-item';
     item.dataset.warningId = wid;
+    item.dataset.severity = String(w.severity || 'moderate').toLowerCase();
     item.setAttribute('role', 'button');
     item.setAttribute('tabindex', '0');
     item.setAttribute('aria-label', `Select warning ${wid} in ${w.navarea || 'NAVAREA'}`);
@@ -1989,7 +1990,29 @@ function rebuildMapList(items = null){
       toggleInlineWarning(w, item);
     }
   });
+  filterMapWarningList();
 }
+
+let activeMapWarningSeverityFilter = 'all';
+window.setMapWarningSeverityFilter = function(severity, button){
+  activeMapWarningSeverityFilter = severity || 'all';
+  document.querySelectorAll('[data-warning-severity-filter]').forEach(el => {
+    const active = el === button || (!button && el.dataset.warningSeverityFilter === activeMapWarningSeverityFilter);
+    el.classList.toggle('is-active', active);
+    el.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  filterMapWarningList();
+};
+window.filterMapWarningList = function(){
+  const list = document.getElementById('mapWarningList');
+  const search = (document.getElementById('mapWarningSearch')?.value || '').trim().toLowerCase();
+  if (!list) return;
+  list.querySelectorAll('.warning-item').forEach(item => {
+    const matchesText = !search || item.textContent.toLowerCase().includes(search);
+    const matchesSeverity = activeMapWarningSeverityFilter === 'all' || item.dataset.severity === activeMapWarningSeverityFilter;
+    item.hidden = !(matchesText && matchesSeverity);
+  });
+};
 window.selectBaseMap = function(id){
   const m = getLeafletMap();
   if(!m || !BASE_MAP_DEFS[id]) return;
