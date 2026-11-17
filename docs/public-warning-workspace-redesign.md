@@ -89,7 +89,17 @@ When Map Focus Mode is active on desktop (1440px and wider), keep the map at ful
 - Verify keyboard operation, focus visibility, accessible expanded state, reduced-motion behavior, and light/dark/night themes.
 - Verify tablet and mobile layouts are unchanged at the existing responsive test sizes.
 
-**Status:** Plan only; do not implement this overlay behavior until separately approved. Existing full-screen behavior remains unchanged in this PR revision.
+**Status:** Implemented for the Selected Warning panel on large desktop. The Active Warnings overlay remains unchanged and is still a separate follow-up.
+
+### Desktop Selected Warning collapse
+
+- The Selected Warning header close control hides the panel without clearing the selected warning or its rendered details.
+- The grid removes the details column and its resize handle, allowing Map and Active Warnings to use the reclaimed width.
+- A right-edge **Show details** control restores the panel and existing selection.
+- In Map Focus Mode, Selected Warning opens as a floating right-side drawer over the full-screen map; hiding it leaves a compact right-edge reopen control.
+- Escape hides the Selected Warning overlay before the next Escape exits Map Focus Mode.
+- The existing footer **Clear** action remains the explicit action for clearing the selection.
+- This behavior is restricted to desktop widths (1440px and wider); tablet/mobile drawer and modal behavior is unchanged.
 
 ### Tablet: map + list, details below
 
