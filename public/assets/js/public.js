@@ -1916,6 +1916,10 @@ window.filterMapByNavArea = function(navArea, opts) {
   if (mapSelect && mapSelect.value !== currentSelectedNavArea) {
     mapSelect.value = currentSelectedNavArea;
   }
+  const headerSelect = document.getElementById('headerNavAreaSelect');
+  if (headerSelect && headerSelect.value !== currentSelectedNavArea) {
+    headerSelect.value = currentSelectedNavArea;
+  }
   const dataBankSelect = document.getElementById('filter-navarea');
   if (dataBankSelect && dataBankSelect.value !== currentSelectedNavArea) {
     dataBankSelect.value = currentSelectedNavArea;
@@ -3312,6 +3316,10 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       if (mapSelect && mapSelect.value !== currentSelectedNavArea) mapSelect.value = currentSelectedNavArea;
     } catch (navPrefErr) { currentSelectedNavArea = 'NA VIII'; }
   }
+  // Keep the desktop header selector aligned with deep links and saved preferences.
+  const headerNavAreaSelect = document.getElementById('headerNavAreaSelect');
+  if (headerNavAreaSelect) headerNavAreaSelect.value = currentSelectedNavArea;
+
   // Static-page top-nav deep link: /?tab=data or /?tab=info opens that tab
   // (linked from the prerendered /about, /navarea and warning pages).
   try {
