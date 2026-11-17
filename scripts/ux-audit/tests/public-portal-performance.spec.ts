@@ -11,6 +11,7 @@ interface PublicApiState {
   delayMs: number;
   spatialRequests?: number;
   textRequests?: number;
+  rangeRequests?: Array<{ table: string; range: string | null }>;
 }
 
 const publicWarning = (): Row => ({
@@ -94,15 +95,24 @@ async function installPublicApiMock(page: Page, state: PublicApiState) {
       : table === 'nav_warnings'
         ? state.textRows
         : [];
+    const rangeHeader = request.headers().range || null;
+    if (state.rangeRequests) state.rangeRequests.push({ table: table || '', range: rangeHeader });
+    const rangeMatch = rangeHeader && /^(\\d+)-(\\d+)$/.exec(rangeHeader);
+    const rangeStart = rangeMatch ? Number(rangeMatch[1]) : 0;
+    const rangeEnd = rangeMatch ? Number(rangeMatch[2]) : Math.max(rows.length - 1, 0);
+    const pageRows = rows.slice(rangeStart, rangeEnd + 1);
+    const contentRange = pageRows.length
+      ? `${rangeStart}-${rangeStart + pageRows.length - 1}/${rows.length}`
+      : `*/${rows.length}`;
 
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       headers: {
         ...corsHeaders,
-        'content-range': rows.length ? `0-${rows.length - 1}/${rows.length}` : '*/0',
+        'content-range': contentRange,
       },
-      body: JSON.stringify(rows),
+      body: JSON.stringify(pageRows),
     });
   });
 
@@ -168,6 +178,8 @@ test.describe('public NAVAREA snapshot cache', () => {
     });
     console.log('[public cache acceptance] fetch result diagnostics', JSON.stringify(apiDiagnostics));
     await expect(page.locator('#dataCacheStatus')).toBeHidden();
+    await expect(page.locator('#dataFreshness')).toContainText('Current warning data refreshed from Supabase.');
+    await expect(page.locator('#dataFreshness')).not.toContainText('saved public snapshot');
     const cacheDiagnostics = await page.evaluate(async () => {
       const databases = typeof indexedDB.databases === 'function' ? await indexedDB.databases() : null;
       const db = await new Promise<IDBDatabase | null>((resolve) => {
@@ -218,6 +230,39 @@ test.describe('public NAVAREA snapshot cache', () => {
     await expect(page.locator('#dataCacheStatus')).toBeHidden({ timeout: 30_000 });
 
     expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
+
+  test('public text hydration paginates beyond the PostgREST 1,000-row limit', async ({ page }) => {
+    const fillerRows = Array.from({ length: 1000 }, (_, index) => ({
+      id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+      raw_text: 'Unrelated Tier-A bulletin fixture',
+      issued_at: '2026-11-15T00:00:00Z',
+      parsing_method: 'RULE',
+      qa_flags: [],
+    }));
+    const state: PublicApiState = {
+      spatialRows: [publicWarning()],
+      // The matching bulletin sorts after the first full 1,000-row page.
+      textRows: [...fillerRows, bulletin()],
+      fail: false,
+      delayMs: 0,
+      rangeRequests: [],
+    };
+    await installPublicApiMock(page, state);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#dataSubtitle')).toContainText('1 published warning', { timeout: 30_000 });
+    await expect(page.locator('#dataCacheStatus')).toBeHidden({ timeout: 30_000 });
+    await openDataBank(page);
+    await page.locator('#searchInput').fill('CACHE ACCEPTANCE UNIQUE BULLETIN TEXT');
+    await expect(page.locator('#tableBody')).toContainText('CACHE-TEST-1/26');
+
+    const textRanges = (state.rangeRequests || [])
+      .filter((request) => request.table === 'nav_warnings')
+      .map((request) => request.range);
+    expect(textRanges).toContain('0-999');
+    expect(textRanges).toContain('1000-1999');
   });
 
   test('failed refresh keeps a labelled snapshot; successful empty refresh removes cancelled warnings permanently', async ({ page }) => {
