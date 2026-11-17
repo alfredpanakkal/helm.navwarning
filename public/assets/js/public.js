@@ -929,6 +929,118 @@ window.toggleMapFocusMode = function(explicitState) {
   showToast(nextState ? 'Focus Mode active (Press Esc to exit)' : 'Exited Focus Mode');
 };
 
+function setupDesktopWorkspaceResizers() {
+  const workspace = document.querySelector('.public-warning-workspace');
+  if (!workspace || workspace.dataset.resizersReady === 'true') return;
+  const isDesktop = () => document.body.classList.contains('is-desktop') &&
+    window.matchMedia('(min-width: 1440px)').matches;
+  const mapPanel = workspace.querySelector('.map-container');
+  const warningsPanel = document.getElementById('mapWarningList');
+  const detailsPanel = document.getElementById('warningDetailsDrawer');
+  const handles = [
+    { element: document.getElementById('mapWarningsResizer'), before: mapPanel, after: warningsPanel, minBefore: 420, minAfter: 280 },
+    { element: document.getElementById('warningsDetailsResizer'), before: warningsPanel, after: detailsPanel, minBefore: 280, minAfter: 280 }
+  ];
+  if (!mapPanel || !warningsPanel || !detailsPanel || handles.some(item => !item.element)) return;
+  workspace.dataset.resizersReady = 'true';
+
+  const totalFr = 4.5;
+  let activeDrag = null;
+  let resizeFrame = 0;
+
+  function updateFractions(widths) {
+    const total = widths.map(width => Math.max(0, width)).reduce((sum, width) => sum + width, 0);
+    if (!total) return;
+    workspace.style.setProperty('--map-panel-fr', (widths[0] / total * totalFr) + 'fr');
+    workspace.style.setProperty('--warnings-panel-fr', (widths[1] / total * totalFr) + 'fr');
+    workspace.style.setProperty('--details-panel-fr', (widths[2] / total * totalFr) + 'fr');
+    handles[0].element.setAttribute('aria-valuenow', String(Math.round(widths[0] / total * 100)));
+    handles[1].element.setAttribute('aria-valuenow', String(Math.round(widths[1] / total * 100)));
+  }
+
+  function invalidateMap() {
+    if (resizeFrame) return;
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = 0;
+      const map = getLeafletMap();
+      if (map) map.invalidateSize({ pan: false });
+    });
+  }
+
+  function applyDelta(drag, delta) {
+    const widths = drag.startWidths.slice();
+    const leftIndex = drag.handleIndex;
+    const rightIndex = leftIndex + 1;
+    const leftMin = handles[drag.handleIndex].minBefore;
+    const rightMin = handles[drag.handleIndex].minAfter;
+    const change = Math.max(leftMin - widths[leftIndex],
+      Math.min(delta, widths[rightIndex] - rightMin));
+    widths[leftIndex] += change;
+    widths[rightIndex] -= change;
+    updateFractions(widths);
+    invalidateMap();
+  }
+
+  handles.forEach((handle, handleIndex) => {
+    const element = handle.element;
+    element.addEventListener('pointerdown', event => {
+      if (!isDesktop() || document.body.classList.contains('map-focus-active')) return;
+      if (event.button !== 0 && event.pointerType === 'mouse') return;
+      const rects = [mapPanel, warningsPanel, detailsPanel].map(panel => panel.getBoundingClientRect());
+      activeDrag = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        handleIndex,
+        startWidths: rects.map(rect => rect.width)
+      };
+      element.classList.add('is-dragging');
+      element.setPointerCapture(event.pointerId);
+      document.body.classList.add('workspace-resizing');
+      event.preventDefault();
+    });
+    element.addEventListener('pointermove', event => {
+      if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+      applyDelta(activeDrag, event.clientX - activeDrag.startX);
+    });
+    const stopDrag = event => {
+      if (!activeDrag || (event && event.pointerId !== activeDrag.pointerId)) return;
+      activeDrag = null;
+      handles.forEach(item => item.element.classList.remove('is-dragging'));
+      document.body.classList.remove('workspace-resizing');
+      invalidateMap();
+    };
+    element.addEventListener('pointerup', stopDrag);
+    element.addEventListener('pointercancel', stopDrag);
+    element.addEventListener('lostpointercapture', stopDrag);
+
+    element.addEventListener('keydown', event => {
+      if (!isDesktop() || document.body.classList.contains('map-focus-active')) return;
+      if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      event.preventDefault();
+      const rects = [mapPanel, warningsPanel, detailsPanel].map(panel => panel.getBoundingClientRect());
+      const widths = rects.map(rect => rect.width);
+      const delta = event.key === 'ArrowRight' ? 24 : -24;
+      const pseudoDrag = { startWidths: widths, handleIndex };
+      applyDelta(pseudoDrag, delta);
+    });
+  });
+
+  window.addEventListener('resize', () => {
+    if (!isDesktop()) {
+      workspace.style.removeProperty('--map-panel-fr');
+      workspace.style.removeProperty('--warnings-panel-fr');
+      workspace.style.removeProperty('--details-panel-fr');
+    }
+    invalidateMap();
+  }, { passive: true });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupDesktopWorkspaceResizers, { once: true });
+} else {
+  setupDesktopWorkspaceResizers();
+}
+
 function setupMapInteractionAutoCollapse(mapInstance) {
   if (!mapInstance) return;
   const triggerAutoCollapse = () => {
