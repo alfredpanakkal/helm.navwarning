@@ -450,6 +450,8 @@ test.describe('public NAVAREA snapshot cache', () => {
     await expect.poll(baseMapUrl).toContain('/dark_all/');
     await page.evaluate(() => (document.querySelector('[data-theme-set="night"]') as HTMLButtonElement).click());
     await expect.poll(baseMapUrl).toContain('/dark_all/');
+    await page.evaluate(() => (document.querySelector('[data-theme-set="light"]') as HTMLButtonElement).click());
+    await expect.poll(baseMapUrl).toContain('/light_all/');
     await page.evaluate(() => (document.querySelector('[data-theme-set="system"]') as HTMLButtonElement).click());
     await page.emulateMedia({ colorScheme: 'light' });
     await expect.poll(baseMapUrl).toContain('/light_all/');
