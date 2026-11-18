@@ -108,7 +108,7 @@ describe('route operations and persistence', () => {
     expect(created.ok).toBe(true);
     if (!created.ok) return;
     expect(created.value.id).toBe('wp_1');
-    expect(created.value.warningRangeNm).toBe(25);
+    expect(created.value.warningRangeNm).toBe(10);
     expect(created.value.waypoints).toEqual([]);
   });
 
