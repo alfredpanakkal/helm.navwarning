@@ -9,7 +9,7 @@
 /* Pre-paint: apply the saved watch theme (hw-theme) before first paint. */
 (function () {
   try {
-    var t = localStorage.getItem('hw-theme');
+    var t = localStorage.getItem('hw-theme') || 'system';
     if (t === 'system') t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
     if (t === 'dark' || t === 'night') {
       document.documentElement.setAttribute('data-theme', t);
@@ -824,7 +824,11 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
       <div class="settings-body">
         <div class="settings-section-title">Base Map</div>
         <label class="settings-item">
-          <input type="radio" name="basemap-desktop" value="osm" checked onchange="selectBaseMap(this.value)">
+          <input type="radio" name="basemap-desktop" value="auto" checked onchange="selectBaseMap(this.value)">
+          <span>Automatic · Match appearance</span>
+        </label>
+        <label class="settings-item">
+          <input type="radio" name="basemap-desktop" value="osm" onchange="selectBaseMap(this.value)">
           <span>OpenStreetMap</span>
         </label>
         <label class="settings-item">
@@ -1318,7 +1322,11 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   <div class="settings-body">
     <div class="settings-section-title">Base Map</div>
     <label class="settings-item">
-      <input type="radio" name="basemap-mobile" value="osm" checked onchange="selectBaseMap(this.value)">
+      <input type="radio" name="basemap-mobile" value="auto" checked onchange="selectBaseMap(this.value)">
+      <span>Automatic · Match appearance</span>
+    </label>
+    <label class="settings-item">
+      <input type="radio" name="basemap-mobile" value="osm" onchange="selectBaseMap(this.value)">
       <span>OpenStreetMap</span>
     </label>
     <label class="settings-item">
@@ -1404,8 +1412,10 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   var META = { light: '#FAFAF7', dark: '#0E1210', night: '#080404' };
   var btns = Array.prototype.slice.call(document.querySelectorAll('[data-theme-set]'));
   function stored() {
-    try { var t = localStorage.getItem(KEY); return (t === 'dark' || t === 'night' || t === 'system') ? t : 'light'; }
-    catch (e) { return 'light'; }
+    try {
+      var t = localStorage.getItem(KEY);
+      return (t === 'light' || t === 'dark' || t === 'night' || t === 'system') ? t : 'system';
+    } catch (e) { return 'system'; }
   }
   function resolve(t) {
     if (t === 'dark' || t === 'night') return t;
@@ -1432,12 +1442,18 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
       try { localStorage.setItem(KEY, t); } catch (e) { /* private mode: not persisted */ }
       apply(t);
       paint(t);
+      window.dispatchEvent(new CustomEvent('hw-theme-change', { detail: { theme: t } }));
     });
   });
   paint(stored());
   try {
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
-    var onChange = function () { if (stored() === 'system') apply('system'); };
+    var onChange = function () {
+      if (stored() === 'system') {
+        apply('system');
+        window.dispatchEvent(new CustomEvent('hw-theme-change', { detail: { theme: 'system' } }));
+      }
+    };
     if (mq.addEventListener) mq.addEventListener('change', onChange);
     else if (mq.addListener) mq.addListener(onChange);
   } catch (e) { /* matchMedia unavailable: System resolves once at load */ }
