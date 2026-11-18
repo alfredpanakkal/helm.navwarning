@@ -2,6 +2,8 @@
 let warnings = [];
 let publicWarningsAreCached = false;
 let publicWarningTextIncomplete = false;
+let publicWarningsAvailable = false;
+let publicWarningSnapshotSavedAt = null;
 
 function setMapWarningBadge(count) {
   const badge = document.getElementById('mapLiveBadge');
@@ -3036,11 +3038,24 @@ function setPublicCacheStatus(state, savedAt) {
   }
 }
 
+function dispatchPublicWarningSnapshot() {
+  window.dispatchEvent(new CustomEvent('helm:public-warning-data-updated', {
+    detail: {
+      warnings,
+      available: publicWarningsAvailable,
+      cached: publicWarningsAreCached,
+      textIncomplete: publicWarningTextIncomplete,
+      savedAt: publicWarningSnapshotSavedAt,
+    },
+  }));
+}
+
 function renderPublicWarningData() {
   updateStats();
   populateTable();
   populateCards();
   filterMapByNavArea(currentSelectedNavArea);
+  dispatchPublicWarningSnapshot();
 }
 
 async function loadWarnings() {
@@ -3056,6 +3071,8 @@ async function loadWarnings() {
         publicWarningTextIncomplete = false;
         cachedRendered = true;
         cachedAt = metadata && metadata.savedAt;
+        publicWarningsAvailable = true;
+        publicWarningSnapshotSavedAt = cachedAt;
         renderPublicWarningData();
         setPublicCacheStatus('checking', cachedAt);
         const freshness = document.getElementById('dataFreshness');
@@ -3069,6 +3086,8 @@ async function loadWarnings() {
 
     if (result.source === 'cache') {
       cachedAt = result.savedAt || cachedAt;
+      publicWarningsAvailable = true;
+      publicWarningSnapshotSavedAt = cachedAt;
       if (!cachedRendered) {
         warnings = result.data;
         publicWarningsAreCached = true;
@@ -3082,6 +3101,8 @@ async function loadWarnings() {
     }
 
     warnings = result.data;
+    publicWarningsAvailable = true;
+    publicWarningSnapshotSavedAt = null;
     publicWarningsAreCached = false;
     publicWarningTextIncomplete = result.complete === false;
     renderPublicWarningData();
@@ -3098,6 +3119,8 @@ async function loadWarnings() {
     console.warn('Public warning data unavailable:', error);
     if (!cachedRendered) {
       warnings = [];
+      publicWarningsAvailable = false;
+      publicWarningSnapshotSavedAt = null;
       publicWarningsAreCached = false;
       publicWarningTextIncomplete = false;
       renderPublicWarningData();
