@@ -8,7 +8,7 @@ const route: VoyageRoute = {
   id: 'route_1',
   name: 'Indian Ocean & <Passage>',
   waypoints: [
-    { id: 'wp_1', name: 'Start', position: { lat: 10, lon: 75 } },
+    { id: 'wp_1', name: 'Start', position: { lat: -10, lon: 75 } },
     { id: 'wp_2', name: 'Arrival', position: { lat: 11, lon: 76 }, speedKn: 12 },
   ],
   defaultSpeedKn: 10,
