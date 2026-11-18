@@ -201,6 +201,7 @@ document.addEventListener('keydown', e => {
     if (document.body.classList.contains('map-focus-active') && workspace &&
         !workspace.classList.contains('is-details-collapsed')) {
       toggleSelectedWarningPanel(false);
+      e.stopImmediatePropagation();
       return;
     }
     if (document.body.classList.contains('map-focus-active') ||
