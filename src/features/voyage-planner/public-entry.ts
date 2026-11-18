@@ -17,6 +17,7 @@ import {
   DEFAULT_WARNING_RANGE_NM,
   type StorageLike,
   type VoyageRoute,
+  type RouteWarningAssessment,
   type WarningAssessmentWarningInput,
   type Waypoint,
 } from './index';
@@ -56,6 +57,11 @@ if (workspace && panel && content && toggleButton) {
     cached: boolean;
     textIncomplete: boolean;
     savedAt: string | null;
+  } | null = null;
+  let warningAssessmentCache: {
+    route: VoyageRoute;
+    warnings: WarningAssessmentWarningInput[];
+    result: RouteWarningAssessment;
   } | null = null;
 
   try {
@@ -111,7 +117,15 @@ if (workspace && panel && content && toggleButton) {
       return '<section class="voyage-planner-section voyage-assessment"><div class="voyage-planner-section-title"><strong>NAVAREA warning assessment</strong></div><p class="voyage-planner-disclaimer">Waiting for the public warning dataset. Geometry assessment is unavailable until the dataset loads.</p></section>';
     }
 
-    const assessment = assessRouteWarnings(route, warningSnapshot.warnings);
+    if (!warningAssessmentCache || warningAssessmentCache.route !== route
+      || warningAssessmentCache.warnings !== warningSnapshot.warnings) {
+      warningAssessmentCache = {
+        route,
+        warnings: warningSnapshot.warnings,
+        result: assessRouteWarnings(route, warningSnapshot.warnings),
+      };
+    }
+    const assessment = warningAssessmentCache.result;
     const freshness = warningSnapshot.cached
       ? '<p class="voyage-assessment-notice is-warning">Using a saved warning snapshot from ' + escapeHtml(warningSnapshot.savedAt ? displayUtc(warningSnapshot.savedAt) : 'an unknown time') + '. Current warning status could not be confirmed.</p>'
       : '<p class="voyage-assessment-notice">Using the currently loaded public warning snapshot.</p>';
@@ -135,6 +149,11 @@ if (workspace && panel && content && toggleButton) {
       const flags = item.qaFlags.length
         ? '<div class="voyage-assessment-meta">QA: ' + escapeHtml(item.qaFlags.join(', ')) + '</div>'
         : '';
+      const validity = item.validFrom || item.validTo
+        ? '<div class="voyage-assessment-meta">Validity dates (not checked): ' +
+          (item.validFrom ? 'from ' + escapeHtml(Number.isFinite(new Date(item.validFrom).getTime()) ? displayUtc(item.validFrom) : 'invalid') : 'start not stated') +
+          ' · ' + (item.validTo ? 'to ' + escapeHtml(Number.isFinite(new Date(item.validTo).getTime()) ? displayUtc(item.validTo) : 'invalid') : 'no end stated') + '</div>'
+        : '<div class="voyage-assessment-meta">Validity dates not supplied</div>';
       const reason = item.reason
         ? '<div class="voyage-assessment-reason">' + escapeHtml(item.reason) + '</div>'
         : '';
@@ -146,20 +165,22 @@ if (workspace && panel && content && toggleButton) {
         '<div class="voyage-assessment-meta">' + escapeHtml(item.title) + ' · ' + escapeHtml(item.navarea) + ' · ' + escapeHtml(item.severity) + '</div>' +
         '<div class="voyage-assessment-meta">' + escapeHtml(item.nearestZone ?? 'Zone unavailable') + ' · ' + leg + ' · ' + distance + '</div>' +
         '<div class="voyage-assessment-meta">Quality: ' + escapeHtml(item.dataQuality) + ' · Tier ' + escapeHtml(item.triageTier) + (item.isVerified ? ' · Verified' : ' · Review required') + '</div>' +
-        flags + reason + partial + '</article>';
+        validity + flags + reason + partial + '</article>';
     }).join('');
 
-    const empty = assessment.results.length === 0
-      ? '<p class="voyage-planner-disclaimer">No assessed warning geometry intersects the route or falls within ' + assessment.rangeNm + ' NM. This is not a safety clearance.</p>'
-      : '';
+    const empty = assessment.examinedWarnings === 0
+      ? '<p class="voyage-planner-disclaimer">No warning records were loaded. A route assessment cannot be made.</p>'
+      : assessment.results.length === 0
+        ? '<p class="voyage-planner-disclaimer">No assessed warning geometry intersects the route or falls within ' + assessment.rangeNm + ' NM. This is not a safety clearance.</p>'
+        : '';
     const summary = '<div class="voyage-assessment-counts"><span>Intersects <strong>' + assessment.intersectsCount + '</strong></span><span>Within range <strong>' + assessment.withinRangeCount + '</strong></span><span>Not assessed <strong>' + assessment.notAssessedCount + '</strong></span></div>';
     const routeNotice = assessment.reason
       ? '<p class="voyage-assessment-notice is-warning">' + escapeHtml(assessment.reason) + '</p>'
       : '';
 
-    return '<section class="voyage-planner-section voyage-assessment"><div class="voyage-planner-section-title"><strong>NAVAREA warning assessment</strong><span>' + assessment.rangeNm + ' NM search range</span></div>' +
+    return '<section class="voyage-planner-section voyage-assessment"><div class="voyage-planner-section-title"><strong>NAVAREA warning assessment</strong><span>' + assessment.rangeNm + ' NM · ' + assessment.assessedWarnings + '/' + assessment.examinedWarnings + ' assessed</span></div>' +
       freshness + textNotice + routeNotice + summary + empty + '<div class="voyage-assessment-list">' + rows + '</div>' +
-      '<p class="voyage-planner-disclaimer">Rhumb-line route approximation; proximity sampled at 0.5 NM intervals. Only supported, verified geometry is assessed. Warning validity dates and altitude limits are not evaluated. Not a certified ECDIS or navigational clearance.</p>' +
+      '<p class="voyage-planner-disclaimer">Rhumb-line route approximation; proximity sampled at 0.5 NM intervals. Only supported, verified geometry is assessed. Not a certified ECDIS.</p>' +
       validityNotice + '</section>';
   }
 
