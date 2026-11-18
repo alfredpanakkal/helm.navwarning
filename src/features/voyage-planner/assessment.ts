@@ -524,7 +524,7 @@ export function assessRouteWarnings(
       || warning.data_quality !== 'EXPLICIT' || warning.is_verified !== true) {
       results.push(notAssessedResult(
         warning,
-        'Warning quality or verification state does not meet the assessment gate.',
+        'Warning does not meet the public Tier A quality gate.',
         false,
         false,
       ));
