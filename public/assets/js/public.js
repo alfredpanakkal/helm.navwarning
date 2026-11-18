@@ -3062,8 +3062,8 @@ function renderPublicWarningData() {
   updateStats();
   populateTable();
   populateCards();
-  filterMapByNavArea(currentSelectedNavArea);
   dispatchPublicWarningSnapshot();
+  filterMapByNavArea(currentSelectedNavArea);
 }
 
 async function loadWarnings() {
