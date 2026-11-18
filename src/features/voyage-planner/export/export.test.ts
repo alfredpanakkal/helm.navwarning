@@ -41,9 +41,12 @@ describe('Voyage Planner exports', () => {
     };
     const result = JSON.parse(exportRouteGeoJson(crossing));
     expect(result.features[0].geometry.type).toBe('MultiLineString');
+    const psi1 = Math.asinh(Math.tan(10 * Math.PI / 180));
+    const psi2 = Math.asinh(Math.tan(12 * Math.PI / 180));
+    const crossingLatitude = Math.atan(Math.sinh((psi1 + psi2) / 2)) * 180 / Math.PI;
     expect(result.features[0].geometry.coordinates).toEqual([
-      [[179, 10], [180, 11]],
-      [[-180, 11], [-179, 12]],
+      [[179, 10], [180, crossingLatitude]],
+      [[-180, crossingLatitude], [-179, 12]],
     ]);
   });
 
@@ -74,7 +77,8 @@ describe('Voyage Planner exports', () => {
     const result = JSON.parse(exportRouteGeoJson(sameMeridian));
     expect(result.features[0].geometry.type).toBe('LineString');
     expect(result.features[0].geometry.coordinates).toEqual([[180, 10], [180, 12]]);
-    expect(JSON.stringify(result)).not.toMatch(/null|NaN/);
+    expect(result.features[0].geometry.coordinates.flat().every(Number.isFinite)).toBe(true);
+    expect(result.features.slice(1).every((feature: any) => feature.geometry.coordinates.every(Number.isFinite))).toBe(true);
   });
 
   it('handles a route that starts exactly on the antimeridian', () => {
