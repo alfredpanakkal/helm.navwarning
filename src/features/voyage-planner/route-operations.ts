@@ -1,6 +1,6 @@
 import { voyageRouteSchema, waypointSchema } from './schema';
 import type { OperationContext, Result, VoyageRoute, Waypoint } from './types';
-import { MAX_WAYPOINTS } from './types';
+import { DEFAULT_WARNING_RANGE_NM, MAX_WAYPOINTS } from './types';
 
 export type RouteOperationError =
   | 'invalid_route'
@@ -27,7 +27,7 @@ export function createRoute(
   name: string,
   defaultSpeedKn: number,
   context: OperationContext,
-  warningRangeNm = 25,
+  warningRangeNm = DEFAULT_WARNING_RANGE_NM,
 ): Result<VoyageRoute, RouteOperationError> {
   const now = context.now();
   const route: VoyageRoute = {
