@@ -122,7 +122,7 @@ describe('Voyage Planner exports', () => {
     expect(result).toContain('"\'=HYPERLINK(""https://example.com"",""open"")"');
     expect(result).toContain('"\'+SUM(1,2)"');
     expect(exportRouteCsv({ ...dangerous, name: '@SUM(1,2)' })).toContain('"\'@SUM(1,2)"');
-    expect(exportRouteCsv({ ...route, name: '-10' })).toContain('"\\'-10"'); // String values remain formula-protected.
+    expect(exportRouteCsv({ ...route, name: '-10' })).toContain("\"'-10\""); // String values remain formula-protected.
     expect(result).toContain(',"-10",'); // Negative numeric coordinates remain numeric.
     expect(result).toContain('\r\n');
   });
