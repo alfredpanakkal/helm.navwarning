@@ -12,6 +12,7 @@ import {
   saveRoutes,
   updateWaypoint,
   voyageRouteSchema,
+  wrapLongitudeForChart,
   DEFAULT_WARNING_RANGE_NM,
   type StorageLike,
   type VoyageRoute,
@@ -149,6 +150,10 @@ if (workspace && panel && content && toggleButton) {
   function setPanelOpen(open: boolean): void {
     panel.hidden = !open;
     panel.setAttribute('aria-hidden', String(!open));
+    if (open) {
+      panel.classList.remove('is-collapsed');
+      collapseButton?.setAttribute('aria-expanded', 'true');
+    }
     workspace.classList.toggle('is-voyage-planner', open);
     toggleButton.setAttribute('aria-pressed', String(open));
     document.body.classList.toggle('voyage-planner-open', open);
@@ -191,7 +196,7 @@ if (workspace && panel && content && toggleButton) {
       const meta = index === 0
         ? formatLatitude(waypoint.position.lat) + ' · ' + formatLongitude(waypoint.position.lon)
         : leg && leg.distanceNm !== null
-          ? leg.distanceNm.toFixed(1) + ' NM · ' + displayCourse(leg.courseDeg)
+          ? leg.distanceNm.toFixed(1) + ' NM · ' + displayCourse(leg.courseDeg) + ' · ' + (leg.speedKn?.toFixed(1) ?? '—') + ' kn<br>ETA ' + (leg.etaUtc ? displayUtc(leg.etaUtc) : '—')
           : (leg?.status ?? 'Leg pending');
       return '<div class="voyage-waypoint-row' + (waypoint.id === selectedWaypointId ? ' is-selected' : '') + '">' +
         '<button type="button" class="voyage-waypoint-select" data-action="select-waypoint" data-id="' + escapeHtml(waypoint.id) + '">' +
@@ -234,6 +239,13 @@ if (workspace && panel && content && toggleButton) {
       '<p class="voyage-planner-disclaimer">Decision-support aid only; not certified ECDIS. Rhumb-line distances and true courses are approximate. Verify the passage plan against approved charts and publications. Warning assessment is not included in this phase.</p>';
   }
 
+  function nearestLongitude(longitude: number, reference: number): number {
+    let result = longitude;
+    while (result - reference > 180) result -= 360;
+    while (result - reference < -180) result += 360;
+    return result;
+  }
+
   function renderMap(): void {
     if (!map || !panel || panel.hidden || !window.L) return;
     const L = window.L;
@@ -248,7 +260,7 @@ if (workspace && panel && content && toggleButton) {
       if (index > 0) {
         const previous = route.waypoints[index - 1];
         L.polyline(
-          [[previous.position.lat, previous.position.lon], [waypoint.position.lat, waypoint.position.lon]],
+          [[previous.position.lat, wrapLongitudeForChart(previous.position.lon)], [waypoint.position.lat, nearestLongitude(wrapLongitudeForChart(waypoint.position.lon), wrapLongitudeForChart(previous.position.lon))]],
           { color: '#2F6B4F', weight: 3, opacity: 0.9, lineCap: 'round' },
         ).addTo(routeLayer!).on('click', (event: import('leaflet').LeafletMouseEvent) => {
           if (event.originalEvent) L.DomEvent.stopPropagation(event.originalEvent);
@@ -258,7 +270,7 @@ if (workspace && panel && content && toggleButton) {
         });
       }
 
-      const marker = L.marker([waypoint.position.lat, waypoint.position.lon], {
+      const marker = L.marker([waypoint.position.lat, wrapLongitudeForChart(waypoint.position.lon)], {
         draggable: !storageBlocked,
         icon: L.divIcon({
           className: 'voyage-waypoint-marker',
@@ -279,7 +291,7 @@ if (workspace && panel && content && toggleButton) {
         const current = activeRoute();
         if (!current || current.id !== route.id) return;
         const result = updateWaypoint(current, waypoint.id, {
-          position: { lat: position.lat, lon: position.lng },
+          position: { lat: position.lat, lon: wrapLongitudeForChart(position.lng) },
         }, context);
         if ('error' in result) {
           notice = 'Waypoint move was rejected: ' + result.error;
@@ -293,6 +305,7 @@ if (workspace && panel && content && toggleButton) {
   }
 
   function addWaypointAt(position: { lat: number; lon: number }, insertAfterIndex?: number): void {
+    position = { lat: position.lat, lon: wrapLongitudeForChart(position.lon) };
     const route = activeRoute();
     if (!route || storageBlocked) return;
     const added = addWaypoint(route, {
