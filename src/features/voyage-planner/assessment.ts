@@ -363,12 +363,15 @@ function measureGeometryOnLeg(geometry: ParsedGeometry, leg: LegPath): GeometryM
   if (geometry.kind === 'point' && geometry.point) {
     const aligned: Coordinate = [nearestLongitude(geometry.point[0], leg.centerLongitude), geometry.point[1]];
     const pointFeature = point(aligned);
+    const projectedPoint = mercator(aligned);
+    const projectedIntersection = Boolean(projectedPoint && leg.projectedRoute
+      && booleanIntersects(leg.projectedRoute, point(projectedPoint)));
     const centerDistance = leg.routeLine
       ? pointToLineDistance(pointFeature, leg.routeLine, { units: 'nauticalmiles', method: 'geodesic' })
       : distance(pointFeature, point(leg.samples[0]), { units: 'nauticalmiles' });
-    const distanceToFootprint = Math.max(0, centerDistance - geometry.radiusNm);
+    const distanceToFootprint = projectedIntersection ? 0 : Math.max(0, centerDistance - geometry.radiusNm);
     return {
-      intersects: centerDistance <= geometry.radiusNm + INTERSECTION_TOLERANCE_NM,
+      intersects: projectedIntersection || centerDistance <= geometry.radiusNm + INTERSECTION_TOLERANCE_NM,
       distanceNm: distanceToFootprint,
       legIndex: leg.index,
       zoneLabel: geometry.zoneLabel,
