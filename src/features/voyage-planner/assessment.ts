@@ -14,8 +14,6 @@ import type { Position, VoyageRoute, Waypoint } from './types';
 type Coordinate = [number, number];
 type Ring = Coordinate[];
 type PolygonCoordinates = Ring[];
-type GeometryCoordinates = Coordinate[] | PolygonCoordinates | PolygonCoordinates[];
-
 const DEG_TO_RAD = Math.PI / 180;
 const EARTH_RADIUS_METRES = 6_371_008.8;
 const METRES_PER_NM = 1_852;
@@ -261,7 +259,8 @@ function buildLegPaths(route: VoyageRoute): { legs: LegPath[]; reason: string | 
   return { legs, reason: null };
 }
 
-function parseWarningGeometry(input: WarningAssessmentGeometryInput): { geometry: ParsedGeometry | null; reason: string | null } {
+function parseWarningGeometry(input: unknown): { geometry: ParsedGeometry | null; reason: string | null } {
+  if (!isRecord(input)) return { geometry: null, reason: 'Geometry row is malformed.' };
   const featureType = String(input.feature_type ?? '').toUpperCase();
   const zoneLabel = typeof input.zone_label === 'string' && input.zone_label.trim()
     ? input.zone_label
@@ -291,7 +290,7 @@ function parseWarningGeometry(input: WarningAssessmentGeometryInput): { geometry
       return { geometry: null, reason: 'LineString coordinates are invalid.' };
     }
     const coordinates = blob.coordinates.map(parseCoordinate);
-    if (coordinates.some((coordinate) => coordinate === null)) {
+    if (coordinates.some((coordinate) => coordinate === null || Math.abs(coordinate[1]) >= 90)) {
       return { geometry: null, reason: 'LineString coordinates are invalid.' };
     }
     if (bufferNm > 0 || corridorWidth > 0) {
@@ -318,6 +317,9 @@ function parseWarningGeometry(input: WarningAssessmentGeometryInput): { geometry
         return { geometry: null, reason: 'MultiPolygon rings are invalid.' };
       }
       polygons = blob.coordinates as PolygonCoordinates[];
+    }
+    if (polygons.some((rings) => rings.some((ring) => ring.some((coordinate) => Math.abs(coordinate[1]) >= 90)))) {
+      return { geometry: null, reason: 'Polygon geometry reaches the exact pole and is not supported by this assessment.' };
     }
     if (bufferNm > 0 || corridorWidth > 0) {
       return { geometry: null, reason: 'Buffered polygon or corridor-width semantics are not verified.' };
@@ -484,11 +486,14 @@ export function assessRouteWarnings(
   route: VoyageRoute,
   warnings: WarningAssessmentWarningInput[],
 ): RouteWarningAssessment {
-  if (!Array.isArray(warnings)) warnings = [];
+  const safeWarnings = Array.isArray(warnings)
+    ? warnings.filter((warning) => isRecord(warning)) as WarningAssessmentWarningInput[]
+    : [];
+
   if (route.waypoints.length < 2) {
     return {
       ready: false, rangeNm: route.warningRangeNm,
-      examinedWarnings: warnings.length, assessedWarnings: 0,
+      examinedWarnings: safeWarnings.length, assessedWarnings: 0,
       intersectsCount: 0, withinRangeCount: 0, notAssessedCount: 0,
       results: [], reason: 'Add at least two waypoints before assessing warnings.',
     };
@@ -496,10 +501,10 @@ export function assessRouteWarnings(
 
   const built = buildLegPaths(route);
   if (built.reason) {
-    const results = warnings.map((warning) => notAssessedResult(warning, built.reason!, false, true));
+    const results = safeWarnings.map((warning) => notAssessedResult(warning, built.reason!, false, true));
     return {
       ready: true, rangeNm: route.warningRangeNm,
-      examinedWarnings: warnings.length, assessedWarnings: 0,
+      examinedWarnings: safeWarnings.length, assessedWarnings: 0,
       intersectsCount: 0, withinRangeCount: 0, notAssessedCount: results.length,
       results, reason: built.reason,
     };
@@ -511,7 +516,7 @@ export function assessRouteWarnings(
   const results: WarningAssessment[] = [];
   let assessedWarnings = 0;
 
-  for (const warning of warnings) {
+  for (const warning of safeWarnings) {
     if (warning.status !== 'active' || warning.triage_tier !== 'A'
       || warning.data_quality !== 'EXPLICIT' || warning.is_verified !== true) {
       results.push(notAssessedResult(
@@ -540,27 +545,31 @@ export function assessRouteWarnings(
 
     let best: GeometryMeasurement | null = null;
     let intersects = false;
+    let measurementFailure = false;
     for (const geometry of validGeometries) {
       for (const leg of legs) {
         if (leg.unassessedReason) continue;
-        const measured = measureGeometryOnLeg(geometry, leg);
-        if (!Number.isFinite(measured.distanceNm)) continue;
-        if (!best || measured.distanceNm < best.distanceNm) best = measured;
-        if (measured.intersects) {
-          intersects = true;
-          best = measured;
-          break;
+        try {
+          const measured = measureGeometryOnLeg(geometry, leg);
+          if (!Number.isFinite(measured.distanceNm)) {
+            measurementFailure = true;
+            continue;
+          }
+          if (!best || measured.distanceNm < best.distanceNm) best = measured;
+          if (measured.intersects) {
+            intersects = true;
+            best = measured;
+            break;
+          }
+        } catch {
+          measurementFailure = true;
         }
       }
       if (intersects) break;
     }
 
-    if (!best && !unsupported && !hasUnassessedRouteLeg) {
-      assessedWarnings += 1;
-      continue;
-    }
-
     if (intersects) {
+      if (!unsupported && !measurementFailure && !hasUnassessedRouteLeg) assessedWarnings += 1;
       results.push({
         warningId: warningIdentity(warning),
         title: warning.title || warningIdentity(warning),
@@ -578,19 +587,20 @@ export function assessRouteWarnings(
         qaFlags: Array.isArray(warning.qa_flags) ? warning.qa_flags : [],
         validFrom: warning.valid_from ?? null,
         validTo: warning.valid_to ?? null,
-        hasUnassessedGeometry: Boolean(unsupported),
+        hasUnassessedGeometry: Boolean(unsupported) || measurementFailure,
         hasUnassessedRouteLeg,
-        reason: unsupported?.reason ?? routeLegReason,
+        reason: unsupported?.reason || (measurementFailure ? 'A geometry could not be safely measured.' : routeLegReason),
       });
       continue;
     }
 
-    if (unsupported || hasUnassessedRouteLeg || !best) {
+    if (unsupported || measurementFailure || hasUnassessedRouteLeg || !best) {
       results.push({
         ...notAssessedResult(
           warning,
-          unsupported?.reason || routeLegReason || 'No supported geometry could be assessed.',
-          Boolean(unsupported),
+          unsupported?.reason || (measurementFailure ? 'A geometry could not be safely measured.' : null)
+            || routeLegReason || 'No supported geometry could be assessed.',
+          Boolean(unsupported) || measurementFailure,
           hasUnassessedRouteLeg,
         ),
         nearestLegIndex: best ? best.legIndex + 1 : null,
@@ -602,6 +612,7 @@ export function assessRouteWarnings(
       continue;
     }
 
+    assessedWarnings += 1;
     if (best.distanceNm <= route.warningRangeNm) {
       results.push({
         warningId: warningIdentity(warning),
@@ -624,10 +635,7 @@ export function assessRouteWarnings(
         hasUnassessedRouteLeg: false,
         reason: null,
       });
-      continue;
     }
-
-    assessedWarnings += 1;
   }
 
   const priority: Record<WarningAssessmentStatus, number> = {
@@ -642,7 +650,7 @@ export function assessRouteWarnings(
   return {
     ready: true,
     rangeNm: route.warningRangeNm,
-    examinedWarnings: warnings.length,
+    examinedWarnings: safeWarnings.length,
     assessedWarnings,
     intersectsCount: results.filter((result) => result.status === 'INTERSECTS').length,
     withinRangeCount: results.filter((result) => result.status === 'WITHIN_RANGE').length,
