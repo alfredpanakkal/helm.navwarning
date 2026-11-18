@@ -648,7 +648,6 @@ test.describe('public NAVAREA snapshot cache', () => {
       JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}').baseMap
     );
     expect(osmPreference).toBe('osm');
-    await page.locator('#btnMapSettings').click();
     await expect(page.locator('input[name="basemap-desktop"][value="osm"]')).toBeChecked();
 
     expect(errors, 'no uncaught browser errors').toEqual([]);
