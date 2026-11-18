@@ -604,6 +604,45 @@ test.describe('public NAVAREA snapshot cache', () => {
     expect(boundaryRequests).toBe(2);
   });
 
+  test('HTTP failure clears the boundary preference and a subsequent request can retry', async ({ page }) => {
+    const state: PublicApiState = {
+      spatialRows: [publicWarning()],
+      textRows: [bulletin()],
+      fail: false,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+
+    let boundaryRequests = 0;
+    await page.route('**/assets/data/navarea-boundaries.geojson', async (route) => {
+      boundaryRequests += 1;
+      if (boundaryRequests === 1) {
+        await route.fulfill({ status: 503, body: 'temporarily unavailable' });
+        return;
+      }
+      await route.fulfill({ response: await route.fetch() });
+    });
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#dataSubtitle')).toContainText('1 published warning', { timeout: 30_000 });
+    await page.locator('#btnMapSettings').click();
+    const toggle = page.locator('#layerToggleNavareaBoundariesDesktop');
+    await toggle.check();
+
+    await expect.poll(async () => page.evaluate(() => {
+      const saved = JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}');
+      return saved.overlays?.navareaBoundaries;
+    })).toBe(false);
+    expect(boundaryRequests).toBe(1);
+
+    await toggle.check();
+    await expect.poll(async () => page.evaluate(() => {
+      const pane = (window as any).hwMap?.getPane('navareaBoundariesPane');
+      return pane?.querySelectorAll('path').length || 0;
+    })).toBeGreaterThan(0);
+    expect(boundaryRequests).toBe(2);
+  });
+
   test('turning boundaries off while the GeoJSON request is pending prevents the layer from appearing', async ({ page }) => {
     const state: PublicApiState = {
       spatialRows: [publicWarning()],
@@ -628,6 +667,9 @@ test.describe('public NAVAREA snapshot cache', () => {
     await toggle.uncheck();
 
     await expect.poll(async () => boundaryRequests).toBe(1);
+    await page.waitForResponse((response) =>
+      response.url().includes('/assets/data/navarea-boundaries.geojson') && response.status() === 200
+    );
     await expect.poll(async () => page.evaluate(() => {
       const pane = (window as any).hwMap?.getPane('navareaBoundariesPane');
       return pane?.querySelectorAll('path').length || 0;
