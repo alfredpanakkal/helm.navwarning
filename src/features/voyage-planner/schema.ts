@@ -13,7 +13,7 @@ import {
 import type { Position, VoyageRoute, Waypoint } from './types';
 
 const idSchema = z.string().min(1).max(MAX_ID_LENGTH).regex(/^[A-Za-z0-9_-]+$/);
-const nameSchema = (max: number) => z.string().trim().min(1).max(max);
+const nameSchema = (max: number) => z.string().min(1).max(max).refine((value) => value.trim().length > 0);
 const speedSchema = z.number().finite().gt(MIN_SPEED_KN).max(MAX_SPEED_KN);
 const positionSchema = z.object({
   lat: z.number().finite().min(-90).max(90),
