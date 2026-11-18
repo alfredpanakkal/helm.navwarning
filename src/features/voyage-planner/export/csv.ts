@@ -5,7 +5,7 @@ import type { VoyageRoute } from '../types';
 
 function csvCell(value: string | number | null): string {
   let text = value === null ? '' : String(value);
-  if (/^[\\s\\u0000-\\u001f]*[=+\\-@]/.test(text)) text = "'" + text;
+  if (/^[\s\u0000-\u001f]*[=+\-@]/.test(text)) text = "'" + text;
   return '"' + text.replace(/"/g, '""') + '"';
 }
 
