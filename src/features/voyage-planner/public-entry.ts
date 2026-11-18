@@ -26,6 +26,13 @@ declare global {
   interface Window {
     hwMap?: import('leaflet').Map;
     L?: typeof import('leaflet');
+    getPublicWarningSnapshot?: () => {
+      warnings: WarningAssessmentWarningInput[];
+      available: boolean;
+      cached: boolean;
+      textIncomplete: boolean;
+      savedAt: string | null;
+    };
   }
 }
 
@@ -581,6 +588,11 @@ if (workspace && panel && content && toggleButton) {
     };
     render();
   });
+
+  const initialWarningSnapshot = window.getPublicWarningSnapshot?.();
+  if (initialWarningSnapshot && Array.isArray(initialWarningSnapshot.warnings)) {
+    warningSnapshot = initialWarningSnapshot;
+  }
 
   window.addEventListener('helm:map-ready', attachMap);
   if (window.hwMap) attachMap();
