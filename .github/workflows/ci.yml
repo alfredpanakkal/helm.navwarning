@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   verify-applet:
     name: Verify Node & TypeScript Build
@@ -13,6 +16,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -40,6 +45,20 @@ jobs:
             package-lock.json
             bun.lock
           if-no-files-found: error
+
+      - name: Commit refreshed lockfiles to the PR branch
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BRANCH: ${{ github.head_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json bun.lock
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: sync npm and bun lockfiles"
+            git push origin "HEAD:${PR_BRANCH}"
+          fi
 
       - name: Typecheck TypeScript
         run: npx tsc --noEmit
