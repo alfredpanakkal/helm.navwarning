@@ -425,7 +425,7 @@ test.describe('public NAVAREA snapshot cache', () => {
   test('Voyage Planner reuses the public map and persists route edits locally', async ({ page }) => {
     const errors = watchPageErrors(page);
     const state: PublicApiState = {
-      spatialRows: [publicWarning()],
+      spatialRows: [{ ...publicWarning(), zone_label: 'Route crossing', geojson_blob: { type: 'Point', coordinates: [75.5, 10.5] } }],
       textRows: [bulletin()],
       fail: false,
       delayMs: 0,
@@ -455,6 +455,7 @@ test.describe('public NAVAREA snapshot cache', () => {
       browser.hwMap.fire('click', { latlng: browser.L.latLng(11, 76) });
     });
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    await expect(page.locator('.voyage-assessment-row.is-intersects')).toContainText('CACHE-TEST-1/26');
     await page.evaluate(() => {
       const browser = window as any;
       const line = Object.values(browser.hwMap._layers).find((layer: any) => layer instanceof browser.L.Polyline) as any;
@@ -479,6 +480,38 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.locator('#btnVoyagePlannerClose').click();
     await expect(page.locator('.public-warning-workspace')).not.toHaveClass(/is-voyage-planner/);
 
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
+
+  test('Voyage Planner leaves mismatched warning geometry not assessed', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    const state: PublicApiState = {
+      spatialRows: [{
+        ...publicWarning(),
+        feature_type: 'POINT',
+        geojson_blob: { type: 'LineString', coordinates: [[75.5, 10.4], [75.5, 10.6]] },
+      }],
+      textRows: [bulletin()],
+      fail: false,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
+    });
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(11, 76) });
+    });
+    await expect(page.locator('.voyage-assessment-row.is-not-assessed')).toContainText('POINT / LineString');
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
 
