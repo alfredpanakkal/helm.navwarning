@@ -2,7 +2,6 @@ import {
   addWaypoint,
   calculateRoute,
   createRoute,
-  deleteRoute,
   formatLatitude,
   formatLongitude,
   loadRoutes,
