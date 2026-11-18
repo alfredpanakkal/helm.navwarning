@@ -164,6 +164,163 @@ async function openDataBank(page: Page) {
   await expect(page.locator('#tab-data')).toBeVisible();
 }
 
+
+test.describe('public workspace interaction regressions', () => {
+  const emptyState = (): PublicApiState => ({
+    spatialRows: [],
+    textRows: [],
+    fail: false,
+    delayMs: 0,
+  });
+
+  test('desktop warning selection keeps the newest two in order', async ({ page }) => {
+    await installPublicApiMock(page, emptyState());
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() =>
+      typeof (window as any).openWarningDetails === 'function' &&
+      document.body.classList.contains('is-desktop')
+    );
+
+    await page.evaluate(() => {
+      const open = (window as any).openWarningDetails;
+      ['ORDER-1/26', 'ORDER-2/26', 'ORDER-3/26'].forEach((id, index) => {
+        open({
+          canonical_id: id,
+          navarea: 'NA VIII',
+          title: 'Selection ' + id,
+          severity: 'high',
+          categories: ['general'],
+          is_verified: true,
+          raw_text: 'Selection order fixture ' + index,
+        });
+      });
+    });
+
+    const cards = page.locator('.warning-compare-card strong');
+    await expect(cards).toHaveCount(2);
+    await expect(cards.nth(0)).toContainText('ORDER-3/26');
+    await expect(cards.nth(1)).toContainText('ORDER-2/26');
+    await expect(page.locator('#drawerDetailsTitle')).toContainText('2/2');
+    expect((await cards.allTextContents()).join(' ')).not.toContain('ORDER-1/26');
+  });
+
+  test('desktop panel resizers enforce minimum widths and support keyboard input', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await installPublicApiMock(page, emptyState());
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() =>
+      document.querySelector('.public-warning-workspace')?.getAttribute('data-resizers-ready') === 'true'
+    );
+
+    const width = (selector: string) => page.locator(selector).evaluate((element) =>
+      element.getBoundingClientRect().width
+    );
+
+    const first = await page.locator('#mapWarningsResizer').boundingBox();
+    if (!first) throw new Error('Map/warnings resizer is not visible');
+    await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(0, first.y + first.height / 2, { steps: 5 });
+    await page.mouse.up();
+    expect(await width('.public-warning-workspace .map-container')).toBeGreaterThanOrEqual(419);
+    expect(await width('#mapWarningList')).toBeGreaterThanOrEqual(279);
+
+    const second = await page.locator('#warningsDetailsResizer').boundingBox();
+    if (!second) throw new Error('Warnings/details resizer is not visible');
+    await page.mouse.move(second.x + second.width / 2, second.y + second.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(1439, second.y + second.height / 2, { steps: 5 });
+    await page.mouse.up();
+    expect(await width('#mapWarningList')).toBeGreaterThanOrEqual(279);
+    expect(await width('#warningDetailsDrawer')).toBeGreaterThanOrEqual(279);
+
+    const beforeKeyboardResize = await width('.public-warning-workspace .map-container');
+    await page.locator('#mapWarningsResizer').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(() => width('.public-warning-workspace .map-container'))
+      .toBeGreaterThan(beforeKeyboardResize + 5);
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
+  test('Escape exits map focus mode and restores the desktop workspace', async ({ page }) => {
+    await installPublicApiMock(page, emptyState());
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+
+    await page.locator('#btnMapFocus').click();
+    await expect(page.locator('body')).toHaveClass(/map-focus-active/);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('body')).not.toHaveClass(/map-focus-active/);
+    await expect(page.locator('#btnMapFocus')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('.public-warning-workspace')).not.toHaveClass(/is-focus-transition/);
+  });
+
+  test('failed waypoint drag restores the marker to the persisted route position', async ({ page }) => {
+    await installPublicApiMock(page, emptyState());
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
+    await page.locator('#voyageRouteName').fill('Drag persistence test');
+    await page.locator('form[data-form="route-settings"] button[type="submit"]').click();
+
+    const addWaypoint = async (lat: number, lon: number) => {
+      await page.locator('[data-action="toggle-add-mode"]').click();
+      await page.evaluate(({ latitude, longitude }) => {
+        const browser = window as any;
+        browser.hwMap.fire('click', { latlng: browser.L.latLng(latitude, longitude) });
+      }, { latitude: lat, longitude: lon });
+      await page.locator('[data-action="toggle-add-mode"]').click();
+    };
+    await addWaypoint(10, 75);
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(1);
+    await addWaypoint(10, 76);
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+
+    await page.evaluate(() => {
+      const originalSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (key === 'helm_voyage_planner_v1') {
+          throw new DOMException('Quota exceeded', 'QuotaExceededError');
+        }
+        return originalSetItem.call(this, key, value);
+      };
+    });
+
+    await page.evaluate(() => {
+      const browser = window as any;
+      let marker: any = null;
+      browser.hwMap.eachLayer((layer: any) => {
+        if (typeof layer.eachLayer !== 'function') return;
+        layer.eachLayer((child: any) => {
+          if (child instanceof browser.L.Marker && child.options.title === 'WP 1') marker = child;
+        });
+      });
+      if (!marker) throw new Error('First waypoint marker was not found');
+      const position = marker.getLatLng();
+      marker.setLatLng([position.lat + 1, position.lng + 1]);
+      marker.fire('dragend');
+    });
+
+    await expect(page.locator('.voyage-planner-notice')).toContainText('Quota exceeded');
+    const restoredPosition = await page.evaluate(() => {
+      const browser = window as any;
+      let marker: any = null;
+      browser.hwMap.eachLayer((layer: any) => {
+        if (typeof layer.eachLayer !== 'function') return;
+        layer.eachLayer((child: any) => {
+          if (child instanceof browser.L.Marker && child.options.title === 'WP 1') marker = child;
+        });
+      });
+      if (!marker) return null;
+      const position = marker.getLatLng();
+      return [position.lat, position.lng];
+    });
+    expect(restoredPosition?.[0]).toBeCloseTo(10, 6);
+    expect(restoredPosition?.[1]).toBeCloseTo(75, 6);
+  });
+});
+
 test.describe('public NAVAREA snapshot cache', () => {
   test('first visit is live; repeat visit renders the saved Tier-A snapshot before refresh', async ({ page }) => {
     const errors = watchPageErrors(page);
@@ -474,6 +631,25 @@ test.describe('public NAVAREA snapshot cache', () => {
       JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}').baseMap
     );
     expect(automaticPreference).toBe('auto');
+
+    await page.evaluate(() => (window as any).selectBaseMap('osm'));
+    const osmBaseMapUrl = () => page.evaluate(() => {
+      const map = (window as any).map;
+      let url: string | null = null;
+      map?.eachLayer((layer: any) => {
+        if (typeof layer?._url === 'string' && layer._url.includes('tile.openstreetmap.org')) url = layer._url;
+      });
+      return url;
+    });
+    await expect.poll(osmBaseMapUrl).toContain('tile.openstreetmap.org');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect.poll(osmBaseMapUrl).toContain('tile.openstreetmap.org');
+    const osmPreference = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}').baseMap
+    );
+    expect(osmPreference).toBe('osm');
+    await page.locator('#btnMapSettings').click();
+    await expect(page.locator('input[name="basemap-desktop"][value="osm"]')).toBeChecked();
 
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
