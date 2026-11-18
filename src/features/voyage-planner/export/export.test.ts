@@ -67,6 +67,7 @@ describe('Voyage Planner exports', () => {
     const result = exportRouteCsv(dangerous);
     expect(result).toContain('"\'=HYPERLINK(""https://example.com"",""open"")"');
     expect(result).toContain('"\'+SUM(1,2)"');
+    expect(exportRouteCsv({ ...dangerous, name: '@SUM(1,2)' })).toContain('"\'@SUM(1,2)"');
     expect(result).toContain('"\'-10"'); // Negative numeric cells are also forced to text.
     expect(result).toContain('\r\n');
   });
