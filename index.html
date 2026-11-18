@@ -878,6 +878,10 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
           <input type="checkbox" id="layerToggleSoundingsDesktop" onchange="toggleLayer('soundings', this.checked)">
           <span>Ocean Soundings</span>
         </label>
+        <label class="settings-item">
+          <input type="checkbox" id="layerToggleNavareaBoundariesDesktop" onchange="toggleLayer('navareaBoundaries', this.checked)">
+          <span>NAVAREA Boundaries</span>
+        </label>
       </div>
       <div class="settings-footer">
         <button type="button" class="settings-reset-btn" onclick="resetMapSettingsToDefaults()">
@@ -1375,6 +1379,10 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
     <label class="settings-item">
       <input type="checkbox" id="layerToggleSoundingsMobile" onchange="toggleLayer('soundings', this.checked)">
       <span>Ocean Soundings</span>
+    </label>
+    <label class="settings-item">
+      <input type="checkbox" id="layerToggleNavareaBoundariesMobile" onchange="toggleLayer('navareaBoundaries', this.checked)">
+      <span>NAVAREA Boundaries</span>
     </label>
   </div>
   <div class="settings-footer">
