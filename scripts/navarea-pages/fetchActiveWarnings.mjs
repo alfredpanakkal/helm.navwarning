@@ -19,10 +19,12 @@ export async function fetchActiveWarnings() {
       const url = SUPABASE_URL + '/rest/v1/nav_warnings?select=' + encodeURIComponent(COLUMNS) +
         '&status=eq.active&order=updated_at.desc&limit=' + PAGE_SIZE + '&offset=' + (page * PAGE_SIZE);
       const res = await fetch(url, {
+        cache: 'no-store',
         headers: {
           apikey: SUPABASE_ANON_KEY,
           Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
-          Accept: 'application/json'
+          Accept: 'application/json',
+          'Cache-Control': 'no-cache'
         }
       });
       if (!res.ok) throw new Error('Supabase REST ' + res.status);
