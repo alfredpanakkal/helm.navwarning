@@ -197,8 +197,10 @@ window.resetFilters = function(){
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
+    const modal = document.getElementById('warningModal');
     const workspace = document.querySelector('.public-warning-workspace');
-    if (document.body.classList.contains('is-desktop') &&
+    if ((!modal || !modal.classList.contains('open')) &&
+        document.body.classList.contains('is-desktop') &&
         document.body.classList.contains('map-focus-active') && workspace &&
         !workspace.classList.contains('is-details-collapsed')) {
       toggleSelectedWarningPanel(false);
