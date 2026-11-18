@@ -197,14 +197,24 @@ window.resetFilters = function(){
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    const workspace = document.querySelector('.public-warning-workspace');
-    if (document.body.classList.contains('map-focus-active') && workspace &&
-        !workspace.classList.contains('is-details-collapsed')) {
-      toggleSelectedWarningPanel(false);
+    const modal = document.getElementById('warningModal');
+    if (modal && modal.classList.contains('open')) {
+      closeWarningModal();
+      e.stopImmediatePropagation();
       return;
     }
-    if (document.body.classList.contains('map-focus-active') ||
-        document.querySelector('.public-warning-workspace.is-focus-transition')) {
+    const workspace = document.querySelector('.public-warning-workspace');
+    if ((!modal || !modal.classList.contains('open')) &&
+        document.body.classList.contains('is-desktop') &&
+        document.body.classList.contains('map-focus-active') && workspace &&
+        !workspace.classList.contains('is-details-collapsed')) {
+      toggleSelectedWarningPanel(false);
+      e.stopImmediatePropagation();
+      return;
+    }
+    if (document.body.classList.contains('is-desktop') &&
+        (document.body.classList.contains('map-focus-active') ||
+         document.querySelector('.public-warning-workspace.is-focus-transition'))) {
       toggleMapFocusMode(false);
       return;
     }
@@ -250,7 +260,7 @@ function loadMapPreferences() {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
         return {
-          baseMap: parsed.baseMap && parsed.baseMap !== 'osm' ? parsed.baseMap : 'auto',
+          baseMap: parsed.baseMap || 'auto',
           masterOverlays: parsed.masterOverlays !== false,
           overlays: { ...DEFAULT_MAP_PREFERENCES.overlays, ...(parsed.overlays || {}) }
         };
@@ -3435,7 +3445,8 @@ document.addEventListener('keydown', (e) => {
       return;
     }
     const workspace = document.querySelector('.public-warning-workspace');
-    if (workspace && document.body.classList.contains('map-focus-active') &&
+    if (document.body.classList.contains('is-desktop') && workspace &&
+        document.body.classList.contains('map-focus-active') &&
         !workspace.classList.contains('is-details-collapsed')) {
       toggleSelectedWarningPanel(false);
       return;

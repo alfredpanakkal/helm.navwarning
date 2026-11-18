@@ -103,6 +103,34 @@ describe('rhumb calculations', () => {
 });
 
 describe('route operations and persistence', () => {
+  it('reports storage read failures without treating them as empty data', () => {
+    const storage: StorageLike = {
+      getItem: () => { throw new Error('storage blocked'); },
+      setItem: () => undefined,
+    };
+    expect(loadRoutes(storage)).toEqual({
+      status: 'storage_error',
+      routes: [],
+      reason: 'storage blocked',
+    });
+  });
+
+  it('reports storage write failures and leaves the previous value untouched', () => {
+    class FailingWriteStorage extends MemoryStorage {
+      setItem(_key: string, _value: string) {
+        throw new Error('quota exceeded');
+      }
+    }
+    const storage = new FailingWriteStorage();
+    storage.data.set(VOYAGE_PLANNER_STORAGE_KEY, 'previous route data');
+    expect(saveRoutes(storage, [route])).toEqual({
+      ok: false,
+      reason: 'storage_error',
+      detail: 'quota exceeded',
+    });
+    expect(storage.getItem(VOYAGE_PLANNER_STORAGE_KEY)).toBe('previous route data');
+  });
+
   it('creates routes with injected ID and clock and preserves inputs immutably', () => {
     const created = createRoute('New route', 12, context);
     expect(created.ok).toBe(true);

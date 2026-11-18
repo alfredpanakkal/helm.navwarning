@@ -120,6 +120,39 @@ describe('Voyage Planner warning geometry assessment', () => {
     expect(result.intersectsCount).toBe(1);
   });
 
+  it('detects a narrow polygon between route sampling points', () => {
+    const result = assessRouteWarnings(route([0, 0], [10, 0]), [
+      warning({
+        feature_type: 'POLYGON',
+        geojson_blob: {
+          type: 'Polygon',
+          coordinates: [[[5.001, -0.0001], [5.002, -0.0001], [5.002, 0.0001], [5.001, 0.0001], [5.001, -0.0001]]],
+        },
+      }),
+    ]);
+    expect(result.intersectsCount).toBe(1);
+    expect(result.results[0].nearestDistanceNm).toBe(0);
+  });
+
+  it('flags additional unsupported geometry even when another zone intersects', () => {
+    const item = warning({
+      feature_type: 'POINT',
+      geojson_blob: { type: 'Point', coordinates: [5, 0] },
+    });
+    item.geometries.push({
+      feature_type: 'UNSUPPORTED',
+      buffer_nm: 0,
+      corridor_half_width_nm: null,
+      zone_label: 'Unassessed zone',
+      geojson_blob: { type: 'Point', coordinates: [5, 0] },
+    });
+    const result = assessRouteWarnings(route([0, 0], [10, 0]), [item]);
+    expect(result.intersectsCount).toBe(1);
+    expect(result.assessedWarnings).toBe(0);
+    expect(result.results[0].status).toBe('INTERSECTS');
+    expect(result.results[0].hasUnassessedGeometry).toBe(true);
+  });
+
   it('keeps POINT/LineString metadata mismatches not assessed', () => {
     const result = assessRouteWarnings(route([0, 0], [10, 0]), [
       warning({ feature_type: 'POINT', geojson_blob: { type: 'LineString', coordinates: [[5, -1], [5, 1]] } }),
