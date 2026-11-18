@@ -446,7 +446,7 @@ if (workspace && panel && content && toggleButton) {
           renderMap();
           return;
         }
-        updateActiveRoute(result.value);
+        if (!updateActiveRoute(result.value)) renderMap();
       });
     });
   }
