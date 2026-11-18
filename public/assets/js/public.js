@@ -492,6 +492,7 @@ function initMap(){
 
   // Map canvas click clears touch selection, hides title card, and closes settings
   leafletMap.on('click', () => {
+    if (document.body.classList.contains('voyage-add-mode')) return;
     clearActiveFeatureHighlight();
     hideTitleCard(true);
     closeMapSettings();
@@ -516,6 +517,7 @@ function initMap(){
   if (attrEl) {
     attrEl.textContent = baseDef.attribution;
   }
+  window.dispatchEvent(new CustomEvent('helm:map-ready'));
 }
 
 // ═══════════ MAXIMUM MAP VIEW & FOCUS MODE ═══════════
