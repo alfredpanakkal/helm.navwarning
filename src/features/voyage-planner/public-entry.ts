@@ -258,6 +258,7 @@ if (workspace && panel && content && toggleButton) {
 
     const route = activeRoute();
     if (!route) return;
+    const calculation = calculateRoute(route);
     const chartLongitudes: number[] = [];
     route.waypoints.forEach((waypoint, index) => {
       const longitude = wrapLongitudeForChart(waypoint.position.lon);
@@ -265,7 +266,7 @@ if (workspace && panel && content && toggleButton) {
     });
 
     route.waypoints.forEach((waypoint, index) => {
-      if (index > 0) {
+      if (index > 0 && calculation.legs[index - 1]?.status === 'ok') {
         const previous = route.waypoints[index - 1];
         L.polyline(
           [[previous.position.lat, chartLongitudes[index - 1]], [waypoint.position.lat, chartLongitudes[index]]],
