@@ -264,6 +264,31 @@ test.describe('public workspace interaction regressions', () => {
     await expect(workspace).not.toHaveClass(/is-details-collapsed/);
   });
 
+  test('Escape closes an open warning modal before workspace panels', async ({ page }) => {
+    await installPublicApiMock(page, emptyState());
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+
+    const workspace = page.locator('.public-warning-workspace');
+    await page.locator('#btnMapFocus').click();
+    await expect(page.locator('body')).toHaveClass(/map-focus-active/);
+    await page.evaluate(() => {
+      document.getElementById('warningModal')?.classList.add('open');
+    });
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#warningModal')).not.toHaveClass(/open/);
+    await expect(page.locator('body')).toHaveClass(/map-focus-active/);
+    await expect(workspace).not.toHaveClass(/is-details-collapsed/);
+
+    await page.keyboard.press('Escape');
+    await expect(workspace).toHaveClass(/is-details-collapsed/);
+    await expect(page.locator('body')).toHaveClass(/map-focus-active/);
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('body')).not.toHaveClass(/map-focus-active/);
+  });
+
   test('mobile Escape exits map focus mode directly', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installPublicApiMock(page, emptyState());
