@@ -3,7 +3,8 @@ import { voyageRouteSchema } from '../schema';
 import type { VoyageRoute } from '../types';
 
 function xmlEscape(value: string): string {
-  return value.replace(/&/g, '&amp;')
+  return value.replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\uFFFE\\uFFFF]/g, '')
+    .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
@@ -21,7 +22,7 @@ export function exportRouteGpx(input: VoyageRoute): string {
   const calculation = calculateRoute(route);
   const points = route.waypoints.map((waypoint, index) => {
     const eta = index === 0 ? route.departureTimeUtc : calculation.legs[index - 1]?.etaUtc;
-    const speed = waypoint.speedKn ?? (index > 0 ? route.defaultSpeedKn : null);
+    const speed = index > 0 ? (waypoint.speedKn ?? route.defaultSpeedKn) : null;
     const description = [
       'Waypoint ' + (index + 1),
       speed === null ? null : 'Inbound speed ' + speed + ' kn',
