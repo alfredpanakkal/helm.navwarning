@@ -23,6 +23,24 @@ jobs:
       - name: Install Node Dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Refresh dependency lockfiles for artifact
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Set up Bun for lockfile refresh
+        uses: oven-sh/setup-bun@v2
+
+      - name: Refresh Bun lockfile
+        run: bun install --lockfile-only
+
+      - name: Upload refreshed dependency lockfiles
+        uses: actions/upload-artifact@v4
+        with:
+          name: voyage-planner-lockfiles
+          path: |
+            package-lock.json
+            bun.lock
+          if-no-files-found: error
+
       - name: Typecheck TypeScript
         run: npx tsc --noEmit
 
