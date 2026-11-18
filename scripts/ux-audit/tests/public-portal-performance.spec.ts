@@ -425,7 +425,7 @@ test.describe('public NAVAREA snapshot cache', () => {
   test('Voyage Planner reuses the public map and persists route edits locally', async ({ page }) => {
     const errors = watchPageErrors(page);
     const state: PublicApiState = {
-      spatialRows: [{ ...publicWarning(), zone_label: 'Route crossing', geojson_blob: { type: 'Point', coordinates: [75.5, 10.5] } }],
+      spatialRows: [{ ...publicWarning(), zone_label: 'Route crossing', geojson_blob: { type: 'Point', coordinates: [75.5, 10] } }],
       textRows: [bulletin()],
       fail: false,
       delayMs: 0,
@@ -452,7 +452,7 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.locator('[data-action="toggle-add-mode"]').click();
     await page.evaluate(() => {
       const browser = window as any;
-      browser.hwMap.fire('click', { latlng: browser.L.latLng(11, 76) });
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 76) });
     });
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
     await expect(page.locator('.voyage-assessment-row.is-intersects')).toContainText('CACHE-TEST-1/26');
@@ -460,7 +460,7 @@ test.describe('public NAVAREA snapshot cache', () => {
       const browser = window as any;
       const line = Object.values(browser.hwMap._layers).find((layer: any) => layer instanceof browser.L.Polyline) as any;
       if (!line) throw new Error('Expected a rendered route leg');
-      line.fire('click', { latlng: browser.L.latLng(10.5, 75.5), originalEvent: null });
+      line.fire('click', { latlng: browser.L.latLng(10, 75.5), originalEvent: null });
     });
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
     await expect(page.locator('.voyage-planner-stat strong').first()).not.toHaveText('0.0 NM');
@@ -470,7 +470,7 @@ test.describe('public NAVAREA snapshot cache', () => {
     expect(stored.routes[0].name).toBe('Indian Ocean passage');
     expect(stored.routes[0].warningRangeNm).toBe(10);
     expect(stored.routes[0].waypoints).toHaveLength(3);
-    expect(stored.routes[0].waypoints[1].position.lat).toBe(10.5);
+    expect(stored.routes[0].waypoints[1].position.lat).toBe(10);
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => Boolean((window as any).hwMap));
