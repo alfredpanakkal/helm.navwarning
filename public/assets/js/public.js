@@ -1,5 +1,19 @@
 // ═══════════ STATE ═══════════
 let warnings = [];
+let publicWarningsAreCached = false;
+let publicWarningTextIncomplete = false;
+
+function setMapWarningBadge(count) {
+  const badge = document.getElementById('mapLiveBadge');
+  if (!badge) return;
+  const freshnessLabel = publicWarningsAreCached
+    ? 'cached'
+    : publicWarningTextIncomplete
+      ? 'fresh geometry · text incomplete'
+      : 'live';
+  badge.innerHTML = `<span class="dot"></span> ${count} ${freshnessLabel}`;
+}
+
 
 // ═══════════ POSITION FORMAT (site-wide standard) ═══════════
 // Every coordinate displayed on the site uses degrees + decimal minutes,
@@ -12,283 +26,6 @@ function warningPositionText(w, fallback) {
   return w.coordinates || w.coords || (fallback || 'N/A');
 }
 
-
-// Seed fallback data if Supabase is empty or offline (demonstrating points, polygons, circles, corridors)
-const SEED_WARNINGS = [
-  {
-    id:"0180/26",
-    navarea:"NA I",
-    title:"North Sea — Mobile Offshore Drilling Units (MODU)",
-    severity:"high",
-    issued:"2026-09-15",
-    issued_text:"151000 UTC SEP 2026",
-    coords:"57.10, 1.50",
-    lat:57.10,
-    lng:1.50,
-    status:"active",
-    category:"offshore",
-    buffer_nm: 0.27,
-    geometries: [
-      {
-        feature_type: "POINT",
-        buffer_nm: 0,
-        zone_label: "Rig: VALARIS 120",
-        is_rig: true,
-        geojson_blob: { type: "Point", coordinates: [3.21, 56.19] }
-      },
-      {
-        feature_type: "POINT",
-        buffer_nm: 0.27,
-        zone_label: "500m Safety Zone - VALARIS 120",
-        is_rig: true,
-        geojson_blob: { type: "Point", coordinates: [3.21, 56.19] }
-      },
-      {
-        feature_type: "POINT",
-        buffer_nm: 0,
-        zone_label: "Rig: NOBLE PROSPECT",
-        is_rig: true,
-        geojson_blob: { type: "Point", coordinates: [1.31, 57.75] }
-      },
-      {
-        feature_type: "POINT",
-        buffer_nm: 0.27,
-        zone_label: "500m Safety Zone - NOBLE PROSPECT",
-        is_rig: true,
-        geojson_blob: { type: "Point", coordinates: [1.31, 57.75] }
-      },
-      {
-        feature_type: "POINT",
-        buffer_nm: 0,
-        zone_label: "Rig: STENA DON",
-        is_rig: true,
-        geojson_blob: { type: "Point", coordinates: [0.81, 58.20] }
-      },
-      {
-        feature_type: "POINT",
-        buffer_nm: 0.27,
-        zone_label: "500m Safety Zone - STENA DON",
-        is_rig: true,
-        geojson_blob: { type: "Point", coordinates: [0.81, 58.20] }
-      },
-      {
-        feature_type: "POINT",
-        buffer_nm: 0,
-        zone_label: "Rig: OCEAN ENDEAVOR",
-        is_rig: true,
-        geojson_blob: { type: "Point", coordinates: [0.85, 57.24] }
-      },
-      {
-        feature_type: "POINT",
-        buffer_nm: 0.27,
-        zone_label: "500m Safety Zone - OCEAN ENDEAVOR",
-        is_rig: true,
-        geojson_blob: { type: "Point", coordinates: [0.85, 57.24] }
-      }
-    ],
-    text:"NAVAREA I 0180/26 NORTH SEA. RIGS IN OFFSHORE SECTOR:\n1. DRILLING RIGS ESTABLISHED:\nA. VALARIS 120 56-11.4N 003-12.8E\nB. NOBLE PROSPECT 57-45.2N 001-18.4E\nC. STENA DON 58-12.0N 000-48.5E\nD. OCEAN ENDEAVOR 57-14.2N 000-51.1E\n2. 500 METRES SAFETY ZONE IN FORCE AROUND EACH RIG. WIDE BERTH REQUESTED.",
-    is_verified:true
-  },
-  {
-    id:"0215/26",
-    navarea:"NA I",
-    title:"Scotland East Coast — Multi-Sector Firing Exercises",
-    severity:"critical",
-    issued:"2026-09-14",
-    issued_text:"140800 UTC SEP 2026",
-    coords:"56.85, -1.50",
-    lat:56.85,
-    lng:-1.50,
-    status:"active",
-    category:"military",
-    geometries: [
-      {
-        feature_type: "POLYGON",
-        zone_label: "Area Alfa (Firing Danger Area)",
-        geojson_blob: {
-          type: "Polygon",
-          coordinates: [[
-            [-1.33, 57.17],
-            [-0.67, 57.17],
-            [-0.67, 57.50],
-            [-1.33, 57.50],
-            [-1.33, 57.17]
-          ]]
-        }
-      },
-      {
-        feature_type: "POLYGON",
-        zone_label: "Area Bravo (Missile Danger Area)",
-        geojson_blob: {
-          type: "Polygon",
-          coordinates: [[
-            [-1.83, 56.67],
-            [-1.17, 56.67],
-            [-1.17, 57.00],
-            [-1.83, 57.00],
-            [-1.83, 56.67]
-          ]]
-        }
-      },
-      {
-        feature_type: "POINT",
-        buffer_nm: 5.0,
-        zone_label: "Sector Charlie (5 NM Safety Zone)",
-        geojson_blob: { type: "Point", coordinates: [-2.08, 56.25] }
-      },
-      {
-        feature_type: "POINT",
-        buffer_nm: 0,
-        zone_label: "Sector Charlie Center Point",
-        geojson_blob: { type: "Point", coordinates: [-2.08, 56.25] }
-      }
-    ],
-    text:"NAVAREA I 0215/26 SCOTLAND, EAST COAST. FIRING EXERCISES.\n1. HAZARDOUS AREAS ESTABLISHED:\nAREA ALFA BOUNDED BY: 57-10.0N 001-20.0W, 57-10.0N 000-40.0W, 57-30.0N 000-40.0W, 57-30.0N 001-20.0W.\nAREA BRAVO BOUNDED BY: 56-40.0N 001-50.0W, 56-40.0N 001-10.0W, 57-00.0N 001-10.0W, 57-00.0N 001-50.0W.\nSECTOR CHARLIE (SAFETY ZONE): 56-15.0N 002-05.0W RADIUS 5 NM.\n2. ALL VESSELS IN VICINITY KEEP CLEAR.",
-    is_verified:true
-  },
-  {
-   id:"0142/26",
-   navarea:"NA I",
-   title:"North Sea, Dogger Bank — UXO Clearance",
-   severity:"critical",
-   issued:"2026-09-12",
-   issued_text:"121000 UTC SEP 2026",
-   coords:"55.24, 3.75",
-   lat:55.24,
-   lng:3.75,
-   status:"active",
-   category:"military",
-   buffer_nm: 1.5,
-   feature_type: "POINT",
-   geometries: [
-     {
-       feature_type: "POINT",
-       buffer_nm: 1.5,
-       zone_label: "UXO Safety Zone",
-       geojson_blob: { type: "Point", coordinates: [3.75, 55.24] }
-     }
-   ],
-   text:"NAVAREA I 0142/26 NORTH SEA, DOGGER BANK. UNEXPLODED ORDNANCE (UXO) LOCATED IN 55-14.4N 003-45.0E. 1.5 NM SAFETY CLEARANCE ZONE ESTABLISHED. VESSELS ADVISED TO MAINTAIN SAFE DISTANCE.",
-   is_verified:true
- },
- {
-   id:"0140/26",
-   navarea:"NA I",
-   title:"English Channel — Drifting Container",
-   severity:"high",
-   issued:"2026-09-10",
-   issued_text:"100830 UTC SEP 2026",
-   coords:"50.92, 1.38",
-   lat:50.92,
-   lng:1.38,
-   status:"active",
-   category:"drifting",
-   buffer_nm: 0,
-   feature_type: "POINT",
-   geometries: [
-     {
-       feature_type: "POINT",
-       buffer_nm: 0,
-       zone_label: "Drifting Container",
-       geojson_blob: { type: "Point", coordinates: [1.38, 50.92] }
-     }
-   ],
-   text:"NAVAREA I 0140/26 ENGLISH CHANNEL, DOVER STRAIT. DRIFTING CONTAINER IN 50-55.4N 001-22.8E. NAVIGATION HAZARD.",
-   is_verified:false
- },
- {
-   id:"0812/26",
-   navarea:"NA IV",
-   title:"W. North Atlantic — Rocket Launch Danger Area",
-   severity:"critical",
-   issued:"2026-09-11",
-   issued_text:"111400 UTC SEP 2026",
-   coords:"28.29, -80.12",
-   lat:28.29,
-   lng:-80.12,
-   status:"active",
-   category:"military",
-   feature_type: "POLYGON",
-   geometries: [
-     {
-       feature_type: "POLYGON",
-       buffer_nm: 0,
-       zone_label: "Rocket Drop Zone Alpha",
-       geojson_blob: {
-         type: "Polygon",
-         coordinates: [[
-           [-80.50, 28.58],
-           [-79.75, 28.58],
-           [-79.75, 28.00],
-           [-80.50, 28.00],
-           [-80.50, 28.58]
-         ]]
-       }
-     }
-   ],
-   text:"NAVAREA IV 0812/26 WESTERN NORTH ATLANTIC. HAZARDOUS OPERATIONS, ROCKET LAUNCHING. AREA BOUNDED BY 28-35N 080-30W, 28-35N 079-45W, 28-00N 079-45W, 28-00N 080-30W. EXCLUSION ZONE IN EFFECT.",
-   is_verified:true
- },
- {
-   id:"0095/26",
-   navarea:"NA III",
-   title:"Mediterranean — Military Exercise Safety Zone",
-   severity:"high",
-   issued:"2026-09-13",
-   issued_text:"130915 UTC SEP 2026",
-   coords:"35.97, -5.33",
-   lat:35.97,
-   lng:-5.33,
-   status:"active",
-   category:"military",
-   buffer_nm: 10.0,
-   feature_type: "POINT",
-   geometries: [
-     {
-       feature_type: "POINT",
-       buffer_nm: 10.0,
-       zone_label: "Naval Gunnery Safety Zone (10 NM)",
-       geojson_blob: { type: "Point", coordinates: [-5.33, 35.97] }
-     }
-   ],
-   text:"NAVAREA III 0095/26 MEDITERRANEAN. MILITARY EXERCISE IN PROGRESS. 10 NM RADIUS SAFETY CLEARANCE ZONE AROUND 35-58N 005-20W. ALL MARINERS KEEP CLEAR.",
-   is_verified:true
- },
- {
-   id:"0311/26",
-   navarea:"NA X",
-   title:"Australian Waters, Coral Sea — Subsea Cable Corridor",
-   severity:"high",
-   issued:"2026-09-14",
-   issued_text:"140200 UTC SEP 2026",
-   coords:"-17.12, 148.65",
-   lat:-17.12,
-   lng:148.65,
-   status:"active",
-   category:"verified",
-   feature_type: "CORRIDOR",
-   buffer_nm: 2.0,
-   corridor_half_width_nm: 2.0,
-   geometries: [
-     {
-       feature_type: "CORRIDOR",
-       buffer_nm: 2.0,
-       corridor_half_width_nm: 2.0,
-       zone_label: "Submarine Cable Laying Track",
-       geojson_blob: {
-         type: "LineString",
-         coordinates: [
-           [148.21, -16.75],
-           [148.80, -17.20],
-           [149.30, -17.80]
-         ]
-       }
-     }
-   ],
-   text:"NAVAREA X 0311/26 AUSTRALIAN WATERS, CORAL SEA. SUBMARINE CABLE INSTALLATION OPERATIONS ALONG TRACK JOINING 16-45.0S 148-12.6E, 17-12.0S 148-48.0E, 17-48.0S 149-18.0E. WIDE BERTH 2 NM REQUESTED.",
-   is_verified:false
- }
-];
 
 // ═══════════ BULLETIN & DATE HELPERS ═══════════
 function getBulletinText(obj) {
@@ -773,7 +510,7 @@ function initMap(){
   setupTitleCardSwipeDismiss();
 
   syncSettingsUI(mapPreferences);
-  filterMapByNavArea(currentSelectedNavArea);
+  // Warning layers are rendered once after the first public snapshot loads.
 
   const attrEl = document.querySelector('.map-attribution');
   if (attrEl) {
@@ -1375,7 +1112,9 @@ function renderWarningDetailCard(w, index) {
   const navarea = w.navarea || 'NAVAREA';
   const color = getWarningColor(w);
   const issuedText = formatWarningIssuedText(w);
-  const text = getBulletinText(w) || w.raw_text || 'No raw bulletin text provided.';
+  const text = w.raw_text === undefined
+    ? 'Bulletin text not yet retrieved — full-text search may be incomplete.'
+    : (getBulletinText(w) || 'No raw bulletin text provided.');
   const cats = Array.isArray(w.categories) ? w.categories.join(' · ') : (w.category || 'General');
   const title = w.title || w.area_text || wid;
 
@@ -1941,8 +1680,7 @@ window.filterMapByNavArea = function(navArea, opts) {
 
   rebuildMapList(filtered);
 
-  const mlb = document.getElementById('mapLiveBadge');
-  if (mlb) mlb.innerHTML = `<span class="dot"></span> ${filtered.length} live`;
+  setMapWarningBadge(filtered.length);
 
   const chipNavText = document.getElementById('chipNavAreaText');
   if (chipNavText) {
@@ -1955,7 +1693,7 @@ window.filterMapByNavArea = function(navArea, opts) {
   }
   const chipCount = document.getElementById('chipLiveCount');
   if (chipCount) {
-    chipCount.textContent = `${filtered.length} live`;
+    chipCount.textContent = `${filtered.length} ${publicWarningsAreCached ? 'cached' : 'live'}`;
   }
 
   // Filter-aware subtitle: keeps the honest global count visible with a
@@ -1966,12 +1704,12 @@ window.filterMapByNavArea = function(navArea, opts) {
     const showAll = document.getElementById('mapShowAll');
     if (!currentSelectedNavArea) {
       const areas = new Set(live.map(w => w.navarea)).size;
-      mSub.textContent = `${live.length} in-force across ${areas} NAVAREAs`;
+      mSub.textContent = `${live.length} ${publicWarningsAreCached ? 'last-known in-force' : 'in-force'} across ${areas} NAVAREAs`;
       if (showAll) showAll.setAttribute('hidden', '');
     } else {
       const opt = mapSelect?.options[mapSelect.selectedIndex]?.text;
       const label = opt ? opt.split('·')[0].trim() : currentSelectedNavArea;
-      mSub.textContent = `Showing ${label}: ${filtered.length} of ${live.length} in-force`;
+      mSub.textContent = `Showing ${label}: ${filtered.length} of ${live.length} ${publicWarningsAreCached ? 'last-known in-force' : 'in-force'}`;
       if (showAll) showAll.removeAttribute('hidden');
     }
   }
@@ -2861,18 +2599,17 @@ window.applyFilters = function(){
       filtered.forEach(addMarker);
     }
     rebuildMapList(filtered);
-    const mlb = document.getElementById('mapLiveBadge');
-    if (mlb) mlb.innerHTML = `<span class="dot"></span> ${filtered.length} live`;
+    setMapWarningBadge(filtered.length);
   }
 };
 function updateStats(){
   const live=warnings.filter(w=>w.status!=='rejected');
   const areas=new Set(live.map(w=>w.navarea)).size;
   const n=live.length;
-  const mlb = document.getElementById('mapLiveBadge'); if(mlb) mlb.innerHTML=`<span class="dot"></span> ${n} live`;
-  const chipCount = document.getElementById('chipLiveCount'); if(chipCount) chipCount.textContent = `${n} live`;
-  const mSub = document.getElementById('mapSubtitle'); if(mSub) mSub.textContent=`${n} in-force across ${areas} NAVAREAs`;
-  const dSub = document.getElementById('dataSubtitle'); if(dSub) dSub.textContent=`${n} published warnings`;
+  setMapWarningBadge(n);
+  const chipCount = document.getElementById('chipLiveCount'); if(chipCount) chipCount.textContent = `${n} ${publicWarningsAreCached ? 'cached' : 'live'}`;
+  const mSub = document.getElementById('mapSubtitle'); if(mSub) mSub.textContent=`${n} ${publicWarningsAreCached ? 'last-known in-force' : 'in-force'} across ${areas} NAVAREAs`;
+  const dSub = document.getElementById('dataSubtitle'); if(dSub) dSub.textContent=`${n} ${publicWarningsAreCached ? 'last saved ' : ''}published warnings`;
   const sAct = document.getElementById('statActive'); if(sAct) sAct.textContent=n;
   const sActD = document.getElementById('statActiveDetail'); if(sActD) sActD.textContent=n;
   const sRep = document.getElementById('statReportingCount'); if(sRep) sRep.textContent=areas;
@@ -2900,9 +2637,12 @@ window.refreshData = async function(btn){
   if (target) target.disabled = true;
   try {
     const loaded = await loadWarnings();
-    if (loaded) {
-      filterMapByNavArea(currentSelectedNavArea);
-      showToast('Data refreshed — latest published generation loaded');
+    if (loaded === 'fresh') {
+      showToast('Data refreshed — latest published warning snapshot loaded');
+    } else if (loaded === 'partial') {
+      showToast('Map warnings loaded, but some bulletin text could not be refreshed');
+    } else if (loaded === 'cached') {
+      showToast('Refresh failed — the saved snapshot remains visible and may be outdated');
     } else {
       showToast('Data unavailable — authoritative warning geometry could not be loaded');
     }
@@ -2922,9 +2662,12 @@ window.refreshSupabaseConnection = async function(){
   showToast('Refreshing connection with Supabase...');
   try {
     const loaded = await loadWarnings();
-    if (loaded) {
-      filterMapByNavArea(currentSelectedNavArea);
-      showToast(`Supabase live: ${warnings.length} active warnings synchronized`);
+    if (loaded === 'fresh') {
+      showToast(`Supabase live: ${warnings.length} published warnings synchronized`);
+    } else if (loaded === 'partial') {
+      showToast('Map warnings loaded, but some bulletin text could not be refreshed');
+    } else if (loaded === 'cached') {
+      showToast('Supabase refresh failed — saved warning snapshot retained; status may be outdated');
     } else {
       showToast('Supabase connection notice: authoritative warning data unavailable');
     }
@@ -3260,30 +3003,115 @@ async function updateDataFreshness() {
   }
 }
 
-async function loadWarnings() {
-  let loadError = null;
-  try {
-    if (!window.hwDb) throw new Error('Warning data client is unavailable');
-    const data = await window.hwDb.fetchActiveWarnings();
-    if (!Array.isArray(data)) throw new Error('Warning data response is invalid');
-    warnings = data;
-  } catch (error) {
-    console.warn('Public warning data unavailable:', error);
-    warnings = [];
-    loadError = error;
-  }
-  updateStats(); populateTable(); populateCards();
-  updateDataFreshness();
-  filterMapByNavArea(currentSelectedNavArea);
-  if (loadError) {
-    const badge = document.getElementById('mapLiveBadge');
-    if (badge) badge.textContent = 'Data unavailable';
-    const subtitle = document.getElementById('mapSubtitle');
-    if (subtitle) subtitle.textContent = 'Unable to load authoritative warning geometry. Please try again.';
-  }
-  return !loadError;
+function formatPublicCacheTimestamp(timestamp) {
+  if (!timestamp) return 'time unavailable';
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return 'time unavailable';
+  const pad = (value) => String(value).padStart(2, '0');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${pad(date.getUTCDate())} ${months[date.getUTCMonth()]} ${date.getUTCFullYear()}, ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())} UTC`;
 }
 
+function setPublicCacheStatus(state, savedAt) {
+  const status = document.getElementById('dataCacheStatus');
+  if (!status) return;
+  if (state === 'fresh') {
+    status.hidden = true;
+    status.textContent = '';
+    return;
+  }
+  status.hidden = false;
+  const timestamp = formatPublicCacheTimestamp(savedAt);
+  if (state === 'checking') {
+    status.textContent = `Cached snapshot · last successful refresh ${timestamp} · checking for updates`;
+  } else if (state === 'stale') {
+    status.textContent = `Cached snapshot · last successful refresh ${timestamp} · latest status could not be confirmed`;
+  } else if (state === 'partial') {
+    status.textContent = 'Map warnings loaded, but bulletin text could not be fully refreshed; full-text search may be incomplete.';
+  } else {
+    status.textContent = 'Warning data unavailable · no saved public snapshot is available';
+  }
+}
+
+function renderPublicWarningData() {
+  updateStats();
+  populateTable();
+  populateCards();
+  filterMapByNavArea(currentSelectedNavArea);
+}
+
+async function loadWarnings() {
+  let cachedRendered = false;
+  let cachedAt = null;
+  try {
+    if (!window.hwDb) throw new Error('Warning data client is unavailable');
+    const result = await window.hwDb.fetchActiveWarnings({
+      onCached: (cachedData, metadata) => {
+        if (!Array.isArray(cachedData)) return;
+        warnings = cachedData;
+        publicWarningsAreCached = true;
+        publicWarningTextIncomplete = false;
+        cachedRendered = true;
+        cachedAt = metadata && metadata.savedAt;
+        renderPublicWarningData();
+        setPublicCacheStatus('checking', cachedAt);
+        const freshness = document.getElementById('dataFreshness');
+        if (freshness) freshness.textContent = 'Showing a saved public snapshot while current warning status is checked.';
+      },
+    });
+
+    if (!result || !Array.isArray(result.data)) {
+      throw new Error('Warning data response is invalid');
+    }
+
+    if (result.source === 'cache') {
+      cachedAt = result.savedAt || cachedAt;
+      if (!cachedRendered) {
+        warnings = result.data;
+        publicWarningsAreCached = true;
+        publicWarningTextIncomplete = false;
+        renderPublicWarningData();
+      }
+      setPublicCacheStatus('stale', cachedAt);
+      const freshness = document.getElementById('dataFreshness');
+      if (freshness) freshness.textContent = 'Current warning status could not be confirmed; showing the last saved public snapshot.';
+      return 'cached';
+    }
+
+    warnings = result.data;
+    publicWarningsAreCached = false;
+    publicWarningTextIncomplete = result.complete === false;
+    renderPublicWarningData();
+    setPublicCacheStatus(result.complete === false ? 'partial' : 'fresh');
+    const freshness = document.getElementById('dataFreshness');
+    if (freshness) {
+      freshness.textContent = result.complete === false
+        ? 'Current warning geometry refreshed; bulletin text is incomplete and full-text search may be incomplete.'
+        : 'Current warning data refreshed from Supabase.';
+    }
+    updateDataFreshness();
+    return result.complete === false ? 'partial' : 'fresh';
+  } catch (error) {
+    console.warn('Public warning data unavailable:', error);
+    if (!cachedRendered) {
+      warnings = [];
+      publicWarningsAreCached = false;
+      publicWarningTextIncomplete = false;
+      renderPublicWarningData();
+      setPublicCacheStatus('unavailable');
+      const badge = document.getElementById('mapLiveBadge');
+      if (badge) badge.textContent = 'Data unavailable';
+      const subtitle = document.getElementById('mapSubtitle');
+      if (subtitle) subtitle.textContent = 'Unable to load authoritative warning geometry. Please try again.';
+      return 'unavailable';
+    }
+
+    setPublicCacheStatus('stale', cachedAt);
+    const freshness = document.getElementById('dataFreshness');
+    if (freshness) freshness.textContent = 'Current warning status could not be confirmed; showing the last saved public snapshot.';
+    return 'cached';
+  }
+}
 document.addEventListener('DOMContentLoaded', async ()=>{
   detectDevice();
   // Regional page deep link: /?navarea=NA+IV preselects the map region
