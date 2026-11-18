@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logofordark.svg">
-  <img src="docs/brand/logoforlight.svg" alt="Helm.Warning logo" width="420">
+  <img src="docs/brand/logoforlight.svg" alt="Helm.Warning logo" width="210">
 </picture>
 
 # ⚓ Helm.Warning
