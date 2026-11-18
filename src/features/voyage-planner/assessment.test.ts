@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assessRouteWarnings } from './assessment';
+import { assessRouteWarnings, type WarningAssessmentWarningInput } from './assessment';
 import type { VoyageRoute } from './types';
 
 const route = (from: [number, number], to: [number, number], warningRangeNm = 10): VoyageRoute => ({
@@ -15,7 +15,18 @@ const route = (from: [number, number], to: [number, number], warningRangeNm = 10
   updatedAt: '2026-11-18T00:00:00Z',
 });
 
-const warning = (geometry: Record<string, unknown>, overrides: Record<string, unknown> = {}) => ({
+type GeometryFixture = {
+  feature_type: string;
+  buffer_nm?: number;
+  corridor_half_width_nm?: number | null;
+  zone_label?: string;
+  geojson_blob: unknown;
+};
+
+const warning = (
+  geometry: GeometryFixture,
+  overrides: Partial<WarningAssessmentWarningInput> = {},
+): WarningAssessmentWarningInput => ({
   canonical_id: 'NAVAREA VIII 0001/26',
   navarea: 'NAVAREA VIII',
   title: 'Test warning',
