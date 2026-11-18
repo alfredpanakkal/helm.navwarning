@@ -2,6 +2,9 @@ import {
   addWaypoint,
   assessRouteWarnings,
   calculateRoute,
+  exportRouteCsv,
+  exportRouteGeoJson,
+  exportRouteGpx,
   createRoute,
   formatLatitude,
   formatLongitude,
@@ -117,6 +120,40 @@ if (workspace && panel && content && toggleButton) {
 
   function displayCourse(value: number | null): string {
     return value === null ? '—' : String(Math.round(value) % 360).padStart(3, '0') + '°T';
+  }
+
+  function downloadRouteExport(route: VoyageRoute, format: 'geojson' | 'gpx' | 'csv'): void {
+    try {
+      const contentByFormat = {
+        geojson: () => exportRouteGeoJson(route),
+        gpx: () => exportRouteGpx(route),
+        csv: () => exportRouteCsv(route),
+      };
+      const mimeByFormat = {
+        geojson: 'application/geo+json;charset=utf-8',
+        gpx: 'application/gpx+xml;charset=utf-8',
+        csv: 'text/csv;charset=utf-8',
+      };
+      const safeName = route.name.normalize('NFKC')
+        .replace(/[^A-Za-z0-9_-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 60) || 'voyage-route';
+      const body = contentByFormat[format]();
+      const blob = new Blob([format === 'csv' ? '\uFEFF' + body : body], { type: mimeByFormat[format] });
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = safeName + '.' + format;
+      link.hidden = true;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      notice = format.toUpperCase() + ' export generated locally.';
+    } catch {
+      notice = 'Could not export this route. Check the route data and try again.';
+    }
+    render();
   }
 
   function renderWarningAssessment(route: VoyageRoute): string {
@@ -328,13 +365,19 @@ if (workspace && panel && content && toggleButton) {
       '</div><div class="voyage-planner-actions"><button class="voyage-planner-btn" type="submit"' + (storageBlocked ? ' disabled' : '') + '>Save route settings</button></div></form></section>' +
       '<section class="voyage-planner-summary"><div class="voyage-planner-stat"><span>Total distance</span><strong>' + calculation.totalDistanceNm.toFixed(1) + ' NM</strong></div>' +
       '<div class="voyage-planner-stat"><span>Estimated arrival (UTC)</span><strong style="font-size:11px">' + displayUtc(calculation.arrivalTimeUtc) + '</strong></div></section>' +
+      '<section class="voyage-planner-section"><div class="voyage-planner-section-title"><strong>Export route</strong><span>Local files only</span></div>' +
+      '<div class="voyage-planner-actions voyage-export-actions">' +
+      '<button class="voyage-planner-btn" type="button" data-action="export-geojson">GeoJSON</button>' +
+      '<button class="voyage-planner-btn" type="button" data-action="export-gpx">GPX</button>' +
+      '<button class="voyage-planner-btn" type="button" data-action="export-csv">CSV</button></div>' +
+      '<p class="voyage-planner-disclaimer">Exports are generated in this browser. Route and waypoint data are not uploaded.</p></section>' +
       renderWarningAssessment(route) +
       (calculation.status === 'incomplete' ? '<div class="voyage-planner-notice">One or more legs cannot be calculated. Downstream ETAs are left unknown.</div>' : '') +
       '<section class="voyage-planner-section"><div class="voyage-planner-section-title"><strong>Waypoints (' + route.waypoints.length + ')</strong></div>' +
       '<div class="voyage-planner-actions"><button class="voyage-planner-btn is-primary" type="button" data-action="toggle-add-mode"' + (storageBlocked ? ' disabled' : '') + ' aria-pressed="' + addMode + '">' + (addMode ? 'Click chart to place waypoint…' : 'Add waypoint on chart') + '</button></div>' +
       '<div class="voyage-waypoint-list">' + (waypointRows || '<p class="voyage-planner-disclaimer">No waypoints yet. Choose Add waypoint on chart, then click the chart.</p>') + '</div></section>' +
       (selectedForm ? selectedForm : '') +
-      '<p class="voyage-planner-disclaimer">Decision-support aid only; not certified ECDIS. Rhumb-line distances and true courses are approximate. Verify the passage plan against approved charts and publications. Warning assessment is not included in this phase.</p>';
+      '<p class="voyage-planner-disclaimer">Decision-support aid only; not certified ECDIS. Rhumb-line distances and true courses are approximate. Verify the passage plan against approved charts and publications.</p>';
   }
 
   function nearestLongitude(longitude: number, reference: number): number {
@@ -460,6 +503,12 @@ if (workspace && panel && content && toggleButton) {
 
     if (action === 'create-route') {
       createNewRoute();
+    } else if (route && action === 'export-geojson') {
+      downloadRouteExport(route, 'geojson');
+    } else if (route && action === 'export-gpx') {
+      downloadRouteExport(route, 'gpx');
+    } else if (route && action === 'export-csv') {
+      downloadRouteExport(route, 'csv');
     } else if (action === 'toggle-add-mode') {
       if (storageBlocked) return;
       setAddMode(!addMode);
