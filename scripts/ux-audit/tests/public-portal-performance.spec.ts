@@ -433,9 +433,31 @@ test.describe('public NAVAREA snapshot cache', () => {
     await installPublicApiMock(page, state);
 
     let boundaryRequests = 0;
+    let boundaryFeatureCount = 0;
+    let boundaryFeatureIds: string[] = [];
+    let maxLongitudeJump = 0;
+    let unclosedRings = 0;
     await page.route('**/assets/data/navarea-boundaries.geojson', async (route) => {
       boundaryRequests += 1;
-      await route.continue();
+      const response = await route.fetch();
+      const geojson = await response.json();
+      boundaryFeatureCount = geojson.features?.length || 0;
+      boundaryFeatureIds = (geojson.features || []).map((feature: any) => feature.properties?.id);
+      const inspectCoordinates = (coordinates: any) => {
+        if (!Array.isArray(coordinates) || coordinates.length === 0) return;
+        if (Array.isArray(coordinates[0]) && typeof coordinates[0][0] === 'number') {
+          const first = coordinates[0];
+          const last = coordinates[coordinates.length - 1];
+          if (first[0] !== last[0] || first[1] !== last[1]) unclosedRings += 1;
+          for (let index = 1; index < coordinates.length; index += 1) {
+            maxLongitudeJump = Math.max(maxLongitudeJump, Math.abs(coordinates[index][0] - coordinates[index - 1][0]));
+          }
+          return;
+        }
+        coordinates.forEach(inspectCoordinates);
+      };
+      (geojson.features || []).forEach((feature: any) => inspectCoordinates(feature.geometry?.coordinates));
+      await route.fulfill({ response });
     });
 
     await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -462,6 +484,11 @@ test.describe('public NAVAREA snapshot cache', () => {
 
     await expect.poll(async () => (await readBoundaryPane()).pathCount).toBeGreaterThan(0);
     expect(boundaryRequests).toBe(1);
+    expect(boundaryFeatureCount).toBe(21);
+    expect(boundaryFeatureIds).toContain('XIV');
+    expect(boundaryFeatureIds).toContain('XXI');
+    expect(maxLongitudeJump).toBeLessThanOrEqual(180);
+    expect(unclosedRings).toBe(0);
     const stacking = await readBoundaryPane();
     expect(stacking.zIndex).toBe(350);
     expect(stacking.pointerEvents).toBe('none');
