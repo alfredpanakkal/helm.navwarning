@@ -26,9 +26,9 @@ function parseDmd(value: string, axis: Axis): ParseResult<number> {
 /** Parse latitude and longitude independently; both require explicit hemispheres. */
 export function parseCoordinates(latitude: string, longitude: string): ParseResult<Position> {
   const lat = parseDmd(latitude, 'lat');
-  if (!lat.ok) return lat;
+  if (!lat.ok) return { ok: false, error: lat.error };
   const lon = parseDmd(longitude, 'lon');
-  if (!lon.ok) return lon;
+  if (!lon.ok) return { ok: false, error: lon.error };
   return { ok: true, value: { lat: lat.value, lon: lon.value } };
 }
 
