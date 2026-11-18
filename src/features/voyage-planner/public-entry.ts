@@ -363,7 +363,7 @@ if (workspace && panel && content && toggleButton) {
       '<div class="voyage-planner-field"><label for="voyageWarningRange">Warning search distance (NM)</label><input id="voyageWarningRange" name="warningRangeNm" type="number" min="1" max="100" step="1" required value="' + route.warningRangeNm + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
       '<div class="voyage-planner-field is-wide"><label for="voyageDeparture">Departure (device local time)</label><input id="voyageDeparture" name="departureLocal" type="datetime-local" value="' + localDateTimeValue(route.departureTimeUtc) + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
       '</div><div class="voyage-planner-actions"><button class="voyage-planner-btn" type="submit"' + (storageBlocked ? ' disabled' : '') + '>Save route settings</button></div></form></section>' +
-      '<section class="voyage-planner-summary"><div class="voyage-planner-stat"><span>Total distance</span><strong>' + calculation.totalDistanceNm.toFixed(1) + ' NM</strong></div>' +
+      '<section class="voyage-planner-summary"><div class="voyage-planner-stat"><span>' + (calculation.status === 'incomplete' ? 'Calculated distance (partial)' : 'Total distance') + '</span><strong>' + calculation.totalDistanceNm.toFixed(1) + ' NM</strong></div>' +
       '<div class="voyage-planner-stat"><span>Estimated arrival (UTC)</span><strong style="font-size:11px">' + displayUtc(calculation.arrivalTimeUtc) + '</strong></div></section>' +
       '<section class="voyage-planner-section"><div class="voyage-planner-section-title"><strong>Export route</strong><span>Local files only</span></div>' +
       '<div class="voyage-planner-actions voyage-export-actions">' +
