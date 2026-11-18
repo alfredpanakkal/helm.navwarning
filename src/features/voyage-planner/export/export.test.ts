@@ -25,10 +25,26 @@ describe('Voyage Planner exports', () => {
     expect(result.features).toHaveLength(3);
     expect(result.features[0].geometry).toEqual({
       type: 'LineString',
-      coordinates: [[75, 10], [76, 11]],
+      coordinates: [[75, -10], [76, 11]],
     });
     expect(result.features[2].properties.sequence).toBe(2);
     expect(result.features[2].properties.speedKn).toBe(12);
+  });
+
+  it('splits GeoJSON route lines at the antimeridian', () => {
+    const crossing = {
+      ...route,
+      waypoints: [
+        { ...route.waypoints[0], position: { lat: 10, lon: 179 } },
+        { ...route.waypoints[1], position: { lat: 12, lon: -179 } },
+      ],
+    };
+    const result = JSON.parse(exportRouteGeoJson(crossing));
+    expect(result.features[0].geometry.type).toBe('MultiLineString');
+    expect(result.features[0].geometry.coordinates).toEqual([
+      [[179, 10], [180, 11]],
+      [[-180, 11], [-179, 12]],
+    ]);
   });
 
   it('exports GPX 1.1 with escaped XML text and coordinates', () => {
