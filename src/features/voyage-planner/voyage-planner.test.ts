@@ -82,6 +82,13 @@ describe('rhumb calculations', () => {
     }
   });
 
+  it('rejects impossible calendar dates in route timestamps', () => {
+    const storage = new MemoryStorage();
+    const invalid = { ...route, departureTimeUtc: '2026-02-30T00:00:00Z' };
+    expect(saveRoutes(storage, [invalid])).toEqual(expect.objectContaining({ ok: false, reason: 'invalid_routes' }));
+    expect(saveRoutes(storage, [route])).toEqual({ ok: true });
+  });
+
   it('uses the destination waypoint speed for its inbound leg', () => {
     const result = calculateRoute({
       ...route,
