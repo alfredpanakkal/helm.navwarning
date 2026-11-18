@@ -2139,6 +2139,7 @@ window.toggleLayer = function(name, vis, persist = true){
     if (persist) {
       mapPreferences.overlays.navareaBoundaries = !!vis;
       saveMapPreferences(mapPreferences);
+      syncSettingsUI(mapPreferences);
     }
     if (vis) {
       ensureNavareaBoundariesLayer(m);
