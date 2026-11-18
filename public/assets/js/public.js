@@ -2960,6 +2960,7 @@ function setupInterrogate(map) {
   // chart interrogates the 10 NM box centred on the cursor. The coordinate
   // picker keeps priority when both are somehow active.
   map.on('click', (e) => {
+    if (document.body.classList.contains('voyage-add-mode')) return;
     if (interrogateModeActive && !coordModeActive) runInterrogate(e.latlng);
   });
 
@@ -3338,7 +3339,7 @@ function setupCoordinatePicker(map) {
 
   // Click/tap to pin the exact position
   map.on('click', (e) => {
-    if (!coordModeActive) return;
+    if (document.body.classList.contains('voyage-add-mode') || !coordModeActive) return;
     const w = e.latlng.wrap();
     const dmd = formatDMD(w.lat, w.lng);
     if (coordPin) {
