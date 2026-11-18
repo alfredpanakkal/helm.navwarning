@@ -97,9 +97,14 @@ async function installPublicApiMock(page: Page, state: PublicApiState) {
         : [];
     const rangeHeader = request.headers().range || null;
     if (state.rangeRequests) state.rangeRequests.push({ table: table || '', range: rangeHeader });
-    const rangeMatch = rangeHeader && /^(\d+)-(\d+)$/.exec(rangeHeader);
-    const rangeStart = rangeMatch ? Number(rangeMatch[1]) : 0;
-    const rangeEnd = rangeMatch ? Number(rangeMatch[2]) : Math.max(rows.length - 1, 0);
+    // PostgREST versions may expose the requested page through Range or URL
+    // offset/limit parameters. Support both to keep this fixture deterministic.
+    const rangeMatch = rangeHeader && /(?:^|=)(\d+)-(\d+)$/.exec(rangeHeader);
+    const query = new URL(request.url()).searchParams;
+    const rangeStart = rangeMatch ? Number(rangeMatch[1]) : Number(query.get('offset') || 0);
+    const rangeEnd = rangeMatch
+      ? Number(rangeMatch[2])
+      : rangeStart + Number(query.get('limit') || 1000) - 1;
     const pageRows = rows.slice(rangeStart, rangeEnd + 1);
     const contentRange = pageRows.length
       ? `${rangeStart}-${rangeStart + pageRows.length - 1}/${rows.length}`
