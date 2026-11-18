@@ -56,6 +56,13 @@ describe('Voyage Planner exports', () => {
     expect(result).not.toContain('Indian Ocean & <Passage>');
   });
 
+  it('removes XML 1.0 control characters from GPX text', () => {
+    const unsafe = { ...route, name: 'Voyage\u0001 & <Passage>' };
+    const result = exportRouteGpx(unsafe);
+    expect(result).toContain('<name>Voyage &amp; &lt;Passage&gt;</name>');
+    expect(result).not.toContain('\u0001');
+  });
+
   it('prefixes formula-like CSV cells and quotes delimiters safely', () => {
     const dangerous = {
       ...route,
