@@ -47,6 +47,49 @@ describe('Voyage Planner exports', () => {
     ]);
   });
 
+  it('interpolates antimeridian crossings along the rhumb line in Mercator space', () => {
+    const crossing = {
+      ...route,
+      waypoints: [
+        { ...route.waypoints[0], position: { lat: 70, lon: 179 } },
+        { ...route.waypoints[1], position: { lat: 80, lon: -179 } },
+      ],
+    };
+    const result = JSON.parse(exportRouteGeoJson(crossing));
+    const crossingLatitude = result.features[0].geometry.coordinates[0][1][1];
+    const psi1 = Math.asinh(Math.tan(70 * Math.PI / 180));
+    const psi2 = Math.asinh(Math.tan(80 * Math.PI / 180));
+    const expected = Math.atan(Math.sinh((psi1 + psi2) / 2)) * 180 / Math.PI;
+    expect(crossingLatitude).toBeCloseTo(expected, 10);
+  });
+
+  it('does not create invalid coordinates for equivalent +180 and -180 meridians', () => {
+    const sameMeridian = {
+      ...route,
+      waypoints: [
+        { ...route.waypoints[0], position: { lat: 10, lon: 180 } },
+        { ...route.waypoints[1], position: { lat: 12, lon: -180 } },
+      ],
+    };
+    const result = JSON.parse(exportRouteGeoJson(sameMeridian));
+    expect(result.features[0].geometry.type).toBe('LineString');
+    expect(result.features[0].geometry.coordinates).toEqual([[180, 10], [180, 12]]);
+    expect(JSON.stringify(result)).not.toMatch(/null|NaN/);
+  });
+
+  it('handles a route that starts exactly on the antimeridian', () => {
+    const crossing = {
+      ...route,
+      waypoints: [
+        { ...route.waypoints[0], position: { lat: 10, lon: 180 } },
+        { ...route.waypoints[1], position: { lat: 12, lon: -179 } },
+      ],
+    };
+    const result = JSON.parse(exportRouteGeoJson(crossing));
+    expect(result.features[0].geometry.type).toBe('LineString');
+    expect(result.features[0].geometry.coordinates).toEqual([[-180, 10], [-179, 12]]);
+  });
+
   it('exports GPX 1.1 with escaped XML text and coordinates', () => {
     const result = exportRouteGpx(route);
     expect(result).toContain('<gpx version="1.1"');
