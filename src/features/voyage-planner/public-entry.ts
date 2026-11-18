@@ -156,13 +156,16 @@ if (workspace && panel && content && toggleButton) {
     }
     workspace.classList.toggle('is-voyage-planner', open);
     toggleButton.setAttribute('aria-pressed', String(open));
+    toggleButton.setAttribute('aria-label', open ? 'Close Voyage Planner' : 'Open Voyage Planner');
     document.body.classList.toggle('voyage-planner-open', open);
     if (!open) {
       setAddMode(false);
+      toggleButton.focus();
       if (map && routeLayer && map.hasLayer(routeLayer)) map.removeLayer(routeLayer);
     } else {
       render();
       renderMap();
+      panel.querySelector<HTMLElement>('h2')?.focus();
     }
     map?.invalidateSize({ pan: false });
   }
@@ -470,7 +473,11 @@ if (workspace && panel && content && toggleButton) {
   closeButton?.addEventListener('click', () => setPanelOpen(false));
   collapseButton?.addEventListener('click', () => {
     const collapsed = panel.classList.toggle('is-collapsed');
+    const label = collapsed ? 'Expand route sheet' : 'Collapse route sheet';
     collapseButton.setAttribute('aria-expanded', String(!collapsed));
+    collapseButton.setAttribute('aria-label', label);
+    collapseButton.setAttribute('title', label);
+    collapseButton.textContent = collapsed ? '⌃' : '⌄';
   });
 
   window.addEventListener('helm:map-ready', attachMap);
