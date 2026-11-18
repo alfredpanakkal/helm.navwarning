@@ -115,3 +115,6 @@
 .voyage-assessment-status{flex:none;font-size:10px;font-weight:500}
 .voyage-assessment-meta,.voyage-assessment-reason{margin-top:4px;font-size:11px;line-height:1.4;color:var(--ink-secondary,var(--text-muted));overflow-wrap:anywhere}
 .voyage-assessment-reason{color:var(--ink,var(--text-primary))}
+
+.voyage-export-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.voyage-export-actions .voyage-planner-btn{min-width:0}
