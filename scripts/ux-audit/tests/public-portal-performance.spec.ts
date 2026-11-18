@@ -270,7 +270,6 @@ test.describe('public workspace interaction regressions', () => {
         const browser = window as any;
         browser.hwMap.fire('click', { latlng: browser.L.latLng(latitude, longitude) });
       }, { latitude: lat, longitude: lon });
-      await page.locator('[data-action="toggle-add-mode"]').click();
     };
     await addWaypoint(10, 75);
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(1);
