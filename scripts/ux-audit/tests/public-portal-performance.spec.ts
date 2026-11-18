@@ -744,4 +744,132 @@ test.describe('public NAVAREA snapshot cache', () => {
   });
 
 
+
+  test('Voyage Planner reuses the public map and persists route edits locally', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    const state: PublicApiState = {
+      spatialRows: [{ ...publicWarning(), zone_label: 'Route crossing', geojson_blob: { type: 'Point', coordinates: [75, 10] } }],
+      textRows: [bulletin()],
+      fail: false,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await expect(page.locator('#voyagePlannerPanel')).toBeVisible();
+    await expect(page.locator('#voyagePlannerContent')).toContainText('No saved routes');
+
+    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
+    await page.locator('#voyageRouteName').fill('Indian Ocean passage');
+    await page.locator('form[data-form="route-settings"] button[type="submit"]').click();
+
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
+    });
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(1);
+
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 76) });
+    });
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    await expect(page.locator('.voyage-assessment-row.is-intersects')).toContainText('CACHE-TEST-1/26');
+    await page.evaluate(() => {
+      const browser = window as any;
+      const line = Object.values(browser.hwMap._layers).find((layer: any) => layer instanceof browser.L.Polyline) as any;
+      if (!line) throw new Error('Expected a rendered route leg');
+      line.fire('click', { latlng: browser.L.latLng(10, 75.5), originalEvent: null });
+    });
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
+    await expect(page.locator('.voyage-planner-stat strong').first()).not.toHaveText('0.0 NM');
+
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null'));
+    expect(stored.version).toBe(1);
+    expect(stored.routes[0].name).toBe('Indian Ocean passage');
+    expect(stored.routes[0].warningRangeNm).toBe(10);
+    expect(stored.routes[0].waypoints).toHaveLength(3);
+    expect(stored.routes[0].waypoints[1].position.lat).toBe(10);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
+    await expect(page.locator('#voyageRouteName')).toHaveValue('Indian Ocean passage');
+
+    const geoJsonDownload = page.waitForEvent('download');
+    await page.locator('[data-action="export-geojson"]').click();
+    expect((await geoJsonDownload).suggestedFilename()).toBe('Indian-Ocean-passage.geojson');
+
+    const gpxDownload = page.waitForEvent('download');
+    await page.locator('[data-action="export-gpx"]').click();
+    expect((await gpxDownload).suggestedFilename()).toBe('Indian-Ocean-passage.gpx');
+
+    const csvDownload = page.waitForEvent('download');
+    await page.locator('[data-action="export-csv"]').click();
+    expect((await csvDownload).suggestedFilename()).toBe('Indian-Ocean-passage.csv');
+
+    await page.locator('#btnVoyagePlannerClose').click();
+    await expect(page.locator('.public-warning-workspace')).not.toHaveClass(/is-voyage-planner/);
+
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
+
+  test('Voyage Planner leaves mismatched warning geometry not assessed', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    const state: PublicApiState = {
+      spatialRows: [{
+        ...publicWarning(),
+        feature_type: 'POINT',
+        geojson_blob: { type: 'LineString', coordinates: [[75.5, 10.4], [75.5, 10.6]] },
+      }],
+      textRows: [bulletin()],
+      fail: false,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
+    });
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(11, 76) });
+    });
+    await expect(page.locator('.voyage-assessment-row.is-not-assessed')).toContainText('POINT / LineString');
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
+  test('Voyage Planner preserves corrupt saved route data and disables editing', async ({ page }) => {
+    const state: PublicApiState = {
+      spatialRows: [publicWarning()],
+      textRows: [bulletin()],
+      fail: false,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+    await page.addInitScript(() => {
+      localStorage.setItem('helm_voyage_planner_v1', '{broken');
+    });
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await expect(page.locator('#voyagePlannerContent')).toContainText('original data was preserved');
+    await expect(page.locator('#voyagePlannerContent [data-action="create-route"]')).toHaveCount(0);
+    const stored = await page.evaluate(() => localStorage.getItem('helm_voyage_planner_v1'));
+    expect(stored).toBe('{broken');
+  });
+
 });

@@ -607,6 +607,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   .map-focus-restore{transition:none!important;animation:none!important;filter:none!important}
 }
 </style>
+<link rel="stylesheet" href="/assets/css/voyage-planner.css">
 </head>
 <body class="tab-map-active">
 <a href="#main" class="skip-link">Skip to main content</a>
@@ -790,6 +791,9 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
     </button>
 
     <div class="map-ctrl-topright" role="toolbar" aria-label="Map Navigation Controls">
+      <button type="button" class="map-voyage-btn" id="btnVoyagePlanner" aria-label="Open Voyage Planner" aria-controls="voyagePlannerPanel" aria-pressed="false" title="Voyage Planner">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12h18M12 3v18M5.5 5.5l13 13m0-13-13 13"/><circle cx="12" cy="12" r="8"/></svg>
+      </button>
       <button type="button" class="map-recenter-pill-btn" onclick="resetMapView()" title="Fit all warnings" aria-label="Fit all warnings in view">
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 4h4M4 4v4M20 4h-4M20 4v4M4 20h4M4 20v-4M20 20h-4M20 20v-4"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
@@ -958,6 +962,16 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
       <button type="button" class="btn btn-secondary" id="btnDrawerCopy" onclick="copyCurrentWarningText()">Copy Bulletin</button>
     </div>
   </section>
+  <aside id="voyagePlannerPanel" aria-label="Voyage Planner" aria-hidden="true" hidden>
+    <div class="voyage-planner-header">
+      <div class="voyage-planner-heading"><h2 tabindex="-1">Voyage Planner</h2><p>Local passage-planning workspace</p></div>
+      <div class="voyage-planner-head-actions">
+        <button type="button" class="voyage-planner-icon-btn" id="btnVoyagePlannerCollapse" aria-label="Collapse route sheet" aria-expanded="true" title="Collapse route sheet">⌄</button>
+        <button type="button" class="voyage-planner-icon-btn" id="btnVoyagePlannerClose" aria-label="Close Voyage Planner" title="Close">×</button>
+      </div>
+    </div>
+    <div class="voyage-planner-content" id="voyagePlannerContent"></div>
+  </aside>
   <button type="button" class="selected-warning-reopen" id="btnShowWarningDetails" onclick="toggleSelectedWarningPanel(true)" aria-expanded="false" aria-controls="warningDetailsDrawer">
     <span aria-hidden="true">‹</span> Show details
   </button>
@@ -1397,6 +1411,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
 <script defer src="https://unpkg.com/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" integrity="sha256-1qXEQUpdTOZG2cHeIjqnBn0/9mTBU5T/63/P/HYzVKM=" crossorigin="anonymous"></script>
 <script defer src="/assets/js/supabase.js"></script>
 <script defer src="/assets/js/public.js"></script>
+<script type="module" src="/src/features/voyage-planner/public-entry.ts"></script>
 <script defer src="/assets/js/onboarding.js"></script>
 <script>
 /* SOLAS notice: auto-hide after 8s; close button hides immediately. Shows once per page load. */
