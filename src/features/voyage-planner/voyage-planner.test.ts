@@ -131,7 +131,6 @@ describe('route operations and persistence', () => {
     expect(storage.getItem(VOYAGE_PLANNER_STORAGE_KEY)).toBe('previous route data');
   });
 
-
   it('creates routes with injected ID and clock and preserves inputs immutably', () => {
     const created = createRoute('New route', 12, context);
     expect(created.ok).toBe(true);
