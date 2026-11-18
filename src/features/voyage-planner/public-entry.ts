@@ -196,7 +196,7 @@ if (workspace && panel && content && toggleButton) {
       const meta = index === 0
         ? formatLatitude(waypoint.position.lat) + ' · ' + formatLongitude(waypoint.position.lon)
         : leg && leg.distanceNm !== null
-          ? leg.distanceNm.toFixed(1) + ' NM · ' + displayCourse(leg.courseDeg) + ' · ' + (leg.speedKn?.toFixed(1) ?? '—') + ' kn<br>ETA ' + (leg.etaUtc ? displayUtc(leg.etaUtc) : '—')
+          ? leg.distanceNm.toFixed(1) + ' NM · ' + displayCourse(leg.courseDeg) + ' · ' + (leg.speedKn?.toFixed(1) ?? '—') + ' kn · ETA ' + (leg.etaUtc ? displayUtc(leg.etaUtc) : '—')
           : (leg?.status ?? 'Leg pending');
       return '<div class="voyage-waypoint-row' + (waypoint.id === selectedWaypointId ? ' is-selected' : '') + '">' +
         '<button type="button" class="voyage-waypoint-select" data-action="select-waypoint" data-id="' + escapeHtml(waypoint.id) + '">' +
