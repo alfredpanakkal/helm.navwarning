@@ -51,13 +51,13 @@ describe('Voyage Planner exports', () => {
     const result = exportRouteCsv(dangerous);
     expect(result).toContain('"\'=HYPERLINK(""https://example.com"",""open"")"');
     expect(result).toContain('"\'+SUM(1,2)"');
-    expect(result).toContain('"\'10"'); // Negative and formula-like prefixes are kept as text.
-    expect(result).toContain('\\r\\n');
+    expect(result).toContain('"\'-10"'); // Negative numeric cells are also forced to text.
+    expect(result).toContain('\r\n');
   });
 
   it('exports an empty header-only CSV for a route without waypoints', () => {
     const result = exportRouteCsv({ ...route, waypoints: [] });
-    expect(result.split('\\r\\n')).toHaveLength(2);
+    expect(result.split('\r\n')).toHaveLength(2);
   });
 
   it('rejects invalid routes instead of exporting malformed data', () => {
