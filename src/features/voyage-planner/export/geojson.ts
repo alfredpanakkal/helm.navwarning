@@ -11,6 +11,20 @@ type RouteLineGeometry =
   | { type: 'LineString'; coordinates: number[][] }
   | { type: 'MultiLineString'; coordinates: number[][][] };
 
+function isometricLatitude(latitude: number): number {
+  return Math.asinh(Math.tan(latitude * Math.PI / 180));
+}
+
+function interpolateRhumbLatitude(from: number, to: number, fraction: number): number {
+  const psi = isometricLatitude(from)
+    + (isometricLatitude(to) - isometricLatitude(from)) * fraction;
+  return Math.atan(Math.sinh(psi)) * 180 / Math.PI;
+}
+
+function normalizeDeltaLongitude(delta: number): number {
+  return ((delta + 180) % 360 + 360) % 360 - 180;
+}
+
 function routeLineGeometry(waypoints: VoyageRoute['waypoints']): RouteLineGeometry {
   const segments: number[][][] = [[[
     waypoints[0].position.lon,
@@ -20,18 +34,23 @@ function routeLineGeometry(waypoints: VoyageRoute['waypoints']): RouteLineGeomet
   for (let index = 1; index < waypoints.length; index += 1) {
     const previous = waypoints[index - 1].position;
     const current = waypoints[index].position;
-    const longitudeDelta = current.lon - previous.lon;
+    const adjustedLongitude = previous.lon + normalizeDeltaLongitude(current.lon - previous.lon);
 
-    if (longitudeDelta > 180 || longitudeDelta < -180) {
-      const crossesEastward = longitudeDelta < -180;
-      const adjustedLongitude = current.lon + (crossesEastward ? 360 : -360);
-      const boundaryLongitude = crossesEastward ? 180 : -180;
+    if (adjustedLongitude > 180 || adjustedLongitude < -180) {
+      const boundaryLongitude = adjustedLongitude > 180 ? 180 : -180;
       const fraction = (boundaryLongitude - previous.lon) / (adjustedLongitude - previous.lon);
-      const crossingLatitude = previous.lat + (current.lat - previous.lat) * fraction;
-      segments[segments.length - 1].push([boundaryLongitude, crossingLatitude]);
-      segments.push([[crossesEastward ? -180 : 180, crossingLatitude], [current.lon, current.lat]]);
+      const crossingLatitude = interpolateRhumbLatitude(previous.lat, current.lat, fraction);
+      const currentSegment = segments[segments.length - 1];
+
+      if (fraction <= Number.EPSILON) {
+        if (currentSegment.length === 1) segments.pop();
+        segments.push([[-boundaryLongitude, crossingLatitude], [current.lon, current.lat]]);
+      } else {
+        currentSegment.push([boundaryLongitude, crossingLatitude]);
+        segments.push([[-boundaryLongitude, crossingLatitude], [current.lon, current.lat]]);
+      }
     } else {
-      segments[segments.length - 1].push([current.lon, current.lat]);
+      segments[segments.length - 1].push([adjustedLongitude, current.lat]);
     }
   }
 
@@ -39,7 +58,6 @@ function routeLineGeometry(waypoints: VoyageRoute['waypoints']): RouteLineGeomet
     ? { type: 'MultiLineString', coordinates: segments }
     : { type: 'LineString', coordinates: segments[0] };
 }
-
 export function exportRouteGeoJson(input: VoyageRoute): string {
   const route = validatedRoute(input);
   const features = [];
