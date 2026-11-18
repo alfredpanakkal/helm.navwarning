@@ -421,4 +421,78 @@ test.describe('public NAVAREA snapshot cache', () => {
 
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
+
+  test('Voyage Planner reuses the public map and persists route edits locally', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    const state: PublicApiState = {
+      spatialRows: [publicWarning()],
+      textRows: [bulletin()],
+      fail: false,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await expect(page.locator('#voyagePlannerPanel')).toBeVisible();
+    await expect(page.locator('#voyagePlannerContent')).toContainText('No saved routes');
+
+    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
+    await page.locator('#voyageRouteName').fill('Indian Ocean passage');
+    await page.locator('form[data-form="route-settings"] button[type="submit"]').click();
+
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
+    });
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(1);
+
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(11, 76) });
+    });
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    await expect(page.locator('.voyage-planner-stat strong').first()).not.toHaveText('0.0 NM');
+
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null'));
+    expect(stored.version).toBe(1);
+    expect(stored.routes[0].name).toBe('Indian Ocean passage');
+    expect(stored.routes[0].warningRangeNm).toBe(10);
+    expect(stored.routes[0].waypoints).toHaveLength(2);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    await expect(page.locator('#voyageRouteName')).toHaveValue('Indian Ocean passage');
+    await page.locator('#btnVoyagePlannerClose').click();
+    await expect(page.locator('.public-warning-workspace')).not.toHaveClass(/is-voyage-planner/);
+
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
+  test('Voyage Planner preserves corrupt saved route data and disables editing', async ({ page }) => {
+    const state: PublicApiState = {
+      spatialRows: [publicWarning()],
+      textRows: [bulletin()],
+      fail: false,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+    await page.addInitScript(() => {
+      localStorage.setItem('helm_voyage_planner_v1', '{broken');
+    });
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await expect(page.locator('#voyagePlannerContent')).toContainText('original data was preserved');
+    await expect(page.locator('#voyagePlannerContent [data-action="create-route"]')).toHaveCount(0);
+    const stored = await page.evaluate(() => localStorage.getItem('helm_voyage_planner_v1'));
+    expect(stored).toBe('{broken');
+  });
+
 });
