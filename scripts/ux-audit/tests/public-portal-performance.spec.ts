@@ -477,6 +477,19 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.locator('#btnVoyagePlanner').click();
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
     await expect(page.locator('#voyageRouteName')).toHaveValue('Indian Ocean passage');
+
+    const geoJsonDownload = page.waitForEvent('download');
+    await page.locator('[data-action="export-geojson"]').click();
+    expect((await geoJsonDownload).suggestedFilename()).toBe('Indian-Ocean-passage.geojson');
+
+    const gpxDownload = page.waitForEvent('download');
+    await page.locator('[data-action="export-gpx"]').click();
+    expect((await gpxDownload).suggestedFilename()).toBe('Indian-Ocean-passage.gpx');
+
+    const csvDownload = page.waitForEvent('download');
+    await page.locator('[data-action="export-csv"]').click();
+    expect((await csvDownload).suggestedFilename()).toBe('Indian-Ocean-passage.csv');
+
     await page.locator('#btnVoyagePlannerClose').click();
     await expect(page.locator('.public-warning-workspace')).not.toHaveClass(/is-voyage-planner/);
 
