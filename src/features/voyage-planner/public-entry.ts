@@ -255,12 +255,17 @@ if (workspace && panel && content && toggleButton) {
 
     const route = activeRoute();
     if (!route) return;
+    const chartLongitudes: number[] = [];
+    route.waypoints.forEach((waypoint, index) => {
+      const longitude = wrapLongitudeForChart(waypoint.position.lon);
+      chartLongitudes[index] = index === 0 ? longitude : nearestLongitude(longitude, chartLongitudes[index - 1]);
+    });
 
     route.waypoints.forEach((waypoint, index) => {
       if (index > 0) {
         const previous = route.waypoints[index - 1];
         L.polyline(
-          [[previous.position.lat, wrapLongitudeForChart(previous.position.lon)], [waypoint.position.lat, nearestLongitude(wrapLongitudeForChart(waypoint.position.lon), wrapLongitudeForChart(previous.position.lon))]],
+          [[previous.position.lat, chartLongitudes[index - 1]], [waypoint.position.lat, chartLongitudes[index]]],
           { color: '#2F6B4F', weight: 3, opacity: 0.9, lineCap: 'round' },
         ).addTo(routeLayer!).on('click', (event: import('leaflet').LeafletMouseEvent) => {
           if (event.originalEvent) L.DomEvent.stopPropagation(event.originalEvent);
@@ -270,7 +275,7 @@ if (workspace && panel && content && toggleButton) {
         });
       }
 
-      const marker = L.marker([waypoint.position.lat, wrapLongitudeForChart(waypoint.position.lon)], {
+      const marker = L.marker([waypoint.position.lat, chartLongitudes[index]], {
         draggable: !storageBlocked,
         icon: L.divIcon({
           className: 'voyage-waypoint-marker',
