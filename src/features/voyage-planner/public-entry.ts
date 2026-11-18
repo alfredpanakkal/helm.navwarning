@@ -114,7 +114,7 @@ if (workspace && panel && content && toggleButton) {
 
   function renderWarningAssessment(route: VoyageRoute): string {
     if (!warningSnapshot || !warningSnapshot.available) {
-      return '<section class="voyage-planner-section voyage-assessment"><div class="voyage-planner-section-title"><strong>NAVAREA warning assessment</strong></div><p class="voyage-planner-disclaimer">Waiting for the public warning dataset. Geometry assessment is unavailable until the dataset loads.</p></section>';
+      return '<section class="voyage-planner-section voyage-assessment"><div class="voyage-planner-section-title"><strong>NAVAREA warning assessment</strong></div><p class="voyage-planner-disclaimer">Waiting for the public Tier A warning dataset. Geometry assessment is unavailable until the dataset loads.</p></section>';
     }
 
     if (!warningAssessmentCache || warningAssessmentCache.route !== route
@@ -128,7 +128,7 @@ if (workspace && panel && content && toggleButton) {
     const assessment = warningAssessmentCache.result;
     const freshness = warningSnapshot.cached
       ? '<p class="voyage-assessment-notice is-warning">Using a saved warning snapshot from ' + escapeHtml(warningSnapshot.savedAt ? displayUtc(warningSnapshot.savedAt) : 'an unknown time') + '. Current warning status could not be confirmed.</p>'
-      : '<p class="voyage-assessment-notice">Using the currently loaded public warning snapshot.</p>';
+      : '<p class="voyage-assessment-notice">Using the currently loaded public Tier A warning snapshot.</p>';
     const textNotice = warningSnapshot.textIncomplete
       ? '<p class="voyage-assessment-notice is-warning">Bulletin text hydration is incomplete. Warnings without a confirmed quality state remain Not assessed.</p>'
       : '';
@@ -164,7 +164,7 @@ if (workspace && panel && content && toggleButton) {
         '<div class="voyage-assessment-row-head"><strong>' + escapeHtml(item.warningId) + '</strong><span class="voyage-assessment-status">' + status + '</span></div>' +
         '<div class="voyage-assessment-meta">' + escapeHtml(item.title) + ' · ' + escapeHtml(item.navarea) + ' · ' + escapeHtml(item.severity) + '</div>' +
         '<div class="voyage-assessment-meta">' + escapeHtml(item.nearestZone ?? 'Zone unavailable') + ' · ' + leg + ' · ' + distance + '</div>' +
-        '<div class="voyage-assessment-meta">Quality: ' + escapeHtml(item.dataQuality) + ' · Tier ' + escapeHtml(item.triageTier) + (item.isVerified ? ' · Verified' : ' · Review required') + '</div>' +
+        '<div class="voyage-assessment-meta">Quality: ' + escapeHtml(item.dataQuality) + ' · Tier ' + escapeHtml(item.triageTier) + (item.isVerified ? ' · Quality gate passed' : ' · Review required') + '</div>' +
         validity + flags + reason + partial + '</article>';
     }).join('');
 
@@ -180,7 +180,7 @@ if (workspace && panel && content && toggleButton) {
 
     return '<section class="voyage-planner-section voyage-assessment"><div class="voyage-planner-section-title"><strong>NAVAREA warning assessment</strong><span>' + assessment.rangeNm + ' NM · ' + assessment.assessedWarnings + '/' + assessment.examinedWarnings + ' assessed</span></div>' +
       freshness + textNotice + routeNotice + summary + empty + '<div class="voyage-assessment-list">' + rows + '</div>' +
-      '<p class="voyage-planner-disclaimer">Rhumb-line route approximation; proximity sampled at 0.5 NM intervals. Only supported, verified geometry is assessed. Not a certified ECDIS.</p>' +
+      '<p class="voyage-planner-disclaimer">Rhumb-line route approximation; proximity sampled at 0.5 NM intervals. Only supported geometry that passes the public Tier A quality gate is assessed. Not a certified ECDIS.</p>' +
       validityNotice + '</section>';
   }
 
