@@ -218,7 +218,7 @@ let currentBaseLayer = null, osmBaseLayer = null, openSeaMapLayer = null, soundi
 
 const MAP_PREFERENCES_KEY = 'helm_map_preferences_v1';
 const DEFAULT_MAP_PREFERENCES = {
-  baseMap: 'osm',
+  baseMap: 'auto',
   masterOverlays: true,
   overlays: {
     points: true,
@@ -237,7 +237,7 @@ function loadMapPreferences() {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
         return {
-          baseMap: parsed.baseMap || 'osm',
+          baseMap: parsed.baseMap && parsed.baseMap !== 'osm' ? parsed.baseMap : 'auto',
           masterOverlays: parsed.masterOverlays !== false,
           overlays: { ...DEFAULT_MAP_PREFERENCES.overlays, ...(parsed.overlays || {}) }
         };
@@ -258,7 +258,7 @@ function saveMapPreferences(prefs) {
 }
 
 let mapPreferences = loadMapPreferences();
-let currentBaseMapId = mapPreferences.baseMap || 'osm';
+let currentBaseMapId = null;
 let currentSelectedNavArea = ''; // Default to Global View (All NAVAREAs)
 // Map auto-fit state: the first data-driven fit must not animate, and data
 // refreshes must never reposition a map the user is already looking at.
@@ -297,6 +297,28 @@ const BASE_MAP_DEFS = {
     attribution: 'Tiles © Esri — GEBCO, NOAA · OpenSeaMap'
   }
 };
+
+function resolveBaseMapId(preference) {
+  if (preference && preference !== 'auto' && BASE_MAP_DEFS[preference]) return preference;
+
+  let themePreference = 'system';
+  try {
+    themePreference = localStorage.getItem('hw-theme') || 'system';
+  } catch (e) { /* use the browser preference */ }
+
+  if (themePreference === 'dark' || themePreference === 'night') return 'carto-dark';
+  if (themePreference === 'light') return 'carto-positron';
+
+  try {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'carto-dark'
+      : 'carto-positron';
+  } catch (e) {
+    return 'carto-positron';
+  }
+}
+
+currentBaseMapId = resolveBaseMapId(mapPreferences.baseMap);
 
 // ---- TILE ERROR DIAGNOSTICS (temporary - mobile zoom flicker investigation) ----
 // Logs the first TILE_ERROR_LOG_LIMIT failing tile URLs per layer to the console,
@@ -438,8 +460,9 @@ function initMap(){
   window.hwMap = leafletMap;
   window.map = leafletMap;
 
-  // Base cartography layer (defaults to OpenStreetMap)
-  const baseDef = BASE_MAP_DEFS[currentBaseMapId] || BASE_MAP_DEFS['osm'];
+  // Base cartography follows the saved preference, or the active appearance theme in Auto mode.
+  currentBaseMapId = resolveBaseMapId(mapPreferences.baseMap);
+  const baseDef = BASE_MAP_DEFS[currentBaseMapId] || BASE_MAP_DEFS['carto-positron'];
   currentBaseLayer = L.tileLayer(baseDef.url, {
     maxZoom: baseDef.maxZoom,
     attribution: baseDef.attribution,
@@ -974,7 +997,7 @@ window.resetMapSettingsToDefaults = function() {
   mapPreferences = JSON.parse(JSON.stringify(DEFAULT_MAP_PREFERENCES));
   saveMapPreferences(mapPreferences);
 
-  window.selectBaseMap('osm');
+  window.selectBaseMap('auto');
 
   const m = getLeafletMap();
   if (m) {
@@ -1969,31 +1992,38 @@ window.filterMapWarningList = function(){
   });
 };
 window.selectBaseMap = function(id){
+  if (id !== 'auto' && !BASE_MAP_DEFS[id]) return;
+
+  mapPreferences.baseMap = id;
+  saveMapPreferences(mapPreferences);
+  syncSettingsUI(mapPreferences);
+
+  const resolvedId = resolveBaseMapId(id);
   const m = getLeafletMap();
-  if(!m || !BASE_MAP_DEFS[id]) return;
-  if(currentBaseMapId === id && currentBaseLayer && m.hasLayer(currentBaseLayer)) return;
-  if(currentBaseLayer){
-    m.removeLayer(currentBaseLayer);
+  if (!m) {
+    currentBaseMapId = resolvedId;
+    return;
   }
-  currentBaseMapId = id;
-  const def = BASE_MAP_DEFS[id];
+  if (currentBaseMapId === resolvedId && currentBaseLayer && m.hasLayer(currentBaseLayer)) return;
+
+  if (currentBaseLayer) m.removeLayer(currentBaseLayer);
+  currentBaseMapId = resolvedId;
+  const def = BASE_MAP_DEFS[resolvedId];
   currentBaseLayer = L.tileLayer(def.url, {
     maxZoom: def.maxZoom,
     attribution: def.attribution,
     keepBuffer: 4,
     updateWhenZooming: false,
   });
-  currentBaseLayer.on('tileerror', logTileError('base:' + id));
+  currentBaseLayer.on('tileerror', logTileError('base:' + resolvedId));
   currentBaseLayer.addTo(m);
-  if(typeof currentBaseLayer.bringToBack === 'function'){
-    currentBaseLayer.bringToBack();
-  }
+  if (typeof currentBaseLayer.bringToBack === 'function') currentBaseLayer.bringToBack();
   osmBaseLayer = currentBaseLayer;
 
   const attrEl = document.querySelector('.map-attribution');
-  if(attrEl){
+  if (attrEl) {
     attrEl.textContent = def.attribution;
-    if(id === 'carto-dark'){
+    if (resolvedId === 'carto-dark') {
       attrEl.style.background = 'rgba(15, 23, 42, 0.85)';
       attrEl.style.color = '#94a3b8';
     } else {
@@ -2002,6 +2032,10 @@ window.selectBaseMap = function(id){
     }
   }
 };
+
+window.addEventListener('hw-theme-change', function() {
+  if (mapPreferences.baseMap === 'auto') window.selectBaseMap('auto');
+});
 
 window.resetMapView = function(){
   filterMapByNavArea(currentSelectedNavArea, { forceRefit: true });
