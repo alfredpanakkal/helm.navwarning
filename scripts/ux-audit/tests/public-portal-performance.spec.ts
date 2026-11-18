@@ -435,6 +435,8 @@ test.describe('public NAVAREA snapshot cache', () => {
     let boundaryRequests = 0;
     let boundaryFeatureCount = 0;
     let boundaryFeatureIds: string[] = [];
+    let boundaryGeometryTypes: string[] = [];
+    let invalidPositions = 0;
     let maxLongitudeJump = 0;
     let unclosedRings = 0;
     await page.route('**/assets/data/navarea-boundaries.geojson', async (route) => {
@@ -443,12 +445,22 @@ test.describe('public NAVAREA snapshot cache', () => {
       const geojson = await response.json();
       boundaryFeatureCount = geojson.features?.length || 0;
       boundaryFeatureIds = (geojson.features || []).map((feature: any) => feature.properties?.id);
+      boundaryGeometryTypes = (geojson.features || []).map((feature: any) => feature.geometry?.type);
       const inspectCoordinates = (coordinates: any) => {
         if (!Array.isArray(coordinates) || coordinates.length === 0) return;
         if (Array.isArray(coordinates[0]) && typeof coordinates[0][0] === 'number') {
           const first = coordinates[0];
           const last = coordinates[coordinates.length - 1];
           if (first[0] !== last[0] || first[1] !== last[1]) unclosedRings += 1;
+          for (const position of coordinates) {
+            if (
+              !Array.isArray(position) ||
+              !Number.isFinite(position[0]) ||
+              !Number.isFinite(position[1]) ||
+              position[0] < -180 || position[0] > 180 ||
+              position[1] < -90 || position[1] > 90
+            ) invalidPositions += 1;
+          }
           for (let index = 1; index < coordinates.length; index += 1) {
             maxLongitudeJump = Math.max(maxLongitudeJump, Math.abs(coordinates[index][0] - coordinates[index - 1][0]));
           }
@@ -485,8 +497,13 @@ test.describe('public NAVAREA snapshot cache', () => {
     await expect.poll(async () => (await readBoundaryPane()).pathCount).toBeGreaterThan(0);
     expect(boundaryRequests).toBe(1);
     expect(boundaryFeatureCount).toBe(21);
-    expect(boundaryFeatureIds).toContain('XIV');
-    expect(boundaryFeatureIds).toContain('XXI');
+    expect(boundaryFeatureIds).toEqual([
+      'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
+      'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI'
+    ]);
+    expect(new Set(boundaryFeatureIds).size).toBe(21);
+    expect(boundaryGeometryTypes.every((type) => type === 'MultiPolygon')).toBe(true);
+    expect(invalidPositions).toBe(0);
     expect(maxLongitudeJump).toBeLessThanOrEqual(180);
     expect(unclosedRings).toBe(0);
     const stacking = await readBoundaryPane();
@@ -514,7 +531,9 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect.poll(async () => (await readBoundaryPane()).pathCount).toBeGreaterThan(0);
     await page.locator('#btnMapSettings').click();
-    await expect(page.locator('#mapSettingsSheet')).toHaveClass(/open/);
+    const settingsSheet = page.locator('#mapSettingsSheet');
+    await expect(settingsSheet).toHaveClass(/open/);
+    await expect(settingsSheet).toHaveAttribute('aria-hidden', 'false');
     const mobileToggle = page.locator('#layerToggleNavareaBoundariesMobile');
     await expect(mobileToggle).toBeChecked();
 
@@ -525,11 +544,105 @@ test.describe('public NAVAREA snapshot cache', () => {
     await expect.poll(async () => (await readBoundaryPane()).pathCount).toBeGreaterThan(0);
 
     // Reset returns the new layer to its default-off state.
-    await page.getByRole('button', { name: 'Reset to defaults' }).click();
+    const resetButton = settingsSheet.locator('.settings-reset-btn');
+    await expect(resetButton).toBeVisible();
+    await resetButton.click();
     await expect(mobileToggle).not.toBeChecked();
     await expect.poll(async () => (await readBoundaryPane()).pathCount).toBe(0);
+    await expect(settingsSheet).toHaveAttribute('aria-hidden', 'false');
+
+    await page.evaluate(() => (window as any).closeMapSettings());
+    await expect(settingsSheet).toHaveAttribute('aria-hidden', 'true');
 
     expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
+
+  test('invalid NAVAREA GeoJSON is rejected and a later retry succeeds', async ({ page }) => {
+    const state: PublicApiState = {
+      spatialRows: [publicWarning()],
+      textRows: [bulletin()],
+      fail: false,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+
+    let boundaryRequests = 0;
+    await page.route('**/assets/data/navarea-boundaries.geojson', async (route) => {
+      boundaryRequests += 1;
+      if (boundaryRequests === 1) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/geo+json',
+          body: JSON.stringify({ type: 'FeatureCollection', features: [] }),
+        });
+        return;
+      }
+      await route.fulfill({ response: await route.fetch() });
+    });
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#dataSubtitle')).toContainText('1 published warning', { timeout: 30_000 });
+    await page.locator('#btnMapSettings').click();
+    const toggle = page.locator('#layerToggleNavareaBoundariesDesktop');
+    await toggle.check();
+
+    await expect.poll(async () => {
+      return page.evaluate(() => {
+        const saved = JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}');
+        return saved.overlays?.navareaBoundaries;
+      });
+    }).toBe(false);
+    expect(boundaryRequests).toBe(1);
+    expect(await page.evaluate(() => (window as any).hwMap?.getPane('navareaBoundariesPane')?.querySelectorAll('path').length || 0)).toBe(0);
+
+    await toggle.check();
+    await expect.poll(async () => page.evaluate(() => {
+      const pane = (window as any).hwMap?.getPane('navareaBoundariesPane');
+      return pane?.querySelectorAll('path').length || 0;
+    })).toBeGreaterThan(0);
+    expect(boundaryRequests).toBe(2);
+  });
+
+  test('turning boundaries off while the GeoJSON request is pending prevents the layer from appearing', async ({ page }) => {
+    const state: PublicApiState = {
+      spatialRows: [publicWarning()],
+      textRows: [bulletin()],
+      fail: false,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+
+    let boundaryRequests = 0;
+    await page.route('**/assets/data/navarea-boundaries.geojson', async (route) => {
+      boundaryRequests += 1;
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      await route.fulfill({ response: await route.fetch() });
+    });
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#dataSubtitle')).toContainText('1 published warning', { timeout: 30_000 });
+    await page.locator('#btnMapSettings').click();
+    const toggle = page.locator('#layerToggleNavareaBoundariesDesktop');
+    await toggle.check();
+    await toggle.uncheck();
+
+    await expect.poll(async () => boundaryRequests).toBe(1);
+    await expect.poll(async () => page.evaluate(() => {
+      const pane = (window as any).hwMap?.getPane('navareaBoundariesPane');
+      return pane?.querySelectorAll('path').length || 0;
+    })).toBe(0);
+    expect(await page.evaluate(() => {
+      const saved = JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}');
+      return saved.overlays?.navareaBoundaries;
+    })).toBe(false);
+
+    await toggle.check();
+    await expect.poll(async () => page.evaluate(() => {
+      const pane = (window as any).hwMap?.getPane('navareaBoundariesPane');
+      return pane?.querySelectorAll('path').length || 0;
+    })).toBeGreaterThan(0);
+    expect(boundaryRequests).toBe(1);
   });
 
 });
