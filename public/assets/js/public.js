@@ -198,6 +198,11 @@ window.resetFilters = function(){
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     const modal = document.getElementById('warningModal');
+    if (modal && modal.classList.contains('open')) {
+      closeWarningModal();
+      e.stopImmediatePropagation();
+      return;
+    }
     const workspace = document.querySelector('.public-warning-workspace');
     if ((!modal || !modal.classList.contains('open')) &&
         document.body.classList.contains('is-desktop') &&
