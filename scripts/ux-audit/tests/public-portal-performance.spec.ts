@@ -421,4 +421,58 @@ test.describe('public NAVAREA snapshot cache', () => {
 
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
+
+  test('automatic CARTO basemap follows appearance and manual choices persist', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await installPublicApiMock(page, {
+      spatialRows: [],
+      textRows: [],
+      fail: false,
+      delayMs: 0,
+    });
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    const baseMapUrl = () => page.evaluate(() => {
+      const map = (window as any).map;
+      if (!map) return null;
+      let url: string | null = null;
+      map.eachLayer((layer: any) => {
+        if (typeof layer?._url === 'string' && layer._url.includes('/api/tiles/carto/')) url = layer._url;
+      });
+      return url;
+    });
+
+    await expect.poll(baseMapUrl).toContain('/dark_all/');
+
+    await page.evaluate(() => (document.querySelector('[data-theme-set="dark"]') as HTMLButtonElement).click());
+    await expect.poll(baseMapUrl).toContain('/dark_all/');
+    await page.evaluate(() => (document.querySelector('[data-theme-set="night"]') as HTMLButtonElement).click());
+    await expect.poll(baseMapUrl).toContain('/dark_all/');
+    await page.evaluate(() => (document.querySelector('[data-theme-set="system"]') as HTMLButtonElement).click());
+    await page.emulateMedia({ colorScheme: 'light' });
+    await expect.poll(baseMapUrl).toContain('/light_all/');
+
+    await page.evaluate(() => (window as any).selectBaseMap('carto-voyager'));
+    await expect.poll(baseMapUrl).toContain('/voyager/');
+    await page.evaluate(() => (document.querySelector('[data-theme-set="dark"]') as HTMLButtonElement).click());
+    await expect.poll(baseMapUrl).toContain('/voyager/');
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect.poll(baseMapUrl).toContain('/voyager/');
+    const manualPreference = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}').baseMap
+    );
+    expect(manualPreference).toBe('carto-voyager');
+
+    await page.evaluate(() => (window as any).selectBaseMap('auto'));
+    await expect.poll(baseMapUrl).toContain('/dark_all/');
+    const automaticPreference = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}').baseMap
+    );
+    expect(automaticPreference).toBe('auto');
+
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
 });
