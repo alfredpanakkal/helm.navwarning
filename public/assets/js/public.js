@@ -237,7 +237,7 @@ function loadMapPreferences() {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
         return {
-          baseMap: parsed.baseMap || 'auto',
+          baseMap: parsed.baseMap && parsed.baseMap !== 'osm' ? parsed.baseMap : 'auto',
           masterOverlays: parsed.masterOverlays !== false,
           overlays: { ...DEFAULT_MAP_PREFERENCES.overlays, ...(parsed.overlays || {}) }
         };
