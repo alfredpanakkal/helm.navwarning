@@ -5,3 +5,4 @@ export * from './rhumb';
 export * from './calculation';
 export * from './route-operations';
 export * from './persistence';
+export * from './assessment';
