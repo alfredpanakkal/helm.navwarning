@@ -242,17 +242,26 @@ test.describe('public workspace interaction regressions', () => {
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
 
-  test('Escape exits map focus mode and restores the desktop workspace', async ({ page }) => {
+  test('Escape closes floating details before exiting map focus mode', async ({ page }) => {
     await installPublicApiMock(page, emptyState());
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => Boolean((window as any).hwMap));
 
+    const workspace = page.locator('.public-warning-workspace');
     await page.locator('#btnMapFocus').click();
     await expect(page.locator('body')).toHaveClass(/map-focus-active/);
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('body')).toHaveClass(/map-focus-active/);
+    await expect(workspace).toHaveClass(/is-details-collapsed/);
+
     await page.keyboard.press('Escape');
     await expect(page.locator('body')).not.toHaveClass(/map-focus-active/);
     await expect(page.locator('#btnMapFocus')).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.locator('.public-warning-workspace')).not.toHaveClass(/is-focus-transition/);
+    await expect(workspace).not.toHaveClass(/is-focus-transition/);
+
+    await page.locator('#btnShowWarningDetails').click();
+    await expect(workspace).not.toHaveClass(/is-details-collapsed/);
   });
 
   test('failed waypoint drag restores the marker to the persisted route position', async ({ page }) => {
