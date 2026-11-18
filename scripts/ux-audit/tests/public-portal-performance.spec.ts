@@ -421,4 +421,88 @@ test.describe('public NAVAREA snapshot cache', () => {
 
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
+
+  test('NAVAREA boundaries load on demand, persist, and stay beneath warning layers', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    const state: PublicApiState = {
+      spatialRows: [publicWarning()],
+      textRows: [bulletin()],
+      fail: false,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+
+    let boundaryRequests = 0;
+    await page.route('**/assets/data/navarea-boundaries.geojson', async (route) => {
+      boundaryRequests += 1;
+      await route.continue();
+    });
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#dataSubtitle')).toContainText('1 published warning', { timeout: 30_000 });
+    await expect(page.locator('#map')).toBeVisible();
+    expect(boundaryRequests, 'disabled boundaries are not fetched on first load').toBe(0);
+
+    await page.locator('#btnMapSettings').click();
+    const desktopToggle = page.locator('#layerToggleNavareaBoundariesDesktop');
+    await expect(desktopToggle).not.toBeChecked();
+    await desktopToggle.check();
+
+    const readBoundaryPane = () => page.evaluate(() => {
+      const map = (window as any).hwMap;
+      const pane = map?.getPane('navareaBoundariesPane');
+      return {
+        pathCount: pane?.querySelectorAll('path').length || 0,
+        zIndex: Number(pane?.style.zIndex || 0),
+        pointerEvents: pane?.style.pointerEvents || '',
+        warningPaneZIndex: Number(getComputedStyle(map.getPane('overlayPane')).zIndex),
+        markerPaneZIndex: Number(getComputedStyle(map.getPane('markerPane')).zIndex),
+      };
+    });
+
+    await expect.poll(async () => (await readBoundaryPane()).pathCount).toBeGreaterThan(0);
+    expect(boundaryRequests).toBe(1);
+    const stacking = await readBoundaryPane();
+    expect(stacking.zIndex).toBe(350);
+    expect(stacking.pointerEvents).toBe('none');
+    expect(stacking.warningPaneZIndex).toBeGreaterThan(stacking.zIndex);
+    expect(stacking.markerPaneZIndex).toBeGreaterThan(stacking.zIndex);
+
+    await desktopToggle.uncheck();
+    await expect.poll(async () => (await readBoundaryPane()).pathCount).toBe(0);
+    expect(boundaryRequests, 'turning the layer off does not refetch').toBe(1);
+    await desktopToggle.check();
+    await expect.poll(async () => (await readBoundaryPane()).pathCount).toBeGreaterThan(0);
+    expect(boundaryRequests, 'turning the layer back on reuses the cached layer').toBe(1);
+
+    const savedPreference = await page.evaluate(() => {
+      const saved = JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}');
+      return saved.overlays?.navareaBoundaries;
+    });
+    expect(savedPreference).toBe(true);
+    await expect(page.locator('#layerToggleNavareaBoundariesMobile')).toBeChecked();
+
+    // The saved preference restores the overlay on a mobile-sized map too.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect.poll(async () => (await readBoundaryPane()).pathCount).toBeGreaterThan(0);
+    await page.locator('#btnMapSettings').click();
+    await expect(page.locator('#mapSettingsSheet')).toHaveClass(/open/);
+    const mobileToggle = page.locator('#layerToggleNavareaBoundariesMobile');
+    await expect(mobileToggle).toBeChecked();
+
+    // The master switch also includes the boundary overlay.
+    await page.locator('#masterToggleBtnMobile').click();
+    await expect.poll(async () => (await readBoundaryPane()).pathCount).toBe(0);
+    await page.locator('#masterToggleBtnMobile').click();
+    await expect.poll(async () => (await readBoundaryPane()).pathCount).toBeGreaterThan(0);
+
+    // Reset returns the new layer to its default-off state.
+    await page.getByRole('button', { name: 'Reset to defaults' }).click();
+    await expect(mobileToggle).not.toBeChecked();
+    await expect.poll(async () => (await readBoundaryPane()).pathCount).toBe(0);
+
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
 });
