@@ -215,6 +215,8 @@ let leafletMap = null;
 let markerLayer = null;
 let pointsLayer = null, polygonsLayer = null, circlesLayer = null, linesLayer = null;
 let currentBaseLayer = null, osmBaseLayer = null, openSeaMapLayer = null, soundingsLayer = null;
+let navareaBoundariesLayer = null;
+let navareaBoundariesLoadPromise = null;
 
 const MAP_PREFERENCES_KEY = 'helm_map_preferences_v1';
 const DEFAULT_MAP_PREFERENCES = {
@@ -226,7 +228,8 @@ const DEFAULT_MAP_PREFERENCES = {
     circles: true,
     lines: true,
     seamarks: true,
-    soundings: false
+    soundings: false,
+    navareaBoundaries: false
   }
 };
 
@@ -440,6 +443,129 @@ function getLeafletMap() {
   return leafletMap && typeof leafletMap.invalidateSize === 'function' ? leafletMap : null;
 }
 
+const NAVAREA_BOUNDARY_IDS = [
+  'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
+  'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI'
+];
+
+function validateNavareaBoundariesGeoJSON(geojson) {
+  if (
+    geojson?.type !== 'FeatureCollection' ||
+    !Array.isArray(geojson.features) ||
+    geojson.features.length !== NAVAREA_BOUNDARY_IDS.length
+  ) {
+    throw new Error('Expected a 21-feature NAVAREA GeoJSON FeatureCollection');
+  }
+
+  const seenIds = new Set();
+  for (const feature of geojson.features) {
+    const id = feature?.properties?.id;
+    if (
+      feature?.type !== 'Feature' ||
+      !NAVAREA_BOUNDARY_IDS.includes(id) ||
+      seenIds.has(id) ||
+      feature.geometry?.type !== 'MultiPolygon' ||
+      !Array.isArray(feature.geometry.coordinates) ||
+      feature.geometry.coordinates.length === 0
+    ) {
+      throw new Error('Invalid NAVAREA boundary feature or geometry');
+    }
+    seenIds.add(id);
+
+    for (const polygon of feature.geometry.coordinates) {
+      if (!Array.isArray(polygon) || polygon.length === 0) {
+        throw new Error(`Invalid polygon coordinates for NAVAREA ${id}`);
+      }
+      for (const ring of polygon) {
+        if (!Array.isArray(ring) || ring.length < 4) {
+          throw new Error(`Invalid polygon ring for NAVAREA ${id}`);
+        }
+        for (const position of ring) {
+          if (
+            !Array.isArray(position) ||
+            position.length < 2 ||
+            !Number.isFinite(position[0]) ||
+            !Number.isFinite(position[1]) ||
+            position[0] < -180 || position[0] > 180 ||
+            position[1] < -90 || position[1] > 90
+          ) {
+            throw new Error(`Invalid coordinate in NAVAREA ${id}`);
+          }
+        }
+        const first = ring[0];
+        const last = ring[ring.length - 1];
+        if (first[0] !== last[0] || first[1] !== last[1]) {
+          throw new Error(`Unclosed polygon ring in NAVAREA ${id}`);
+        }
+      }
+    }
+  }
+
+  if (seenIds.size !== NAVAREA_BOUNDARY_IDS.length) {
+    throw new Error('NAVAREA boundary dataset must contain each NAVAREA I–XXI exactly once');
+  }
+}
+
+function ensureNavareaBoundariesLayer(map) {
+  if (!map) return Promise.resolve(null);
+  if (navareaBoundariesLayer) {
+    if (mapPreferences.overlays.navareaBoundaries && !map.hasLayer(navareaBoundariesLayer)) {
+      navareaBoundariesLayer.addTo(map);
+    }
+    return Promise.resolve(navareaBoundariesLayer);
+  }
+
+  if (!navareaBoundariesLoadPromise) {
+    navareaBoundariesLoadPromise = fetch('/assets/data/navarea-boundaries.geojson')
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then(geojson => {
+        validateNavareaBoundariesGeoJSON(geojson);
+
+        const paneName = 'navareaBoundariesPane';
+        const pane = map.getPane(paneName) || map.createPane(paneName);
+        pane.style.zIndex = '350';
+        pane.style.pointerEvents = 'none';
+
+        navareaBoundariesLayer = L.geoJSON(geojson, {
+          pane: paneName,
+          interactive: false,
+          style: () => ({
+            color: '#38a6c8',
+            weight: 1.25,
+            opacity: 0.72,
+            fill: false
+          })
+        });
+        return navareaBoundariesLayer;
+      })
+      .catch(error => {
+        navareaBoundariesLoadPromise = null;
+        console.warn('NAVAREA boundaries load notice:', error);
+        mapPreferences.overlays.navareaBoundaries = false;
+        saveMapPreferences(mapPreferences);
+        syncSettingsUI(mapPreferences);
+        showToast('Unable to load NAVAREA boundaries');
+        return null;
+      });
+  }
+
+  return navareaBoundariesLoadPromise.then(layer => {
+    if (
+      layer &&
+      map === getLeafletMap() &&
+      mapPreferences.overlays.navareaBoundaries &&
+      !map.hasLayer(layer)
+    ) {
+      layer.addTo(map);
+    }
+    return layer;
+  });
+}
+
+
 function initMap(){
   if (leafletMap && typeof leafletMap.invalidateSize === 'function') return;
   const mapEl = document.getElementById('map');
@@ -512,6 +638,11 @@ function initMap(){
 
   // Main warning group for backward compatibility
   markerLayer = L.layerGroup([polygonsLayer, circlesLayer, linesLayer, pointsLayer]);
+
+  // Restore the optional boundary overlay only when previously enabled.
+  if (mapPreferences.overlays.navareaBoundaries) {
+    window.toggleLayer('navareaBoundaries', true, false);
+  }
 
   // Map canvas click clears touch selection, hides title card, and closes settings
   leafletMap.on('click', () => {
@@ -901,7 +1032,7 @@ window.syncSettingsUI = function(prefs) {
     r.checked = (r.value === prefs.baseMap);
   });
 
-  const keys = ['points', 'polygons', 'circles', 'lines', 'seamarks', 'soundings'];
+  const keys = ['points', 'polygons', 'circles', 'lines', 'seamarks', 'soundings', 'navareaBoundaries'];
   keys.forEach(k => {
     const cap = k.charAt(0).toUpperCase() + k.slice(1);
     const dBox = document.getElementById(`layerToggle${cap}Desktop`);
@@ -941,7 +1072,11 @@ window.toggleMapSettings = function(e) {
     const scrim = document.getElementById('mapSettingsScrim');
     if (!sheet) return;
     const isOpen = sheet.classList.toggle('open');
-    if (scrim) scrim.classList.toggle('open', isOpen);
+    sheet.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    if (scrim) {
+      scrim.classList.toggle('open', isOpen);
+      scrim.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    }
     if (btn) {
       btn.classList.toggle('active', isOpen);
       btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
@@ -961,9 +1096,15 @@ window.closeMapSettings = function() {
   const pop = document.getElementById('mapSettingsPopover');
   if (pop) pop.classList.remove('open');
   const sheet = document.getElementById('mapSettingsSheet');
-  if (sheet) sheet.classList.remove('open');
+  if (sheet) {
+    sheet.classList.remove('open');
+    sheet.setAttribute('aria-hidden', 'true');
+  }
   const scrim = document.getElementById('mapSettingsScrim');
-  if (scrim) scrim.classList.remove('open');
+  if (scrim) {
+    scrim.classList.remove('open');
+    scrim.setAttribute('aria-hidden', 'true');
+  }
   const btn = document.getElementById('btnMapSettings');
   if (btn) {
     btn.classList.remove('active');
@@ -975,7 +1116,7 @@ window.toggleMasterOverlays = function() {
   const nextState = !mapPreferences.masterOverlays;
   mapPreferences.masterOverlays = nextState;
 
-  const keys = ['points', 'polygons', 'circles', 'lines', 'seamarks', 'soundings'];
+  const keys = ['points', 'polygons', 'circles', 'lines', 'seamarks', 'soundings', 'navareaBoundaries'];
   if (!nextState) {
     keys.forEach(k => {
       mapPreferences.overlays[k] = false;
@@ -1007,6 +1148,7 @@ window.resetMapSettingsToDefaults = function() {
     if (linesLayer && !m.hasLayer(linesLayer)) linesLayer.addTo(m);
     if (openSeaMapLayer && !m.hasLayer(openSeaMapLayer)) openSeaMapLayer.addTo(m);
     if (soundingsLayer && m.hasLayer(soundingsLayer)) m.removeLayer(soundingsLayer);
+    if (navareaBoundariesLayer && m.hasLayer(navareaBoundariesLayer)) m.removeLayer(navareaBoundariesLayer);
   }
 
   syncSettingsUI(mapPreferences);
@@ -2070,7 +2212,7 @@ window.locateMe = function(){
   }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
 };
 
-window.toggleLayer = function(name, vis){
+window.toggleLayer = function(name, vis, persist = true){
   const m = getLeafletMap();
   if(!m) return;
   if(name === 'points' && pointsLayer){
@@ -2099,6 +2241,17 @@ window.toggleLayer = function(name, vis){
       openSeaMapLayer.on('tileerror', logTileError('seamarks'));
     }
     vis ? openSeaMapLayer.addTo(m) : m.removeLayer(openSeaMapLayer);
+  } else if(name === 'navareaBoundaries'){
+    if (persist) {
+      mapPreferences.overlays.navareaBoundaries = !!vis;
+      saveMapPreferences(mapPreferences);
+      syncSettingsUI(mapPreferences);
+    }
+    if (vis) {
+      ensureNavareaBoundariesLayer(m);
+    } else if (navareaBoundariesLayer && m.hasLayer(navareaBoundariesLayer)) {
+      m.removeLayer(navareaBoundariesLayer);
+    }
   } else if(name === 'soundings'){
     if(vis){
       if(!soundingsLayer){
