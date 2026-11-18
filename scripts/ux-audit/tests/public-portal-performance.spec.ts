@@ -281,7 +281,7 @@ test.describe('public workspace interaction regressions', () => {
       const originalSetItem = Storage.prototype.setItem;
       Storage.prototype.setItem = function (key, value) {
         if (key === 'helm_voyage_planner_v1') {
-          throw new DOMException('Quota exceeded', 'QuotaExceededError');
+          throw new Error('Quota exceeded');
         }
         return originalSetItem.call(this, key, value);
       };
