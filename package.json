@@ -34,7 +34,8 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "vite": "^6.2.3",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "@turf/turf": "^7.4.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

@@ -2,6 +2,16 @@
 let warnings = [];
 let publicWarningsAreCached = false;
 let publicWarningTextIncomplete = false;
+let publicWarningsAvailable = false;
+let publicWarningSnapshotSavedAt = null;
+
+window.getPublicWarningSnapshot = () => ({
+  warnings,
+  available: publicWarningsAvailable,
+  cached: publicWarningsAreCached,
+  textIncomplete: publicWarningTextIncomplete,
+  savedAt: publicWarningSnapshotSavedAt,
+});
 
 function setMapWarningBadge(count) {
   const badge = document.getElementById('mapLiveBadge');
@@ -646,6 +656,7 @@ function initMap(){
 
   // Map canvas click clears touch selection, hides title card, and closes settings
   leafletMap.on('click', () => {
+    if (document.body.classList.contains('voyage-add-mode')) return;
     clearActiveFeatureHighlight();
     hideTitleCard(true);
     closeMapSettings();
@@ -670,6 +681,7 @@ function initMap(){
   if (attrEl) {
     attrEl.textContent = baseDef.attribution;
   }
+  window.dispatchEvent(new CustomEvent('helm:map-ready'));
 }
 
 // ═══════════ MAXIMUM MAP VIEW & FOCUS MODE ═══════════
@@ -3145,6 +3157,7 @@ function setupInterrogate(map) {
   // chart interrogates the 10 NM box centred on the cursor. The coordinate
   // picker keeps priority when both are somehow active.
   map.on('click', (e) => {
+    if (document.body.classList.contains('voyage-add-mode')) return;
     if (interrogateModeActive && !coordModeActive) runInterrogate(e.latlng);
   });
 
@@ -3220,10 +3233,23 @@ function setPublicCacheStatus(state, savedAt) {
   }
 }
 
+function dispatchPublicWarningSnapshot() {
+  window.dispatchEvent(new CustomEvent('helm:public-warning-data-updated', {
+    detail: {
+      warnings,
+      available: publicWarningsAvailable,
+      cached: publicWarningsAreCached,
+      textIncomplete: publicWarningTextIncomplete,
+      savedAt: publicWarningSnapshotSavedAt,
+    },
+  }));
+}
+
 function renderPublicWarningData() {
   updateStats();
   populateTable();
   populateCards();
+  dispatchPublicWarningSnapshot();
   filterMapByNavArea(currentSelectedNavArea);
 }
 
@@ -3240,6 +3266,8 @@ async function loadWarnings() {
         publicWarningTextIncomplete = false;
         cachedRendered = true;
         cachedAt = metadata && metadata.savedAt;
+        publicWarningsAvailable = true;
+        publicWarningSnapshotSavedAt = cachedAt;
         renderPublicWarningData();
         setPublicCacheStatus('checking', cachedAt);
         const freshness = document.getElementById('dataFreshness');
@@ -3253,6 +3281,8 @@ async function loadWarnings() {
 
     if (result.source === 'cache') {
       cachedAt = result.savedAt || cachedAt;
+      publicWarningsAvailable = true;
+      publicWarningSnapshotSavedAt = cachedAt;
       if (!cachedRendered) {
         warnings = result.data;
         publicWarningsAreCached = true;
@@ -3266,6 +3296,8 @@ async function loadWarnings() {
     }
 
     warnings = result.data;
+    publicWarningsAvailable = true;
+    publicWarningSnapshotSavedAt = null;
     publicWarningsAreCached = false;
     publicWarningTextIncomplete = result.complete === false;
     renderPublicWarningData();
@@ -3282,6 +3314,8 @@ async function loadWarnings() {
     console.warn('Public warning data unavailable:', error);
     if (!cachedRendered) {
       warnings = [];
+      publicWarningsAvailable = false;
+      publicWarningSnapshotSavedAt = null;
       publicWarningsAreCached = false;
       publicWarningTextIncomplete = false;
       renderPublicWarningData();
@@ -3523,7 +3557,7 @@ function setupCoordinatePicker(map) {
 
   // Click/tap to pin the exact position
   map.on('click', (e) => {
-    if (!coordModeActive) return;
+    if (document.body.classList.contains('voyage-add-mode') || !coordModeActive) return;
     const w = e.latlng.wrap();
     const dmd = formatDMD(w.lat, w.lng);
     if (coordPin) {
