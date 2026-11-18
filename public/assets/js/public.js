@@ -5,6 +5,14 @@ let publicWarningTextIncomplete = false;
 let publicWarningsAvailable = false;
 let publicWarningSnapshotSavedAt = null;
 
+window.getPublicWarningSnapshot = () => ({
+  warnings,
+  available: publicWarningsAvailable,
+  cached: publicWarningsAreCached,
+  textIncomplete: publicWarningTextIncomplete,
+  savedAt: publicWarningSnapshotSavedAt,
+});
+
 function setMapWarningBadge(count) {
   const badge = document.getElementById('mapLiveBadge');
   if (!badge) return;
