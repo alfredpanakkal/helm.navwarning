@@ -21,8 +21,12 @@ const positionSchema = z.object({
 }).strict();
 
 const utcDateTimeSchema = z.string()
-  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/, 'Expected an ISO 8601 UTC timestamp ending in Z')
-  .refine((value) => Number.isFinite(Date.parse(value)), 'Invalid UTC timestamp');
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/, 'Expected an ISO 8601 UTC timestamp ending in Z')
+  .refine((value) => {
+    if (!Number.isFinite(Date.parse(value))) return false;
+    const canonical = new Date(value).toISOString().replace(/\.000Z$/, 'Z');
+    return canonical === value;
+  }, 'Invalid UTC timestamp');
 
 export const waypointSchema = z.object({
   id: idSchema,
