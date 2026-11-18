@@ -425,7 +425,7 @@ test.describe('public NAVAREA snapshot cache', () => {
   test('Voyage Planner reuses the public map and persists route edits locally', async ({ page }) => {
     const errors = watchPageErrors(page);
     const state: PublicApiState = {
-      spatialRows: [{ ...publicWarning(), zone_label: 'Route crossing', geojson_blob: { type: 'Point', coordinates: [75.5, 10] } }],
+      spatialRows: [{ ...publicWarning(), zone_label: 'Route crossing', geojson_blob: { type: 'Point', coordinates: [75, 10] } }],
       textRows: [bulletin()],
       fail: false,
       delayMs: 0,
