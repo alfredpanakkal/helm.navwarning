@@ -1,5 +1,6 @@
 import {
   addWaypoint,
+  assessRouteWarnings,
   calculateRoute,
   createRoute,
   formatLatitude,
@@ -16,6 +17,7 @@ import {
   DEFAULT_WARNING_RANGE_NM,
   type StorageLike,
   type VoyageRoute,
+  type WarningAssessmentWarningInput,
   type Waypoint,
 } from './index';
 
@@ -48,6 +50,13 @@ if (workspace && panel && content && toggleButton) {
   let map: import('leaflet').Map | null = null;
   let routeLayer: import('leaflet').LayerGroup | null = null;
   let addMode = false;
+  let warningSnapshot: {
+    warnings: WarningAssessmentWarningInput[];
+    available: boolean;
+    cached: boolean;
+    textIncomplete: boolean;
+    savedAt: string | null;
+  } | null = null;
 
   try {
     storage = window.localStorage;
@@ -95,6 +104,63 @@ if (workspace && panel && content && toggleButton) {
 
   function displayCourse(value: number | null): string {
     return value === null ? '—' : String(Math.round(value) % 360).padStart(3, '0') + '°T';
+  }
+
+  function renderWarningAssessment(route: VoyageRoute): string {
+    if (!warningSnapshot || !warningSnapshot.available) {
+      return '<section class="voyage-planner-section voyage-assessment"><div class="voyage-planner-section-title"><strong>NAVAREA warning assessment</strong></div><p class="voyage-planner-disclaimer">Waiting for the public warning dataset. Geometry assessment is unavailable until the dataset loads.</p></section>';
+    }
+
+    const assessment = assessRouteWarnings(route, warningSnapshot.warnings);
+    const freshness = warningSnapshot.cached
+      ? '<p class="voyage-assessment-notice is-warning">Using a saved warning snapshot from ' + escapeHtml(warningSnapshot.savedAt ? displayUtc(warningSnapshot.savedAt) : 'an unknown time') + '. Current warning status could not be confirmed.</p>'
+      : '<p class="voyage-assessment-notice">Using the currently loaded public warning snapshot.</p>';
+    const textNotice = warningSnapshot.textIncomplete
+      ? '<p class="voyage-assessment-notice is-warning">Bulletin text hydration is incomplete. Warnings without a confirmed quality state remain Not assessed.</p>'
+      : '';
+    const validityNotice = '<p class="voyage-assessment-notice">Warning validity dates, altitude limits and voyage-time overlap are not evaluated. This assessment is not a safety clearance.</p>';
+
+    if (!assessment.ready) {
+      return '<section class="voyage-planner-section voyage-assessment"><div class="voyage-planner-section-title"><strong>NAVAREA warning assessment</strong><span>' + route.warningRangeNm + ' NM search range</span></div>' +
+        freshness + textNotice + '<p class="voyage-planner-disclaimer">' + escapeHtml(assessment.reason ?? 'Add route waypoints to begin.') + '</p>' + validityNotice + '</section>';
+    }
+
+    const rows = assessment.results.map((item) => {
+      const leg = item.nearestLegIndex === null
+        ? 'Nearest leg unavailable'
+        : 'Leg ' + item.nearestLegIndex + ': ' + escapeHtml(item.nearestFromWaypoint ?? '—') + ' to ' + escapeHtml(item.nearestToWaypoint ?? '—');
+      const distance = item.nearestDistanceNm === null ? '—' : item.nearestDistanceNm.toFixed(2) + ' NM';
+      const status = item.status === 'INTERSECTS' ? 'Intersects'
+        : item.status === 'WITHIN_RANGE' ? 'Within range' : 'Not assessed';
+      const flags = item.qaFlags.length
+        ? '<div class="voyage-assessment-meta">QA: ' + escapeHtml(item.qaFlags.join(', ')) + '</div>'
+        : '';
+      const reason = item.reason
+        ? '<div class="voyage-assessment-reason">' + escapeHtml(item.reason) + '</div>'
+        : '';
+      const partial = item.hasUnassessedGeometry
+        ? '<div class="voyage-assessment-reason">One or more additional zones could not be assessed.</div>'
+        : '';
+      return '<article class="voyage-assessment-row is-' + item.status.toLowerCase().replace('_', '-') + '">' +
+        '<div class="voyage-assessment-row-head"><strong>' + escapeHtml(item.warningId) + '</strong><span class="voyage-assessment-status">' + status + '</span></div>' +
+        '<div class="voyage-assessment-meta">' + escapeHtml(item.title) + ' · ' + escapeHtml(item.navarea) + ' · ' + escapeHtml(item.severity) + '</div>' +
+        '<div class="voyage-assessment-meta">' + escapeHtml(item.nearestZone ?? 'Zone unavailable') + ' · ' + leg + ' · ' + distance + '</div>' +
+        '<div class="voyage-assessment-meta">Quality: ' + escapeHtml(item.dataQuality) + ' · Tier ' + escapeHtml(item.triageTier) + (item.isVerified ? ' · Verified' : ' · Review required') + '</div>' +
+        flags + reason + partial + '</article>';
+    }).join('');
+
+    const empty = assessment.results.length === 0
+      ? '<p class="voyage-planner-disclaimer">No assessed warning geometry intersects the route or falls within ' + assessment.rangeNm + ' NM. This is not a safety clearance.</p>'
+      : '';
+    const summary = '<div class="voyage-assessment-counts"><span>Intersects <strong>' + assessment.intersectsCount + '</strong></span><span>Within range <strong>' + assessment.withinRangeCount + '</strong></span><span>Not assessed <strong>' + assessment.notAssessedCount + '</strong></span></div>';
+    const routeNotice = assessment.reason
+      ? '<p class="voyage-assessment-notice is-warning">' + escapeHtml(assessment.reason) + '</p>'
+      : '';
+
+    return '<section class="voyage-planner-section voyage-assessment"><div class="voyage-planner-section-title"><strong>NAVAREA warning assessment</strong><span>' + assessment.rangeNm + ' NM search range</span></div>' +
+      freshness + textNotice + routeNotice + summary + empty + '<div class="voyage-assessment-list">' + rows + '</div>' +
+      '<p class="voyage-planner-disclaimer">Rhumb-line route approximation; proximity sampled at 0.5 NM intervals. Only supported, verified geometry is assessed. Warning validity dates and altitude limits are not evaluated. Not a certified ECDIS or navigational clearance.</p>' +
+      validityNotice + '</section>';
   }
 
   function persist(nextRoutes: VoyageRoute[]): boolean {
@@ -234,6 +300,7 @@ if (workspace && panel && content && toggleButton) {
       '</div><div class="voyage-planner-actions"><button class="voyage-planner-btn" type="submit"' + (storageBlocked ? ' disabled' : '') + '>Save route settings</button></div></form></section>' +
       '<section class="voyage-planner-summary"><div class="voyage-planner-stat"><span>Total distance</span><strong>' + calculation.totalDistanceNm.toFixed(1) + ' NM</strong></div>' +
       '<div class="voyage-planner-stat"><span>Estimated arrival (UTC)</span><strong style="font-size:11px">' + displayUtc(calculation.arrivalTimeUtc) + '</strong></div></section>' +
+      renderWarningAssessment(route) +
       (calculation.status === 'incomplete' ? '<div class="voyage-planner-notice">One or more legs cannot be calculated. Downstream ETAs are left unknown.</div>' : '') +
       '<section class="voyage-planner-section"><div class="voyage-planner-section-title"><strong>Waypoints (' + route.waypoints.length + ')</strong></div>' +
       '<div class="voyage-planner-actions"><button class="voyage-planner-btn is-primary" type="button" data-action="toggle-add-mode"' + (storageBlocked ? ' disabled' : '') + ' aria-pressed="' + addMode + '">' + (addMode ? 'Click chart to place waypoint…' : 'Add waypoint on chart') + '</button></div>' +
@@ -479,6 +546,19 @@ if (workspace && panel && content && toggleButton) {
     collapseButton.setAttribute('aria-label', label);
     collapseButton.setAttribute('title', label);
     collapseButton.textContent = collapsed ? '⌃' : '⌄';
+  });
+
+  window.addEventListener('helm:public-warning-data-updated', (event: Event) => {
+    const detail = (event as CustomEvent).detail;
+    if (!detail || !Array.isArray(detail.warnings)) return;
+    warningSnapshot = {
+      warnings: detail.warnings,
+      available: detail.available === true,
+      cached: detail.cached === true,
+      textIncomplete: detail.textIncomplete === true,
+      savedAt: typeof detail.savedAt === 'string' ? detail.savedAt : null,
+    };
+    render();
   });
 
   window.addEventListener('helm:map-ready', attachMap);
