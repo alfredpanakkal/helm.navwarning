@@ -113,9 +113,9 @@ describe('Voyage Planner warning geometry assessment', () => {
     expect(result.intersectsCount).toBe(1);
   });
 
-  it('handles a high-latitude rhumb route', () => {
-    const result = assessRouteWarnings(route([0, 89.9], [10, 89.9]), [
-      warning({ feature_type: 'POINT', geojson_blob: { type: 'Point', coordinates: [5, 89.9] } }),
+  it.each([89.9, 89.99, 89.999])('handles a high-latitude rhumb route at %s degrees', (latitude) => {
+    const result = assessRouteWarnings(route([0, latitude], [10, latitude]), [
+      warning({ feature_type: 'POINT', geojson_blob: { type: 'Point', coordinates: [5, latitude] } }),
     ]);
     expect(result.intersectsCount).toBe(1);
   });
