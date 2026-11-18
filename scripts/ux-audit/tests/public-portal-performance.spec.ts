@@ -455,18 +455,26 @@ test.describe('public NAVAREA snapshot cache', () => {
       browser.hwMap.fire('click', { latlng: browser.L.latLng(11, 76) });
     });
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    await page.evaluate(() => {
+      const browser = window as any;
+      const line = Object.values(browser.hwMap._layers).find((layer: any) => layer instanceof browser.L.Polyline) as any;
+      if (!line) throw new Error('Expected a rendered route leg');
+      line.fire('click', { latlng: browser.L.latLng(10.5, 75.5), originalEvent: null });
+    });
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
     await expect(page.locator('.voyage-planner-stat strong').first()).not.toHaveText('0.0 NM');
 
     const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null'));
     expect(stored.version).toBe(1);
     expect(stored.routes[0].name).toBe('Indian Ocean passage');
     expect(stored.routes[0].warningRangeNm).toBe(10);
-    expect(stored.routes[0].waypoints).toHaveLength(2);
+    expect(stored.routes[0].waypoints).toHaveLength(3);
+    expect(stored.routes[0].waypoints[1].position.lat).toBe(10.5);
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => Boolean((window as any).hwMap));
     await page.locator('#btnVoyagePlanner').click();
-    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
     await expect(page.locator('#voyageRouteName')).toHaveValue('Indian Ocean passage');
     await page.locator('#btnVoyagePlannerClose').click();
     await expect(page.locator('.public-warning-workspace')).not.toHaveClass(/is-voyage-planner/);
