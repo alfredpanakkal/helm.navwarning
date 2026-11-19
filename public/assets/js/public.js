@@ -1,5 +1,11 @@
 // ═══════════ STATE ═══════════
 let warnings = [];
+const smallAreaGeometryPromise = import('./small-area-geometry.js').catch(error => {
+  console.warn('Small-area geometry helpers unavailable:', error);
+  return null;
+});
+let smallAreaGeometry = null;
+smallAreaGeometryPromise.then(module => { smallAreaGeometry = module; });
 let publicWarningsAreCached = false;
 let publicWarningTextIncomplete = false;
 let publicWarningsAvailable = false;
@@ -470,31 +476,44 @@ function getLeafletMap() {
 // at the current map scale. The original polygon remains the source of truth.
 function updateSmallAreaIndicators() {
   const map = getLeafletMap();
-  if (!map || !polygonsLayer) return;
+  if (!map || !polygonsLayer || !smallAreaGeometry) return;
 
+  const placedPoints = [];
   smallAreaIndicators.forEach(({ polygon, indicator }) => {
     if (!polygonsLayer.hasLayer(polygon)) {
+      if (polygonsLayer.hasLayer(indicator)) polygonsLayer.removeLayer(indicator);
+      if (activeHighlightedLayer === indicator) clearActiveFeatureHighlight();
+      return;
+    }
+
+    const rings = polygon.getLatLngs().map(ring =>
+      ring.map(latlng => [latlng.lat, latlng.lng])
+    );
+    const project = ([lat, lng]) => {
+      const point = map.latLngToContainerPoint([lat, lng]);
+      return { x: point.x, y: point.y };
+    };
+    const metrics = smallAreaGeometry.getProjectedPolygonMetrics(rings, project, {
+      minDimension: SMALL_AREA_MIN_DIMENSION_PX,
+      minArea: SMALL_AREA_MIN_BOUNDS_AREA_PX,
+    });
+    const isTooSmall = !!metrics?.isTooSmall;
+
+    if (!isTooSmall) {
+      if (polygonsLayer.hasLayer(indicator)) polygonsLayer.removeLayer(indicator);
+      if (activeHighlightedLayer === indicator) clearActiveFeatureHighlight();
+      return;
+    }
+
+    const point = smallAreaGeometry.findInteriorPoint(rings, project, placedPoints);
+    if (!point) {
       if (polygonsLayer.hasLayer(indicator)) polygonsLayer.removeLayer(indicator);
       return;
     }
 
-    const bounds = polygon.getBounds();
-    if (!bounds || !bounds.isValid()) return;
-
-    const northWest = map.latLngToContainerPoint(bounds.getNorthWest());
-    const southEast = map.latLngToContainerPoint(bounds.getSouthEast());
-    const width = Math.abs(southEast.x - northWest.x);
-    const height = Math.abs(southEast.y - northWest.y);
-    const isTooSmall =
-      width < SMALL_AREA_MIN_DIMENSION_PX ||
-      height < SMALL_AREA_MIN_DIMENSION_PX ||
-      width * height < SMALL_AREA_MIN_BOUNDS_AREA_PX;
-
-    if (isTooSmall && !polygonsLayer.hasLayer(indicator)) {
-      polygonsLayer.addLayer(indicator);
-    } else if (!isTooSmall && polygonsLayer.hasLayer(indicator)) {
-      polygonsLayer.removeLayer(indicator);
-    }
+    indicator.setLatLng(map.containerPointToLatLng([point.x, point.y]));
+    placedPoints.push(point);
+    if (!polygonsLayer.hasLayer(indicator)) polygonsLayer.addLayer(indicator);
   });
 }
 
@@ -1258,9 +1277,11 @@ let selectedDrawerWarnings = []; // Desktop comparison is limited to two warning
 function clearActiveFeatureHighlight() {
   if (activeHighlightedLayer) {
     if (typeof activeHighlightedLayer.setStyle === 'function') {
-      const origWeight = activeHighlightedLayer._origWeight || 2;
-      const origColor = activeHighlightedLayer._origColor || '#2563eb';
-      activeHighlightedLayer.setStyle({ weight: origWeight, color: origColor });
+      const originalStyle = activeHighlightedLayer._origStyle || {
+        weight: activeHighlightedLayer._origWeight || 2,
+        color: activeHighlightedLayer._origColor || '#2563eb',
+      };
+      activeHighlightedLayer.setStyle(originalStyle);
     }
     if (activeHighlightedLayer._icon) {
       activeHighlightedLayer._icon.classList.remove('nw-active-selected');
@@ -1496,10 +1517,18 @@ function fallbackCopyText(text, callback) {
   }
 }
 
-function bindProgressiveFeatureInteractions(layer, w, summaryText, color) {
+function bindProgressiveFeatureInteractions(layer, w, summaryText, color, onClick) {
   const wid = w.canonical_id || w.warning_id || w.id;
   layer._origWeight = layer.options?.weight || 2;
-  layer._origColor = color;
+  layer._origColor = layer.options?.color || color;
+  layer._origStyle = {
+    color: layer.options?.color,
+    weight: layer.options?.weight,
+    opacity: layer.options?.opacity,
+    fillColor: layer.options?.fillColor,
+    fillOpacity: layer.options?.fillOpacity,
+    dashArray: layer.options?.dashArray,
+  };
 
   // Desktop Hover
   layer.on('mouseover', (e) => {
@@ -1521,7 +1550,7 @@ function bindProgressiveFeatureInteractions(layer, w, summaryText, color) {
   layer.on('mouseout', () => {
     if (document.body.classList.contains('is-mobile')) return;
     if (typeof layer.setStyle === 'function') {
-      layer.setStyle({ weight: layer._origWeight, opacity: 0.95 });
+      layer.setStyle(layer._origStyle);
     }
     if (layer._icon) {
       layer._icon.classList.remove('nw-active-selected');
@@ -1547,8 +1576,63 @@ function bindProgressiveFeatureInteractions(layer, w, summaryText, color) {
       hideTitleCard(true);
     }
 
+    if (typeof onClick === 'function') {
+      onClick(e);
+      return;
+    }
     openWarningDetails(w);
   });
+}
+
+function handleSmallAreaIndicatorClick(event, warning) {
+  const map = getLeafletMap();
+  if (!map || !polygonsLayer || !map.hasLayer(polygonsLayer)) {
+    openWarningDetails(warning);
+    return;
+  }
+
+  const clickPoint = map.latLngToContainerPoint(event.latlng);
+  const collisionDistance = 14;
+  const candidates = new Map();
+
+  smallAreaIndicators.forEach(entry => {
+    if (!polygonsLayer.hasLayer(entry.indicator)) return;
+    const point = map.latLngToContainerPoint(entry.indicator.getLatLng());
+    if (Math.hypot(point.x - clickPoint.x, point.y - clickPoint.y) > collisionDistance) return;
+    const item = entry.warning;
+    const id = item.canonical_id || item.warning_id || item.id || item.title;
+    if (id != null && !candidates.has(String(id))) candidates.set(String(id), item);
+  });
+
+  const overlappingWarnings = [...candidates.values()];
+  if (overlappingWarnings.length <= 1) {
+    openWarningDetails(warning);
+    return;
+  }
+
+  const popupContent = document.createElement('div');
+  const heading = document.createElement('strong');
+  heading.textContent = `${overlappingWarnings.length} overlapping warning areas`;
+  popupContent.appendChild(heading);
+
+  overlappingWarnings.forEach(item => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-sm btn-secondary';
+    button.style.cssText = 'display:block;width:100%;margin-top:6px;text-align:left;white-space:normal';
+    const id = item.canonical_id || item.warning_id || item.id || 'Warning';
+    button.textContent = `${id} · ${item.title || 'Untitled warning'}`;
+    button.addEventListener('click', () => {
+      map.closePopup();
+      openWarningDetails(item);
+    });
+    popupContent.appendChild(button);
+  });
+
+  L.popup({ maxWidth: 280, closeButton: true })
+    .setLatLng(event.latlng)
+    .setContent(popupContent)
+    .openOn(map);
 }
 
 // ═══════════ POLYMORPHIC PLOTTING ENGINE ═══════════
@@ -1689,21 +1773,19 @@ function plotWarning(w) {
     // A. POLYGON / AREA
     if (featType === 'POLYGON' || blob.type === 'Polygon' || featType === 'MULTIPOLYGON' || blob.type === 'MultiPolygon') {
       try {
-        let rings = [];
-        if (blob.type === 'Polygon') {
-          rings = blob.coordinates.map(ring => ring.map(([lng, lat]) => [lat, lng]));
-        } else if (blob.type === 'MultiPolygon') {
-          rings = blob.coordinates.map(poly => poly[0].map(([lng, lat]) => [lat, lng]));
-        }
+        const polygonComponents = blob.type === 'Polygon' ? [blob.coordinates] : blob.coordinates;
+        polygonComponents.forEach(componentRings => {
+          if (!Array.isArray(componentRings) || !componentRings.length) return;
+          // Keep the complete component: exterior ring plus any interior holes.
+          const latLngRings = componentRings.map(ring =>
+            ring.map(([lng, lat]) => [lat, lng])
+          );
+          const exterior = latLngRings[0];
+          if (!Array.isArray(exterior) || exterior.length < 3) return;
+          exterior.forEach(coordinate => allCoordsForBounds.push(coordinate));
 
-        rings.forEach(latLngs => {
-          if (!Array.isArray(latLngs) || latLngs.length < 3) return;
-          latLngs.forEach(c => allCoordsForBounds.push(c));
-
-          const areaSqNm = computePolygonAreaSqNm(latLngs);
-          const centroid = computeCentroid(latLngs);
-
-          const poly = L.polygon(latLngs, {
+          const areaSqNm = computePolygonAreaSqNm(exterior);
+          const poly = L.polygon(latLngRings, {
             // Restricted-area boundary is S-52-informed; severity remains in the fill.
             color: isRestrictedArea ? '#D946EF' : color,
             weight: 2,
@@ -1718,9 +1800,8 @@ function plotWarning(w) {
 
           if (polygonsLayer) polygonsLayer.addLayer(poly);
 
-          // Keep tiny areas discoverable at low zoom without altering their
-          // geographic footprint. The locator is added only when the polygon
-          // projects below the minimum readable screen-space size.
+          // The locator's position is recalculated from the true polygon
+          // interior; the source GeoJSON coordinates are never modified.
           const smallAreaIndicator = L.circleMarker(poly.getBounds().getCenter(), {
             radius: 6,
             color: isRestrictedArea ? '#D946EF' : '#ffffff',
@@ -1733,9 +1814,10 @@ function plotWarning(w) {
             smallAreaIndicator,
             w,
             `${label} · Small area · ${areaSqNm} sq NM`,
-            color
+            color,
+            event => handleSmallAreaIndicatorClick(event, w)
           );
-          smallAreaIndicators.push({ polygon: poly, indicator: smallAreaIndicator });
+          smallAreaIndicators.push({ polygon: poly, indicator: smallAreaIndicator, warning: w });
 
           w._layers.push(poly);
           if (!w._primaryLayer) w._primaryLayer = poly;
@@ -1893,7 +1975,11 @@ function addMarker(w) {
 }
 
 window.filterMapByNavArea = function(navArea, opts) {
+  const previousSelectedNavArea = currentSelectedNavArea;
   currentSelectedNavArea = navArea || '';
+  if (previousSelectedNavArea !== currentSelectedNavArea) {
+    clearActiveFeatureHighlight();
+  }
   try { localStorage.setItem('hw-navarea', currentSelectedNavArea || 'ALL'); } catch (e) { /* private mode: ignore */ }
 
   const mapSelect = document.getElementById('mapNavAreaSelect');
@@ -1913,6 +1999,9 @@ window.filterMapByNavArea = function(navArea, opts) {
   }
 
   const filtered = warnings.filter(w => w.status !== 'rejected' && inRegionScope(w.navarea, currentSelectedNavArea));
+  if (currentDrawerWarning && !filtered.includes(currentDrawerWarning)) {
+    closeWarningDrawer();
+  }
 
   // Clear all vector layers and discard locators from the previous region.
   smallAreaIndicators = [];
@@ -3406,6 +3495,7 @@ async function loadWarnings() {
 }
 document.addEventListener('DOMContentLoaded', async ()=>{
   detectDevice();
+  smallAreaGeometry = await smallAreaGeometryPromise;
   // Regional page deep link: /?navarea=NA+IV preselects the map region
   // (linked from the prerendered /navarea/<RN> regional pages).
   try {
