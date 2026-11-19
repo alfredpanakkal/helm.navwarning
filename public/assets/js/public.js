@@ -874,12 +874,18 @@ window.toggleMobileMapExpanded = function(explicitState) {
 
   window.scrollTo({ top: nextState ? 0 : mobileMapPreviousScrollY, behavior: 'instant' });
   const map = getLeafletMap();
-  requestAnimationFrame(() => {
-    if (!map) return;
-    // Resize without Leaflet's compensating pan so the geographic centre stays fixed.
+  if (!map) return;
+
+  // Keep the geographic view fixed while the map container changes dimensions.
+  const preservedCenter = map.getCenter();
+  const preservedZoom = map.getZoom();
+  const refreshMapSize = () => {
     map.invalidateSize({ pan: false });
-    setTimeout(() => map.invalidateSize({ pan: false }), 320);
-  });
+    map.setView(preservedCenter, preservedZoom, { animate: false });
+  };
+
+  requestAnimationFrame(refreshMapSize);
+  setTimeout(refreshMapSize, 320);
 };
 
 function setupMobileMapExpansion() {
