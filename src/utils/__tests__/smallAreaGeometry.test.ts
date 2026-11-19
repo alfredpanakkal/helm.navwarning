@@ -32,6 +32,20 @@ describe('small-area geometry helpers', () => {
     expect(getProjectedPolygonMetrics([rectangle], identity)?.isTooSmall).toBe(false);
   });
 
+  it('switches visibility when zoom makes the same polygon readable', () => {
+    const polygon = [[0, 0], [20, 0], [20, 20], [0, 20], [0, 0]];
+    const lowZoom = getProjectedPolygonMetrics([polygon], ([x, y]) => ({ x: x * 0.5, y: y * 0.5 }));
+    const highZoom = getProjectedPolygonMetrics([polygon], ([x, y]) => ({ x: x * 2, y: y * 2 }));
+    expect(lowZoom?.isTooSmall).toBe(true);
+    expect(highZoom?.isTooSmall).toBe(false);
+  });
+
+  it('subtracts interior-hole area from the projected polygon area', () => {
+    const hole = [[5, 5], [15, 5], [15, 15], [5, 15], [5, 5]];
+    const metrics = getProjectedPolygonMetrics([square, hole], identity);
+    expect(metrics?.area).toBe(300);
+  });
+
   it('finds an interior point for a concave polygon', () => {
     const concave = [[0, 0], [10, 0], [10, 2], [2, 2], [2, 10], [0, 10], [0, 0]];
     const point = findInteriorPoint([concave], identity);
@@ -56,12 +70,13 @@ describe('small-area geometry helpers', () => {
     expect(pointInRing(second, secondRing)).toBe(true);
   });
 
-  it('chooses a different interior candidate when collision space permits', () => {
-    const first = findInteriorPoint([square], identity);
-    const second = findInteriorPoint([square], identity, [first]);
+  it('separates nearby small-area locator candidates when interior space permits', () => {
+    const narrow = [[0, 0], [60, 0], [60, 3], [0, 3], [0, 0]];
+    const first = findInteriorPoint([narrow], identity);
+    const second = findInteriorPoint([narrow], identity, [first]);
     expect(second).not.toBeNull();
-    expect(Math.hypot(second.x - first.x, second.y - first.y)).toBeGreaterThan(0);
-    expect(pointInRing(second, square)).toBe(true);
+    expect(Math.hypot(second.x - first.x, second.y - first.y)).toBeGreaterThan(14);
+    expect(pointInRing(second, narrow)).toBe(true);
   });
 
   it('treats normalized rectangle rings as ordinary polygon geometry', () => {
