@@ -394,9 +394,17 @@ test.describe('public workspace interaction regressions', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => Boolean((window as any).hwMap));
 
-    const zoomIn = page.locator('#map .leaflet-control-zoom-in');
-    await expect(zoomIn).toBeVisible();
-    await zoomIn.click();
+    // The production map disables Leaflet's default zoom control. Add a
+    // representative in-map toolbar control to exercise the pointer filter.
+    await page.evaluate(() => {
+      const control = document.createElement('button');
+      control.type = 'button';
+      control.className = 'leaflet-control';
+      control.textContent = 'Test map tool';
+      control.style.cssText = 'position:absolute;top:20px;left:20px;z-index:2000';
+      document.getElementById('map')!.appendChild(control);
+    });
+    await page.locator('#map .leaflet-control').click();
     await expect(page.locator('body')).not.toHaveClass(/mobile-map-expanded/);
   });
 
