@@ -306,7 +306,7 @@ let lastFittedNavArea = null;
 const BASE_MAP_DEFS = {
   'osm': {
     name: 'OpenStreetMap',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    url: '/api/tiles/osm/{z}/{x}/{y}',
     maxZoom: 19,
     attribution: '© OpenStreetMap contributors · OpenSeaMap'
   },
@@ -656,7 +656,7 @@ function initMap(){
 
   // Base cartography follows the saved preference, or the active appearance theme in Auto mode.
   currentBaseMapId = resolveBaseMapId(mapPreferences.baseMap);
-  const baseDef = BASE_MAP_DEFS[currentBaseMapId] || BASE_MAP_DEFS['carto-positron'];
+  const baseDef = BASE_MAP_DEFS[currentBaseMapId] || BASE_MAP_DEFS['osm'];
   currentBaseLayer = L.tileLayer(baseDef.url, {
     maxZoom: baseDef.maxZoom,
     attribution: baseDef.attribution,
