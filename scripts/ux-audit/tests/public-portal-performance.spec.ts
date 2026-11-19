@@ -697,7 +697,7 @@ test.describe('public NAVAREA snapshot cache', () => {
       map.eachLayer((layer: any) => {
         if (typeof layer?._url === 'string' && (
           layer._url.includes('/api/tiles/carto/') ||
-          layer._url.includes('tile.openstreetmap.org')
+          layer._url.includes('/api/tiles/osm/')
         )) url = layer._url;
       });
       return url;
@@ -710,10 +710,10 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.evaluate(() => (document.querySelector('[data-theme-set="night"]') as HTMLButtonElement).click());
     await expect.poll(baseMapUrl).toContain('/dark_all/');
     await page.evaluate(() => (document.querySelector('[data-theme-set="light"]') as HTMLButtonElement).click());
-    await expect.poll(baseMapUrl).toContain('tile.openstreetmap.org');
+    await expect.poll(baseMapUrl).toContain('/api/tiles/osm/');
     await page.evaluate(() => (document.querySelector('[data-theme-set="system"]') as HTMLButtonElement).click());
     await page.emulateMedia({ colorScheme: 'light' });
-    await expect.poll(baseMapUrl).toContain('tile.openstreetmap.org');
+    await expect.poll(baseMapUrl).toContain('/api/tiles/osm/');
 
     await page.evaluate(() => (window as any).selectBaseMap('carto-voyager'));
     await expect.poll(baseMapUrl).toContain('/voyager/');
@@ -739,13 +739,13 @@ test.describe('public NAVAREA snapshot cache', () => {
       const map = (window as any).map;
       let url: string | null = null;
       map?.eachLayer((layer: any) => {
-        if (typeof layer?._url === 'string' && layer._url.includes('tile.openstreetmap.org')) url = layer._url;
+        if (typeof layer?._url === 'string' && layer._url.includes('/api/tiles/osm/')) url = layer._url;
       });
       return url;
     });
-    await expect.poll(osmBaseMapUrl).toContain('tile.openstreetmap.org');
+    await expect.poll(osmBaseMapUrl).toContain('/api/tiles/osm/');
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect.poll(osmBaseMapUrl).toContain('tile.openstreetmap.org');
+    await expect.poll(osmBaseMapUrl).toContain('/api/tiles/osm/');
     const osmPreference = await page.evaluate(() =>
       JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}').baseMap
     );
@@ -785,7 +785,7 @@ test.describe('public NAVAREA snapshot cache', () => {
       await page.evaluate((baseMap) => {
         const saved: Record<string, unknown> = {
           masterOverlays: false,
-          overlays: { points: false, seamarks: false, soundings: true },
+          overlays: { points: false, polygons: true, seamarks: false, soundings: true },
         };
         if (baseMap !== undefined) saved.baseMap = baseMap;
         localStorage.setItem('helm_map_preferences_v1', JSON.stringify(saved));
