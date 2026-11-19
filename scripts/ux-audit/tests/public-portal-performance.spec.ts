@@ -339,9 +339,17 @@ test.describe('public workspace interaction regressions', () => {
         sameZoom: map.getZoom() === before.zoom,
         sameCenter: Math.abs(center.lat - before.lat) < 0.000001 &&
           Math.abs(center.lng - before.lng) < 0.000001,
+        before: { lat: before.lat, lng: before.lng, zoom: before.zoom },
+        after: { lat: center.lat, lng: center.lng, zoom: map.getZoom() },
       };
     });
-    expect(restored).toEqual({ sameMapInstance: true, sameZoom: true, sameCenter: true });
+    expect(restored, JSON.stringify(restored)).toEqual({
+      sameMapInstance: true,
+      sameZoom: true,
+      sameCenter: true,
+      before: expect.any(Object),
+      after: expect.any(Object),
+    });
   });
 
   test('mobile Escape restores the full page from expanded map view', async ({ page }) => {
