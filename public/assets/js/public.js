@@ -843,7 +843,6 @@ window.toggleMapTopControls = function(forceState) {
 };
 
 let mobileMapPreviousScrollY = 0;
-let mobileMapResizeFrame = null;
 let mobileMapResizeTimer = null;
 
 window.toggleMobileMapExpanded = function(explicitState) {
@@ -884,20 +883,15 @@ window.toggleMobileMapExpanded = function(explicitState) {
   window.scrollTo({ top: nextState ? 0 : mobileMapPreviousScrollY, behavior: 'instant' });
   if (!map) return;
 
-  // Keep the geographic view fixed while the map container changes dimensions.
-  const refreshMapSize = () => {
-    mobileMapResizeFrame = null;
+  // Resize once the CSS height transition has completed. Running an
+  // animation-frame refresh during the transition reads an intermediate map
+  // size and can shift the geographic centre during a rapid expand/restore.
+  if (mobileMapResizeTimer !== null) clearTimeout(mobileMapResizeTimer);
+  mobileMapResizeTimer = setTimeout(() => {
     mobileMapResizeTimer = null;
     map.invalidateSize({ pan: false });
     map.setView(preservedCenter, preservedZoom, { animate: false });
-  };
-
-  // A rapid expand/restore can otherwise leave the earlier transition's
-  // delayed refresh running against the restored layout and stale view.
-  if (mobileMapResizeFrame !== null) cancelAnimationFrame(mobileMapResizeFrame);
-  if (mobileMapResizeTimer !== null) clearTimeout(mobileMapResizeTimer);
-  mobileMapResizeFrame = requestAnimationFrame(refreshMapSize);
-  mobileMapResizeTimer = setTimeout(refreshMapSize, 320);
+  }, 320);
 };
 
 function setupMobileMapExpansion() {
