@@ -9,6 +9,7 @@ interface PublicApiState {
   textRows: Row[];
   fail: boolean;
   delayMs: number;
+  textDelayMs?: number;
   spatialRequests?: number;
   textRequests?: number;
   rangeRequests?: Array<{ table: string; range: string | null }>;
@@ -83,11 +84,11 @@ async function installPublicApiMock(page: Page, state: PublicApiState) {
       return;
     }
 
-    if (state.delayMs > 0) {
-      await new Promise((resolve) => setTimeout(resolve, state.delayMs));
-    }
-
     const table = new URL(request.url()).pathname.split('/').pop();
+    const delayMs = table === 'nav_warnings' ? (state.textDelayMs ?? state.delayMs) : state.delayMs;
+    if (delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
     if (table === 'nav_warnings_active_spatial') state.spatialRequests = (state.spatialRequests || 0) + 1;
     if (table === 'nav_warnings') state.textRequests = (state.textRequests || 0) + 1;
     const rows = table === 'nav_warnings_active_spatial'
@@ -478,6 +479,52 @@ test.describe('public NAVAREA snapshot cache', () => {
       .map((request) => request.range);
     expect(textRanges).toContain('0-999');
     expect(textRanges).toContain('1000-1999');
+  });
+
+  test('stalled optional text hydration does not delay fresh authoritative geometry', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    const state: PublicApiState = {
+      spatialRows: [publicWarning()],
+      textRows: [bulletin()],
+      fail: false,
+      delayMs: 0,
+    };
+    await installPublicApiMock(page, state);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#dataSubtitle')).toContainText('1 published warning', { timeout: 30_000 });
+    await expect.poll(async () => {
+      const snapshot = await readPublicSnapshot(page) as { data?: Row[] } | null;
+      return snapshot?.data?.length ?? 0;
+    }).toBe(1);
+    const savedBefore = await readPublicSnapshot(page) as { data: Row[] };
+    expect(savedBefore.data[0].canonical_id).toBe('CACHE-TEST-1/26');
+
+    state.spatialRows = [{
+      ...publicWarning(),
+      warning_id: '55555555-5555-4555-8555-555555555555',
+      canonical_id: 'FRESH-GEOMETRY-TEXT-TIMEOUT/26',
+      geom_id: 'fresh-geometry-text-timeout',
+      title: 'Fresh geometry despite stalled text',
+    }];
+    state.textRows = [{
+      ...bulletin(),
+      id: '55555555-5555-4555-8555-555555555555',
+      raw_text: 'LATE BULLETIN TEXT SHOULD NOT BLOCK MAP',
+    }];
+    state.textDelayMs = 7000;
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#dataCacheStatus')).toContainText('checking for updates', { timeout: 10_000 });
+    await expect(page.locator('#dataCacheStatus')).toContainText('full-text search may be incomplete', { timeout: 10_000 });
+    await expect(page.locator('#mapLiveBadge')).toContainText('fresh geometry');
+    await expect(page.locator('#tableBody')).toContainText('FRESH-GEOMETRY-TEXT-TIMEOUT/26');
+    await expect(page.locator('#tableBody')).not.toContainText('CACHE-TEST-1/26');
+
+    const preserved = await readPublicSnapshot(page) as { data: Row[] };
+    expect(preserved.data[0].canonical_id).toBe('CACHE-TEST-1/26');
+
+    expect(errors, 'no uncaught browser errors').toEqual([]);
   });
 
   test('failed refresh keeps a labelled snapshot; successful empty refresh removes cancelled warnings permanently', async ({ page }) => {
