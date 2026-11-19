@@ -65,7 +65,7 @@ describe('small-area geometry helpers', () => {
   });
 
   it('treats normalized rectangle rings as ordinary polygon geometry', () => {
-    const rectangle = [[-10, -5], [10, -5], [10, 5], [-10, 5], [-10, -5]];
+    const rectangle = [[-10, -15], [10, -15], [10, 15], [-10, 15], [-10, -15]];
     const point = findInteriorPoint([rectangle], identity);
     expect(pointInRing(point, rectangle)).toBe(true);
     expect(getProjectedPolygonMetrics([rectangle], identity)?.isTooSmall).toBe(false);
