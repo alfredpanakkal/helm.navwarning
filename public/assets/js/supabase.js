@@ -220,6 +220,7 @@ function mergeSpatialAndTextRows(spatialData, textRows) {
 
 const SPATIAL_PAGE_SIZE = 1000;
 const PUBLIC_TEXT_PAGE_SIZE = 1000;
+const PUBLIC_TEXT_HYDRATION_TIMEOUT_MS = 5000;
 const PUBLIC_CACHE_DB = 'helm-warning-public-cache';
 const PUBLIC_CACHE_STORE = 'snapshots';
 const PUBLIC_CACHE_KEY = 'active-warning-snapshot';
@@ -411,23 +412,33 @@ async function fetchFreshActiveWarnings() {
 
   let textRows = [];
   let textHydrationComplete = false;
-  if (textPromise) {
-    try {
-      const textResult = await textPromise;
-      if (!textResult.error && Array.isArray(textResult.data)) {
-        textRows = textResult.data;
-        const hydratedIds = new Set(textRows.map((row) => row.id));
-        const publicIds = new Set(Array.from(spatialRows.values())
-          .filter((row) => row.status === 'active' && row.triage_tier === 'A')
-          .map((row) => row.warning_id)
-          .filter(Boolean));
-        textHydrationComplete = Array.from(publicIds).every((id) => hydratedIds.has(id));
-      } else if (textResult.error) {
-        console.warn('Warning text hydration unavailable:', textResult.error.message);
-      }
-    } catch (textError) {
-      console.warn('Warning text hydration unavailable:', textError);
+  // Bulletin text is optional for map rendering. Bound its wait so a stalled
+  // text endpoint cannot hold back authoritative spatial data indefinitely.
+  let textTimeoutId;
+  try {
+    const textTimeoutPromise = new Promise((resolve) => {
+      textTimeoutId = setTimeout(() => resolve({
+        data: null,
+        error: new Error('Public bulletin text hydration timed out'),
+      }), PUBLIC_TEXT_HYDRATION_TIMEOUT_MS);
+    });
+    const textResult = await Promise.race([textPromise, textTimeoutPromise]);
+    clearTimeout(textTimeoutId);
+    if (!textResult.error && Array.isArray(textResult.data)) {
+      textRows = textResult.data;
+      const hydratedIds = new Set(textRows.map((row) => row.id));
+      const publicIds = new Set(Array.from(spatialRows.values())
+        .filter((row) => row.status === 'active' && row.triage_tier === 'A')
+        .map((row) => row.warning_id)
+        .filter(Boolean));
+      textHydrationComplete = Array.from(publicIds).every((id) => hydratedIds.has(id));
+    } else if (textResult.error) {
+      console.warn('Warning text hydration unavailable:', textResult.error.message);
     }
+  } catch (textError) {
+    console.warn('Warning text hydration unavailable:', textError);
+  } finally {
+    clearTimeout(textTimeoutId);
   }
 
   return {

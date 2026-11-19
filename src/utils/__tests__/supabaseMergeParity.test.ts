@@ -84,6 +84,8 @@ function load(scenario: Scenario): Loaded {
     window: win,
     console: { warn: (...args: unknown[]) => warnings.push(args), log: () => {}, error: () => {} },
     fetch: () => Promise.reject(new Error('Unexpected network fallback')),
+    setTimeout,
+    clearTimeout,
   };
   const context = vm.createContext(sandbox);
   vm.runInContext(readFileSync(SUPABASE_JS, 'utf8'), context, { filename: 'supabase.js' });
