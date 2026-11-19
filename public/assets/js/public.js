@@ -1624,6 +1624,20 @@ function handleSmallAreaIndicatorClick(event, warning) {
     button.textContent = `${id} · ${item.title || 'Untitled warning'}`;
     button.addEventListener('click', () => {
       map.closePopup();
+      if (document.body.classList.contains('is-mobile')) {
+        const selectedEntry = smallAreaIndicators.find(entry =>
+          entry.warning === item && polygonsLayer.hasLayer(entry.indicator)
+        );
+        if (selectedEntry) {
+          clearActiveFeatureHighlight();
+          activeTouchFeature = item;
+          activeHighlightedLayer = selectedEntry.indicator;
+          selectedEntry.indicator.setStyle({
+            weight: (selectedEntry.indicator._origWeight || 2) + 2,
+            color: '#38bdf8',
+          });
+        }
+      }
       openWarningDetails(item);
     });
     popupContent.appendChild(button);
@@ -1784,7 +1798,10 @@ function plotWarning(w) {
           if (!Array.isArray(exterior) || exterior.length < 3) return;
           exterior.forEach(coordinate => allCoordsForBounds.push(coordinate));
 
-          const areaSqNm = computePolygonAreaSqNm(exterior);
+          const areaSqNm = Math.max(0,
+            computePolygonAreaSqNm(exterior) -
+            latLngRings.slice(1).reduce((sum, hole) => sum + computePolygonAreaSqNm(hole), 0)
+          );
           const poly = L.polygon(latLngRings, {
             // Restricted-area boundary is S-52-informed; severity remains in the fill.
             color: isRestrictedArea ? '#D946EF' : color,
@@ -2003,6 +2020,8 @@ window.filterMapByNavArea = function(navArea, opts) {
     closeWarningDrawer();
   }
 
+  // Clear highlight references before their old Leaflet layers are discarded.
+  clearActiveFeatureHighlight();
   // Clear all vector layers and discard locators from the previous region.
   smallAreaIndicators = [];
   if (pointsLayer) pointsLayer.clearLayers();
