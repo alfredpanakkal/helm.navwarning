@@ -234,6 +234,9 @@ document.addEventListener('keydown', e => {
 let leafletMap = null;
 let markerLayer = null;
 let pointsLayer = null, polygonsLayer = null, circlesLayer = null, linesLayer = null;
+let smallAreaIndicators = [];
+const SMALL_AREA_MIN_DIMENSION_PX = 14;
+const SMALL_AREA_MIN_BOUNDS_AREA_PX = 196;
 let currentBaseLayer = null, osmBaseLayer = null, openSeaMapLayer = null, soundingsLayer = null;
 let navareaBoundariesLayer = null;
 let navareaBoundariesLoadPromise = null;
@@ -463,6 +466,38 @@ function getLeafletMap() {
   return leafletMap && typeof leafletMap.invalidateSize === 'function' ? leafletMap : null;
 }
 
+// Show a fixed-size, clickable locator only while an area is too small to read
+// at the current map scale. The original polygon remains the source of truth.
+function updateSmallAreaIndicators() {
+  const map = getLeafletMap();
+  if (!map || !polygonsLayer) return;
+
+  smallAreaIndicators.forEach(({ polygon, indicator }) => {
+    if (!polygonsLayer.hasLayer(polygon)) {
+      if (polygonsLayer.hasLayer(indicator)) polygonsLayer.removeLayer(indicator);
+      return;
+    }
+
+    const bounds = polygon.getBounds();
+    if (!bounds || !bounds.isValid()) return;
+
+    const northWest = map.latLngToContainerPoint(bounds.getNorthWest());
+    const southEast = map.latLngToContainerPoint(bounds.getSouthEast());
+    const width = Math.abs(southEast.x - northWest.x);
+    const height = Math.abs(southEast.y - northWest.y);
+    const isTooSmall =
+      width < SMALL_AREA_MIN_DIMENSION_PX ||
+      height < SMALL_AREA_MIN_DIMENSION_PX ||
+      width * height < SMALL_AREA_MIN_BOUNDS_AREA_PX;
+
+    if (isTooSmall && !polygonsLayer.hasLayer(indicator)) {
+      polygonsLayer.addLayer(indicator);
+    } else if (!isTooSmall && polygonsLayer.hasLayer(indicator)) {
+      polygonsLayer.removeLayer(indicator);
+    }
+  });
+}
+
 const NAVAREA_BOUNDARY_IDS = [
   'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
   'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI'
@@ -658,6 +693,9 @@ function initMap(){
 
   // Main warning group for backward compatibility
   markerLayer = L.layerGroup([polygonsLayer, circlesLayer, linesLayer, pointsLayer]);
+
+  // Re-evaluate fixed-size area locators after every completed zoom.
+  leafletMap.on('zoomend', updateSmallAreaIndicators);
 
   // Restore the optional boundary overlay only when previously enabled.
   if (mapPreferences.overlays.navareaBoundaries) {
@@ -1679,6 +1717,26 @@ function plotWarning(w) {
           bindProgressiveFeatureInteractions(poly, w, summaryText, color);
 
           if (polygonsLayer) polygonsLayer.addLayer(poly);
+
+          // Keep tiny areas discoverable at low zoom without altering their
+          // geographic footprint. The locator is added only when the polygon
+          // projects below the minimum readable screen-space size.
+          const smallAreaIndicator = L.circleMarker(poly.getBounds().getCenter(), {
+            radius: 6,
+            color: isRestrictedArea ? '#D946EF' : '#ffffff',
+            weight: 2,
+            opacity: 1,
+            fillColor: color,
+            fillOpacity: 1,
+          });
+          bindProgressiveFeatureInteractions(
+            smallAreaIndicator,
+            w,
+            `${label} · Small area · ${areaSqNm} sq NM`,
+            color
+          );
+          smallAreaIndicators.push({ polygon: poly, indicator: smallAreaIndicator });
+
           w._layers.push(poly);
           if (!w._primaryLayer) w._primaryLayer = poly;
         });
@@ -1856,14 +1914,17 @@ window.filterMapByNavArea = function(navArea, opts) {
 
   const filtered = warnings.filter(w => w.status !== 'rejected' && inRegionScope(w.navarea, currentSelectedNavArea));
 
-  // Clear all vector layers
+  // Clear all vector layers and discard locators from the previous region.
+  smallAreaIndicators = [];
   if (pointsLayer) pointsLayer.clearLayers();
   if (polygonsLayer) polygonsLayer.clearLayers();
   if (circlesLayer) circlesLayer.clearLayers();
   if (linesLayer) linesLayer.clearLayers();
 
-  // Plot each warning into the appropriate layer
+  // Plot each warning into the appropriate layer, then apply the current
+  // zoom's minimum-visibility rules to its area geometries.
   filtered.forEach(plotWarning);
+  updateSmallAreaIndicators();
 
   rebuildMapList(filtered);
 
