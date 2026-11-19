@@ -1,5 +1,11 @@
 // ═══════════ STATE ═══════════
 let warnings = [];
+const smallAreaGeometryPromise = import('./small-area-geometry.js').catch(error => {
+  console.warn('Small-area geometry helpers unavailable:', error);
+  return null;
+});
+let smallAreaGeometry = null;
+smallAreaGeometryPromise.then(module => { smallAreaGeometry = module; });
 let publicWarningsAreCached = false;
 let publicWarningTextIncomplete = false;
 let publicWarningsAvailable = false;
@@ -234,6 +240,9 @@ document.addEventListener('keydown', e => {
 let leafletMap = null;
 let markerLayer = null;
 let pointsLayer = null, polygonsLayer = null, circlesLayer = null, linesLayer = null;
+let smallAreaIndicators = [];
+const SMALL_AREA_MIN_DIMENSION_PX = 14;
+const SMALL_AREA_MIN_BOUNDS_AREA_PX = 196;
 let currentBaseLayer = null, osmBaseLayer = null, openSeaMapLayer = null, soundingsLayer = null;
 let navareaBoundariesLayer = null;
 let navareaBoundariesLoadPromise = null;
@@ -463,6 +472,51 @@ function getLeafletMap() {
   return leafletMap && typeof leafletMap.invalidateSize === 'function' ? leafletMap : null;
 }
 
+// Show a fixed-size, clickable locator only while an area is too small to read
+// at the current map scale. The original polygon remains the source of truth.
+function updateSmallAreaIndicators() {
+  const map = getLeafletMap();
+  if (!map || !polygonsLayer || !smallAreaGeometry) return;
+
+  const placedPoints = [];
+  smallAreaIndicators.forEach(({ polygon, indicator }) => {
+    if (!polygonsLayer.hasLayer(polygon)) {
+      if (polygonsLayer.hasLayer(indicator)) polygonsLayer.removeLayer(indicator);
+      if (activeHighlightedLayer === indicator) clearActiveFeatureHighlight();
+      return;
+    }
+
+    const rings = polygon.getLatLngs().map(ring =>
+      ring.map(latlng => [latlng.lat, latlng.lng])
+    );
+    const project = ([lat, lng]) => {
+      const point = map.latLngToContainerPoint([lat, lng]);
+      return { x: point.x, y: point.y };
+    };
+    const metrics = smallAreaGeometry.getProjectedPolygonMetrics(rings, project, {
+      minDimension: SMALL_AREA_MIN_DIMENSION_PX,
+      minArea: SMALL_AREA_MIN_BOUNDS_AREA_PX,
+    });
+    const isTooSmall = !!metrics?.isTooSmall;
+
+    if (!isTooSmall) {
+      if (polygonsLayer.hasLayer(indicator)) polygonsLayer.removeLayer(indicator);
+      if (activeHighlightedLayer === indicator) clearActiveFeatureHighlight();
+      return;
+    }
+
+    const point = smallAreaGeometry.findInteriorPoint(rings, project, placedPoints);
+    if (!point) {
+      if (polygonsLayer.hasLayer(indicator)) polygonsLayer.removeLayer(indicator);
+      return;
+    }
+
+    indicator.setLatLng(map.containerPointToLatLng([point.x, point.y]));
+    placedPoints.push(point);
+    if (!polygonsLayer.hasLayer(indicator)) polygonsLayer.addLayer(indicator);
+  });
+}
+
 const NAVAREA_BOUNDARY_IDS = [
   'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
   'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI'
@@ -658,6 +712,9 @@ function initMap(){
 
   // Main warning group for backward compatibility
   markerLayer = L.layerGroup([polygonsLayer, circlesLayer, linesLayer, pointsLayer]);
+
+  // Re-evaluate fixed-size area locators after every completed zoom.
+  leafletMap.on('zoomend', updateSmallAreaIndicators);
 
   // Restore the optional boundary overlay only when previously enabled.
   if (mapPreferences.overlays.navareaBoundaries) {
@@ -1220,9 +1277,11 @@ let selectedDrawerWarnings = []; // Desktop comparison is limited to two warning
 function clearActiveFeatureHighlight() {
   if (activeHighlightedLayer) {
     if (typeof activeHighlightedLayer.setStyle === 'function') {
-      const origWeight = activeHighlightedLayer._origWeight || 2;
-      const origColor = activeHighlightedLayer._origColor || '#2563eb';
-      activeHighlightedLayer.setStyle({ weight: origWeight, color: origColor });
+      const originalStyle = activeHighlightedLayer._origStyle || {
+        weight: activeHighlightedLayer._origWeight || 2,
+        color: activeHighlightedLayer._origColor || '#2563eb',
+      };
+      activeHighlightedLayer.setStyle(originalStyle);
     }
     if (activeHighlightedLayer._icon) {
       activeHighlightedLayer._icon.classList.remove('nw-active-selected');
@@ -1458,10 +1517,18 @@ function fallbackCopyText(text, callback) {
   }
 }
 
-function bindProgressiveFeatureInteractions(layer, w, summaryText, color) {
+function bindProgressiveFeatureInteractions(layer, w, summaryText, color, onClick) {
   const wid = w.canonical_id || w.warning_id || w.id;
   layer._origWeight = layer.options?.weight || 2;
-  layer._origColor = color;
+  layer._origColor = layer.options?.color || color;
+  layer._origStyle = {
+    color: layer.options?.color,
+    weight: layer.options?.weight,
+    opacity: layer.options?.opacity,
+    fillColor: layer.options?.fillColor,
+    fillOpacity: layer.options?.fillOpacity,
+    dashArray: layer.options?.dashArray,
+  };
 
   // Desktop Hover
   layer.on('mouseover', (e) => {
@@ -1483,7 +1550,7 @@ function bindProgressiveFeatureInteractions(layer, w, summaryText, color) {
   layer.on('mouseout', () => {
     if (document.body.classList.contains('is-mobile')) return;
     if (typeof layer.setStyle === 'function') {
-      layer.setStyle({ weight: layer._origWeight, opacity: 0.95 });
+      layer.setStyle(layer._origStyle);
     }
     if (layer._icon) {
       layer._icon.classList.remove('nw-active-selected');
@@ -1509,8 +1576,77 @@ function bindProgressiveFeatureInteractions(layer, w, summaryText, color) {
       hideTitleCard(true);
     }
 
+    if (typeof onClick === 'function') {
+      onClick(e);
+      return;
+    }
     openWarningDetails(w);
   });
+}
+
+function handleSmallAreaIndicatorClick(event, warning) {
+  const map = getLeafletMap();
+  if (!map || !polygonsLayer || !map.hasLayer(polygonsLayer)) {
+    openWarningDetails(warning);
+    return;
+  }
+
+  const clickPoint = map.latLngToContainerPoint(event.latlng);
+  const collisionDistance = 14;
+  const candidates = new Map();
+
+  smallAreaIndicators.forEach(entry => {
+    if (!polygonsLayer.hasLayer(entry.indicator)) return;
+    const point = map.latLngToContainerPoint(entry.indicator.getLatLng());
+    if (Math.hypot(point.x - clickPoint.x, point.y - clickPoint.y) > collisionDistance) return;
+    const item = entry.warning;
+    const id = item.canonical_id || item.warning_id || item.id || item.title;
+    if (id != null && !candidates.has(String(id))) candidates.set(String(id), item);
+  });
+
+  const overlappingWarnings = [...candidates.values()];
+  if (overlappingWarnings.length <= 1) {
+    openWarningDetails(warning);
+    return;
+  }
+
+  const popupContent = document.createElement('div');
+  const heading = document.createElement('strong');
+  heading.textContent = `${overlappingWarnings.length} overlapping warning areas`;
+  popupContent.appendChild(heading);
+
+  overlappingWarnings.forEach(item => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-sm btn-secondary';
+    button.style.cssText = 'display:block;width:100%;margin-top:6px;text-align:left;white-space:normal';
+    const id = item.canonical_id || item.warning_id || item.id || 'Warning';
+    button.textContent = `${id} · ${item.title || 'Untitled warning'}`;
+    button.addEventListener('click', () => {
+      map.closePopup();
+      if (document.body.classList.contains('is-mobile')) {
+        const selectedEntry = smallAreaIndicators.find(entry =>
+          entry.warning === item && polygonsLayer.hasLayer(entry.indicator)
+        );
+        if (selectedEntry) {
+          clearActiveFeatureHighlight();
+          activeTouchFeature = item;
+          activeHighlightedLayer = selectedEntry.indicator;
+          selectedEntry.indicator.setStyle({
+            weight: (selectedEntry.indicator._origWeight || 2) + 2,
+            color: '#38bdf8',
+          });
+        }
+      }
+      openWarningDetails(item);
+    });
+    popupContent.appendChild(button);
+  });
+
+  L.popup({ maxWidth: 280, closeButton: true })
+    .setLatLng(event.latlng)
+    .setContent(popupContent)
+    .openOn(map);
 }
 
 // ═══════════ POLYMORPHIC PLOTTING ENGINE ═══════════
@@ -1651,21 +1787,22 @@ function plotWarning(w) {
     // A. POLYGON / AREA
     if (featType === 'POLYGON' || blob.type === 'Polygon' || featType === 'MULTIPOLYGON' || blob.type === 'MultiPolygon') {
       try {
-        let rings = [];
-        if (blob.type === 'Polygon') {
-          rings = blob.coordinates.map(ring => ring.map(([lng, lat]) => [lat, lng]));
-        } else if (blob.type === 'MultiPolygon') {
-          rings = blob.coordinates.map(poly => poly[0].map(([lng, lat]) => [lat, lng]));
-        }
+        const polygonComponents = blob.type === 'Polygon' ? [blob.coordinates] : blob.coordinates;
+        polygonComponents.forEach(componentRings => {
+          if (!Array.isArray(componentRings) || !componentRings.length) return;
+          // Keep the complete component: exterior ring plus any interior holes.
+          const latLngRings = componentRings.map(ring =>
+            ring.map(([lng, lat]) => [lat, lng])
+          );
+          const exterior = latLngRings[0];
+          if (!Array.isArray(exterior) || exterior.length < 3) return;
+          exterior.forEach(coordinate => allCoordsForBounds.push(coordinate));
 
-        rings.forEach(latLngs => {
-          if (!Array.isArray(latLngs) || latLngs.length < 3) return;
-          latLngs.forEach(c => allCoordsForBounds.push(c));
-
-          const areaSqNm = computePolygonAreaSqNm(latLngs);
-          const centroid = computeCentroid(latLngs);
-
-          const poly = L.polygon(latLngs, {
+          const areaSqNm = Math.max(0,
+            computePolygonAreaSqNm(exterior) -
+            latLngRings.slice(1).reduce((sum, hole) => sum + computePolygonAreaSqNm(hole), 0)
+          );
+          const poly = L.polygon(latLngRings, {
             // Restricted-area boundary is S-52-informed; severity remains in the fill.
             color: isRestrictedArea ? '#D946EF' : color,
             weight: 2,
@@ -1679,6 +1816,26 @@ function plotWarning(w) {
           bindProgressiveFeatureInteractions(poly, w, summaryText, color);
 
           if (polygonsLayer) polygonsLayer.addLayer(poly);
+
+          // The locator's position is recalculated from the true polygon
+          // interior; the source GeoJSON coordinates are never modified.
+          const smallAreaIndicator = L.circleMarker(poly.getBounds().getCenter(), {
+            radius: 6,
+            color: isRestrictedArea ? '#D946EF' : '#ffffff',
+            weight: 2,
+            opacity: 1,
+            fillColor: color,
+            fillOpacity: 1,
+          });
+          bindProgressiveFeatureInteractions(
+            smallAreaIndicator,
+            w,
+            `${label} · Small area · ${areaSqNm} sq NM`,
+            color,
+            event => handleSmallAreaIndicatorClick(event, w)
+          );
+          smallAreaIndicators.push({ polygon: poly, indicator: smallAreaIndicator, warning: w });
+
           w._layers.push(poly);
           if (!w._primaryLayer) w._primaryLayer = poly;
         });
@@ -1855,15 +2012,23 @@ window.filterMapByNavArea = function(navArea, opts) {
   }
 
   const filtered = warnings.filter(w => w.status !== 'rejected' && inRegionScope(w.navarea, currentSelectedNavArea));
+  if (currentDrawerWarning && !filtered.includes(currentDrawerWarning)) {
+    closeWarningDrawer();
+  }
 
-  // Clear all vector layers
+  // Clear highlight references before their old Leaflet layers are discarded.
+  clearActiveFeatureHighlight();
+  // Clear all vector layers and discard locators from the previous region.
+  smallAreaIndicators = [];
   if (pointsLayer) pointsLayer.clearLayers();
   if (polygonsLayer) polygonsLayer.clearLayers();
   if (circlesLayer) circlesLayer.clearLayers();
   if (linesLayer) linesLayer.clearLayers();
 
-  // Plot each warning into the appropriate layer
+  // Plot each warning into the appropriate layer, then apply the current
+  // zoom's minimum-visibility rules to its area geometries.
   filtered.forEach(plotWarning);
+  updateSmallAreaIndicators();
 
   rebuildMapList(filtered);
 
@@ -3345,6 +3510,7 @@ async function loadWarnings() {
 }
 document.addEventListener('DOMContentLoaded', async ()=>{
   detectDevice();
+  smallAreaGeometry = await smallAreaGeometryPromise;
   // Regional page deep link: /?navarea=NA+IV preselects the map region
   // (linked from the prerendered /navarea/<RN> regional pages).
   try {
