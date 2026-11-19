@@ -876,8 +876,9 @@ window.toggleMobileMapExpanded = function(explicitState) {
   const map = getLeafletMap();
   requestAnimationFrame(() => {
     if (!map) return;
-    map.invalidateSize();
-    setTimeout(() => map.invalidateSize(), 320);
+    // Resize without Leaflet's compensating pan so the geographic centre stays fixed.
+    map.invalidateSize({ pan: false });
+    setTimeout(() => map.invalidateSize({ pan: false }), 320);
   });
 };
 
