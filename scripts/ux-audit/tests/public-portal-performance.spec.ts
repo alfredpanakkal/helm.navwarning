@@ -685,6 +685,10 @@ test.describe('public NAVAREA snapshot cache', () => {
     });
 
     await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('input[name="basemap-desktop"]')).toHaveCount(3);
+    await expect(page.locator('input[name="basemap-desktop"][value="auto"]')).toHaveCount(0);
+    await expect(page.locator('input[name="basemap-desktop"][value="carto-positron"], input[name="basemap-desktop"][value="esri-ocean"]')).toHaveCount(0);
+    await expect(page.locator('#mapSettingsPopover')).toContainText('OpenStreetMap in Light Mode and CARTO Dark Matter in Dark Mode');
 
     const baseMapUrl = () => page.evaluate(() => {
       const map = (window as any).map;
@@ -748,6 +752,21 @@ test.describe('public NAVAREA snapshot cache', () => {
     expect(osmPreference).toBe('osm');
     await expect(page.locator('input[name="basemap-desktop"][value="osm"]')).toBeChecked();
 
+    await page.evaluate(() => (window as any).resetMapSettingsToDefaults());
+    const resetPreference = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}').baseMap
+    );
+    expect(resetPreference).toBe('auto');
+    await expect.poll(baseMapUrl).toContain('/dark_all/');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.locator('#btnMapSettings').click();
+    await expect(page.locator('input[name="basemap-mobile"]')).toHaveCount(3);
+    await expect(page.locator('input[name="basemap-mobile"][value="auto"]')).toHaveCount(0);
+    await expect(page.locator('input[name="basemap-mobile"][value="carto-positron"], input[name="basemap-mobile"][value="esri-ocean"]')).toHaveCount(0);
+    await expect(page.locator('#mapSettingsSheet')).toContainText('OpenStreetMap in Light Mode and CARTO Dark Matter in Dark Mode');
+
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
 
@@ -761,14 +780,15 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => Boolean((window as any).hwMap));
 
-    const legacyValues = ['carto-positron', 'esri-ocean', 'invalid-basemap'];
+    const legacyValues = ['auto', 'carto-positron', 'esri-ocean', 'invalid-basemap', undefined];
     for (const legacyValue of legacyValues) {
       await page.evaluate((baseMap) => {
-        localStorage.setItem('helm_map_preferences_v1', JSON.stringify({
-          baseMap,
+        const saved: Record<string, unknown> = {
           masterOverlays: false,
           overlays: { points: false, seamarks: false, soundings: true },
-        }));
+        };
+        if (baseMap !== undefined) saved.baseMap = baseMap;
+        localStorage.setItem('helm_map_preferences_v1', JSON.stringify(saved));
       }, legacyValue);
       await page.reload({ waitUntil: 'domcontentloaded' });
       await expect.poll(() => page.evaluate(() =>
