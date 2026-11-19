@@ -268,11 +268,17 @@ function loadMapPreferences() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
-        return {
-          baseMap: parsed.baseMap || 'auto',
+        const allowedBaseMaps = ['auto', 'osm', 'carto-voyager', 'carto-dark'];
+        const savedBaseMap = parsed.baseMap;
+        const baseMap = allowedBaseMaps.includes(savedBaseMap) ? savedBaseMap : 'auto';
+        const preferences = {
+          baseMap,
           masterOverlays: parsed.masterOverlays !== false,
           overlays: { ...DEFAULT_MAP_PREFERENCES.overlays, ...(parsed.overlays || {}) }
         };
+        // Migrate retired or invalid basemap IDs without disturbing overlay settings.
+        if (savedBaseMap !== baseMap) saveMapPreferences(preferences);
+        return preferences;
       }
     }
   } catch (e) {
@@ -300,7 +306,7 @@ let lastFittedNavArea = null;
 const BASE_MAP_DEFS = {
   'osm': {
     name: 'OpenStreetMap',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    url: '/api/tiles/osm/{z}/{x}/{y}',
     maxZoom: 19,
     attribution: '© OpenStreetMap contributors · OpenSeaMap'
   },
@@ -316,18 +322,6 @@ const BASE_MAP_DEFS = {
     maxZoom: 19,
     attribution: '© OpenStreetMap contributors · CARTO · OpenSeaMap'
   },
-  'carto-positron': {
-    name: 'CARTO Positron',
-    url: '/api/tiles/carto/light_all/{z}/{x}/{y}',
-    maxZoom: 19,
-    attribution: '© OpenStreetMap contributors · CARTO · OpenSeaMap'
-  },
-  'esri-ocean': {
-    name: 'ESRI Ocean Base',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
-    maxZoom: 13,
-    attribution: 'Tiles © Esri — GEBCO, NOAA · OpenSeaMap'
-  }
 };
 
 function resolveBaseMapId(preference) {
@@ -339,14 +333,14 @@ function resolveBaseMapId(preference) {
   } catch (e) { /* use the browser preference */ }
 
   if (themePreference === 'dark' || themePreference === 'night') return 'carto-dark';
-  if (themePreference === 'light') return 'carto-positron';
+  if (themePreference === 'light') return 'osm';
 
   try {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
       ? 'carto-dark'
-      : 'carto-positron';
+      : 'osm';
   } catch (e) {
-    return 'carto-positron';
+    return 'osm';
   }
 }
 
@@ -662,7 +656,7 @@ function initMap(){
 
   // Base cartography follows the saved preference, or the active appearance theme in Auto mode.
   currentBaseMapId = resolveBaseMapId(mapPreferences.baseMap);
-  const baseDef = BASE_MAP_DEFS[currentBaseMapId] || BASE_MAP_DEFS['carto-positron'];
+  const baseDef = BASE_MAP_DEFS[currentBaseMapId] || BASE_MAP_DEFS['osm'];
   currentBaseLayer = L.tileLayer(baseDef.url, {
     maxZoom: baseDef.maxZoom,
     attribution: baseDef.attribution,
@@ -1104,11 +1098,12 @@ function setupTitleCardSwipeDismiss() {
 // ═══════════ SETTINGS CONTROLLERS & PERSISTENCE ═══════════
 window.syncSettingsUI = function(prefs) {
   if (!prefs) prefs = mapPreferences;
+  const activeBaseMapId = resolveBaseMapId(prefs.baseMap);
   document.querySelectorAll('input[name="basemap-desktop"]').forEach(r => {
-    r.checked = (r.value === prefs.baseMap);
+    r.checked = (r.value === activeBaseMapId);
   });
   document.querySelectorAll('input[name="basemap-mobile"]').forEach(r => {
-    r.checked = (r.value === prefs.baseMap);
+    r.checked = (r.value === activeBaseMapId);
   });
 
   const keys = ['points', 'polygons', 'circles', 'lines', 'seamarks', 'soundings', 'navareaBoundaries'];

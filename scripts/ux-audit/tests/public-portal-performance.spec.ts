@@ -674,7 +674,7 @@ test.describe('public NAVAREA snapshot cache', () => {
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
 
-  test('automatic CARTO basemap follows appearance and manual choices persist', async ({ page }) => {
+  test('automatic basemap follows appearance and manual choices persist', async ({ page }) => {
     const errors = watchPageErrors(page);
     await page.emulateMedia({ colorScheme: 'dark' });
     await installPublicApiMock(page, {
@@ -685,13 +685,20 @@ test.describe('public NAVAREA snapshot cache', () => {
     });
 
     await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('input[name="basemap-desktop"]')).toHaveCount(3);
+    await expect(page.locator('input[name="basemap-desktop"][value="auto"]')).toHaveCount(0);
+    await expect(page.locator('input[name="basemap-desktop"][value="carto-positron"], input[name="basemap-desktop"][value="esri-ocean"]')).toHaveCount(0);
+    await expect(page.locator('#mapSettingsPopover')).toContainText('OpenStreetMap in Light Mode and CARTO Dark Matter in Dark Mode');
 
     const baseMapUrl = () => page.evaluate(() => {
       const map = (window as any).map;
       if (!map) return null;
       let url: string | null = null;
       map.eachLayer((layer: any) => {
-        if (typeof layer?._url === 'string' && layer._url.includes('/api/tiles/carto/')) url = layer._url;
+        if (typeof layer?._url === 'string' && (
+          layer._url.includes('/api/tiles/carto/') ||
+          layer._url.includes('/api/tiles/osm/')
+        )) url = layer._url;
       });
       return url;
     });
@@ -703,10 +710,10 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.evaluate(() => (document.querySelector('[data-theme-set="night"]') as HTMLButtonElement).click());
     await expect.poll(baseMapUrl).toContain('/dark_all/');
     await page.evaluate(() => (document.querySelector('[data-theme-set="light"]') as HTMLButtonElement).click());
-    await expect.poll(baseMapUrl).toContain('/light_all/');
+    await expect.poll(baseMapUrl).toContain('/api/tiles/osm/');
     await page.evaluate(() => (document.querySelector('[data-theme-set="system"]') as HTMLButtonElement).click());
     await page.emulateMedia({ colorScheme: 'light' });
-    await expect.poll(baseMapUrl).toContain('/light_all/');
+    await expect.poll(baseMapUrl).toContain('/api/tiles/osm/');
 
     await page.evaluate(() => (window as any).selectBaseMap('carto-voyager'));
     await expect.poll(baseMapUrl).toContain('/voyager/');
@@ -732,20 +739,84 @@ test.describe('public NAVAREA snapshot cache', () => {
       const map = (window as any).map;
       let url: string | null = null;
       map?.eachLayer((layer: any) => {
-        if (typeof layer?._url === 'string' && layer._url.includes('tile.openstreetmap.org')) url = layer._url;
+        if (typeof layer?._url === 'string' && layer._url.includes('/api/tiles/osm/')) url = layer._url;
       });
       return url;
     });
-    await expect.poll(osmBaseMapUrl).toContain('tile.openstreetmap.org');
+    await expect.poll(osmBaseMapUrl).toContain('/api/tiles/osm/');
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect.poll(osmBaseMapUrl).toContain('tile.openstreetmap.org');
+    await expect.poll(osmBaseMapUrl).toContain('/api/tiles/osm/');
     const osmPreference = await page.evaluate(() =>
       JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}').baseMap
     );
     expect(osmPreference).toBe('osm');
     await expect(page.locator('input[name="basemap-desktop"][value="osm"]')).toBeChecked();
 
+    await page.evaluate(() => (window as any).resetMapSettingsToDefaults());
+    const resetPreference = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}').baseMap
+    );
+    expect(resetPreference).toBe('auto');
+    await expect.poll(baseMapUrl).toContain('/dark_all/');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.locator('#btnMapSettings').click();
+    await expect(page.locator('input[name="basemap-mobile"]')).toHaveCount(3);
+    await expect(page.locator('input[name="basemap-mobile"][value="auto"]')).toHaveCount(0);
+    await expect(page.locator('input[name="basemap-mobile"][value="carto-positron"], input[name="basemap-mobile"][value="esri-ocean"]')).toHaveCount(0);
+    await expect(page.locator('#mapSettingsSheet')).toContainText('OpenStreetMap in Light Mode and CARTO Dark Matter in Dark Mode');
+
     expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
+  test('legacy basemap preferences migrate without changing overlay settings', async ({ page }) => {
+    await installPublicApiMock(page, {
+      spatialRows: [],
+      textRows: [],
+      fail: false,
+      delayMs: 0,
+    });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+
+    const legacyValues = ['auto', 'carto-positron', 'esri-ocean', 'invalid-basemap', undefined];
+    for (const legacyValue of legacyValues) {
+      await page.evaluate((baseMap) => {
+        const saved: Record<string, unknown> = {
+          masterOverlays: false,
+          overlays: { points: false, polygons: true, seamarks: false, soundings: true },
+        };
+        if (baseMap !== undefined) saved.baseMap = baseMap;
+        localStorage.setItem('helm_map_preferences_v1', JSON.stringify(saved));
+      }, legacyValue);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect.poll(() => page.evaluate(() =>
+        JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}').baseMap
+      )).toBe('auto');
+      const migrated = await page.evaluate(() =>
+        JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}')
+      );
+      expect(migrated.masterOverlays).toBe(false);
+      expect(migrated.overlays.points).toBe(false);
+      expect(migrated.overlays.seamarks).toBe(false);
+      expect(migrated.overlays.soundings).toBe(true);
+      expect(migrated.overlays.polygons).toBe(true);
+    }
+
+    for (const manualValue of ['osm', 'carto-voyager', 'carto-dark']) {
+      await page.evaluate((baseMap) => {
+        localStorage.setItem('helm_map_preferences_v1', JSON.stringify({
+          baseMap,
+          masterOverlays: false,
+          overlays: { points: false },
+        }));
+      }, manualValue);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect.poll(() => page.evaluate(() =>
+        JSON.parse(localStorage.getItem('helm_map_preferences_v1') || '{}').baseMap
+      )).toBe(manualValue);
+    }
   });
 
   test('NAVAREA boundaries load on demand, persist, and stay beneath warning layers', async ({ page }) => {

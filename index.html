@@ -829,10 +829,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
       </div>
       <div class="settings-body">
         <div class="settings-section-title">Base Map</div>
-        <label class="settings-item">
-          <input type="radio" name="basemap-desktop" value="auto" checked onchange="selectBaseMap(this.value)">
-          <span>Automatic · Match appearance</span>
-        </label>
+        <p class="settings-description" style="margin:6px 0 10px;font-size:11px;line-height:1.45;color:var(--text-muted)">Default basemap follows appearance: OpenStreetMap in Light Mode and CARTO Dark Matter in Dark Mode. You can select another basemap manually.</p>
         <label class="settings-item">
           <input type="radio" name="basemap-desktop" value="osm" onchange="selectBaseMap(this.value)">
           <span>OpenStreetMap</span>
@@ -844,14 +841,6 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
         <label class="settings-item">
           <input type="radio" name="basemap-desktop" value="carto-dark" onchange="selectBaseMap(this.value)">
           <span>CARTO Dark Matter</span>
-        </label>
-        <label class="settings-item">
-          <input type="radio" name="basemap-desktop" value="carto-positron" onchange="selectBaseMap(this.value)">
-          <span>CARTO Positron</span>
-        </label>
-        <label class="settings-item">
-          <input type="radio" name="basemap-desktop" value="esri-ocean" onchange="selectBaseMap(this.value)">
-          <span>ESRI Ocean Base</span>
         </label>
 
         <div class="settings-divider"></div>
@@ -1341,10 +1330,7 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   </div>
   <div class="settings-body">
     <div class="settings-section-title">Base Map</div>
-    <label class="settings-item">
-      <input type="radio" name="basemap-mobile" value="auto" checked onchange="selectBaseMap(this.value)">
-      <span>Automatic · Match appearance</span>
-    </label>
+    <p class="settings-description" style="margin:6px 0 10px;font-size:11px;line-height:1.45;color:var(--text-muted)">Default basemap follows appearance: OpenStreetMap in Light Mode and CARTO Dark Matter in Dark Mode. You can select another basemap manually.</p>
     <label class="settings-item">
       <input type="radio" name="basemap-mobile" value="osm" onchange="selectBaseMap(this.value)">
       <span>OpenStreetMap</span>
@@ -1356,14 +1342,6 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
     <label class="settings-item">
       <input type="radio" name="basemap-mobile" value="carto-dark" onchange="selectBaseMap(this.value)">
       <span>CARTO Dark Matter</span>
-    </label>
-    <label class="settings-item">
-      <input type="radio" name="basemap-mobile" value="carto-positron" onchange="selectBaseMap(this.value)">
-      <span>CARTO Positron</span>
-    </label>
-    <label class="settings-item">
-      <input type="radio" name="basemap-mobile" value="esri-ocean" onchange="selectBaseMap(this.value)">
-      <span>ESRI Ocean Base</span>
     </label>
 
     <div class="settings-divider"></div>
