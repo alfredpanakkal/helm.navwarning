@@ -853,6 +853,13 @@ window.toggleMobileMapExpanded = function(explicitState) {
   const nextState = typeof explicitState === 'boolean' ? explicitState : !isExpanded;
   if (nextState === isExpanded) return;
 
+  // Read Leaflet's geographic view before changing layout or scroll position.
+  // getCenter() uses the container's current dimensions, so reading it after
+  // the CSS mode switch can capture a transient, shifted centre.
+  const map = getLeafletMap();
+  const preservedCenter = map ? map.getCenter() : null;
+  const preservedZoom = map ? map.getZoom() : null;
+
   if (nextState) mobileMapPreviousScrollY = window.scrollY;
   document.body.classList.toggle('mobile-map-expanded', nextState);
   document.documentElement.classList.toggle('mobile-map-expanded', nextState);
@@ -875,12 +882,9 @@ window.toggleMobileMapExpanded = function(explicitState) {
   }
 
   window.scrollTo({ top: nextState ? 0 : mobileMapPreviousScrollY, behavior: 'instant' });
-  const map = getLeafletMap();
   if (!map) return;
 
   // Keep the geographic view fixed while the map container changes dimensions.
-  const preservedCenter = map.getCenter();
-  const preservedZoom = map.getZoom();
   const refreshMapSize = () => {
     mobileMapResizeFrame = null;
     mobileMapResizeTimer = null;
