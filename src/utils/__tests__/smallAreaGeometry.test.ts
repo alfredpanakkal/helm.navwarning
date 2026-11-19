@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
+// @ts-expect-error The browser-served ES module is exercised directly by Vitest.
 import { findInteriorPoint, getProjectedPolygonMetrics } from '../../../public/assets/js/small-area-geometry.js';
 
-const identity = ([x, y]) => ({ x, y });
+type Point = { x: number; y: number };
+
+const identity = ([x, y]: number[]) => ({ x, y });
 const square = [[0, 0], [20, 0], [20, 20], [0, 20], [0, 0]];
 
-function pointInRing(point, ring) {
+function pointInRing(point: Point, ring: number[][]) {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const [xi, yi] = ring[i];
