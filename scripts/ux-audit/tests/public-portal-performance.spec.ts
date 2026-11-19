@@ -290,7 +290,59 @@ test.describe('public workspace interaction regressions', () => {
     await expect(page.locator('body')).not.toHaveClass(/map-focus-active/);
   });
 
-  test('mobile Escape exits map focus mode directly', async ({ page }) => {
+
+  test('mobile page remains scrollable until map interaction, then expands and restores', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installPublicApiMock(page, emptyState());
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() =>
+      document.body.classList.contains('is-mobile') && Boolean((window as any).hwMap)
+    );
+
+    const initial = await page.evaluate(() => ({
+      expanded: document.body.classList.contains('mobile-map-expanded'),
+      footerVisible: getComputedStyle(document.querySelector('.site-footer')!).display !== 'none',
+      pageScrollable: document.documentElement.scrollHeight > window.innerHeight,
+      mapHeight: document.querySelector('.map-container')!.getBoundingClientRect().height,
+      viewportHeight: window.innerHeight,
+    }));
+    expect(initial.expanded).toBe(false);
+    expect(initial.footerVisible).toBe(true);
+    expect(initial.pageScrollable).toBe(true);
+    expect(initial.mapHeight).toBeLessThan(initial.viewportHeight);
+
+    await page.evaluate(() => {
+      const map = (window as any).hwMap;
+      (window as any).__mobileExpansionMap = map;
+      const center = map.getCenter();
+      (window as any).__mobileExpansionView = { lat: center.lat, lng: center.lng, zoom: map.getZoom() };
+    });
+    await page.locator('#map').click({ position: { x: 90, y: 90 } });
+
+    await expect(page.locator('body')).toHaveClass(/mobile-map-expanded/);
+    await expect(page.locator('.site-header')).toBeVisible();
+    await expect(page.locator('.site-footer')).toBeHidden();
+    await expect(page.locator('#btnMobileMapRestore')).toBeVisible();
+
+    await page.locator('#btnMobileMapRestore').click();
+    await expect(page.locator('body')).not.toHaveClass(/mobile-map-expanded/);
+    await expect(page.locator('.site-footer')).toBeVisible();
+
+    const restored = await page.evaluate(() => {
+      const map = (window as any).hwMap;
+      const before = (window as any).__mobileExpansionView;
+      const center = map.getCenter();
+      return {
+        sameMapInstance: map === (window as any).__mobileExpansionMap,
+        sameZoom: map.getZoom() === before.zoom,
+        sameCenter: Math.abs(center.lat - before.lat) < 0.000001 &&
+          Math.abs(center.lng - before.lng) < 0.000001,
+      };
+    });
+    expect(restored).toEqual({ sameMapInstance: true, sameZoom: true, sameCenter: true });
+  });
+
+  test('mobile Escape restores the full page from expanded map view', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installPublicApiMock(page, emptyState());
     await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -299,9 +351,11 @@ test.describe('public workspace interaction regressions', () => {
     );
 
     await page.locator('#btnMapFocus').click();
-    await expect(page.locator('body')).toHaveClass(/map-focus-active/);
+    await expect(page.locator('body')).toHaveClass(/mobile-map-expanded/);
+    await expect(page.locator('.site-header')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.locator('body')).not.toHaveClass(/map-focus-active/);
+    await expect(page.locator('body')).not.toHaveClass(/mobile-map-expanded/);
+    await expect(page.locator('.site-footer')).toBeVisible();
     await expect(page.locator('#btnMapFocus')).toHaveAttribute('aria-pressed', 'false');
   });
 
