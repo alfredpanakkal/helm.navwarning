@@ -99,6 +99,7 @@ function detectDevice(){
   if(w<=768||(ua&&w<=1024)) document.body.classList.add('is-mobile');
   else if(w<=1024) document.body.classList.add('is-tablet');
   else document.body.classList.add('is-desktop');
+  document.documentElement.classList.toggle('is-mobile', document.body.classList.contains('is-mobile'));
 }
 function debounce(fn,d){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),d)}}
 window.addEventListener('resize',debounce(()=>{
@@ -149,6 +150,9 @@ window.switchTab = function(tab){
   }
 
   const isMap = (tab === 'map');
+  if (!isMap && document.body.classList.contains('mobile-map-expanded')) {
+    toggleMobileMapExpanded(false);
+  }
   document.body.classList.toggle('tab-map-active', isMap);
   document.documentElement.classList.toggle('tab-map-active', isMap);
 
@@ -206,6 +210,12 @@ document.addEventListener('keydown', e => {
     const modal = document.getElementById('warningModal');
     if (modal && modal.classList.contains('open')) {
       closeWarningModal();
+      e.stopImmediatePropagation();
+      return;
+    }
+    if (document.body.classList.contains('is-mobile') &&
+        document.body.classList.contains('mobile-map-expanded')) {
+      toggleMobileMapExpanded(false);
       e.stopImmediatePropagation();
       return;
     }
@@ -723,6 +733,9 @@ function initMap(){
     closeMapSettings();
   });
 
+  // Mobile map expands only after a deliberate pointer interaction with the map canvas.
+  setupMobileMapExpansion();
+
   // Maximum Map View: Auto-collapse top controls on map interaction
   setupMapInteractionAutoCollapse(leafletMap);
 
@@ -829,9 +842,69 @@ window.toggleMapTopControls = function(forceState) {
   }
 };
 
+let mobileMapPreviousScrollY = 0;
+
+window.toggleMobileMapExpanded = function(explicitState) {
+  if (!document.body.classList.contains('is-mobile')) return;
+
+  const isExpanded = document.body.classList.contains('mobile-map-expanded');
+  const nextState = typeof explicitState === 'boolean' ? explicitState : !isExpanded;
+  if (nextState === isExpanded) return;
+
+  if (nextState) mobileMapPreviousScrollY = window.scrollY;
+  document.body.classList.toggle('mobile-map-expanded', nextState);
+  document.documentElement.classList.toggle('mobile-map-expanded', nextState);
+
+  const restoreButton = document.getElementById('btnMobileMapRestore');
+  if (restoreButton) restoreButton.hidden = !nextState;
+
+  const focusButton = document.getElementById('btnMapFocus');
+  const iconMax = document.getElementById('iconMapFocusMax');
+  const iconMin = document.getElementById('iconMapFocusMin');
+  if (iconMax && iconMin) {
+    iconMax.style.display = nextState ? 'none' : 'block';
+    iconMin.style.display = nextState ? 'block' : 'none';
+  }
+  if (focusButton) {
+    focusButton.classList.toggle('active', nextState);
+    focusButton.setAttribute('aria-pressed', nextState ? 'true' : 'false');
+    focusButton.setAttribute('aria-label', nextState ? 'Restore full page view' : 'Expand map to full available height');
+    focusButton.title = nextState ? 'Restore full page view' : 'Expand map view';
+  }
+
+  window.scrollTo({ top: nextState ? 0 : mobileMapPreviousScrollY, behavior: 'instant' });
+  const map = getLeafletMap();
+  requestAnimationFrame(() => {
+    if (!map) return;
+    map.invalidateSize();
+    setTimeout(() => map.invalidateSize(), 320);
+  });
+};
+
+function setupMobileMapExpansion() {
+  const mapElement = document.getElementById('map');
+  if (!mapElement || mapElement.dataset.mobileExpansionBound === 'true') return;
+
+  mapElement.dataset.mobileExpansionBound = 'true';
+  mapElement.addEventListener('pointerup', event => {
+    if (!event.isTrusted ||
+        !document.body.classList.contains('is-mobile') ||
+        !document.body.classList.contains('tab-map-active')) return;
+    toggleMobileMapExpanded(true);
+  }, { passive: true });
+}
+
 let mapFocusTransitionTimer = null;
 
 window.toggleMapFocusMode = function(explicitState) {
+  if (document.body.classList.contains('is-mobile')) {
+    const nextState = typeof explicitState === 'boolean'
+      ? explicitState
+      : !document.body.classList.contains('mobile-map-expanded');
+    toggleMobileMapExpanded(nextState);
+    return;
+  }
+
   const workspace = document.querySelector('.public-warning-workspace');
   const isDesktopWorkspace = document.body.classList.contains('is-desktop') &&
     window.matchMedia('(min-width: 1440px)').matches && workspace;
