@@ -1992,11 +1992,7 @@ function addMarker(w) {
 }
 
 window.filterMapByNavArea = function(navArea, opts) {
-  const previousSelectedNavArea = currentSelectedNavArea;
   currentSelectedNavArea = navArea || '';
-  if (previousSelectedNavArea !== currentSelectedNavArea) {
-    clearActiveFeatureHighlight();
-  }
   try { localStorage.setItem('hw-navarea', currentSelectedNavArea || 'ALL'); } catch (e) { /* private mode: ignore */ }
 
   const mapSelect = document.getElementById('mapNavAreaSelect');
