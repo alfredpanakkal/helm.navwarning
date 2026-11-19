@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-// @ts-expect-error The browser-served ES module is exercised directly by Vitest.
 import { findInteriorPoint, getProjectedPolygonMetrics } from '../../../public/assets/js/small-area-geometry.js';
 
 type Point = { x: number; y: number };
