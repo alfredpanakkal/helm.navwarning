@@ -837,12 +837,14 @@ window.toggleMapTopControls = function(forceState) {
   // Trigger leaflet map resize after smooth layout expansion
   const m = getLeafletMap();
   if (m) {
-    setTimeout(() => m.invalidateSize(), 160);
-    setTimeout(() => m.invalidateSize(), 320);
+    setTimeout(() => m.invalidateSize({ pan: false }), 160);
+    setTimeout(() => m.invalidateSize({ pan: false }), 320);
   }
 };
 
 let mobileMapPreviousScrollY = 0;
+let mobileMapResizeFrame = null;
+let mobileMapResizeTimer = null;
 
 window.toggleMobileMapExpanded = function(explicitState) {
   if (!document.body.classList.contains('is-mobile')) return;
@@ -880,12 +882,18 @@ window.toggleMobileMapExpanded = function(explicitState) {
   const preservedCenter = map.getCenter();
   const preservedZoom = map.getZoom();
   const refreshMapSize = () => {
+    mobileMapResizeFrame = null;
+    mobileMapResizeTimer = null;
     map.invalidateSize({ pan: false });
     map.setView(preservedCenter, preservedZoom, { animate: false });
   };
 
-  requestAnimationFrame(refreshMapSize);
-  setTimeout(refreshMapSize, 320);
+  // A rapid expand/restore can otherwise leave the earlier transition's
+  // delayed refresh running against the restored layout and stale view.
+  if (mobileMapResizeFrame !== null) cancelAnimationFrame(mobileMapResizeFrame);
+  if (mobileMapResizeTimer !== null) clearTimeout(mobileMapResizeTimer);
+  mobileMapResizeFrame = requestAnimationFrame(refreshMapSize);
+  mobileMapResizeTimer = setTimeout(refreshMapSize, 320);
 };
 
 function setupMobileMapExpansion() {
