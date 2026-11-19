@@ -327,6 +327,8 @@ test.describe('public workspace interaction regressions', () => {
     await page.locator('#btnMobileMapRestore').click();
     await expect(page.locator('body')).not.toHaveClass(/mobile-map-expanded/);
     await expect(page.locator('.site-footer')).toBeVisible();
+    // Wait for the map's post-transition size refresh before checking its view.
+    await page.waitForTimeout(400);
 
     const restored = await page.evaluate(() => {
       const map = (window as any).hwMap;
