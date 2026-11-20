@@ -646,7 +646,7 @@ if (workspace && panel && content && toggleButton) {
       '<div class="voyage-planner-field is-wide"><label for="voyageRouteName">Route name</label><input id="voyageRouteName" name="name" maxlength="80" required value="' + escapeHtml(route.name) + '"' + (storageBlocked || !draftRoute ? ' disabled' : '') + '></div>' +
       '<div class="voyage-planner-field"><label for="voyageWarningRange">Warning search distance (NM)</label><input id="voyageWarningRange" name="warningRangeNm" type="number" min="1" max="100" step="1" required value="' + route.warningRangeNm + '"' + (storageBlocked || !draftRoute ? ' disabled' : '') + '></div>' +
       '</div><div class="voyage-planner-actions"><button class="voyage-planner-btn" type="submit"' + (storageBlocked || !draftRoute ? ' disabled' : '') + '>Update draft settings</button></div></form>' +
-      (draftRoute ? '<div class="voyage-planner-actions"><button class="voyage-planner-btn is-primary" type="button" data-action="save-route"' + (storageBlocked || addMode ? ' disabled' : '') + '>Save completed route</button><button class="voyage-planner-btn" type="button" data-action="cancel-draft">Cancel draft</button></div>' : '') +
+      (draftRoute ? '<div class="voyage-planner-actions"><button class="voyage-planner-btn is-primary" type="button" data-action="save-route"' + (storageBlocked || addMode ? ' disabled' : '') + '>Save completed route</button></div>' : '') +
       '<div class="voyage-planner-actions voyage-route-management">' +
       '<button class="voyage-planner-btn" type="button" data-action="duplicate-route"' + (storageBlocked || draftRoute ? ' disabled' : '') + '>Duplicate route</button>' +
       '<button class="voyage-planner-btn is-danger" type="button" data-action="delete-route"' + (storageBlocked || draftRoute ? ' disabled' : '') + '>Delete route</button>' +
@@ -982,7 +982,7 @@ if (workspace && panel && content && toggleButton) {
     if (panel.hidden || !draftRoute) return;
     const target = event.target;
     const editingText = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement ||
-      target instanceof HTMLSelectElement || (target instanceof HTMLElement && target.isContentEditable);
+      target instanceof HTMLSelectElement || (target instanceof HTMLElement && (target.isContentEditable || Boolean(target.closest('button, a, [role="button"]'))));
     if (editingText || event.altKey) return;
     if (event.key === 'Escape' && addMode) {
       event.preventDefault();
