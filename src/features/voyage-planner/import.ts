@@ -41,17 +41,27 @@ function parseGeoJson(value: unknown, fileName: string): RouteImportResult {
     const geometry = feature.geometry;
     const featureType = typeof properties.featureType === 'string' ? properties.featureType.toLowerCase() : null;
     if (featureType === 'route') {
-      if (geometry.type === 'LineString' && Array.isArray(geometry.coordinates)) {
+      if (geometry.type === 'LineString') {
+        if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length < 2) {
+          skipped += 1;
+          return;
+        }
         geometry.coordinates.forEach((coordinate) => {
           if (!parsePosition(coordinate)) skipped += 1;
         });
-      } else if (geometry.type === 'MultiLineString' && Array.isArray(geometry.coordinates)) {
+      } else if (geometry.type === 'MultiLineString') {
+        if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length === 0) {
+          skipped += 1;
+          return;
+        }
         geometry.coordinates.forEach((line) => {
-          if (!Array.isArray(line)) { skipped += 1; return; }
+          if (!Array.isArray(line) || line.length < 2) { skipped += 1; return; }
           line.forEach((coordinate) => {
             if (!parsePosition(coordinate)) skipped += 1;
           });
         });
+      } else {
+        skipped += 1;
       }
       return;
     }
