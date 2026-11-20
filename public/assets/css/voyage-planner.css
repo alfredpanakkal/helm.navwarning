@@ -154,5 +154,5 @@
     max-height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
   .voyage-waypoint-row{grid-template-columns:minmax(0,1fr) auto}
-  .voyage-waypoint-controls button{width:42px;height:42px;min-width:42px;min-height:42px}
+  .voyage-waypoint-controls button{width:44px;height:44px;min-width:44px;min-height:44px}
 }
