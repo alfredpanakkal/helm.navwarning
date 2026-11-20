@@ -50,7 +50,52 @@ describe('route import', () => {
     expect(parseRouteImport(JSON.stringify({
       type: 'Feature', geometry: { type: 'Point', coordinates: [200, 91] }, properties: {},
     }), 'route.json')).toEqual({
-      ok: false, error: 'The file must contain at least two valid route points.',
+      ok: false, error: '1 route point(s) have invalid coordinates. Nothing was imported.',
+    });
+  });
+
+
+  it('rejects a GeoJSON waypoint collection when a latitude is out of range', () => {
+    const result = parseRouteImport(JSON.stringify({
+      type: 'FeatureCollection',
+      features: [1, 2, 3].map((sequence) => ({
+        type: 'Feature',
+        properties: { featureType: 'waypoint', sequence, name: 'WP ' + sequence },
+        geometry: { type: 'Point', coordinates: sequence === 2 ? [70, 91] : [69 + sequence, 8 + sequence] },
+      })),
+    }), 'invalid-latitude.geojson');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain('invalid coordinates');
+  });
+
+  it('rejects a GeoJSON waypoint collection when a longitude is out of range', () => {
+    const result = parseRouteImport(JSON.stringify({
+      type: 'FeatureCollection',
+      features: [1, 2, 3].map((sequence) => ({
+        type: 'Feature',
+        properties: { featureType: 'waypoint', sequence, name: 'WP ' + sequence },
+        geometry: { type: 'Point', coordinates: sequence === 2 ? [181, 8] : [69 + sequence, 8 + sequence] },
+      })),
+    }), 'invalid-longitude.geojson');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain('invalid coordinates');
+  });
+
+  it('continues to import a valid two-point GeoJSON route unchanged', () => {
+    const result = parseRouteImport(JSON.stringify({
+      type: 'FeatureCollection',
+      features: [
+        { type: 'Feature', properties: { featureType: 'waypoint', sequence: 1, name: 'Start' }, geometry: { type: 'Point', coordinates: [70, 8] } },
+        { type: 'Feature', properties: { featureType: 'waypoint', sequence: 2, name: 'Finish' }, geometry: { type: 'Point', coordinates: [71, 9] } },
+      ],
+    }), 'valid.geojson');
+    expect(result).toEqual({
+      ok: true,
+      name: 'valid',
+      waypoints: [
+        { name: 'Start', position: { lat: 8, lon: 70 } },
+        { name: 'Finish', position: { lat: 9, lon: 71 } },
+      ],
     });
   });
 

@@ -1388,6 +1388,54 @@ test.describe('public NAVAREA snapshot cache', () => {
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
 
+
+  test('Voyage Planner rejects invalid GPX points without changing the current route', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await installPublicApiMock(page, { spatialRows: [], textRows: [], fail: false, delayMs: 0 });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
+    await page.locator('#voyageRouteName').fill('Existing route');
+    await page.locator('form[data-form="route-settings"] button[type="submit"]').click();
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
+    });
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(11, 76) });
+    });
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+
+    const originalStorage = await page.evaluate(() => localStorage.getItem('helm_voyage_planner_v1'));
+    const invalidFiles = [
+      { name: 'invalid-latitude.gpx', body: '<gpx version="1.1" creator="test"><rte><name>Invalid latitude</name><rtept lat="91" lon="70"/><rtept lat="9" lon="71"/></rte></gpx>' },
+      { name: 'invalid-number.gpx', body: '<gpx version="1.1" creator="test"><rte><name>Invalid numeric syntax</name><rtept lat="1e1" lon="70"/><rtept lat="9" lon="71"/></rte></gpx>' },
+    ];
+
+    for (const file of invalidFiles) {
+      await page.locator('[data-action="import-file"]').setInputFiles({
+        name: file.name, mimeType: 'application/gpx+xml', buffer: Buffer.from(file.body),
+      });
+      await expect(page.locator('.voyage-planner-notice[role="status"]')).toContainText('invalid coordinates');
+      await expect(page.locator('#voyageRouteName')).toHaveValue('Existing route');
+      await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+      expect(await page.evaluate(() => localStorage.getItem('helm_voyage_planner_v1'))).toBe(originalStorage);
+    }
+
+    await page.locator('[data-action="import-file"]').setInputFiles({
+      name: 'valid-route.gpx',
+      mimeType: 'application/gpx+xml',
+      buffer: Buffer.from('<gpx version="1.1" creator="test"><rte><name>Valid GPX route</name><rtept lat="8" lon="70"/><rtept lat="9" lon="71"/></rte></gpx>'),
+    });
+    await expect(page.locator('#voyageRouteName')).toHaveValue('Valid GPX route');
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
   test('Voyage Planner leaves mismatched warning geometry not assessed', async ({ page }) => {
     const errors = watchPageErrors(page);
     const state: PublicApiState = {

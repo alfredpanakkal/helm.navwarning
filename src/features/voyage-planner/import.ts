@@ -6,6 +6,7 @@ export type RouteImportResult =
   | { ok: false; error: string };
 
 const MAX_IMPORTED_WAYPOINTS = 200;
+const NUMERIC = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -32,6 +33,7 @@ function parseGeoJson(value: unknown, fileName: string): RouteImportResult {
     : value.type === 'Feature' ? [value] : [];
   const points: Array<{ sequence: number; waypoint: ImportedWaypoint }> = [];
   const linePositions: Position[] = [];
+  let skipped = 0;
 
   features.forEach((feature, index) => {
     if (!isRecord(feature) || !isRecord(feature.geometry)) return;
@@ -41,7 +43,7 @@ function parseGeoJson(value: unknown, fileName: string): RouteImportResult {
     if (featureType && featureType !== 'waypoint') return;
     if (geometry.type === 'Point') {
       const position = parsePosition(geometry.coordinates);
-      if (!position) return;
+      if (!position) { skipped += 1; return; }
       const sequence = typeof properties.sequence === 'number' ? properties.sequence : Number.NaN;
       points.push({
         sequence: Number.isFinite(sequence) ? sequence : index + 1,
@@ -56,6 +58,7 @@ function parseGeoJson(value: unknown, fileName: string): RouteImportResult {
       geometry.coordinates.forEach((coordinate) => {
         const position = parsePosition(coordinate);
         if (position) linePositions.push(position);
+        else skipped += 1;
       });
     } else if (geometry.type === 'MultiLineString' && Array.isArray(geometry.coordinates)) {
       geometry.coordinates.forEach((line) => {
@@ -63,10 +66,13 @@ function parseGeoJson(value: unknown, fileName: string): RouteImportResult {
         line.forEach((coordinate) => {
           const position = parsePosition(coordinate);
           if (position) linePositions.push(position);
+          else skipped += 1;
         });
       });
     }
   });
+
+  if (skipped > 0) return { ok: false, error: skipped + ' route point(s) have invalid coordinates. Nothing was imported.' };
 
   const waypoints = points.length
     ? points.sort((a, b) => a.sequence - b.sequence).map((item) => item.waypoint)
@@ -92,17 +98,20 @@ function parseGpx(text: string, fileName: string): RouteImportResult {
   const points = Array.from(document.getElementsByTagNameNS('*', 'rtept'));
   const routePoints = points.length ? points : Array.from(document.getElementsByTagNameNS('*', 'wpt'));
   const waypoints: ImportedWaypoint[] = [];
+  let skipped = 0;
   routePoints.forEach((element, index) => {
     const latAttribute = element.getAttribute('lat');
     const lonAttribute = element.getAttribute('lon');
-    if (latAttribute === null || lonAttribute === null || !latAttribute.trim() || !lonAttribute.trim()) return;
+    if (latAttribute === null || lonAttribute === null
+      || !NUMERIC.test(latAttribute.trim()) || !NUMERIC.test(lonAttribute.trim())) { skipped += 1; return; }
     const lat = Number(latAttribute);
     const lon = Number(lonAttribute);
     const position = parsePosition([lon, lat]);
-    if (!position) return;
+    if (!position) { skipped += 1; return; }
     const name = element.getElementsByTagNameNS('*', 'name')[0]?.textContent?.trim();
     waypoints.push({ name: name ? name.slice(0, 40) : 'WP ' + (index + 1), position });
   });
+  if (skipped > 0) return { ok: false, error: skipped + ' route point(s) have invalid coordinates. Nothing was imported.' };
   if (waypoints.length < 2) return { ok: false, error: 'The GPX file must contain at least two valid route points.' };
   if (waypoints.length > MAX_IMPORTED_WAYPOINTS) return { ok: false, error: 'The route exceeds the 200-waypoint limit.' };
   const routeName = document.getElementsByTagNameNS('*', 'rte')[0]
