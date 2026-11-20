@@ -94,11 +94,21 @@ function formatWarningIssuedText(w) {
 
 // ═══════════ DEVICE / NAV ═══════════
 function detectDevice(){
-  const w=window.innerWidth, ua=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const w = window.innerWidth;
+  const ua = navigator.userAgent;
+  const isMobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+  const isTabletUA = /iPad|Tablet|Android(?!.*Mobile)/i.test(ua);
+  const isTouchTablet = navigator.maxTouchPoints > 1 && window.matchMedia('(pointer: coarse)').matches;
+  const isMobileMapDevice = w <= 768 || ((isMobileUA || isTabletUA || isTouchTablet) && w <= 1366);
+
   document.body.classList.remove('is-mobile','is-tablet','is-desktop');
-  if(w<=768||(ua&&w<=1024)) document.body.classList.add('is-mobile');
+  if(w<=768||(isMobileUA&&w<=1024)) document.body.classList.add('is-mobile');
   else if(w<=1024) document.body.classList.add('is-tablet');
   else document.body.classList.add('is-desktop');
+
+  document.body.classList.toggle('is-mobile-map-device', isMobileMapDevice);
+  document.documentElement.classList.toggle('is-mobile', document.body.classList.contains('is-mobile'));
+  document.documentElement.classList.toggle('is-mobile-map-device', isMobileMapDevice);
 }
 function debounce(fn,d){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),d)}}
 window.addEventListener('resize',debounce(()=>{
@@ -149,6 +159,9 @@ window.switchTab = function(tab){
   }
 
   const isMap = (tab === 'map');
+  if (!isMap && document.body.classList.contains('mobile-map-expanded')) {
+    toggleMobileMapExpanded(false);
+  }
   document.body.classList.toggle('tab-map-active', isMap);
   document.documentElement.classList.toggle('tab-map-active', isMap);
 
@@ -206,6 +219,12 @@ document.addEventListener('keydown', e => {
     const modal = document.getElementById('warningModal');
     if (modal && modal.classList.contains('open')) {
       closeWarningModal();
+      e.stopImmediatePropagation();
+      return;
+    }
+    if (isMobileMapExpansionDevice() &&
+        document.body.classList.contains('mobile-map-expanded')) {
+      toggleMobileMapExpanded(false);
       e.stopImmediatePropagation();
       return;
     }
@@ -723,6 +742,9 @@ function initMap(){
     closeMapSettings();
   });
 
+  // Mobile map expands only after a deliberate pointer interaction with the map canvas.
+  setupMobileMapExpansion();
+
   // Maximum Map View: Auto-collapse top controls on map interaction
   setupMapInteractionAutoCollapse(leafletMap);
 
@@ -824,14 +846,104 @@ window.toggleMapTopControls = function(forceState) {
   // Trigger leaflet map resize after smooth layout expansion
   const m = getLeafletMap();
   if (m) {
-    setTimeout(() => m.invalidateSize(), 160);
-    setTimeout(() => m.invalidateSize(), 320);
+    setTimeout(() => m.invalidateSize({ pan: false }), 160);
+    setTimeout(() => m.invalidateSize({ pan: false }), 320);
   }
 };
+
+let mobileMapPreviousScrollY = 0;
+let mobileMapResizeTimer = null;
+let mobileMapAutoExpansionDismissed = false;
+
+function isMobileMapExpansionDevice() {
+  return document.body.classList.contains('is-mobile-map-device');
+}
+
+window.toggleMobileMapExpanded = function(explicitState) {
+  if (!isMobileMapExpansionDevice()) return;
+
+  const isExpanded = document.body.classList.contains('mobile-map-expanded');
+  const nextState = typeof explicitState === 'boolean' ? explicitState : !isExpanded;
+  if (nextState === isExpanded) return;
+
+  // Exiting automatic or manual expansion is an explicit dismissal for this
+  // page session. Manual expansion remains available through the focus button.
+  if (!nextState && isExpanded) mobileMapAutoExpansionDismissed = true;
+
+  // Read Leaflet's geographic view before changing layout or scroll position.
+  // getCenter() uses the container's current dimensions, so reading it after
+  // the CSS mode switch can capture a transient, shifted centre.
+  const map = getLeafletMap();
+  const preservedCenter = map ? map.getCenter() : null;
+  const preservedZoom = map ? map.getZoom() : null;
+
+  if (nextState) mobileMapPreviousScrollY = window.scrollY;
+  document.body.classList.toggle('mobile-map-expanded', nextState);
+  document.documentElement.classList.toggle('mobile-map-expanded', nextState);
+
+  const restoreButton = document.getElementById('btnMobileMapRestore');
+  if (restoreButton) restoreButton.hidden = !nextState;
+
+  const focusButton = document.getElementById('btnMapFocus');
+  const iconMax = document.getElementById('iconMapFocusMax');
+  const iconMin = document.getElementById('iconMapFocusMin');
+  if (iconMax && iconMin) {
+    iconMax.style.display = nextState ? 'none' : 'block';
+    iconMin.style.display = nextState ? 'block' : 'none';
+  }
+  if (focusButton) {
+    focusButton.classList.toggle('active', nextState);
+    focusButton.setAttribute('aria-pressed', nextState ? 'true' : 'false');
+    focusButton.setAttribute('aria-label', nextState ? 'Restore full page view' : 'Expand map to full available height');
+    focusButton.title = nextState ? 'Restore full page view' : 'Expand map view';
+  }
+
+  window.scrollTo({ top: nextState ? 0 : mobileMapPreviousScrollY, behavior: 'instant' });
+  if (!map) return;
+
+  // Resize once the CSS height transition has completed. Running an
+  // animation-frame refresh during the transition reads an intermediate map
+  // size and can shift the geographic centre during a rapid expand/restore.
+  if (mobileMapResizeTimer !== null) clearTimeout(mobileMapResizeTimer);
+  mobileMapResizeTimer = setTimeout(() => {
+    mobileMapResizeTimer = null;
+    map.invalidateSize({ pan: false });
+    map.setView(preservedCenter, preservedZoom, { animate: false });
+  }, 320);
+};
+
+function setupMobileMapExpansion() {
+  const mapElement = document.getElementById('map');
+  if (!mapElement || mapElement.dataset.mobileExpansionBound === 'true') return;
+
+  mapElement.dataset.mobileExpansionBound = 'true';
+  mapElement.addEventListener('pointerup', event => {
+    if (!event.isTrusted ||
+        !isMobileMapExpansionDevice() ||
+        !document.body.classList.contains('tab-map-active') ||
+        document.body.classList.contains('mobile-map-expanded') ||
+        mobileMapAutoExpansionDismissed) return;
+
+    const target = event.target;
+    if (target instanceof Element && target.closest(
+      '.leaflet-control, button, a, input, select, textarea, [role="button"]'
+    )) return;
+
+    toggleMobileMapExpanded(true);
+  }, { passive: true });
+}
 
 let mapFocusTransitionTimer = null;
 
 window.toggleMapFocusMode = function(explicitState) {
+  if (isMobileMapExpansionDevice()) {
+    const nextState = typeof explicitState === 'boolean'
+      ? explicitState
+      : !document.body.classList.contains('mobile-map-expanded');
+    toggleMobileMapExpanded(nextState);
+    return;
+  }
+
   const workspace = document.querySelector('.public-warning-workspace');
   const isDesktopWorkspace = document.body.classList.contains('is-desktop') &&
     window.matchMedia('(min-width: 1440px)').matches && workspace;

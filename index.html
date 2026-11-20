@@ -608,6 +608,181 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
 }
 </style>
 <link rel="stylesheet" href="/assets/css/voyage-planner.css">
+
+<style id="mobile-map-expansion">
+/* Mobile Map: normal page flow until the user interacts with the map. */
+html.is-mobile-map-device.tab-map-active,
+body.is-mobile-map-device.tab-map-active {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: auto !important;
+}
+body.is-mobile-map-device.tab-map-active {
+  position: static !important;
+  inset: auto !important;
+  width: 100% !important;
+  display: block !important;
+}
+body.is-mobile-map-device.tab-map-active .site-footer { display: block !important; }
+body.is-mobile-map-device.tab-map-active .main {
+  height: auto !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 8px 0 16px !important;
+  display: block !important;
+  overflow: visible !important;
+}
+body.is-mobile-map-device.tab-map-active #tab-map {
+  height: auto !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  display: block !important;
+  overflow: visible !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+body.is-mobile-map-device.tab-map-active .map-top-section {
+  max-height: none !important;
+  overflow: visible !important;
+}
+body.is-mobile-map-device.tab-map-active .public-warning-workspace {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  min-height: 0 !important;
+  width: 100% !important;
+}
+body.is-mobile-map-device.tab-map-active .workspace-resizer,
+body.is-mobile-map-device.tab-map-active .warning-details-drawer,
+body.is-mobile-map-device.tab-map-active .selected-warning-reopen {
+  display: none !important;
+}
+body.is-mobile-map-device.tab-map-active .map-container {
+  flex: none !important;
+  width: auto !important;
+  height: 55dvh !important;
+  max-height: 520px !important;
+  min-height: 340px !important;
+  margin: 8px !important;
+  border-radius: 12px !important;
+  transition: height .28s ease, margin .28s ease, border-radius .28s ease !important;
+}
+body.is-mobile-map-device.tab-map-active #map {
+  width: 100% !important;
+  height: 100% !important;
+}
+body.is-mobile-map-device.tab-map-active .map-warning-list {
+  position: relative !important;
+  inset: auto !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: min(45dvh, 360px) !important;
+  margin: 0 8px 12px !important;
+  overflow-y: auto !important;
+}
+
+/* Expanded mobile map: retain the site header and map tools, hide page furniture. */
+html.is-mobile-map-device.mobile-map-expanded,
+body.is-mobile-map-device.mobile-map-expanded {
+  height: var(--app-h, 100dvh) !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+body.is-mobile-map-device.mobile-map-expanded {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+body.is-mobile-map-device.mobile-map-expanded .site-header {
+  flex: 0 0 auto !important;
+  z-index: 1000 !important;
+}
+body.is-mobile-map-device.mobile-map-expanded .site-footer,
+body.is-mobile-map-device.mobile-map-expanded .map-top-section,
+body.is-mobile-map-device.mobile-map-expanded .solas-banner,
+body.is-mobile-map-device.mobile-map-expanded .map-warning-list,
+body.is-mobile-map-device.mobile-map-expanded .warning-details-drawer,
+body.is-mobile-map-device.mobile-map-expanded .workspace-resizer,
+body.is-mobile-map-device.mobile-map-expanded .selected-warning-reopen {
+  display: none !important;
+}
+body.is-mobile-map-device.mobile-map-expanded .main {
+  flex: 1 1 0% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+body.is-mobile-map-device.mobile-map-expanded #tab-map {
+  flex: 1 1 0% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+body.is-mobile-map-device.mobile-map-expanded .public-warning-workspace {
+  display: flex !important;
+  flex: 1 1 0% !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  gap: 0 !important;
+}
+body.is-mobile-map-device.mobile-map-expanded .map-container {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: calc(var(--app-h, 100dvh) - 64px - env(safe-area-inset-top)) !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+body.is-mobile-map-device.mobile-map-expanded #map {
+  width: 100% !important;
+  height: 100% !important;
+}
+.mobile-map-restore {
+  display: none;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1250;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-primary, var(--text));
+  font: 600 12px var(--font-family-base);
+  cursor: pointer;
+}
+.mobile-map-restore[hidden] { display: none !important; }
+body.is-mobile-map-device.mobile-map-expanded .mobile-map-restore { display: inline-flex; }
+@media (prefers-reduced-motion: reduce) {
+  body.is-mobile-map-device.tab-map-active .map-container { transition: none !important; }
+}
+</style>
+
 </head>
 <body class="tab-map-active">
 <a href="#main" class="skip-link">Skip to main content</a>
@@ -747,6 +922,14 @@ body.interrogate-mode-active .leaflet-container{cursor:crosshair}
   </p>
   <div class="public-warning-workspace">
   <div class="map-container">
+    <button type="button" class="mobile-map-restore" id="btnMobileMapRestore" hidden
+            onclick="toggleMobileMapExpanded(false)" aria-label="Restore full page view"
+            title="Restore full page (Esc)">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2 2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+      </svg>
+      <span>Restore page</span>
+    </button>
     <button type="button" class="map-focus-restore" id="btnMapFocusRestore"
             onclick="toggleMapFocusMode(false)" aria-label="Restore Active Warnings and Selected Warning panels"
             title="Restore workspace panels (Esc)">
