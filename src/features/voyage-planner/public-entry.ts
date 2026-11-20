@@ -1009,6 +1009,43 @@ if (workspace && panel && content && toggleButton) {
 
   content.addEventListener('click', handleClick);
   content.addEventListener('submit', handleSubmit);
+  content.addEventListener('keydown', (event: KeyboardEvent) => {
+    if (!(event.target instanceof HTMLElement) || !draftRoute) return;
+    const rowButton = event.target.closest<HTMLButtonElement>('[data-action="select-waypoint"]');
+    if (!rowButton?.dataset.id) return;
+    const index = draftRoute.waypoints.findIndex((waypoint) => waypoint.id === rowButton.dataset.id);
+    if (index < 0) return;
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const nextIndex = Math.max(0, Math.min(draftRoute.waypoints.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1)));
+      selectedWaypointId = draftRoute.waypoints[nextIndex].id;
+      render();
+      renderMap();
+      Array.from(content.querySelectorAll<HTMLButtonElement>('[data-action="select-waypoint"]'))
+        .find((button) => button.dataset.id === selectedWaypointId)?.focus();
+      return;
+    }
+
+    if (event.key === 'Delete') {
+      const waypoint = draftRoute.waypoints[index];
+      if (!window.confirm('Remove waypoint "' + waypoint.name + '" from this draft?')) return;
+      event.preventDefault();
+      const result = removeWaypoint(draftRoute, waypoint.id, context);
+      if ('error' in result) {
+        notice = 'Could not remove waypoint: ' + result.error;
+        render();
+        return;
+      }
+      draftRoute = result.value;
+      selectedWaypointId = draftRoute.waypoints[Math.min(index, draftRoute.waypoints.length - 1)]?.id ?? null;
+      notice = 'Waypoint removed from the draft.';
+      render();
+      renderMap();
+      Array.from(content.querySelectorAll<HTMLButtonElement>('[data-action="select-waypoint"]'))
+        .find((button) => button.dataset.id === selectedWaypointId)?.focus();
+    }
+  });
   document.addEventListener('keydown', (event: KeyboardEvent) => {
     if (panel.hidden || !draftRoute) return;
     const target = event.target;
