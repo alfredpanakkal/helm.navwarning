@@ -519,8 +519,9 @@ test.describe('public workspace interaction regressions', () => {
     await page.keyboard.press('Control+z');
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
     await expect(page.locator('[data-action="save-route"]')).toBeDisabled();
+    await expect(page.locator('.voyage-assessment')).toHaveCount(0);
 
-    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.locator('.leaflet-container').focus();
     await page.keyboard.press('Enter');
     await expect(page.locator('[data-action="finish-placement"]')).toHaveCount(0);
     await expect(page.locator('[data-action="resume-placement"]')).toBeVisible();
