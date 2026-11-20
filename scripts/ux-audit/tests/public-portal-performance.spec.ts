@@ -1389,6 +1389,40 @@ test.describe('public NAVAREA snapshot cache', () => {
   });
 
 
+  test('Voyage Planner rejects route files larger than 1 MB without changing the current route', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await installPublicApiMock(page, { spatialRows: [], textRows: [], fail: false, delayMs: 0 });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
+    await page.locator('#voyageRouteName').fill('Existing route');
+    await page.locator('form[data-form="route-settings"] button[type="submit"]').click();
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
+    });
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(11, 76) });
+    });
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+
+    const originalStorage = await page.evaluate(() => localStorage.getItem('helm_voyage_planner_v1'));
+    await page.locator('[data-action="import-file"]').setInputFiles({
+      name: 'big.gpx',
+      mimeType: 'application/gpx+xml',
+      buffer: Buffer.alloc(1_100_000, 0x20),
+    });
+    await expect(page.locator('.voyage-planner-notice[role="status"]')).toContainText('The file is larger than 1 MB. Nothing was imported.');
+    await expect(page.locator('#voyageRouteName')).toHaveValue('Existing route');
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    expect(await page.evaluate(() => localStorage.getItem('helm_voyage_planner_v1'))).toBe(originalStorage);
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
   test('Voyage Planner rejects invalid GPX points without changing the current route', async ({ page }) => {
     const errors = watchPageErrors(page);
     await installPublicApiMock(page, { spatialRows: [], textRows: [], fail: false, delayMs: 0 });
