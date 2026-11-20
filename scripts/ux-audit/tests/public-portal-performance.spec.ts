@@ -1337,6 +1337,10 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.evaluate(() => {
       const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
+    });
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 76) });
     });
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
