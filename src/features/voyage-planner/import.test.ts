@@ -22,6 +22,18 @@ describe('route import', () => {
     });
   });
 
+  it('ignores unrelated point features when waypoint feature metadata is present', () => {
+    const result = parseRouteImport(JSON.stringify({
+      type: 'FeatureCollection',
+      features: [
+        { type: 'Feature', properties: { featureType: 'marker', name: 'Unrelated marker' }, geometry: { type: 'Point', coordinates: [30, 30] } },
+        { type: 'Feature', properties: { featureType: 'waypoint', sequence: 1, name: 'A' }, geometry: { type: 'Point', coordinates: [1, 1] } },
+        { type: 'Feature', properties: { featureType: 'waypoint', sequence: 2, name: 'B' }, geometry: { type: 'Point', coordinates: [2, 2] } },
+      ],
+    }), 'route.geojson');
+    expect(result.ok && result.waypoints.map((item) => item.name)).toEqual(['A', 'B']);
+  });
+
   it('imports waypoints from a GeoJSON LineString when point features are absent', () => {
     const result = parseRouteImport(JSON.stringify({
       type: 'Feature',
