@@ -230,7 +230,7 @@ if (workspace && panel && content && toggleButton) {
 
   function warningValidityLabel(validFrom: string | null, validTo: string | null): string {
     const parseBoundary = (value: string, endOfDay: boolean): number => {
-      const dateValue = /^\\d{4}-\\d{2}-\\d{2}$/.test(value)
+      const dateValue = /^\d{4}-\d{2}-\d{2}$/.test(value)
         ? value + (endOfDay ? 'T23:59:59.999Z' : 'T00:00:00.000Z')
         : value;
       return Date.parse(dateValue);
