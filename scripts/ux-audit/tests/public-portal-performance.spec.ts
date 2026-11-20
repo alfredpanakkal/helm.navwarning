@@ -33,6 +33,43 @@ const publicWarning = (): Row => ({
   buffer_nm: 0,
   corridor_half_width_nm: 0,
   geojson_blob: { type: 'Point', coordinates: [75, 10] },
+  test('Voyage Planner places multiple waypoints in one session and supports undo and keyboard finish', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await installPublicApiMock(page, { spatialRows: [], textRows: [], fail: false, delayMs: 0 });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
+
+    await expect(page.locator('[data-action="finish-placement"]')).toBeVisible();
+    await page.evaluate(() => {
+      const browser = window as any;
+      [[10, 75], [11, 76], [12, 77]].forEach(([lat, lon]) => {
+        browser.hwMap.fire('click', { latlng: browser.L.latLng(lat, lon) });
+      });
+    });
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
+
+    await page.locator('[data-action="undo-last-waypoint"]').click();
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    await expect(page.locator('[data-action="save-route"]')).toBeDisabled();
+
+    await page.locator('body').click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[data-action="finish-placement"]')).toHaveCount(0);
+    await expect(page.locator('[data-action="resume-placement"]')).toBeVisible();
+    await expect(page.locator('[data-action="save-route"]')).toBeEnabled();
+    await expect(page.locator('.voyage-planner-notice[role="status"]')).toContainText('Placement finished');
+
+    await page.locator('[data-action="save-route"]').click();
+    await expect.poll(() => page.evaluate(() => {
+      const stored = JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null');
+      return stored.routes[0].waypoints.length;
+    })).toBe(2);
+    await expect(page.locator('.voyage-assessment')).toBeVisible();
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
 });
 
 const reviewWarning = (tier: 'B' | 'C'): Row => ({
