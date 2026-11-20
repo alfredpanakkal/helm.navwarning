@@ -509,12 +509,14 @@ test.describe('public workspace interaction regressions', () => {
     await expect(page.locator('[data-action="finish-placement"]')).toBeVisible();
     await page.evaluate(() => {
       const browser = window as any;
-      [[10, 75], [11, 76], [12, 77]].forEach(([lat, lon]) => {
+      [[10, 75], [11, 76], [12, 77], [13, 78]].forEach(([lat, lon]) => {
         browser.hwMap.fire('click', { latlng: browser.L.latLng(lat, lon) });
       });
     });
-    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(4);
     await page.locator('[data-action="undo-last-waypoint"]').click();
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
+    await page.keyboard.press('Control+z');
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
     await expect(page.locator('[data-action="save-route"]')).toBeDisabled();
 
