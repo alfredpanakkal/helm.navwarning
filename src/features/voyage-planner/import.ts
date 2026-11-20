@@ -22,7 +22,7 @@ function parsePosition(value: unknown): Position | null {
 }
 
 function fallbackName(fileName: string): string {
-  return fileName.replace(/\\.[^.]+$/, '').trim().slice(0, 80) || 'Imported route';
+  return fileName.replace(/\.[^.]+$/, '').trim().slice(0, 80) || 'Imported route';
 }
 
 function parseGeoJson(value: unknown, fileName: string): RouteImportResult {
