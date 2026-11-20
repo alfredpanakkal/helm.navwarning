@@ -1322,6 +1322,64 @@ test.describe('public NAVAREA snapshot cache', () => {
   });
 
 
+  test('Voyage Planner supports touchscreen editing, decimal coordinates and local GeoJSON import', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installPublicApiMock(page, emptyState());
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
+    await page.locator('#voyageRouteName').fill('Touch route');
+    await page.locator('form[data-form="route-settings"] button[type="submit"]').click();
+
+    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.evaluate(() => {
+      const browser = window as any;
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
+      browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 76) });
+    });
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+
+    await page.locator('#voyageCoordinateFormat').selectOption('decimal');
+    await expect(page.locator('#voyageWaypointLat')).toHaveValue('10.000000');
+    await page.locator('#voyageWaypointLat').fill('10.5');
+    await page.locator('#voyageWaypointLon').fill('76.25');
+    await page.locator('form[data-form="waypoint"] button[type="submit"]').click();
+    await expect.poll(() => page.evaluate(() => {
+      const stored = JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null');
+      return stored.routes[0].waypoints[1].position.lon;
+    })).toBe(76.25);
+
+    const touchTargets = await page.evaluate(() => ({
+      plannerButtons: Array.from(document.querySelectorAll<HTMLElement>('#voyagePlannerContent .voyage-planner-btn'))
+        .map((element) => element.getBoundingClientRect().height),
+      waypointControls: Array.from(document.querySelectorAll<HTMLElement>('#voyagePlannerContent .voyage-waypoint-controls button'))
+        .map((element) => element.getBoundingClientRect().height),
+      marker: document.querySelector<HTMLElement>('.voyage-waypoint-marker')?.getBoundingClientRect().width ?? 0,
+    }));
+    expect(touchTargets.plannerButtons.every((height) => height >= 44)).toBe(true);
+    expect(touchTargets.waypointControls.every((height) => height >= 44)).toBe(true);
+    expect(touchTargets.marker).toBeGreaterThanOrEqual(44);
+
+    const imported = {
+      type: 'FeatureCollection',
+      name: 'Imported GeoJSON route',
+      features: [
+        { type: 'Feature', properties: { featureType: 'waypoint', sequence: 1, name: 'Start' }, geometry: { type: 'Point', coordinates: [70, 8] } },
+        { type: 'Feature', properties: { featureType: 'waypoint', sequence: 2, name: 'Finish' }, geometry: { type: 'Point', coordinates: [71, 9] } },
+      ],
+    };
+    await page.locator('[data-action="import-file"]').setInputFiles({
+      name: 'imported-route.geojson',
+      mimeType: 'application/geo+json',
+      buffer: Buffer.from(JSON.stringify(imported)),
+    });
+    await expect(page.locator('#voyageRouteName')).toHaveValue('Imported GeoJSON route');
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
   test('Voyage Planner leaves mismatched warning geometry not assessed', async ({ page }) => {
     const errors = watchPageErrors(page);
     const state: PublicApiState = {
