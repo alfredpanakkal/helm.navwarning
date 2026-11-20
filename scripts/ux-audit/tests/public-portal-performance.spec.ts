@@ -1345,7 +1345,9 @@ test.describe('public NAVAREA snapshot cache', () => {
     });
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
 
+    await expect(page.locator('#voyageWaypointLat')).toHaveAttribute('inputmode', 'text');
     await page.locator('#voyageCoordinateFormat').selectOption('decimal');
+    await expect(page.locator('#voyageWaypointLat')).toHaveAttribute('inputmode', 'decimal');
     await expect(page.locator('#voyageWaypointLat')).toHaveValue('10.000000');
     await page.locator('#voyageWaypointLat').fill('10.5');
     await page.locator('#voyageWaypointLon').fill('76.25');
