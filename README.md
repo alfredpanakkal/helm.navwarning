@@ -12,7 +12,7 @@
 [![Live App](https://img.shields.io/badge/Live-navarea.helmology.com-00C7B7?style=for-the-badge&logo=vercel&logoColor=white)](https://navarea.helmology.com)
 [![CI](https://github.com/alfredpanakkal/helm.navwarning/actions/workflows/ci.yml/badge.svg)](https://github.com/alfredpanakkal/helm.navwarning/actions/workflows/ci.yml)
 [![Last Commit](https://img.shields.io/github/last-commit/alfredpanakkal/helm.navwarning)](https://github.com/alfredpanakkal/helm.navwarning/commits)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg?style=flat-square)](LICENSE)
 
 [React](https://react.dev/) · [TypeScript](https://www.typescriptlang.org/) · [Vite](https://vite.dev/) · [Tailwind CSS](https://tailwindcss.com/) · [Leaflet](https://leafletjs.com/) · [Supabase](https://supabase.com/)
 
@@ -128,4 +128,4 @@ Warning data may be delayed, incomplete, unavailable or presented with uncertain
 
 ## License
 
-This project is distributed under the [MIT License](LICENSE).
+This project is distributed under the [PolyForm Noncommercial License 1.0.0](LICENSE).
