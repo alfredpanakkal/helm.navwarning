@@ -6,6 +6,7 @@ import {
   exportRouteGeoJson,
   exportRouteGpx,
   createRoute,
+  deleteRoute,
   formatLatitude,
   formatLongitude,
   loadRoutes,
@@ -61,6 +62,10 @@ if (workspace && panel && content && toggleButton) {
   let map: import('leaflet').Map | null = null;
   let routeLayer: import('leaflet').LayerGroup | null = null;
   let addMode = false;
+  let pendingInsertion: { position: { lat: number; lon: number }; afterIndex: number } | null = null;
+  let warningHighlightLayer: import('leaflet').LayerGroup | null = null;
+  const undoHistory: VoyageRoute[][] = [];
+  const redoHistory: VoyageRoute[][] = [];
   let warningSnapshot: {
     warnings: WarningAssessmentWarningInput[];
     available: boolean;
@@ -156,6 +161,56 @@ if (workspace && panel && content && toggleButton) {
     render();
   }
 
+  function warningValidityLabel(validFrom: string | null, validTo: string | null): string {
+    const from = validFrom ? Date.parse(validFrom) : null;
+    const to = validTo ? Date.parse(validTo) : null;
+    if ((validFrom && !Number.isFinite(from)) || (validTo && !Number.isFinite(to))) return 'Validity uncertain — invalid date';
+    if (from === null && to === null) return 'Validity dates unavailable';
+    const now = Date.now();
+    if (from !== null && now < from) return 'Scheduled — not yet effective';
+    if (to !== null && now > to) return 'Expired by stated date';
+    return 'Active by stated dates';
+  }
+
+  function locateWarning(warningId: string): void {
+    if (!map || !window.L || !warningSnapshot) return;
+    const warning = warningSnapshot.warnings.find((item) =>
+      (item.canonical_id || item.warning_id || item.id || 'Unknown warning') === warningId,
+    );
+    if (!warning || !Array.isArray(warning.geometries)) {
+      notice = 'Warning geometry is unavailable for map highlighting.';
+      render();
+      return;
+    }
+    if (!warningHighlightLayer) warningHighlightLayer = window.L.layerGroup();
+    warningHighlightLayer.clearLayers();
+    let added = 0;
+    warning.geometries.forEach((geometry) => {
+      const blob = geometry.geojson_blob;
+      if (!blob || typeof blob !== 'object') return;
+      try {
+        const layer = window.L!.geoJSON(blob as import('geojson').GeoJsonObject, {
+          style: { color: '#D97706', weight: 4, opacity: 1, fillColor: '#F59E0B', fillOpacity: 0.2 },
+          pointToLayer: (_feature, latlng) => window.L!.circleMarker(latlng, {
+            radius: 9, color: '#D97706', weight: 3, fillColor: '#F59E0B', fillOpacity: 0.65,
+          }),
+        });
+        layer.addTo(warningHighlightLayer!);
+        added += 1;
+      } catch { /* Unsupported geometry stays unhighlighted. */ }
+    });
+    if (!added) {
+      notice = 'Warning geometry could not be displayed on the map.';
+      render();
+      return;
+    }
+    warningHighlightLayer.addTo(map);
+    const bounds = warningHighlightLayer.getBounds();
+    if (bounds.isValid()) map.fitBounds(bounds.pad(0.35), { maxZoom: 8 });
+    notice = 'Highlighted ' + warningId + ' on the map.';
+    render();
+  }
+
   function renderWarningAssessment(route: VoyageRoute): string {
     if (!warningSnapshot || !warningSnapshot.available) {
       return '<section class="voyage-planner-section voyage-assessment"><div class="voyage-planner-section-title"><strong>NAVAREA warning assessment</strong></div><p class="voyage-planner-disclaimer">Waiting for the public Tier A warning dataset. Geometry assessment is unavailable until the dataset loads.</p></section>';
@@ -193,23 +248,21 @@ if (workspace && panel && content && toggleButton) {
       const flags = item.qaFlags.length
         ? '<div class="voyage-assessment-meta">QA: ' + escapeHtml(item.qaFlags.join(', ')) + '</div>'
         : '';
-      const validity = item.validFrom || item.validTo
-        ? '<div class="voyage-assessment-meta">Validity dates (not checked): ' +
-          (item.validFrom ? 'from ' + escapeHtml(Number.isFinite(new Date(item.validFrom).getTime()) ? displayUtc(item.validFrom) : 'invalid') : 'start not stated') +
-          ' · ' + (item.validTo ? 'to ' + escapeHtml(Number.isFinite(new Date(item.validTo).getTime()) ? displayUtc(item.validTo) : 'invalid') : 'no end stated') + '</div>'
-        : '<div class="voyage-assessment-meta">Validity dates not supplied</div>';
+      const validity = '<div class="voyage-assessment-meta">' + escapeHtml(warningValidityLabel(item.validFrom, item.validTo)) +
+        (item.validFrom || item.validTo ? ' · ' + (item.validFrom ? 'from ' + escapeHtml(Number.isFinite(Date.parse(item.validFrom)) ? displayUtc(item.validFrom) : 'invalid') : 'start not stated') +
+          ' · ' + (item.validTo ? 'to ' + escapeHtml(Number.isFinite(Date.parse(item.validTo)) ? displayUtc(item.validTo) : 'invalid') : 'no end stated') : '') + '</div>';
       const reason = item.reason
         ? '<div class="voyage-assessment-reason">' + escapeHtml(item.reason) + '</div>'
         : '';
       const partial = item.hasUnassessedGeometry
         ? '<div class="voyage-assessment-reason">One or more additional zones could not be assessed.</div>'
         : '';
-      return '<article class="voyage-assessment-row is-' + item.status.toLowerCase().replace('_', '-') + '">' +
-        '<div class="voyage-assessment-row-head"><strong>' + escapeHtml(item.warningId) + '</strong><span class="voyage-assessment-status">' + status + '</span></div>' +
-        '<div class="voyage-assessment-meta">' + escapeHtml(item.title) + ' · ' + escapeHtml(item.navarea) + ' · ' + escapeHtml(item.severity) + '</div>' +
-        '<div class="voyage-assessment-meta">' + escapeHtml(item.nearestZone ?? 'Zone unavailable') + ' · ' + leg + ' · ' + distance + '</div>' +
-        '<div class="voyage-assessment-meta">Quality: ' + escapeHtml(item.dataQuality) + ' · Tier ' + escapeHtml(item.triageTier) + (item.isVerified ? ' · Quality gate passed' : ' · Review required') + '</div>' +
-        validity + flags + reason + partial + '</article>';
+      return '<button type="button" class="voyage-assessment-row is-' + item.status.toLowerCase().replace('_', '-') + '" data-action="locate-warning" data-warning-id="' + escapeHtml(item.warningId) + '" aria-label="Locate warning ' + escapeHtml(item.warningId) + ' on map">' +
+        '<span class="voyage-assessment-row-head"><strong>' + escapeHtml(item.warningId) + '</strong><span class="voyage-assessment-status">' + status + '</span></span>' +
+        '<span class="voyage-assessment-meta">' + escapeHtml(item.title) + ' · ' + escapeHtml(item.navarea) + ' · ' + escapeHtml(item.severity) + '</span>' +
+        '<span class="voyage-assessment-meta">' + escapeHtml(item.nearestZone ?? 'Zone unavailable') + ' · ' + leg + ' · ' + distance + '</span>' +
+        '<span class="voyage-assessment-meta">Quality: ' + escapeHtml(item.dataQuality) + ' · Tier ' + escapeHtml(item.triageTier) + (item.isVerified ? ' · Quality gate passed' : ' · Review required') + '</span>' +
+        validity + flags + reason + partial + '</button>';
     }).join('');
 
     const empty = assessment.examinedWarnings === 0
@@ -241,11 +294,36 @@ if (workspace && panel && content && toggleButton) {
       render();
       return false;
     }
+    if (JSON.stringify(nextRoutes) !== JSON.stringify(routes)) {
+      undoHistory.push(routes);
+      if (undoHistory.length > 30) undoHistory.shift();
+      redoHistory.length = 0;
+    }
     routes = nextRoutes;
     notice = 'Saved on this device';
     render();
     renderMap();
     return true;
+  }
+
+  function applyHistory(source: VoyageRoute[][], destination: VoyageRoute[][], label: string): void {
+    if (!storage || storageBlocked || source.length === 0) return;
+    const snapshot = source[source.length - 1];
+    const result = saveRoutes(storage, snapshot);
+    if ('reason' in result) {
+      notice = result.detail || 'Could not ' + label.toLowerCase() + ' route changes.';
+      render();
+      return;
+    }
+    source.pop();
+    destination.push(routes);
+    routes = snapshot;
+    if (!routes.some((route) => route.id === activeRouteId)) activeRouteId = routes[0]?.id ?? null;
+    selectedWaypointId = activeRoute()?.waypoints[0]?.id ?? null;
+    pendingInsertion = null;
+    notice = label + ' completed.';
+    render();
+    renderMap();
   }
 
   function updateActiveRoute(nextRoute: VoyageRoute): boolean {
@@ -290,6 +368,7 @@ if (workspace && panel && content && toggleButton) {
     toggleButton.setAttribute('aria-label', open ? 'Close Voyage Planner' : 'Open Voyage Planner');
     document.body.classList.toggle('voyage-planner-open', open);
     if (!open) {
+      pendingInsertion = null;
       setAddMode(false);
       toggleButton.focus();
       if (map && routeLayer && map.hasLayer(routeLayer)) map.removeLayer(routeLayer);
@@ -330,7 +409,7 @@ if (workspace && panel && content && toggleButton) {
       const meta = index === 0
         ? formatLatitude(waypoint.position.lat) + ' · ' + formatLongitude(waypoint.position.lon)
         : leg && leg.distanceNm !== null
-          ? leg.distanceNm.toFixed(1) + ' NM · ' + displayCourse(leg.courseDeg) + ' · ' + (leg.speedKn?.toFixed(1) ?? '—') + ' kn · ETA ' + (leg.etaUtc ? displayUtc(leg.etaUtc) : '—')
+          ? leg.distanceNm.toFixed(1) + ' NM · ' + displayCourse(leg.courseDeg)
           : (leg?.status ?? 'Leg pending');
       return '<div class="voyage-waypoint-row' + (waypoint.id === selectedWaypointId ? ' is-selected' : '') + '">' +
         '<button type="button" class="voyage-waypoint-select" data-action="select-waypoint" data-id="' + escapeHtml(waypoint.id) + '">' +
@@ -350,8 +429,7 @@ if (workspace && panel && content && toggleButton) {
         '<div class="voyage-planner-fields">' +
         '<div class="voyage-planner-field is-wide"><label for="voyageWaypointName">Waypoint name</label><input id="voyageWaypointName" name="name" maxlength="40" required value="' + escapeHtml(selected.name) + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
         '<div class="voyage-planner-field"><label for="voyageWaypointLat">Latitude</label><input id="voyageWaypointLat" name="latitude" required value="' + escapeHtml(formatLatitude(selected.position.lat)) + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
-        '<div class="voyage-planner-field"><label for="voyageWaypointLon">Longitude</label><input id="voyageWaypointLon" name="longitude" required value="' + escapeHtml(formatLongitude(selected.position.lon)) + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
-        '<div class="voyage-planner-field is-wide"><label for="voyageWaypointSpeed">Inbound speed (kn, optional)</label><input id="voyageWaypointSpeed" name="speedKn" type="number" min="0.1" max="50" step="0.1" value="' + (selected.speedKn ?? '') + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
+        '<div class="voyage-planner-field"><label for="voyageWaypointLon">Longitude</label><input id="voyageWaypointLon" name="longitude" inputmode="decimal" autocomplete="off" required value="' + escapeHtml(formatLongitude(selected.position.lon)) + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
         '</div><button class="voyage-planner-btn is-primary" type="submit"' + (storageBlocked ? ' disabled' : '') + '>Save waypoint</button></form>'
       : '<p class="voyage-planner-disclaimer">Add a waypoint from the chart to start the route.</p>';
 
@@ -359,12 +437,15 @@ if (workspace && panel && content && toggleButton) {
       '<section class="voyage-planner-section"><div class="voyage-planner-section-title"><strong>Route</strong><button class="voyage-planner-btn" type="button" data-action="create-route"' + (storageBlocked ? ' disabled' : '') + '>New route</button></div>' +
       '<form data-form="route-settings"><div class="voyage-planner-fields">' + selector +
       '<div class="voyage-planner-field is-wide"><label for="voyageRouteName">Route name</label><input id="voyageRouteName" name="name" maxlength="80" required value="' + escapeHtml(route.name) + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
-      '<div class="voyage-planner-field"><label for="voyageDefaultSpeed">Default speed (kn)</label><input id="voyageDefaultSpeed" name="defaultSpeedKn" type="number" min="0.1" max="50" step="0.1" required value="' + route.defaultSpeedKn + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
       '<div class="voyage-planner-field"><label for="voyageWarningRange">Warning search distance (NM)</label><input id="voyageWarningRange" name="warningRangeNm" type="number" min="1" max="100" step="1" required value="' + route.warningRangeNm + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
-      '<div class="voyage-planner-field is-wide"><label for="voyageDeparture">Departure (device local time)</label><input id="voyageDeparture" name="departureLocal" type="datetime-local" value="' + localDateTimeValue(route.departureTimeUtc) + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
-      '</div><div class="voyage-planner-actions"><button class="voyage-planner-btn" type="submit"' + (storageBlocked ? ' disabled' : '') + '>Save route settings</button></div></form></section>' +
+      '</div><div class="voyage-planner-actions"><button class="voyage-planner-btn" type="submit"' + (storageBlocked ? ' disabled' : '') + '>Save route settings</button></div></form>' +
+      '<div class="voyage-planner-actions voyage-route-management">' +
+      '<button class="voyage-planner-btn" type="button" data-action="duplicate-route"' + (storageBlocked ? ' disabled' : '') + '>Duplicate route</button>' +
+      '<button class="voyage-planner-btn is-danger" type="button" data-action="delete-route"' + (storageBlocked ? ' disabled' : '') + '>Delete route</button>' +
+      '<button class="voyage-planner-btn" type="button" data-action="undo"' + (!undoHistory.length || storageBlocked ? ' disabled' : '') + '>Undo</button>' +
+      '<button class="voyage-planner-btn" type="button" data-action="redo"' + (!redoHistory.length || storageBlocked ? ' disabled' : '') + '>Redo</button></div></section>' +
       '<section class="voyage-planner-summary"><div class="voyage-planner-stat"><span>' + (calculation.status === 'incomplete' ? 'Calculated distance (partial)' : 'Total distance') + '</span><strong>' + calculation.totalDistanceNm.toFixed(1) + ' NM</strong></div>' +
-      '<div class="voyage-planner-stat"><span>Estimated arrival (UTC)</span><strong style="font-size:11px">' + displayUtc(calculation.arrivalTimeUtc) + '</strong></div></section>' +
+      '<div class="voyage-planner-stat"><span>Waypoints</span><strong>' + route.waypoints.length + '</strong></div></section>' +
       '<section class="voyage-planner-section"><div class="voyage-planner-section-title"><strong>Export route</strong><span>Local files only</span></div>' +
       '<div class="voyage-planner-actions voyage-export-actions">' +
       '<button class="voyage-planner-btn" type="button" data-action="export-geojson">GeoJSON</button>' +
@@ -372,7 +453,8 @@ if (workspace && panel && content && toggleButton) {
       '<button class="voyage-planner-btn" type="button" data-action="export-csv">CSV</button></div>' +
       '<p class="voyage-planner-disclaimer">Exports are generated in this browser. Route and waypoint data are not uploaded.</p></section>' +
       renderWarningAssessment(route) +
-      (calculation.status === 'incomplete' ? '<div class="voyage-planner-notice">One or more legs cannot be calculated. Downstream ETAs are left unknown.</div>' : '') +
+      (calculation.status === 'incomplete' ? '<div class="voyage-planner-notice">One or more route legs cannot be calculated. Review the affected waypoint coordinates.</div>' : '') +
+      (pendingInsertion ? '<section class="voyage-planner-section voyage-insert-prompt"><strong>Insert waypoint on leg ' + (pendingInsertion.afterIndex + 1) + '</strong><span class="voyage-planner-disclaimer">Confirm to add a waypoint at the selected point on the chart.</span><div class="voyage-planner-actions"><button class="voyage-planner-btn is-primary" type="button" data-action="confirm-insert">Insert waypoint</button><button class="voyage-planner-btn" type="button" data-action="cancel-insert">Cancel</button></div></section>' : '') +
       '<section class="voyage-planner-section"><div class="voyage-planner-section-title"><strong>Waypoints (' + route.waypoints.length + ')</strong></div>' +
       '<div class="voyage-planner-actions"><button class="voyage-planner-btn is-primary" type="button" data-action="toggle-add-mode"' + (storageBlocked ? ' disabled' : '') + ' aria-pressed="' + addMode + '">' + (addMode ? 'Click chart to place waypoint…' : 'Add waypoint on chart') + '</button></div>' +
       '<div class="voyage-waypoint-list">' + (waypointRows || '<p class="voyage-planner-disclaimer">No waypoints yet. Choose Add waypoint on chart, then click the chart.</p>') + '</div></section>' +
@@ -413,7 +495,8 @@ if (workspace && panel && content && toggleButton) {
           if (event.originalEvent) L.DomEvent.stopPropagation(event.originalEvent);
           const current = activeRoute();
           if (!current || current.id !== route.id || storageBlocked) return;
-          addWaypointAt({ lat: event.latlng.lat, lon: event.latlng.lng }, index - 1);
+          pendingInsertion = { position: { lat: event.latlng.lat, lon: event.latlng.lng }, afterIndex: index - 1 };
+          render();
         });
       }
 
@@ -422,8 +505,8 @@ if (workspace && panel && content && toggleButton) {
         icon: L.divIcon({
           className: 'voyage-waypoint-marker',
           html: '<span>' + (index + 1) + '</span>',
-          iconSize: [27, 27],
-          iconAnchor: [13.5, 13.5],
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
         }),
         title: waypoint.name,
       }).addTo(routeLayer!);
@@ -512,8 +595,39 @@ if (workspace && panel && content && toggleButton) {
     } else if (action === 'toggle-add-mode') {
       if (storageBlocked) return;
       setAddMode(!addMode);
+    } else if (action === 'duplicate-route' && route) {
+      if (storageBlocked) return;
+      const now = context.now();
+      const copy = voyageRouteSchema.safeParse({
+        ...route,
+        id: context.idFactory(),
+        name: (route.name + ' copy').slice(0, 80),
+        waypoints: route.waypoints.map((waypoint) => ({ ...waypoint, id: context.idFactory() })),
+        createdAt: now,
+        updatedAt: now,
+      });
+      if (!copy.success) { notice = 'Could not duplicate this route.'; render(); return; }
+      if (persist([...routes, copy.data])) { activeRouteId = copy.data.id; selectedWaypointId = copy.data.waypoints[0]?.id ?? null; render(); renderMap(); }
+    } else if (action === 'delete-route' && route) {
+      if (storageBlocked || !window.confirm('Delete the route "' + route.name + '"? This can be recovered with Undo.')) return;
+      const removed = deleteRoute(routes, route.id);
+      if (!removed.ok) { notice = 'Could not delete this route.'; render(); return; }
+      if (persist(removed.value)) { activeRouteId = removed.value[0]?.id ?? null; selectedWaypointId = activeRoute()?.waypoints[0]?.id ?? null; render(); renderMap(); }
+    } else if (action === 'undo') {
+      applyHistory(undoHistory, redoHistory, 'Undo');
+    } else if (action === 'redo') {
+      applyHistory(redoHistory, undoHistory, 'Redo');
+    } else if (action === 'confirm-insert' && pendingInsertion) {
+      const insertion = pendingInsertion; pendingInsertion = null;
+      addWaypointAt(insertion.position, insertion.afterIndex);
+      render();
+    } else if (action === 'cancel-insert') {
+      pendingInsertion = null; render();
+    } else if (action === 'locate-warning' && target.dataset.warningId) {
+      locateWarning(target.dataset.warningId);
     } else if (action === 'select-waypoint') {
       selectedWaypointId = target.dataset.id ?? null;
+      pendingInsertion = null;
       render();
       renderMap();
     } else if ((action === 'move-up' || action === 'move-down') && route) {
@@ -552,22 +666,11 @@ if (workspace && panel && content && toggleButton) {
         render();
         return;
       }
-      const departureLocal = String(data.get('departureLocal') ?? '');
-      let departureTimeUtc: string | undefined;
-      if (departureLocal) {
-        const date = new Date(departureLocal);
-        if (!Number.isFinite(date.getTime())) {
-          notice = 'Departure time is invalid.';
-          render();
-          return;
-        }
-        departureTimeUtc = date.toISOString().replace('.000Z', 'Z');
-      }
       const next = {
         ...renamed.value,
-        defaultSpeedKn: Number(data.get('defaultSpeedKn')),
+        defaultSpeedKn: route.defaultSpeedKn,
         warningRangeNm: Number(data.get('warningRangeNm')),
-        departureTimeUtc,
+        departureTimeUtc: route.departureTimeUtc,
       };
       const validation = voyageRouteSchema.safeParse(next);
       if (!validation.success) {
@@ -586,11 +689,9 @@ if (workspace && panel && content && toggleButton) {
         render();
         return;
       }
-      const speedValue = String(data.get('speedKn') ?? '');
       const changes: Partial<Omit<Waypoint, 'id'>> = {
         name: String(data.get('name') ?? ''),
         position: parsed.value,
-        speedKn: speedValue === '' ? undefined : Number(speedValue),
       };
       const updated = updateWaypoint(route, selectedWaypointId, changes, context);
       if ('error' in updated) {
@@ -609,6 +710,7 @@ if (workspace && panel && content && toggleButton) {
     if (target instanceof HTMLSelectElement && target.dataset.action === 'select-route') {
       activeRouteId = target.value;
       selectedWaypointId = activeRoute()?.waypoints[0]?.id ?? null;
+      pendingInsertion = null;
       render();
       renderMap();
     }
