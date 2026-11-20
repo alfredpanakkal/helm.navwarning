@@ -13,8 +13,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function parsePosition(value: unknown): Position | null {
   if (!Array.isArray(value) || value.length < 2) return null;
-  const lon = Number(value[0]);
-  const lat = Number(value[1]);
+  if (typeof value[0] !== 'number' || typeof value[1] !== 'number') return null;
+  const lon = value[0];
+  const lat = value[1];
   if (!Number.isFinite(lat) || !Number.isFinite(lon)
     || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
   return { lat, lon };
@@ -90,8 +91,11 @@ function parseGpx(text: string, fileName: string): RouteImportResult {
   const routePoints = points.length ? points : Array.from(document.getElementsByTagNameNS('*', 'wpt'));
   const waypoints: ImportedWaypoint[] = [];
   routePoints.forEach((element, index) => {
-    const lat = Number(element.getAttribute('lat'));
-    const lon = Number(element.getAttribute('lon'));
+    const latAttribute = element.getAttribute('lat');
+    const lonAttribute = element.getAttribute('lon');
+    if (latAttribute === null || lonAttribute === null) return;
+    const lat = Number(latAttribute);
+    const lon = Number(lonAttribute);
     const position = parsePosition([lon, lat]);
     if (!position) return;
     const name = element.getElementsByTagNameNS('*', 'name')[0]?.textContent?.trim();
