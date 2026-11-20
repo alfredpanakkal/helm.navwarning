@@ -487,6 +487,34 @@ if (workspace && panel && content && toggleButton) {
     renderMap();
   }
 
+  function finishPlacement(): void {
+    if (!draftRoute || !addMode) return;
+    pendingInsertion = null;
+    setAddMode(false);
+    notice = draftRoute.waypoints.length < 2
+      ? 'Placement finished. Add at least two waypoints before saving the route.'
+      : 'Placement finished. Review the waypoint list, then save the route.';
+    render();
+    renderMap();
+    content.querySelector<HTMLButtonElement>('[data-action="select-waypoint"]')?.focus();
+  }
+
+  function undoLastDraftWaypoint(): void {
+    if (!draftRoute || draftRoute.waypoints.length === 0) return;
+    const lastWaypoint = draftRoute.waypoints[draftRoute.waypoints.length - 1];
+    const result = removeWaypoint(draftRoute, lastWaypoint.id, context);
+    if ('error' in result) {
+      notice = 'Could not undo waypoint: ' + result.error;
+      render();
+      return;
+    }
+    draftRoute = result.value;
+    selectedWaypointId = draftRoute.waypoints[draftRoute.waypoints.length - 1]?.id ?? null;
+    notice = 'Last waypoint removed from the draft.';
+    render();
+    renderMap();
+  }
+
   function createNewRoute(): void {
     if (storageBlocked) return;
     if (draftRoute) {
@@ -504,7 +532,8 @@ if (workspace && panel && content && toggleButton) {
     draftOriginalRouteId = null;
     activeRouteId = result.value.id;
     selectedWaypointId = null;
-    notice = 'New route draft. Add waypoints, review, then save.';
+    notice = 'New route draft. Tap or click the chart to place waypoints.';
+    setAddMode(true);
     render();
     renderMap();
   }
@@ -617,7 +646,7 @@ if (workspace && panel && content && toggleButton) {
       '<div class="voyage-planner-field is-wide"><label for="voyageRouteName">Route name</label><input id="voyageRouteName" name="name" maxlength="80" required value="' + escapeHtml(route.name) + '"' + (storageBlocked || !draftRoute ? ' disabled' : '') + '></div>' +
       '<div class="voyage-planner-field"><label for="voyageWarningRange">Warning search distance (NM)</label><input id="voyageWarningRange" name="warningRangeNm" type="number" min="1" max="100" step="1" required value="' + route.warningRangeNm + '"' + (storageBlocked || !draftRoute ? ' disabled' : '') + '></div>' +
       '</div><div class="voyage-planner-actions"><button class="voyage-planner-btn" type="submit"' + (storageBlocked || !draftRoute ? ' disabled' : '') + '>Update draft settings</button></div></form>' +
-      (draftRoute ? '<div class="voyage-planner-actions"><button class="voyage-planner-btn is-primary" type="button" data-action="save-route"' + (storageBlocked ? ' disabled' : '') + '>Save completed route</button><button class="voyage-planner-btn" type="button" data-action="cancel-draft">Cancel draft</button></div>' : '') +
+      (draftRoute ? '<div class="voyage-planner-actions"><button class="voyage-planner-btn is-primary" type="button" data-action="save-route"' + (storageBlocked || addMode ? ' disabled' : '') + '>Save completed route</button><button class="voyage-planner-btn" type="button" data-action="cancel-draft">Cancel draft</button></div>' : '') +
       '<div class="voyage-planner-actions voyage-route-management">' +
       '<button class="voyage-planner-btn" type="button" data-action="duplicate-route"' + (storageBlocked || draftRoute ? ' disabled' : '') + '>Duplicate route</button>' +
       '<button class="voyage-planner-btn is-danger" type="button" data-action="delete-route"' + (storageBlocked || draftRoute ? ' disabled' : '') + '>Delete route</button>' +
@@ -650,7 +679,12 @@ if (workspace && panel && content && toggleButton) {
       (calculation.status === 'incomplete' ? '<div class="voyage-planner-notice">One or more route legs cannot be calculated. Review the affected waypoint coordinates.</div>' : '') +
       (pendingInsertion ? '<section class="voyage-planner-section voyage-insert-prompt"><strong>Insert waypoint on leg ' + (pendingInsertion.afterIndex + 1) + '</strong><span class="voyage-planner-disclaimer">Confirm to add a waypoint at the selected point on the chart.</span><div class="voyage-planner-actions"><button class="voyage-planner-btn is-primary" type="button" data-action="confirm-insert">Insert waypoint</button><button class="voyage-planner-btn" type="button" data-action="cancel-insert">Cancel</button></div></section>' : '') +
       '<section class="voyage-planner-section"><div class="voyage-planner-section-title"><strong>Waypoints (' + route.waypoints.length + ')</strong></div>' +
-      '<div class="voyage-planner-actions"><button class="voyage-planner-btn is-primary" type="button" data-action="toggle-add-mode"' + (storageBlocked || !draftRoute ? ' disabled' : '') + ' aria-pressed="' + addMode + '">' + (addMode ? 'Click chart to place waypoint…' : 'Add waypoint on chart') + '</button></div>' +
+      (draftRoute ? '<div class="voyage-planner-actions voyage-placement-controls" role="group" aria-label="Waypoint placement controls">' +
+        '<button class="voyage-planner-btn" type="button" data-action="undo-last-waypoint"' + (storageBlocked || route.waypoints.length === 0 ? ' disabled' : '') + '>Undo last</button>' +
+        (addMode
+          ? '<button class="voyage-planner-btn is-primary" type="button" data-action="finish-placement">Finish</button>'
+          : '<button class="voyage-planner-btn is-primary" type="button" data-action="resume-placement">Add more waypoints</button>') +
+        '<button class="voyage-planner-btn is-danger" type="button" data-action="cancel-draft">Cancel</button></div>' : '') +
       '<div class="voyage-waypoint-list">' + (waypointRows || '<p class="voyage-planner-disclaimer">No waypoints yet. Choose Add waypoint on chart, then click the chart.</p>') + '</div></section>' +
       (selectedForm ? selectedForm : '') +
       '<p class="voyage-planner-disclaimer">Decision-support aid only; not certified ECDIS. Rhumb-line distances and true courses are approximate. Verify the passage plan against approved charts and publications.</p>';
@@ -722,7 +756,8 @@ if (workspace && panel && content && toggleButton) {
         title: waypoint.name,
       }).addTo(routeLayer!);
 
-      marker.on('click', () => {
+      marker.on('click', (event: import('leaflet').LeafletMouseEvent) => {
+        if (event.originalEvent) L.DomEvent.stopPropagation(event.originalEvent);
         selectedWaypointId = waypoint.id;
         render();
         renderMap();
@@ -775,10 +810,8 @@ if (workspace && panel && content && toggleButton) {
   }
 
   function onMapClick(event: import('leaflet').LeafletMouseEvent): void {
-    if (!addMode) return;
+    if (!addMode || !draftRoute) return;
     addWaypointAt({ lat: event.latlng.lat, lon: event.latlng.lng });
-    setAddMode(false);
-    render();
   }
 
   function attachMap(): void {
@@ -814,6 +847,16 @@ if (workspace && panel && content && toggleButton) {
       saveDraftRoute();
     } else if (action === 'cancel-draft') {
       cancelDraftRoute();
+    } else if (action === 'finish-placement') {
+      finishPlacement();
+    } else if (action === 'undo-last-waypoint') {
+      undoLastDraftWaypoint();
+    } else if (action === 'resume-placement') {
+      if (storageBlocked || !draftRoute) return;
+      pendingInsertion = null;
+      setAddMode(true);
+      notice = 'Tap or click the chart to add more waypoints.';
+      render();
     } else if (action === 'toggle-add-mode') {
       if (storageBlocked || !draftRoute) return;
       setAddMode(!addMode);
@@ -935,6 +978,27 @@ if (workspace && panel && content && toggleButton) {
 
   content.addEventListener('click', handleClick);
   content.addEventListener('submit', handleSubmit);
+  document.addEventListener('keydown', (event: KeyboardEvent) => {
+    if (panel.hidden || !draftRoute) return;
+    const target = event.target;
+    const editingText = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement || (target instanceof HTMLElement && target.isContentEditable);
+    if (editingText || event.altKey) return;
+    if (event.key === 'Escape' && addMode) {
+      event.preventDefault();
+      finishPlacement();
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      undoLastDraftWaypoint();
+      return;
+    }
+    if (event.key === 'Enter' && addMode) {
+      event.preventDefault();
+      finishPlacement();
+    }
+  });
   content.addEventListener('change', (event) => {
     const target = event.target;
     if (target instanceof HTMLSelectElement && target.dataset.action === 'coordinate-format') {
