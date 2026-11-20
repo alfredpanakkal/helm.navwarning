@@ -92,12 +92,25 @@ const publicWarning = (): Row => ({
     await page.locator('#newWaypointLon').fill('77.25');
     await page.locator('form[data-form="new-waypoint"] button[type="submit"]').click();
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+
+    await page.locator('#newWaypointName').fill('Coordinate third');
+    await page.locator('#newWaypointLat').fill('12.5');
+    await page.locator('#newWaypointLon').fill('78.25');
+    await page.locator('form[data-form="new-waypoint"] button[type="submit"]').click();
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
+
+    await page.locator('.voyage-waypoint-select').first().focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(page.locator('#voyageWaypointName')).toHaveValue('Coordinate end');
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.keyboard.press('Delete');
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
     await page.locator('[data-action="save-route"]').click();
 
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null'));
     expect(saved.routes[0].waypoints.map((waypoint: any) => waypoint.position)).toEqual([
       { lat: 10.5, lon: 76.25 },
-      { lat: 11.5, lon: 77.25 },
+      { lat: 12.5, lon: 78.25 },
     ]);
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
