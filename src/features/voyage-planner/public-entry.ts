@@ -65,7 +65,7 @@ if (workspace && panel && content && toggleButton) {
   let addMode = false;
   let coordinateFormat: 'dmd' | 'decimal' = 'dmd';
   let pendingInsertion: { position: { lat: number; lon: number }; afterIndex: number } | null = null;
-  let warningHighlightLayer: import('leaflet').LayerGroup | null = null;
+  let warningHighlightLayer: import('leaflet').FeatureGroup | null = null;
   const undoHistory: VoyageRoute[][] = [];
   const redoHistory: VoyageRoute[][] = [];
   let warningSnapshot: {
@@ -134,7 +134,7 @@ if (workspace && panel && content && toggleButton) {
     reader.onerror = () => { notice = 'Could not read the selected route file.'; render(); };
     reader.onload = () => {
       const parsed = parseRouteImport(String(reader.result ?? ''), file.name);
-      if (!parsed.ok) { notice = parsed.error; render(); return; }
+      if ('error' in parsed) { notice = parsed.error; render(); return; }
       const current = activeRoute();
       const created = createRoute(parsed.name, current?.defaultSpeedKn ?? 10, context, current?.warningRangeNm ?? DEFAULT_WARNING_RANGE_NM);
       if (!created.ok) { notice = 'Could not create a route from this file.'; render(); return; }
@@ -243,7 +243,7 @@ if (workspace && panel && content && toggleButton) {
       render();
       return;
     }
-    if (!warningHighlightLayer) warningHighlightLayer = window.L.layerGroup();
+    if (!warningHighlightLayer) warningHighlightLayer = window.L.featureGroup();
     warningHighlightLayer.clearLayers();
     let added = 0;
     warning.geometries.forEach((geometry) => {
