@@ -1356,6 +1356,8 @@ test.describe('public NAVAREA snapshot cache', () => {
       const stored = JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null');
       return stored.routes[0].waypoints[1].position.lon;
     })).toBe(76.25);
+    await expect(page.locator('.voyage-waypoint-row').nth(1)).toContainText("076° 15.00' E");
+    await expect(page.locator('.voyage-waypoint-row').nth(1)).toContainText('NM');
 
     const touchTargets = await page.evaluate(() => ({
       plannerButtons: Array.from(document.querySelectorAll<HTMLElement>('#voyagePlannerContent .voyage-planner-btn'))
