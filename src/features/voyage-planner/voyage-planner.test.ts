@@ -49,6 +49,23 @@ describe('voyage planner coordinates', () => {
     });
   });
 
+  it('accepts signed decimal degrees as an alternative to DMD', () => {
+    expect(parseCoordinates('-12.5', '76.25')).toEqual({
+      ok: true, value: { lat: -12.5, lon: 76.25 },
+    });
+    expect(parseCoordinates('90.1', '76.25').ok).toBe(false);
+    expect(parseCoordinates('-12.5', '180.1').ok).toBe(false);
+  });
+
+  it('rejects ambiguous decimal degrees with hemisphere suffixes', () => {
+    for (const latitude of ['10.5S', '10.5 S']) {
+      expect(parseCoordinates(latitude, '76° 15.00\' E').ok).toBe(false);
+    }
+    for (const longitude of ['76.25W', '76.25 W']) {
+      expect(parseCoordinates('10° 30.00\' N', longitude).ok).toBe(false);
+    }
+  });
+
   it('formats with padding and carries rounded minutes', () => {
     expect(formatLatitude(9 + 59.999 / 60)).toBe("10° 00.00' N");
     expect(formatLongitude(-45.5)).toBe("045° 30.00' W");
