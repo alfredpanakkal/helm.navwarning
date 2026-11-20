@@ -521,15 +521,15 @@ if (workspace && panel && content && toggleButton) {
       '<section class="voyage-planner-summary"><div class="voyage-planner-stat"><span>' + (calculation.status === 'incomplete' ? 'Calculated distance (partial)' : 'Total distance') + '</span><strong>' + calculation.totalDistanceNm.toFixed(1) + ' NM</strong></div>' +
       '<div class="voyage-planner-stat"><span>Waypoints</span><strong>' + route.waypoints.length + '</strong></div></section>' +
       routeValidation +
-      (routes.length > 1 ? '<details class="voyage-route-comparison"><summary>Compare saved routes (' + routes.length + ')</summary><div class="voyage-route-comparison-table"><table><thead><tr><th>Route</th><th>Distance</th><th>Waypoints</th><th>Warnings</th></tr></thead><tbody>' +
+      (routes.length > 1 ? '<details class="voyage-route-comparison"><summary>Compare saved routes (' + routes.length + ')</summary><div class="voyage-route-comparison-list">' +
         routes.map((item) => {
           const otherCalculation = calculateRoute(item);
           const otherAssessment = warningSnapshot?.available ? assessRouteWarnings(item, warningSnapshot.warnings) : null;
           const warningCount = otherAssessment
             ? otherAssessment.intersectsCount + ' intersecting · ' + otherAssessment.withinRangeCount + ' nearby · ' + otherAssessment.notAssessedCount + ' unassessed'
             : 'Not assessed';
-          return '<tr><td><button type="button" class="voyage-route-compare-select" data-action="select-comparison-route" data-id="' + escapeHtml(item.id) + '">' + escapeHtml(item.name) + (item.id === route.id ? ' (current)' : '') + '</button></td><td>' + otherCalculation.totalDistanceNm.toFixed(1) + ' NM</td><td>' + item.waypoints.length + '</td><td>' + escapeHtml(warningCount) + '</td></tr>';
-        }).join('') + '</tbody></table></div></details>' : '') +
+          return '<button type="button" class="voyage-route-comparison-row' + (item.id === route.id ? ' is-current' : '') + '" data-action="select-comparison-route" data-id="' + escapeHtml(item.id) + '"><strong>' + escapeHtml(item.name) + (item.id === route.id ? ' · Current' : '') + '</strong><span>' + otherCalculation.totalDistanceNm.toFixed(1) + ' NM · ' + item.waypoints.length + ' waypoints</span><span>' + escapeHtml(warningCount) + '</span></button>';
+        }).join('') + '</div></details>' : '') +
       '<section class="voyage-planner-section"><div class="voyage-planner-section-title"><strong>Export route</strong><span>Local files only</span></div>' +
       '<div class="voyage-planner-actions voyage-export-actions">' +
       '<button class="voyage-planner-btn" type="button" data-action="export-geojson">GeoJSON</button>' +
