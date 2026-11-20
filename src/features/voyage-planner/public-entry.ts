@@ -1050,7 +1050,8 @@ if (workspace && panel && content && toggleButton) {
     if (panel.hidden || !draftRoute) return;
     const target = event.target;
     const editingText = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement ||
-      target instanceof HTMLSelectElement || (target instanceof HTMLElement && (target.isContentEditable || Boolean(target.closest('button, a, [role="button"]'))));
+      target instanceof HTMLSelectElement || (target instanceof HTMLElement && target.isContentEditable);
+    const interactive = target instanceof HTMLElement && Boolean(target.closest('button, a, [role="button"]'));
     if (editingText || event.altKey) return;
     if (event.key === 'Escape' && addMode) {
       event.preventDefault();
@@ -1062,7 +1063,7 @@ if (workspace && panel && content && toggleButton) {
       undoLastDraftWaypoint();
       return;
     }
-    if (event.key === 'Enter' && addMode) {
+    if (event.key === 'Enter' && addMode && !interactive) {
       event.preventDefault();
       finishPlacement();
     }
