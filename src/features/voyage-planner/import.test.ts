@@ -65,7 +65,7 @@ describe('route import', () => {
       })),
     }), 'invalid-latitude.geojson');
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toContain('invalid coordinates');
+    if ('error' in result) expect(result.error).toContain('invalid coordinates');
   });
 
   it('rejects a GeoJSON waypoint collection when a longitude is out of range', () => {
@@ -78,7 +78,7 @@ describe('route import', () => {
       })),
     }), 'invalid-longitude.geojson');
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toContain('invalid coordinates');
+    if ('error' in result) expect(result.error).toContain('invalid coordinates');
   });
 
   it('continues to import a valid two-point GeoJSON route unchanged', () => {
