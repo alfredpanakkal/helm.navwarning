@@ -53,6 +53,10 @@ const bulletin = (): Row => ({
   qa_flags: [],
 });
 
+function emptyState(): PublicApiState {
+  return { spatialRows: [], textRows: [], fail: false, delayMs: 0 };
+}
+
 function watchPageErrors(page: Page) {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(String(error)));
