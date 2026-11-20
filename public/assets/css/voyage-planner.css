@@ -156,3 +156,15 @@
   .voyage-waypoint-row{grid-template-columns:minmax(0,1fr) auto}
   .voyage-waypoint-controls button{width:44px;height:44px;min-width:44px;min-height:44px}
 }
+
+
+.voyage-route-comparison{padding:9px;border:1px solid var(--border);border-radius:8px}
+.voyage-route-comparison summary{min-height:44px;display:flex;align-items:center;font-size:12px;font-weight:500;cursor:pointer;touch-action:manipulation}
+.voyage-route-comparison-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.voyage-route-comparison-row{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;min-height:58px;padding:9px;border:1px solid var(--border);border-radius:7px;background:var(--canvas,var(--surface));color:var(--ink-primary,var(--text));text-align:left;font:inherit;cursor:pointer;touch-action:manipulation}
+.voyage-route-comparison-row.is-current{border-color:var(--accent);background:var(--surface-subtle)}
+.voyage-route-comparison-row strong{font-size:12px;font-weight:600}
+.voyage-route-comparison-row span{font-size:11px;color:var(--ink-secondary,var(--text-muted));overflow-wrap:anywhere}
+.voyage-route-comparison-row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.voyage-waypoint-marker.is-selected span{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 28%,transparent);transform:scale(1.06)}
+.voyage-planner-notice.is-warning{border-color:var(--sev-high);color:var(--ink-primary,var(--text))}
