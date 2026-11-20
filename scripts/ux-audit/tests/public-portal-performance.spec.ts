@@ -507,7 +507,7 @@ test.describe('public workspace interaction regressions', () => {
       marker.fire('dragend');
     });
 
-    await expect(page.locator('.voyage-planner-notice')).toContainText('Quota exceeded');
+    await expect(page.locator('.voyage-planner-notice.is-error')).toContainText('Quota exceeded');
     const restoredPosition = await page.evaluate(() => {
       const browser = window as any;
       let marker: any = null;
@@ -1325,7 +1325,7 @@ test.describe('public NAVAREA snapshot cache', () => {
   test('Voyage Planner supports touchscreen editing, decimal coordinates and local GeoJSON import', async ({ page }) => {
     const errors = watchPageErrors(page);
     await page.setViewportSize({ width: 390, height: 844 });
-    await installPublicApiMock(page, emptyState());
+    await installPublicApiMock(page, { spatialRows: [], textRows: [], fail: false, delayMs: 0 });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => Boolean((window as any).hwMap));
     await page.locator('#btnVoyagePlanner').click();
