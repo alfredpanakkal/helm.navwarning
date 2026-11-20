@@ -583,10 +583,10 @@ if (workspace && panel && content && toggleButton) {
       if (index > 0 && calculation.legs[index - 1]?.status === 'ok') {
         const previous = route.waypoints[index - 1];
         const legDistance = calculation.legs[index - 1].distanceNm ?? 0;
-        L.polyline(
-          buildRhumbPath(previous.position, waypoint.position, chartLongitudes[index - 1], chartLongitudes[index], legDistance),
-          { color: '#2F6B4F', weight: 4, opacity: 0.92, lineCap: 'round' },
-        ).addTo(routeLayer!).on('click', (event: import('leaflet').LeafletMouseEvent) => {
+        const legPath = buildRhumbPath(previous.position, waypoint.position, chartLongitudes[index - 1], chartLongitudes[index], legDistance);
+        L.polyline(legPath, { color: '#2F6B4F', weight: 4, opacity: 0.92, lineCap: 'round', interactive: false }).addTo(routeLayer!);
+        L.polyline(legPath, { color: '#000', weight: 20, opacity: 0.01, lineCap: 'round', bubblingMouseEvents: false })
+          .addTo(routeLayer!).on('click', (event: import('leaflet').LeafletMouseEvent) => {
           if (event.originalEvent) L.DomEvent.stopPropagation(event.originalEvent);
           const current = activeRoute();
           if (!current || current.id !== route.id || storageBlocked) return;
@@ -600,8 +600,8 @@ if (workspace && panel && content && toggleButton) {
         icon: L.divIcon({
           className: 'voyage-waypoint-marker' + (selectedWaypointId === waypoint.id ? ' is-selected' : ''),
           html: '<span>' + (index + 1) + '</span>',
-          iconSize: [36, 36],
-          iconAnchor: [18, 18],
+          iconSize: [44, 44],
+          iconAnchor: [22, 22],
         }),
         title: waypoint.name,
       }).addTo(routeLayer!);
@@ -609,6 +609,7 @@ if (workspace && panel && content && toggleButton) {
       marker.on('click', () => {
         selectedWaypointId = waypoint.id;
         render();
+        renderMap();
       });
       marker.on('dragend', (event: import('leaflet').LeafletEvent) => {
         const dragged = event.target as import('leaflet').Marker;
