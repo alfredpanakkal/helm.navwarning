@@ -1049,6 +1049,9 @@ if (workspace && panel && content && toggleButton) {
   document.addEventListener('keydown', (event: KeyboardEvent) => {
     if (panel.hidden || !draftRoute) return;
     const target = event.target;
+    const inPlanner = target instanceof Node && panel.contains(target);
+    const inMap = target instanceof HTMLElement && Boolean(target.closest('.map-container, .leaflet-container'));
+    if (!inPlanner && !inMap) return;
     const editingText = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement ||
       target instanceof HTMLSelectElement || (target instanceof HTMLElement && target.isContentEditable);
     const interactive = target instanceof HTMLElement && Boolean(target.closest('button, a, [role="button"]'));
