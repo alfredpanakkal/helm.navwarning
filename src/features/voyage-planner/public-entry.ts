@@ -461,6 +461,14 @@ if (workspace && panel && content && toggleButton) {
     }
 
     const calculation = calculateRoute(route);
+    const duplicateWaypoints = route.waypoints.filter((waypoint, index) => route.waypoints.some((other, otherIndex) =>
+      otherIndex < index && other.position.lat === waypoint.position.lat && other.position.lon === waypoint.position.lon,
+    ));
+    const routeValidation = route.waypoints.length < 2
+      ? '<div class="voyage-planner-notice is-warning">Add at least two waypoints before assessing this route.</div>'
+      : duplicateWaypoints.length
+        ? '<div class="voyage-planner-notice is-warning">' + duplicateWaypoints.length + ' waypoint(s) share coordinates with an earlier waypoint. Review zero-length legs.</div>'
+        : '<div class="voyage-planner-notice">Route structure checks passed. This does not establish navigational safety.</div>';
     const selector = routes.length > 1
       ? '<div class="voyage-planner-field is-wide"><label for="voyageRouteSelect">Saved route</label><select id="voyageRouteSelect" data-action="select-route">' +
         routes.map((item) => '<option value="' + escapeHtml(item.id) + '"' + (item.id === route.id ? ' selected' : '') + '>' + escapeHtml(item.name) + '</option>').join('') +
@@ -512,6 +520,7 @@ if (workspace && panel && content && toggleButton) {
       '<button class="voyage-planner-btn" type="button" data-action="redo"' + (!redoHistory.length || storageBlocked ? ' disabled' : '') + '>Redo</button></div></section>' +
       '<section class="voyage-planner-summary"><div class="voyage-planner-stat"><span>' + (calculation.status === 'incomplete' ? 'Calculated distance (partial)' : 'Total distance') + '</span><strong>' + calculation.totalDistanceNm.toFixed(1) + ' NM</strong></div>' +
       '<div class="voyage-planner-stat"><span>Waypoints</span><strong>' + route.waypoints.length + '</strong></div></section>' +
+      routeValidation +
       '<section class="voyage-planner-section"><div class="voyage-planner-section-title"><strong>Export route</strong><span>Local files only</span></div>' +
       '<div class="voyage-planner-actions voyage-export-actions">' +
       '<button class="voyage-planner-btn" type="button" data-action="export-geojson">GeoJSON</button>' +
@@ -529,6 +538,22 @@ if (workspace && panel && content && toggleButton) {
       '<div class="voyage-waypoint-list">' + (waypointRows || '<p class="voyage-planner-disclaimer">No waypoints yet. Choose Add waypoint on chart, then click the chart.</p>') + '</div></section>' +
       (selectedForm ? selectedForm : '') +
       '<p class="voyage-planner-disclaimer">Decision-support aid only; not certified ECDIS. Rhumb-line distances and true courses are approximate. Verify the passage plan against approved charts and publications.</p>';
+  }
+
+  function buildRhumbPath(from: { lat: number; lon: number }, to: { lat: number; lon: number }, startLongitude: number, endLongitude: number, distanceNm: number): [number, number][] {
+    const radians = Math.PI / 180;
+    const psi1 = Math.asinh(Math.tan(from.lat * radians));
+    const psi2 = Math.asinh(Math.tan(to.lat * radians));
+    const sampleCount = Math.max(1, Math.min(500, Math.ceil(distanceNm / 5)));
+    const points: [number, number][] = [];
+    for (let step = 0; step <= sampleCount; step += 1) {
+      const fraction = step / sampleCount;
+      const psi = psi1 + (psi2 - psi1) * fraction;
+      const latitude = Math.atan(Math.sinh(psi)) / radians;
+      const longitude = startLongitude + (endLongitude - startLongitude) * fraction;
+      points.push([latitude, longitude]);
+    }
+    return points;
   }
 
   function nearestLongitude(longitude: number, reference: number): number {
@@ -557,9 +582,10 @@ if (workspace && panel && content && toggleButton) {
     route.waypoints.forEach((waypoint, index) => {
       if (index > 0 && calculation.legs[index - 1]?.status === 'ok') {
         const previous = route.waypoints[index - 1];
+        const legDistance = calculation.legs[index - 1].distanceNm ?? 0;
         L.polyline(
-          [[previous.position.lat, chartLongitudes[index - 1]], [waypoint.position.lat, chartLongitudes[index]]],
-          { color: '#2F6B4F', weight: 3, opacity: 0.9, lineCap: 'round' },
+          buildRhumbPath(previous.position, waypoint.position, chartLongitudes[index - 1], chartLongitudes[index], legDistance),
+          { color: '#2F6B4F', weight: 4, opacity: 0.92, lineCap: 'round' },
         ).addTo(routeLayer!).on('click', (event: import('leaflet').LeafletMouseEvent) => {
           if (event.originalEvent) L.DomEvent.stopPropagation(event.originalEvent);
           const current = activeRoute();
@@ -572,7 +598,7 @@ if (workspace && panel && content && toggleButton) {
       const marker = L.marker([waypoint.position.lat, chartLongitudes[index]], {
         draggable: !storageBlocked,
         icon: L.divIcon({
-          className: 'voyage-waypoint-marker',
+          className: 'voyage-waypoint-marker' + (selectedWaypointId === waypoint.id ? ' is-selected' : ''),
           html: '<span>' + (index + 1) + '</span>',
           iconSize: [36, 36],
           iconAnchor: [18, 18],
