@@ -23,11 +23,25 @@ function parseDmd(value: string, axis: Axis): ParseResult<number> {
   return { ok: true, value: signed };
 }
 
-/** Parse latitude and longitude independently; both require explicit hemispheres. */
+
+function parseAxis(value: string, axis: Axis): ParseResult<number> {
+  const trimmed = value.trim();
+  if (/^[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)$/.test(trimmed)) {
+    const decimal = Number(trimmed);
+    const maxDegrees = axis === 'lat' ? 90 : 180;
+    if (!Number.isFinite(decimal) || Math.abs(decimal) > maxDegrees) {
+      return { ok: false, error: axis === 'lat' ? 'Latitude is outside -90 to 90 degrees.' : 'Longitude is outside -180 to 180 degrees.' };
+    }
+    return { ok: true, value: decimal };
+  }
+  return parseDmd(trimmed, axis);
+}
+
+/** Parse DMD with hemispheres or signed decimal degrees. */
 export function parseCoordinates(latitude: string, longitude: string): ParseResult<Position> {
-  const lat = parseDmd(latitude, 'lat');
+  const lat = parseAxis(latitude, 'lat');
   if ('error' in lat) return { ok: false, error: lat.error };
-  const lon = parseDmd(longitude, 'lon');
+  const lon = parseAxis(longitude, 'lon');
   if ('error' in lon) return { ok: false, error: lon.error };
   return { ok: true, value: { lat: lat.value, lon: lon.value } };
 }
