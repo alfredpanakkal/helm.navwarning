@@ -26,7 +26,7 @@ function parseDmd(value: string, axis: Axis): ParseResult<number> {
 
 function parseAxis(value: string, axis: Axis): ParseResult<number> {
   const trimmed = value.trim();
-  if (/^[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)$/.test(trimmed)) {
+  if (/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(trimmed)) {
     const decimal = Number(trimmed);
     const maxDegrees = axis === 'lat' ? 90 : 180;
     if (!Number.isFinite(decimal) || Math.abs(decimal) > maxDegrees) {
