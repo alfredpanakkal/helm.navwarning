@@ -168,3 +168,7 @@
 .voyage-route-comparison-row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .voyage-waypoint-marker.is-selected span{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 28%,transparent);transform:scale(1.06)}
 .voyage-planner-notice.is-warning{border-color:var(--sev-high);color:var(--ink-primary,var(--text))}
+
+
+.voyage-placement-controls{position:sticky;bottom:-14px;z-index:2;padding:8px 0;background:var(--canvas,var(--surface));border-top:1px solid var(--hairline,var(--border))}
+.voyage-placement-controls .voyage-planner-btn{flex:1 1 0}
