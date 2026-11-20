@@ -516,6 +516,7 @@ test.describe('public workspace interaction regressions', () => {
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(4);
     await page.locator('[data-action="undo-last-waypoint"]').click();
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
+    await page.locator('.leaflet-container').focus();
     await page.keyboard.press('Control+z');
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
     await expect(page.locator('[data-action="save-route"]')).toBeDisabled();
