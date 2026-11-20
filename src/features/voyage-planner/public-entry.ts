@@ -489,11 +489,12 @@ if (workspace && panel && content && toggleButton) {
 
     const waypointRows = route.waypoints.map((waypoint, index) => {
       const leg = calculation.legs[index - 1];
+      const coordinates = formatLatitude(waypoint.position.lat) + ' · ' + formatLongitude(waypoint.position.lon);
       const meta = index === 0
-        ? formatLatitude(waypoint.position.lat) + ' · ' + formatLongitude(waypoint.position.lon)
+        ? coordinates
         : leg && leg.distanceNm !== null
-          ? leg.distanceNm.toFixed(1) + ' NM · ' + displayCourse(leg.courseDeg)
-          : (leg?.status ?? 'Leg pending');
+          ? coordinates + ' · ' + leg.distanceNm.toFixed(1) + ' NM · ' + displayCourse(leg.courseDeg)
+          : coordinates + ' · ' + (leg?.status ?? 'Leg pending');
       return '<div class="voyage-waypoint-row' + (waypoint.id === selectedWaypointId ? ' is-selected' : '') + '">' +
         '<button type="button" class="voyage-waypoint-select" data-action="select-waypoint" data-id="' + escapeHtml(waypoint.id) + '">' +
         '<span class="voyage-waypoint-name">' + (index + 1) + '. ' + escapeHtml(waypoint.name) + '</span>' +
