@@ -495,7 +495,8 @@ test.describe('public workspace interaction regressions', () => {
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
     await expect(page.locator('[data-action="save-route"]')).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem('helm_voyage_planner_v1'))).toBe(originalStorage);
-  });});
+  });
+});
 
 test.describe('public NAVAREA snapshot cache', () => {
   test('first visit is live; repeat visit renders the saved Tier-A snapshot before refresh', async ({ page }) => {
