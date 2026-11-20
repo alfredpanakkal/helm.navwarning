@@ -151,6 +151,11 @@ if (workspace && panel && content && toggleButton) {
         render(); renderMap();
       }
     };
+    if (file.size > 1_000_000) {
+      notice = 'The file is larger than 1 MB. Nothing was imported.';
+      render();
+      return;
+    }
     reader.readAsText(file);
   }
 
