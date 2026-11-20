@@ -54,19 +54,51 @@ const publicWarning = (): Row => ({
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
     await expect(page.locator('[data-action="save-route"]')).toBeDisabled();
 
-    await page.locator('body').click({ position: { x: 5, y: 5 } });
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.keyboard.press('Enter');
     await expect(page.locator('[data-action="finish-placement"]')).toHaveCount(0);
     await expect(page.locator('[data-action="resume-placement"]')).toBeVisible();
     await expect(page.locator('[data-action="save-route"]')).toBeEnabled();
     await expect(page.locator('.voyage-planner-notice[role="status"]')).toContainText('Placement finished');
-
+    if (await page.locator('[data-action="finish-placement"]').count()) {
+      await page.locator('[data-action="finish-placement"]').click();
+    }
     await page.locator('[data-action="save-route"]').click();
     await expect.poll(() => page.evaluate(() => {
       const stored = JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null');
       return stored.routes[0].waypoints.length;
     })).toBe(2);
     await expect(page.locator('.voyage-assessment')).toBeVisible();
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
+  test('Voyage Planner supports keyboard coordinate entry during draft review', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await installPublicApiMock(page, { spatialRows: [], textRows: [], fail: false, delayMs: 0 });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
+
+    await page.locator('[data-action="finish-placement"]').click();
+    await page.locator('#newWaypointName').fill('Coordinate start');
+    await page.locator('#newWaypointLat').fill('10.5');
+    await page.locator('#newWaypointLon').fill('76.25');
+    await page.locator('form[data-form="new-waypoint"] button[type="submit"]').click();
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(1);
+
+    await page.locator('#newWaypointName').fill('Coordinate end');
+    await page.locator('#newWaypointLat').fill('11.5');
+    await page.locator('#newWaypointLon').fill('77.25');
+    await page.locator('form[data-form="new-waypoint"] button[type="submit"]').click();
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    await page.locator('[data-action="save-route"]').click();
+
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null'));
+    expect(saved.routes[0].waypoints.map((waypoint: any) => waypoint.position)).toEqual([
+      { lat: 10.5, lon: 76.25 },
+      { lat: 11.5, lon: 77.25 },
+    ]);
     expect(errors, 'no uncaught browser errors').toEqual([]);
   });
 
@@ -512,7 +544,6 @@ test.describe('public workspace interaction regressions', () => {
     await page.locator('form[data-form="route-settings"] button[type="submit"]').click();
 
     for (const [lat, lon] of [[10, 75], [10, 76]]) {
-      await page.locator('[data-action="toggle-add-mode"]').click();
       await page.evaluate(({ latitude, longitude }) => {
         const browser = window as any;
         browser.hwMap.fire('click', { latlng: browser.L.latLng(latitude, longitude) });
@@ -527,6 +558,9 @@ test.describe('public workspace interaction regressions', () => {
         if (key === 'helm_voyage_planner_v1') throw new Error('Quota exceeded');
       };
     });
+    if (await page.locator('[data-action="finish-placement"]').count()) {
+      await page.locator('[data-action="finish-placement"]').click();
+    }
     await page.locator('[data-action="save-route"]').click();
     await expect(page.locator('.voyage-planner-notice.is-error')).toContainText('Quota exceeded');
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
@@ -1261,19 +1295,21 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.locator('form[data-form="route-settings"] button[type="submit"]').click();
 
     for (const [lat, lon] of [[10, 75], [11, 76]]) {
-      await page.locator('[data-action="toggle-add-mode"]').click();
       await page.evaluate(({ latitude, longitude }) => {
         const browser = window as any;
         browser.hwMap.fire('click', { latlng: browser.L.latLng(latitude, longitude) });
       }, { latitude: lat, longitude: lon });
     }
     expect(await page.evaluate(() => localStorage.getItem('helm_voyage_planner_v1'))).toBeNull();
+    if (await page.locator('[data-action="finish-placement"]').count()) {
+      await page.locator('[data-action="finish-placement"]').click();
+    }
     await page.locator('[data-action="save-route"]').click();
     const saved = await page.evaluate(() => localStorage.getItem('helm_voyage_planner_v1'));
     expect(saved).not.toBeNull();
 
     await page.locator('[data-action="edit-route"]').click();
-    await page.locator('[data-action="toggle-add-mode"]').click();
+    await page.locator('[data-action="resume-placement"]').click();
     await page.evaluate(() => {
       const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(12, 77) });
@@ -1306,15 +1342,11 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
     await page.locator('#voyageRouteName').fill('Indian Ocean passage');
     await page.locator('form[data-form="route-settings"] button[type="submit"]').click();
-
-    await page.locator('[data-action="toggle-add-mode"]').click();
     await page.evaluate(() => {
       const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
     });
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(1);
-
-    await page.locator('[data-action="toggle-add-mode"]').click();
     await page.evaluate(() => {
       const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 76) });
@@ -1332,6 +1364,9 @@ test.describe('public NAVAREA snapshot cache', () => {
     await expect(page.locator('.voyage-insert-prompt')).toContainText('Insert waypoint on leg 1');
     await page.locator('[data-action="confirm-insert"]').click();
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
+    if (await page.locator('[data-action="finish-placement"]').count()) {
+      await page.locator('[data-action="finish-placement"]').click();
+    }
     await page.locator('[data-action="save-route"]').click();
     await expect(page.locator('.voyage-assessment-row.is-intersects')).toContainText('CACHE-TEST-1/26');
     await expect(page.locator('.voyage-planner-stat strong').first()).not.toHaveText('0.0 NM');
@@ -1378,13 +1413,10 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
     await page.locator('#voyageRouteName').fill('Touch route');
     await page.locator('form[data-form="route-settings"] button[type="submit"]').click();
-
-    await page.locator('[data-action="toggle-add-mode"]').click();
     await page.evaluate(() => {
       const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
     });
-    await page.locator('[data-action="toggle-add-mode"]').click();
     await page.evaluate(() => {
       const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 76) });
@@ -1398,6 +1430,9 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.locator('#voyageWaypointLat').fill('10.5');
     await page.locator('#voyageWaypointLon').fill('76.25');
     await page.locator('form[data-form="waypoint"] button[type="submit"]').click();
+    if (await page.locator('[data-action="finish-placement"]').count()) {
+      await page.locator('[data-action="finish-placement"]').click();
+    }
     await page.locator('[data-action="save-route"]').click();
     await expect.poll(() => page.evaluate(() => {
       const stored = JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null');
@@ -1445,19 +1480,19 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
     await page.locator('#voyageRouteName').fill('Existing route');
     await page.locator('form[data-form="route-settings"] button[type="submit"]').click();
-    await page.locator('[data-action="toggle-add-mode"]').click();
     await page.evaluate(() => {
       const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
     });
-    await page.locator('[data-action="toggle-add-mode"]').click();
     await page.evaluate(() => {
       const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(11, 76) });
     });
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    if (await page.locator('[data-action="finish-placement"]').count()) {
+      await page.locator('[data-action="finish-placement"]').click();
+    }
     await page.locator('[data-action="save-route"]').click();
-
     const originalStorage = await page.evaluate(() => localStorage.getItem('helm_voyage_planner_v1'));
     await page.locator('[data-action="import-file"]').setInputFiles({
       name: 'big.gpx',
@@ -1480,19 +1515,19 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
     await page.locator('#voyageRouteName').fill('Existing route');
     await page.locator('form[data-form="route-settings"] button[type="submit"]').click();
-    await page.locator('[data-action="toggle-add-mode"]').click();
     await page.evaluate(() => {
       const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
     });
-    await page.locator('[data-action="toggle-add-mode"]').click();
     await page.evaluate(() => {
       const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(11, 76) });
     });
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    if (await page.locator('[data-action="finish-placement"]').count()) {
+      await page.locator('[data-action="finish-placement"]').click();
+    }
     await page.locator('[data-action="save-route"]').click();
-
     const originalStorage = await page.evaluate(() => localStorage.getItem('helm_voyage_planner_v1'));
     const invalidFiles = [
       { name: 'invalid-latitude.gpx', body: '<gpx version="1.1" creator="test"><rte><name>Invalid latitude</name><rtept lat="91" lon="70"/><rtept lat="9" lon="71"/></rte></gpx>' },
@@ -1536,16 +1571,17 @@ test.describe('public NAVAREA snapshot cache', () => {
     await page.waitForFunction(() => Boolean((window as any).hwMap));
     await page.locator('#btnVoyagePlanner').click();
     await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
-    await page.locator('[data-action="toggle-add-mode"]').click();
     await page.evaluate(() => {
       const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(10, 75) });
     });
-    await page.locator('[data-action="toggle-add-mode"]').click();
     await page.evaluate(() => {
       const browser = window as any;
       browser.hwMap.fire('click', { latlng: browser.L.latLng(11, 76) });
     });
+    if (await page.locator('[data-action="finish-placement"]').count()) {
+      await page.locator('[data-action="finish-placement"]').click();
+    }
     await page.locator('[data-action="save-route"]').click();
     await expect(page.locator('.voyage-assessment-row.is-not-assessed')).toContainText('POINT / LineString');
     expect(errors, 'no uncaught browser errors').toEqual([]);
