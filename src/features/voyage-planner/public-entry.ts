@@ -442,6 +442,11 @@ if (workspace && panel && content && toggleButton) {
 
   function saveDraftRoute(): void {
     if (!draftRoute || storageBlocked) return;
+    if (addMode) {
+      notice = 'Finish waypoint placement before saving the route.';
+      render();
+      return;
+    }
     if (draftRoute.waypoints.length < 2) {
       notice = 'Add at least two waypoints before saving a completed route.';
       render();
@@ -686,6 +691,11 @@ if (workspace && panel && content && toggleButton) {
           : '<button class="voyage-planner-btn is-primary" type="button" data-action="resume-placement">Add more waypoints</button>') +
         '<button class="voyage-planner-btn is-danger" type="button" data-action="cancel-draft">Cancel</button></div>' : '') +
       '<div class="voyage-waypoint-list">' + (waypointRows || '<p class="voyage-planner-disclaimer">No waypoints yet. Choose Add waypoint on chart, then click the chart.</p>') + '</div></section>' +
+      (draftRoute ? '<form class="voyage-planner-section" data-form="new-waypoint"><div class="voyage-planner-section-title"><strong>Add waypoint by coordinates</strong></div>' +
+        '<div class="voyage-planner-fields"><div class="voyage-planner-field is-wide"><label for="newWaypointName">Waypoint name</label><input id="newWaypointName" name="name" maxlength="40" required value="WP ' + (route.waypoints.length + 1) + '"></div>' +
+        '<div class="voyage-planner-field"><label for="newWaypointLat">Latitude</label><input id="newWaypointLat" name="latitude" inputmode="' + (coordinateFormat === 'decimal' ? 'decimal' : 'text') + '" autocomplete="off" required></div>' +
+        '<div class="voyage-planner-field"><label for="newWaypointLon">Longitude</label><input id="newWaypointLon" name="longitude" inputmode="' + (coordinateFormat === 'decimal' ? 'decimal' : 'text') + '" autocomplete="off" required></div></div>' +
+        '<button class="voyage-planner-btn" type="submit">Add waypoint</button></form>' : '') +
       (selectedForm ? selectedForm : '') +
       '<p class="voyage-planner-disclaimer">Decision-support aid only; not certified ECDIS. Rhumb-line distances and true courses are approximate. Verify the passage plan against approved charts and publications.</p>';
   }
@@ -952,6 +962,27 @@ if (workspace && panel && content && toggleButton) {
         return;
       }
       commitRouteChange(validation.data);
+      return;
+    }
+
+    if (form.dataset.form === 'new-waypoint' && route && draftRoute) {
+      const parsed = parseCoordinates(String(data.get('latitude') ?? ''), String(data.get('longitude') ?? ''));
+      if ('error' in parsed) {
+        notice = parsed.error;
+        render();
+        return;
+      }
+      const added = addWaypoint(route, {
+        name: String(data.get('name') ?? ''),
+        position: parsed.value,
+      }, context);
+      if ('error' in added) {
+        notice = 'Could not add waypoint: ' + added.error;
+        render();
+        return;
+      }
+      selectedWaypointId = added.value.waypoints[added.value.waypoints.length - 1]?.id ?? null;
+      commitRouteChange(added.value);
       return;
     }
 
