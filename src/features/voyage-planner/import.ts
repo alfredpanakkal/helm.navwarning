@@ -37,10 +37,12 @@ function parseGeoJson(value: unknown, fileName: string): RouteImportResult {
     if (!isRecord(feature) || !isRecord(feature.geometry)) return;
     const properties = isRecord(feature.properties) ? feature.properties : {};
     const geometry = feature.geometry;
+    const featureType = typeof properties.featureType === 'string' ? properties.featureType.toLowerCase() : null;
+    if (featureType && featureType !== 'waypoint') return;
     if (geometry.type === 'Point') {
       const position = parsePosition(geometry.coordinates);
       if (!position) return;
-      const sequence = Number(properties.sequence);
+      const sequence = typeof properties.sequence === 'number' ? properties.sequence : Number.NaN;
       points.push({
         sequence: Number.isFinite(sequence) ? sequence : index + 1,
         waypoint: {
@@ -93,7 +95,7 @@ function parseGpx(text: string, fileName: string): RouteImportResult {
   routePoints.forEach((element, index) => {
     const latAttribute = element.getAttribute('lat');
     const lonAttribute = element.getAttribute('lon');
-    if (latAttribute === null || lonAttribute === null) return;
+    if (latAttribute === null || lonAttribute === null || !latAttribute.trim() || !lonAttribute.trim()) return;
     const lat = Number(latAttribute);
     const lon = Number(lonAttribute);
     const position = parsePosition([lon, lat]);
