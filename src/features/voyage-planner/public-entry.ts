@@ -11,6 +11,7 @@ import {
   formatLongitude,
   loadRoutes,
   parseCoordinates,
+  parseRouteImport,
   removeWaypoint,
   renameRoute,
   reorderWaypoint,
@@ -125,6 +126,65 @@ if (workspace && panel && content && toggleButton) {
 
   function displayCourse(value: number | null): string {
     return value === null ? '—' : String(Math.round(value) % 360).padStart(3, '0') + '°T';
+  }
+
+  function importRouteFile(file: File): void {
+    const reader = new FileReader();
+    reader.onerror = () => { notice = 'Could not read the selected route file.'; render(); };
+    reader.onload = () => {
+      const parsed = parseRouteImport(String(reader.result ?? ''), file.name);
+      if (!parsed.ok) { notice = parsed.error; render(); return; }
+      const current = activeRoute();
+      const created = createRoute(parsed.name, current?.defaultSpeedKn ?? 10, context, current?.warningRangeNm ?? DEFAULT_WARNING_RANGE_NM);
+      if (!created.ok) { notice = 'Could not create a route from this file.'; render(); return; }
+      let imported = created.value;
+      for (const waypoint of parsed.waypoints) {
+        const added = addWaypoint(imported, waypoint, context);
+        if (!added.ok) { notice = 'The imported route contains invalid waypoint data.'; render(); return; }
+        imported = added.value;
+      }
+      if (persist([...routes, imported])) {
+        activeRouteId = imported.id;
+        selectedWaypointId = imported.waypoints[0]?.id ?? null;
+        notice = 'Imported ' + imported.waypoints.length + ' waypoints locally.';
+        render(); renderMap();
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function printRouteReport(route: VoyageRoute): void {
+    const calculation = calculateRoute(route);
+    const assessment = warningSnapshot?.available ? assessRouteWarnings(route, warningSnapshot.warnings) : null;
+    const popup = window.open('', '_blank');
+    if (!popup) { notice = 'Allow pop-ups to print the route report.'; render(); return; }
+    const coordinates: Array<[number, number]> = [];
+    route.waypoints.forEach((waypoint, index) => {
+      let longitude = waypoint.position.lon;
+      if (index > 0) {
+        const previous = coordinates[index - 1][0];
+        while (longitude - previous > 180) longitude -= 360;
+        while (longitude - previous < -180) longitude += 360;
+      }
+      coordinates.push([longitude, waypoint.position.lat]);
+    });
+    const longitudes = coordinates.map((point) => point[0]);
+    const latitudes = coordinates.map((point) => point[1]);
+    const minLon = Math.min(...longitudes), maxLon = Math.max(...longitudes);
+    const minLat = Math.min(...latitudes), maxLat = Math.max(...latitudes);
+    const x = (lon: number) => 24 + ((lon - minLon) / Math.max(0.000001, maxLon - minLon)) * 552;
+    const y = (lat: number) => 176 - ((lat - minLat) / Math.max(0.000001, maxLat - minLat)) * 132;
+    const sketchPoints = coordinates.map((point) => x(point[0]) + ',' + y(point[1])).join(' ');
+    const sketchMarkers = coordinates.map((point, index) => '<circle cx="' + x(point[0]) + '" cy="' + y(point[1]) + '" r="4"/><text x="' + (x(point[0]) + 7) + '" y="' + (y(point[1]) - 7) + '">' + (index + 1) + '</text>').join('');
+    const waypointRows = route.waypoints.map((waypoint, index) => {
+      const leg = calculation.legs[index - 1];
+      return '<tr><td>' + (index + 1) + '</td><td>' + escapeHtml(waypoint.name) + '</td><td>' + escapeHtml(formatLatitude(waypoint.position.lat)) + '</td><td>' + escapeHtml(formatLongitude(waypoint.position.lon)) + '</td><td>' + (index === 0 ? '—' : leg?.distanceNm === null || !leg ? 'Not calculated' : leg.distanceNm.toFixed(2) + ' NM') + '</td><td>' + (index === 0 ? '—' : displayCourse(leg?.courseDeg ?? null)) + '</td></tr>';
+    }).join('');
+    const warningRows = assessment?.results.map((item) => '<tr><td>' + escapeHtml(item.warningId) + '</td><td>' + escapeHtml(item.navarea) + '</td><td>' + escapeHtml(item.severity) + '</td><td>' + (item.status === 'INTERSECTS' ? 'Intersects' : item.status === 'WITHIN_RANGE' ? 'Nearby' : 'Not assessed') + '</td><td>' + escapeHtml(warningValidityLabel(item.validFrom, item.validTo)) + '</td></tr>').join('') ?? '';
+    const report = '<!doctype html><html><head><meta charset="utf-8"><title>' + escapeHtml(route.name) + ' — Route Report</title><style>body{font:13px Arial,sans-serif;color:#17212b;margin:28px}h1{font-size:22px;margin:0 0 6px}h2{font-size:15px;margin:22px 0 8px}p{color:#52606d;line-height:1.5}.meta{display:flex;gap:24px;margin:14px 0}.meta strong{display:block;font-size:18px;color:#17212b}svg{width:100%;height:210px;border:1px solid #d7dee5;border-radius:8px}svg polyline{fill:none;stroke:#28724f;stroke-width:3}svg circle{fill:#28724f;stroke:white;stroke-width:2}svg text{font:11px Arial;fill:#17212b}table{width:100%;border-collapse:collapse;font-size:11px}th,td{text-align:left;padding:7px;border-bottom:1px solid #d7dee5;vertical-align:top}th{background:#f2f5f7}footer{margin-top:24px;padding-top:10px;border-top:1px solid #d7dee5;font-size:10px;color:#52606d}@media print{body{margin:12mm}h2{break-after:avoid}tr{break-inside:avoid}}</style></head><body><h1>' + escapeHtml(route.name) + '</h1><p>Helm.Warning route summary · Generated ' + escapeHtml(new Date().toISOString()) + '</p><div class="meta"><div><strong>' + calculation.totalDistanceNm.toFixed(1) + ' NM</strong>Total route distance</div><div><strong>' + route.waypoints.length + '</strong>Waypoints</div><div><strong>' + (assessment?.results.length ?? '—') + '</strong>Warnings assessed / identified</div></div><h2>Route shape</h2><p>Schematic only; not a navigational chart and not to scale.</p><svg viewBox="0 0 600 200" role="img" aria-label="Schematic route connecting numbered waypoints"><polyline points="' + sketchPoints + '"/>' + sketchMarkers + '</svg><h2>Waypoints and legs</h2><table><thead><tr><th>#</th><th>Waypoint</th><th>Latitude</th><th>Longitude</th><th>Leg distance</th><th>Course</th></tr></thead><tbody>' + waypointRows + '</tbody></table><h2>NAVAREA warning assessment</h2>' + (assessment ? '<p>' + assessment.intersectsCount + ' intersecting · ' + assessment.withinRangeCount + ' nearby · ' + assessment.notAssessedCount + ' not assessed · Search distance ' + assessment.rangeNm + ' NM</p><table><thead><tr><th>Warning</th><th>NAVAREA</th><th>Severity</th><th>Route relation</th><th>Validity</th></tr></thead><tbody>' + (warningRows || '<tr><td colspan="5">No warning results.</td></tr>') + '</tbody></table>' : '<p>Warning data unavailable; no assessment was performed.</p>') + '<footer>Decision-support information only. This report is not an ECDIS output, safety clearance or substitute for official navigational warnings, approved charts and publications, or the Master\'s judgement. Warning data may be delayed, incomplete or unavailable. Validity is compared with the current date only, not estimated passage time.</footer></body></html>';
+    popup.document.open(); popup.document.write(report); popup.document.close();
+    popup.addEventListener('load', () => popup.print(), { once: true });
+    window.setTimeout(() => { try { popup.focus(); popup.print(); } catch { /* User can print manually. */ } }, 500);
   }
 
   function downloadRouteExport(route: VoyageRoute, format: 'geojson' | 'gpx' | 'csv'): void {
@@ -450,8 +510,11 @@ if (workspace && panel && content && toggleButton) {
       '<div class="voyage-planner-actions voyage-export-actions">' +
       '<button class="voyage-planner-btn" type="button" data-action="export-geojson">GeoJSON</button>' +
       '<button class="voyage-planner-btn" type="button" data-action="export-gpx">GPX</button>' +
-      '<button class="voyage-planner-btn" type="button" data-action="export-csv">CSV</button></div>' +
-      '<p class="voyage-planner-disclaimer">Exports are generated in this browser. Route and waypoint data are not uploaded.</p></section>' +
+      '<button class="voyage-planner-btn" type="button" data-action="export-csv">CSV</button>' +
+      '<button class="voyage-planner-btn" type="button" data-action="choose-import"' + (storageBlocked ? ' disabled' : '') + '>Import GPX / GeoJSON</button>' +
+      '<button class="voyage-planner-btn" type="button" data-action="print-report">Print / PDF report</button></div>' +
+      '<input type="file" accept=".gpx,.geojson,.json,application/gpx+xml,application/geo+json,application/json" data-action="import-file" hidden>' +
+      '<p class="voyage-planner-disclaimer">Files are processed locally in this browser. PDF is generated through the browser print dialog.</p></section>' +
       renderWarningAssessment(route) +
       (calculation.status === 'incomplete' ? '<div class="voyage-planner-notice">One or more route legs cannot be calculated. Review the affected waypoint coordinates.</div>' : '') +
       (pendingInsertion ? '<section class="voyage-planner-section voyage-insert-prompt"><strong>Insert waypoint on leg ' + (pendingInsertion.afterIndex + 1) + '</strong><span class="voyage-planner-disclaimer">Confirm to add a waypoint at the selected point on the chart.</span><div class="voyage-planner-actions"><button class="voyage-planner-btn is-primary" type="button" data-action="confirm-insert">Insert waypoint</button><button class="voyage-planner-btn" type="button" data-action="cancel-insert">Cancel</button></div></section>' : '') +
@@ -592,6 +655,10 @@ if (workspace && panel && content && toggleButton) {
       downloadRouteExport(route, 'gpx');
     } else if (route && action === 'export-csv') {
       downloadRouteExport(route, 'csv');
+    } else if (route && action === 'print-report') {
+      printRouteReport(route);
+    } else if (action === 'choose-import') {
+      content.querySelector<HTMLInputElement>('[data-action="import-file"]')?.click();
     } else if (action === 'toggle-add-mode') {
       if (storageBlocked) return;
       setAddMode(!addMode);
@@ -707,6 +774,12 @@ if (workspace && panel && content && toggleButton) {
   content.addEventListener('submit', handleSubmit);
   content.addEventListener('change', (event) => {
     const target = event.target;
+    if (target instanceof HTMLInputElement && target.dataset.action === 'import-file') {
+      const file = target.files?.[0];
+      target.value = '';
+      if (file) importRouteFile(file);
+      return;
+    }
     if (target instanceof HTMLSelectElement && target.dataset.action === 'select-route') {
       activeRouteId = target.value;
       selectedWaypointId = activeRoute()?.waypoints[0]?.id ?? null;
