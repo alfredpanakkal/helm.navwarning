@@ -33,88 +33,6 @@ const publicWarning = (): Row => ({
   buffer_nm: 0,
   corridor_half_width_nm: 0,
   geojson_blob: { type: 'Point', coordinates: [75, 10] },
-  test('Voyage Planner places multiple waypoints in one session and supports undo and keyboard finish', async ({ page }) => {
-    const errors = watchPageErrors(page);
-    await installPublicApiMock(page, { spatialRows: [], textRows: [], fail: false, delayMs: 0 });
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => Boolean((window as any).hwMap));
-    await page.locator('#btnVoyagePlanner').click();
-    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
-
-    await expect(page.locator('[data-action="finish-placement"]')).toBeVisible();
-    await page.evaluate(() => {
-      const browser = window as any;
-      [[10, 75], [11, 76], [12, 77]].forEach(([lat, lon]) => {
-        browser.hwMap.fire('click', { latlng: browser.L.latLng(lat, lon) });
-      });
-    });
-    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
-
-    await page.locator('[data-action="undo-last-waypoint"]').click();
-    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
-    await expect(page.locator('[data-action="save-route"]')).toBeDisabled();
-
-    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-    await page.keyboard.press('Enter');
-    await expect(page.locator('[data-action="finish-placement"]')).toHaveCount(0);
-    await expect(page.locator('[data-action="resume-placement"]')).toBeVisible();
-    await expect(page.locator('[data-action="save-route"]')).toBeEnabled();
-    await expect(page.locator('.voyage-planner-notice[role="status"]')).toContainText('Placement finished');
-    if (await page.locator('[data-action="finish-placement"]').count()) {
-      await page.locator('[data-action="finish-placement"]').click();
-    }
-    await page.locator('[data-action="save-route"]').click();
-    await expect.poll(() => page.evaluate(() => {
-      const stored = JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null');
-      return stored.routes[0].waypoints.length;
-    })).toBe(2);
-    await expect(page.locator('.voyage-assessment')).toBeVisible();
-    expect(errors, 'no uncaught browser errors').toEqual([]);
-  });
-
-  test('Voyage Planner supports keyboard coordinate entry during draft review', async ({ page }) => {
-    const errors = watchPageErrors(page);
-    await installPublicApiMock(page, { spatialRows: [], textRows: [], fail: false, delayMs: 0 });
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => Boolean((window as any).hwMap));
-    await page.locator('#btnVoyagePlanner').click();
-    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
-
-    await page.locator('[data-action="finish-placement"]').click();
-    await page.locator('#newWaypointName').fill('Coordinate start');
-    await page.locator('#newWaypointLat').fill('10.5');
-    await page.locator('#newWaypointLon').fill('76.25');
-    await page.locator('form[data-form="new-waypoint"] button[type="submit"]').click();
-    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(1);
-
-    await page.locator('#newWaypointName').fill('Coordinate end');
-    await page.locator('#newWaypointLat').fill('11.5');
-    await page.locator('#newWaypointLon').fill('77.25');
-    await page.locator('form[data-form="new-waypoint"] button[type="submit"]').click();
-    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
-
-    await page.locator('#newWaypointName').fill('Coordinate third');
-    await page.locator('#newWaypointLat').fill('12.5');
-    await page.locator('#newWaypointLon').fill('78.25');
-    await page.locator('form[data-form="new-waypoint"] button[type="submit"]').click();
-    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
-
-    await page.locator('.voyage-waypoint-select').first().focus();
-    await page.keyboard.press('ArrowDown');
-    await expect(page.locator('#voyageWaypointName')).toHaveValue('Coordinate end');
-    page.on('dialog', (dialog) => dialog.accept());
-    await page.keyboard.press('Delete');
-    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
-    await page.locator('[data-action="save-route"]').click();
-
-    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null'));
-    expect(saved.routes[0].waypoints.map((waypoint: any) => waypoint.position)).toEqual([
-      { lat: 10.5, lon: 76.25 },
-      { lat: 12.5, lon: 78.25 },
-    ]);
-    expect(errors, 'no uncaught browser errors').toEqual([]);
-  });
-
 });
 
 const reviewWarning = (tier: 'B' | 'C'): Row => ({
@@ -580,6 +498,78 @@ test.describe('public workspace interaction regressions', () => {
     await expect(page.locator('[data-action="save-route"]')).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem('helm_voyage_planner_v1'))).toBe(originalStorage);
   });
+  test('Voyage Planner places multiple waypoints in one session and supports undo and keyboard finish', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await installPublicApiMock(page, emptyState());
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
+
+    await expect(page.locator('[data-action="finish-placement"]')).toBeVisible();
+    await page.evaluate(() => {
+      const browser = window as any;
+      [[10, 75], [11, 76], [12, 77]].forEach(([lat, lon]) => {
+        browser.hwMap.fire('click', { latlng: browser.L.latLng(lat, lon) });
+      });
+    });
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
+    await page.locator('[data-action="undo-last-waypoint"]').click();
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    await expect(page.locator('[data-action="save-route"]')).toBeDisabled();
+
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[data-action="finish-placement"]')).toHaveCount(0);
+    await expect(page.locator('[data-action="resume-placement"]')).toBeVisible();
+    await expect(page.locator('[data-action="save-route"]')).toBeEnabled();
+    await expect(page.locator('.voyage-planner-notice[role="status"]')).toContainText('Placement finished');
+
+    await page.locator('[data-action="save-route"]').click();
+    await expect.poll(() => page.evaluate(() => {
+      const stored = JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null');
+      return stored.routes[0].waypoints.length;
+    })).toBe(2);
+    await expect(page.locator('.voyage-assessment')).toBeVisible();
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
+  test('Voyage Planner supports coordinate entry and keyboard waypoint navigation', async ({ page }) => {
+    const errors = watchPageErrors(page);
+    await installPublicApiMock(page, emptyState());
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).hwMap));
+    await page.locator('#btnVoyagePlanner').click();
+    await page.locator('#voyagePlannerContent [data-action="create-route"]').click();
+    await page.locator('[data-action="finish-placement"]').click();
+
+    const addCoordinateWaypoint = async (name: string, latitude: string, longitude: string) => {
+      await page.locator('#newWaypointName').fill(name);
+      await page.locator('#newWaypointLat').fill(latitude);
+      await page.locator('#newWaypointLon').fill(longitude);
+      await page.locator('form[data-form="new-waypoint"] button[type="submit"]').click();
+    };
+    await addCoordinateWaypoint('Coordinate start', '10.5', '76.25');
+    await addCoordinateWaypoint('Coordinate end', '11.5', '77.25');
+    await addCoordinateWaypoint('Coordinate third', '12.5', '78.25');
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
+
+    await page.locator('.voyage-waypoint-select').first().focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(page.locator('#voyageWaypointName')).toHaveValue('Coordinate end');
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.keyboard.press('Delete');
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    await page.locator('[data-action="save-route"]').click();
+
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('helm_voyage_planner_v1') || 'null'));
+    expect(saved.routes[0].waypoints.map((waypoint: any) => waypoint.position)).toEqual([
+      { lat: 10.5, lon: 76.25 },
+      { lat: 12.5, lon: 78.25 },
+    ]);
+    expect(errors, 'no uncaught browser errors').toEqual([]);
+  });
+
 });
 
 test.describe('public NAVAREA snapshot cache', () => {
