@@ -306,16 +306,16 @@ if (workspace && panel && content && toggleButton) {
       const status = item.status === 'INTERSECTS' ? 'Intersects'
         : item.status === 'WITHIN_RANGE' ? 'Within range' : 'Not assessed';
       const flags = item.qaFlags.length
-        ? '<div class="voyage-assessment-meta">QA: ' + escapeHtml(item.qaFlags.join(', ')) + '</div>'
+        ? '<span class="voyage-assessment-meta">QA: ' + escapeHtml(item.qaFlags.join(', ')) + '</span>'
         : '';
-      const validity = '<div class="voyage-assessment-meta">' + escapeHtml(warningValidityLabel(item.validFrom, item.validTo)) +
+      const validity = '<span class="voyage-assessment-meta">' + escapeHtml(warningValidityLabel(item.validFrom, item.validTo)) +
         (item.validFrom || item.validTo ? ' · ' + (item.validFrom ? 'from ' + escapeHtml(Number.isFinite(Date.parse(item.validFrom)) ? displayUtc(item.validFrom) : 'invalid') : 'start not stated') +
-          ' · ' + (item.validTo ? 'to ' + escapeHtml(Number.isFinite(Date.parse(item.validTo)) ? displayUtc(item.validTo) : 'invalid') : 'no end stated') : '') + '</div>';
+          ' · ' + (item.validTo ? 'to ' + escapeHtml(Number.isFinite(Date.parse(item.validTo)) ? displayUtc(item.validTo) : 'invalid') : 'no end stated') : '') + '</span>';
       const reason = item.reason
-        ? '<div class="voyage-assessment-reason">' + escapeHtml(item.reason) + '</div>'
+        ? '<span class="voyage-assessment-reason">' + escapeHtml(item.reason) + '</span>'
         : '';
       const partial = item.hasUnassessedGeometry
-        ? '<div class="voyage-assessment-reason">One or more additional zones could not be assessed.</div>'
+        ? '<span class="voyage-assessment-reason">One or more additional zones could not be assessed.</span>'
         : '';
       return '<button type="button" class="voyage-assessment-row is-' + item.status.toLowerCase().replace('_', '-') + '" data-action="locate-warning" data-warning-id="' + escapeHtml(item.warningId) + '" aria-label="Locate warning ' + escapeHtml(item.warningId) + ' on map">' +
         '<span class="voyage-assessment-row-head"><strong>' + escapeHtml(item.warningId) + '</strong><span class="voyage-assessment-status">' + status + '</span></span>' +
@@ -432,6 +432,8 @@ if (workspace && panel && content && toggleButton) {
       setAddMode(false);
       toggleButton.focus();
       if (map && routeLayer && map.hasLayer(routeLayer)) map.removeLayer(routeLayer);
+      if (map && warningHighlightLayer && map.hasLayer(warningHighlightLayer)) map.removeLayer(warningHighlightLayer);
+      warningHighlightLayer?.clearLayers();
     } else {
       render();
       renderMap();
