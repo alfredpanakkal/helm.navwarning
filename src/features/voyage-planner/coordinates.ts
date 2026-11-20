@@ -26,6 +26,9 @@ function parseDmd(value: string, axis: Axis): ParseResult<number> {
 
 function parseAxis(value: string, axis: Axis): ParseResult<number> {
   const trimmed = value.trim();
+  if (/^\d+\.\d+\s*[NSEW]$/i.test(trimmed)) {
+    return { ok: false, error: 'Use signed decimal degrees without a hemisphere, or degrees and decimal minutes with a hemisphere.' };
+  }
   if (/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(trimmed)) {
     const decimal = Number(trimmed);
     const maxDegrees = axis === 'lat' ? 90 : 180;
