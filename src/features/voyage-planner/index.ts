@@ -9,3 +9,4 @@ export * from './assessment';
 export * from './export/geojson';
 export * from './export/gpx';
 export * from './export/csv';
+export * from './import';
