@@ -63,6 +63,7 @@ if (workspace && panel && content && toggleButton) {
   let map: import('leaflet').Map | null = null;
   let routeLayer: import('leaflet').LayerGroup | null = null;
   let addMode = false;
+  let coordinateFormat: 'dmd' | 'decimal' = 'dmd';
   let pendingInsertion: { position: { lat: number; lon: number }; afterIndex: number } | null = null;
   let warningHighlightLayer: import('leaflet').LayerGroup | null = null;
   const undoHistory: VoyageRoute[][] = [];
@@ -291,7 +292,7 @@ if (workspace && panel && content && toggleButton) {
     const textNotice = warningSnapshot.textIncomplete
       ? '<p class="voyage-assessment-notice is-warning">Bulletin text hydration is incomplete. Warnings without a confirmed quality state remain Not assessed.</p>'
       : '';
-    const validityNotice = '<p class="voyage-assessment-notice">Warning validity dates, altitude limits and voyage-time overlap are not evaluated. This assessment is not a safety clearance.</p>';
+    const validityNotice = '<p class="voyage-assessment-notice">Warning validity is compared with the current date only. Estimated passage-time overlap and altitude limits are not evaluated. This is not a safety clearance.</p>';
 
     if (!assessment.ready) {
       return '<section class="voyage-planner-section voyage-assessment"><div class="voyage-planner-section-title"><strong>NAVAREA warning assessment</strong><span>' + route.warningRangeNm + ' NM search range</span></div>' +
@@ -485,13 +486,16 @@ if (workspace && panel && content && toggleButton) {
     }).join('');
 
     const selected = route.waypoints.find((waypoint) => waypoint.id === selectedWaypointId) ?? null;
+    const selectedLatitude = selected ? coordinateFormat === 'decimal' ? selected.position.lat.toFixed(6) : formatLatitude(selected.position.lat) : '';
+    const selectedLongitude = selected ? coordinateFormat === 'decimal' ? selected.position.lon.toFixed(6) : formatLongitude(selected.position.lon) : '';
     const selectedForm = selected
       ? '<form class="voyage-planner-section" data-form="waypoint">' +
-        '<div class="voyage-planner-section-title"><strong>Edit waypoint</strong><span class="voyage-planner-disclaimer">DMD coordinates</span></div>' +
+        '<div class="voyage-planner-section-title"><strong>Edit waypoint</strong></div>' +
+        '<div class="voyage-planner-field"><label for="voyageCoordinateFormat">Coordinate format</label><select id="voyageCoordinateFormat" data-action="coordinate-format"><option value="dmd"' + (coordinateFormat === 'dmd' ? ' selected' : '') + '>Degrees / decimal minutes</option><option value="decimal"' + (coordinateFormat === 'decimal' ? ' selected' : '') + '>Decimal degrees</option></select></div>' +
         '<div class="voyage-planner-fields">' +
         '<div class="voyage-planner-field is-wide"><label for="voyageWaypointName">Waypoint name</label><input id="voyageWaypointName" name="name" maxlength="40" required value="' + escapeHtml(selected.name) + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
-        '<div class="voyage-planner-field"><label for="voyageWaypointLat">Latitude</label><input id="voyageWaypointLat" name="latitude" required value="' + escapeHtml(formatLatitude(selected.position.lat)) + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
-        '<div class="voyage-planner-field"><label for="voyageWaypointLon">Longitude</label><input id="voyageWaypointLon" name="longitude" inputmode="decimal" autocomplete="off" required value="' + escapeHtml(formatLongitude(selected.position.lon)) + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
+        '<div class="voyage-planner-field"><label for="voyageWaypointLat">Latitude</label><input id="voyageWaypointLat" name="latitude" inputmode="decimal" autocomplete="off" required value="' + escapeHtml(selectedLatitude) + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
+        '<div class="voyage-planner-field"><label for="voyageWaypointLon">Longitude</label><input id="voyageWaypointLon" name="longitude" inputmode="decimal" autocomplete="off" required value="' + escapeHtml(selectedLongitude) + '"' + (storageBlocked ? ' disabled' : '') + '></div>' +
         '</div><button class="voyage-planner-btn is-primary" type="submit"' + (storageBlocked ? ' disabled' : '') + '>Save waypoint</button></form>'
       : '<p class="voyage-planner-disclaimer">Add a waypoint from the chart to start the route.</p>';
 
@@ -776,6 +780,11 @@ if (workspace && panel && content && toggleButton) {
   content.addEventListener('submit', handleSubmit);
   content.addEventListener('change', (event) => {
     const target = event.target;
+    if (target instanceof HTMLSelectElement && target.dataset.action === 'coordinate-format') {
+      coordinateFormat = target.value === 'decimal' ? 'decimal' : 'dmd';
+      render();
+      return;
+    }
     if (target instanceof HTMLInputElement && target.dataset.action === 'import-file') {
       const file = target.files?.[0];
       target.value = '';
