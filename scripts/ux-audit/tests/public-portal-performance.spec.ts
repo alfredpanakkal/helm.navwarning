@@ -1278,10 +1278,15 @@ test.describe('public NAVAREA snapshot cache', () => {
     await expect(page.locator('.voyage-assessment-row.is-intersects')).toContainText('CACHE-TEST-1/26');
     await page.evaluate(() => {
       const browser = window as any;
-      const line = Object.values(browser.hwMap._layers).find((layer: any) => layer instanceof browser.L.Polyline) as any;
-      if (!line) throw new Error('Expected a rendered route leg');
+      const line = Object.values(browser.hwMap._layers).find((layer: any) =>
+        layer instanceof browser.L.Polyline && layer.options.weight === 20
+      ) as any;
+      if (!line) throw new Error('Expected a touch-sized route-leg hit target');
       line.fire('click', { latlng: browser.L.latLng(10, 75.5), originalEvent: null });
     });
+    await expect(page.locator('.voyage-waypoint-row')).toHaveCount(2);
+    await expect(page.locator('.voyage-insert-prompt')).toContainText('Insert waypoint on leg 1');
+    await page.locator('[data-action="confirm-insert"]').click();
     await expect(page.locator('.voyage-waypoint-row')).toHaveCount(3);
     await expect(page.locator('.voyage-planner-stat strong').first()).not.toHaveText('0.0 NM');
 
