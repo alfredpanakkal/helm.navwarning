@@ -81,6 +81,34 @@ describe('route import', () => {
     if ('error' in result) expect(result.error).toContain('invalid coordinates');
   });
 
+  it('rejects invalid coordinates in a route LineString when waypoints are also present', () => {
+    const result = parseRouteImport(JSON.stringify({
+      type: 'FeatureCollection',
+      features: [
+        { type: 'Feature', properties: { featureType: 'route' }, geometry: { type: 'LineString', coordinates: [[1, 1], [181, 2]] } },
+        { type: 'Feature', properties: { featureType: 'waypoint', sequence: 1 }, geometry: { type: 'Point', coordinates: [1, 1] } },
+        { type: 'Feature', properties: { featureType: 'waypoint', sequence: 2 }, geometry: { type: 'Point', coordinates: [2, 2] } },
+      ],
+    }), 'invalid-route-line.geojson');
+    expect(result).toEqual({
+      ok: false, error: '1 route point(s) have invalid coordinates. Nothing was imported.',
+    });
+  });
+
+  it('rejects invalid coordinates in a route MultiLineString', () => {
+    const result = parseRouteImport(JSON.stringify({
+      type: 'FeatureCollection',
+      features: [
+        { type: 'Feature', properties: { featureType: 'route' }, geometry: { type: 'MultiLineString', coordinates: [[[1, 1], [2, 2]], [[3, 3], [4, 91]]] } },
+        { type: 'Feature', properties: { featureType: 'waypoint', sequence: 1 }, geometry: { type: 'Point', coordinates: [1, 1] } },
+        { type: 'Feature', properties: { featureType: 'waypoint', sequence: 2 }, geometry: { type: 'Point', coordinates: [2, 2] } },
+      ],
+    }), 'invalid-route-multiline.geojson');
+    expect(result).toEqual({
+      ok: false, error: '1 route point(s) have invalid coordinates. Nothing was imported.',
+    });
+  });
+
   it('continues to import a valid two-point GeoJSON route unchanged', () => {
     const result = parseRouteImport(JSON.stringify({
       type: 'FeatureCollection',
