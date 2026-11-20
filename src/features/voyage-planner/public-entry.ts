@@ -184,8 +184,14 @@ if (workspace && panel && content && toggleButton) {
     const warningRows = assessment?.results.map((item) => '<tr><td>' + escapeHtml(item.warningId) + '</td><td>' + escapeHtml(item.navarea) + '</td><td>' + escapeHtml(item.severity) + '</td><td>' + (item.status === 'INTERSECTS' ? 'Intersects' : item.status === 'WITHIN_RANGE' ? 'Nearby' : 'Not assessed') + '</td><td>' + escapeHtml(warningValidityLabel(item.validFrom, item.validTo)) + '</td></tr>').join('') ?? '';
     const report = '<!doctype html><html><head><meta charset="utf-8"><title>' + escapeHtml(route.name) + ' — Route Report</title><style>body{font:13px Arial,sans-serif;color:#17212b;margin:28px}h1{font-size:22px;margin:0 0 6px}h2{font-size:15px;margin:22px 0 8px}p{color:#52606d;line-height:1.5}.meta{display:flex;gap:24px;margin:14px 0}.meta strong{display:block;font-size:18px;color:#17212b}svg{width:100%;height:210px;border:1px solid #d7dee5;border-radius:8px}svg polyline{fill:none;stroke:#28724f;stroke-width:3}svg circle{fill:#28724f;stroke:white;stroke-width:2}svg text{font:11px Arial;fill:#17212b}table{width:100%;border-collapse:collapse;font-size:11px}th,td{text-align:left;padding:7px;border-bottom:1px solid #d7dee5;vertical-align:top}th{background:#f2f5f7}footer{margin-top:24px;padding-top:10px;border-top:1px solid #d7dee5;font-size:10px;color:#52606d}@media print{body{margin:12mm}h2{break-after:avoid}tr{break-inside:avoid}}</style></head><body><h1>' + escapeHtml(route.name) + '</h1><p>Helm.Warning route summary · Generated ' + escapeHtml(new Date().toISOString()) + '</p><div class="meta"><div><strong>' + calculation.totalDistanceNm.toFixed(1) + ' NM</strong>Total route distance</div><div><strong>' + route.waypoints.length + '</strong>Waypoints</div><div><strong>' + (assessment?.results.length ?? '—') + '</strong>Warnings examined</div></div><h2>Route shape</h2><p>Schematic only; not a navigational chart and not to scale.</p><svg viewBox="0 0 600 200" role="img" aria-label="Schematic route connecting numbered waypoints"><polyline points="' + sketchPoints + '"/>' + sketchMarkers + '</svg><h2>Waypoints and legs</h2><table><thead><tr><th>#</th><th>Waypoint</th><th>Latitude</th><th>Longitude</th><th>Leg distance</th><th>Course</th></tr></thead><tbody>' + waypointRows + '</tbody></table><h2>NAVAREA warning assessment</h2>' + (assessment ? '<p>' + assessment.intersectsCount + ' intersecting · ' + assessment.withinRangeCount + ' nearby · ' + assessment.notAssessedCount + ' not assessed · Search distance ' + assessment.rangeNm + ' NM</p><table><thead><tr><th>Warning</th><th>NAVAREA</th><th>Severity</th><th>Route relation</th><th>Validity</th></tr></thead><tbody>' + (warningRows || '<tr><td colspan="5">No warning results.</td></tr>') + '</tbody></table>' : '<p>Warning data unavailable; no assessment was performed.</p>') + '<footer>Decision-support information only. This report is not an ECDIS output, safety clearance or substitute for official navigational warnings, approved charts and publications, or the Master\'s judgement. Warning data may be delayed, incomplete or unavailable. Validity is compared with the current date only, not estimated passage time.</footer></body></html>';
     popup.document.open(); popup.document.write(report); popup.document.close();
-    popup.addEventListener('load', () => popup.print(), { once: true });
-    window.setTimeout(() => { try { popup.focus(); popup.print(); } catch { /* User can print manually. */ } }, 500);
+    let printed = false;
+    const printOnce = () => {
+      if (printed) return;
+      printed = true;
+      try { popup.focus(); popup.print(); } catch { /* User can print manually. */ }
+    };
+    popup.addEventListener('load', printOnce, { once: true });
+    window.setTimeout(printOnce, 500);
   }
 
   function downloadRouteExport(route: VoyageRoute, format: 'geojson' | 'gpx' | 'csv'): void {
@@ -223,8 +229,14 @@ if (workspace && panel && content && toggleButton) {
   }
 
   function warningValidityLabel(validFrom: string | null, validTo: string | null): string {
-    const from = validFrom ? Date.parse(validFrom) : null;
-    const to = validTo ? Date.parse(validTo) : null;
+    const parseBoundary = (value: string, endOfDay: boolean): number => {
+      const dateValue = /^\\d{4}-\\d{2}-\\d{2}$/.test(value)
+        ? value + (endOfDay ? 'T23:59:59.999Z' : 'T00:00:00.000Z')
+        : value;
+      return Date.parse(dateValue);
+    };
+    const from = validFrom ? parseBoundary(validFrom, false) : null;
+    const to = validTo ? parseBoundary(validTo, true) : null;
     if ((validFrom && !Number.isFinite(from)) || (validTo && !Number.isFinite(to))) return 'Validity uncertain — invalid date';
     if (from === null && to === null) return 'Validity dates unavailable';
     const now = Date.now();
