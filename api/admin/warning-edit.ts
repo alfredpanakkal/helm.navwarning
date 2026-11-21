@@ -22,6 +22,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseClient } from '../../src/lib/supabaseServer.js';
 import { verifyAdminRequest } from '../../server/auth.js';
 import { ALLOWED_STATUS, ALLOWED_QUALITY, ALLOWED_TIERS, ALLOWED_CATEGORIES } from '../../src/lib/adminContract.js';
+import { geojsonToEwkt } from '../../src/lib/geojsonToEwkt.js';
 
 
 
@@ -66,33 +67,6 @@ function toFullNavarea(nav: unknown): string | null {
   if (!s) return null;
   if (s === 'BALTIC' || s === 'NAVAREA BALTIC') return 'NAVAREA BALTIC';
   return s.startsWith('NAVAREA') ? s : 'NAVAREA ' + s;
-}
-
-/** GeoJSON -> PostGIS EWKT (SRID 4326), mirrors supabaseServer.ts fallback. */
-function toPostGISEWKT(geojson: any): { ewkt: string; featureType: string } | null {
-  if (!geojson || !geojson.type || !Array.isArray(geojson.coordinates) || geojson.coordinates.length === 0) return null;
-  const num = (v: any) => { const n = Number(v); return isFinite(n) ? n : null; };
-  if (geojson.type === 'Point') {
-    const lng = num(geojson.coordinates[0]); const lat = num(geojson.coordinates[1]);
-    if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
-    return { ewkt: `SRID=4326;POINT(${lng} ${lat})`, featureType: 'POINT' };
-  }
-  if (geojson.type === 'LineString' || geojson.type === 'MultiPoint') {
-    const pts: string[] = [];
-    for (const pt of geojson.coordinates) {
-      const lng = num(pt?.[0]); const lat = num(pt?.[1]);
-      if (lng === null || lat === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
-      pts.push(`${lng} ${lat}`);
-    }
-    return { ewkt: `SRID=4326;LINESTRING(${pts.join(', ')})`, featureType: 'LINE' };
-  }
-  if (geojson.type === 'Polygon') {
-    const rings = geojson.coordinates.map((ring: any[]) =>
-      `(${ring.map((pt: any[]) => `${Number(pt[0])} ${Number(pt[1])}`).join(', ')})`
-    ).join(', ');
-    return { ewkt: `SRID=4326;POLYGON(${rings})`, featureType: 'POLYGON' };
-  }
-  return null;
 }
 
 async function writeAuditRow(
@@ -270,14 +244,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (patch.geometry === null || patch.geometry.length === 0) {
         geometryRows = []; // explicit geometry removal
       } else {
+        // The spatial view omits snapping_rule and some advanced fields. Read the base table
+        // before replacement so hidden metadata cannot be deleted by an otherwise valid edit.
+        const { data: existingGeometryMetadata, error: existingGeometryMetadataError } = await client
+          .from('nav_warning_geometries')
+          .select('corridor_half_width_nm, corridor_clearance_nm, sweep_radius_nm, sweep_start_azimuth, sweep_end_azimuth, altitude_floor_m, altitude_ceiling_fl, snapping_rule')
+          .eq('warning_id', current.id);
+        if (existingGeometryMetadataError) {
+          errors.push('Unable to verify existing geometry metadata; geometry save was blocked');
+        } else {
+          const hasUnsupportedExistingMetadata = (existingGeometryMetadata || []).some((g: Record<string, unknown>) =>
+            [
+              'corridor_half_width_nm',
+              'corridor_clearance_nm',
+              'sweep_radius_nm',
+              'sweep_start_azimuth',
+              'sweep_end_azimuth',
+              'altitude_ceiling_fl',
+            ].some((field) => g[field] != null) ||
+            (g.altitude_floor_m != null && Number(g.altitude_floor_m) !== 0) ||
+            (g.snapping_rule != null && String(g.snapping_rule).toUpperCase() !== 'NONE')
+          );
+          if (hasUnsupportedExistingMetadata) {
+            errors.push('Existing geometry has metadata this atomic save path cannot preserve; geometry replacement was blocked');
+          }
+        }
+
         const rows: any[] = [];
         for (const g of patch.geometry) {
-          const conv = toPostGISEWKT(g && g.geojson);
+          const geometryRecord = (g || {}) as Record<string, unknown>;
+          const unsupportedMetadata = [
+            'corridor_half_width_nm',
+            'corridor_clearance_nm',
+            'sweep_radius_nm',
+            'sweep_start_azimuth',
+            'sweep_end_azimuth',
+            'altitude_ceiling_fl',
+          ].some((field) => geometryRecord[field] != null) ||
+            (geometryRecord.altitude_floor_m != null && Number(geometryRecord.altitude_floor_m) !== 0) ||
+            (geometryRecord.snapping_rule != null && String(geometryRecord.snapping_rule).toUpperCase() !== 'NONE');
+          if (unsupportedMetadata) {
+            errors.push('geometry contains corridor, sweep, altitude or snapping metadata that this save path cannot preserve');
+            break;
+          }
+          const conv = geojsonToEwkt(g && g.geojson);
           if (!conv) { errors.push('geometry contains an invalid GeoJSON shape or out-of-range coordinates'); break; }
           rows.push({
             warning_id: current.id,
             zone_label: (g.zone_label || 'PRIMARY_HAZARD').slice(0, 100),
-            feature_type: (g.feature_type || conv.featureType).toUpperCase(),
+            feature_type:
+              (String(g.feature_type || '').toUpperCase() === 'CORRIDOR' && conv.featureType === 'LINE') ||
+              (['SWEEP_ARC', 'BOUNDING_BOX'].includes(String(g.feature_type || '').toUpperCase()) && conv.featureType === 'POLYGON')
+                ? String(g.feature_type).toUpperCase()
+                : conv.featureType,
             geom_postgis: conv.ewkt,
             buffer_nm: Number.isFinite(Number(g.buffer_nm)) ? Number(g.buffer_nm) : 0,
           });
@@ -409,7 +428,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // 6c. Copy geometries
       const { data: oldGeoms } = await client
         .from('nav_warning_geometries')
-        .select('zone_label, feature_type, geom_postgis, buffer_nm')
+        .select('zone_label, feature_type, geom_postgis, buffer_nm, corridor_half_width_nm, corridor_clearance_nm, sweep_radius_nm, sweep_start_azimuth, sweep_end_azimuth, altitude_floor_m, altitude_ceiling_fl, snapping_rule')
         .eq('warning_id', current.id);
       if (Array.isArray(oldGeoms) && oldGeoms.length > 0) {
         await client.from('nav_warning_geometries').insert(
@@ -419,6 +438,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             feature_type: g.feature_type,
             geom_postgis: g.geom_postgis,
             buffer_nm: g.buffer_nm,
+            corridor_half_width_nm: g.corridor_half_width_nm,
+            corridor_clearance_nm: g.corridor_clearance_nm,
+            sweep_radius_nm: g.sweep_radius_nm,
+            sweep_start_azimuth: g.sweep_start_azimuth,
+            sweep_end_azimuth: g.sweep_end_azimuth,
+            altitude_floor_m: g.altitude_floor_m,
+            altitude_ceiling_fl: g.altitude_ceiling_fl,
+            snapping_rule: g.snapping_rule,
           }))
         );
       }

@@ -125,7 +125,13 @@ function mergeSpatialAndTextRows(spatialData, textRows) {
         geom_id: row.geom_id,
         feature_type: row.feature_type || row.geojson_blob.type,
         buffer_nm: Number(row.buffer_nm) || 0,
-        corridor_half_width_nm: Number(row.corridor_half_width_nm) || 0,
+        corridor_half_width_nm: row.corridor_half_width_nm == null ? null : Number(row.corridor_half_width_nm),
+        corridor_clearance_nm: row.corridor_clearance_nm == null ? null : Number(row.corridor_clearance_nm),
+        sweep_radius_nm: row.sweep_radius_nm == null ? null : Number(row.sweep_radius_nm),
+        sweep_start_azimuth: row.sweep_start_azimuth == null ? null : Number(row.sweep_start_azimuth),
+        sweep_end_azimuth: row.sweep_end_azimuth == null ? null : Number(row.sweep_end_azimuth),
+        altitude_floor_m: row.altitude_floor_m == null ? null : Number(row.altitude_floor_m),
+        altitude_ceiling_fl: row.altitude_ceiling_fl == null ? null : Number(row.altitude_ceiling_fl),
         zone_label: row.zone_label || row.title || entry.canonical_id,
         geojson_blob: row.geojson_blob,
       });
@@ -386,7 +392,7 @@ async function fetchFreshActiveWarnings() {
     try {
       result = await window.hwSupabase
         .from('nav_warnings_active_spatial')
-        .select('warning_id, canonical_id, navarea, title, area_text, categories, severity, status, triage_tier, data_quality, valid_from, valid_to, radio_frequencies, space_launch_mission, geom_id, zone_label, feature_type, buffer_nm, corridor_half_width_nm, geojson_blob')
+        .select('warning_id, canonical_id, navarea, title, area_text, categories, severity, status, triage_tier, data_quality, valid_from, valid_to, radio_frequencies, space_launch_mission, geom_id, zone_label, feature_type, buffer_nm, corridor_half_width_nm, corridor_clearance_nm, sweep_radius_nm, sweep_start_azimuth, sweep_end_azimuth, altitude_floor_m, altitude_ceiling_fl, geojson_blob')
         .order('geom_id', { ascending: true })
         .range(from, from + SPATIAL_PAGE_SIZE - 1);
     } catch (queryError) {

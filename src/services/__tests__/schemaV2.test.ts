@@ -25,6 +25,10 @@ const viewRow = (over: Partial<ActiveSpatialRow> = {}): ActiveSpatialRow => ({
   feature_type: 'POINT',
   buffer_nm: 0,
   corridor_half_width_nm: null,
+  corridor_clearance_nm: null,
+  sweep_radius_nm: null,
+  sweep_start_azimuth: null,
+  sweep_end_azimuth: null,
   altitude_floor_m: 0,
   altitude_ceiling_fl: null,
   geom_postgis: '0101000020E6100000...',
@@ -59,6 +63,22 @@ describe('geojsonBlobToGeometry', () => {
     expect(geojsonBlobToGeometry(null)).toBeNull();
     expect(geojsonBlobToGeometry({ type: 'Feature' })).toBeNull();
   });
+
+  it('retains all six standard GeoJSON geometry types', () => {
+    const fixtures = [
+      { type: 'Point', coordinates: [10, 20] },
+      { type: 'MultiPoint', coordinates: [[10, 20], [11, 21]] },
+      { type: 'LineString', coordinates: [[10, 20], [11, 21]] },
+      { type: 'MultiLineString', coordinates: [[[10, 20], [11, 21]], [[12, 22], [13, 23]]] },
+      { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] },
+      { type: 'MultiPolygon', coordinates: [[[[0, 0], [1, 0], [1, 1], [0, 0]]]] },
+    ];
+    for (const fixture of fixtures) {
+      expect(geojsonBlobToGeometry(fixture)).toEqual({ ...fixture, label: undefined });
+    }
+  });
+
+
 });
 
 describe('groupSpatialRowsByCanonicalId', () => {
@@ -90,15 +110,22 @@ describe('groupSpatialRowsByCanonicalId', () => {
 
   it('carries persisted buffer_nm and corridor_half_width_nm onto every geometry entry', () => {
     const rows = [
-      viewRow({ buffer_nm: 2.5, corridor_half_width_nm: 1 }),
+      viewRow({ buffer_nm: 2.5, corridor_half_width_nm: 1, corridor_clearance_nm: 3, sweep_radius_nm: 12, sweep_start_azimuth: 45, sweep_end_azimuth: 135 }),
       viewRow({ geom_id: '33333333-3333-3333-3333-333333333333', buffer_nm: 0, corridor_half_width_nm: null, geojson_blob: { type: 'Point', coordinates: [140.0, 35.0] } }),
     ];
     const grouped = groupSpatialRowsByCanonicalId(rows);
     const geoms = grouped[0]._geometries as any[];
+    expect(geoms[0].feature_type).toBe('POINT');
     expect(geoms[0].buffer_nm).toBe(2.5);
     expect(geoms[0].corridor_half_width_nm).toBe(1);
+    expect(geoms[0].corridor_clearance_nm).toBe(3);
+    expect(geoms[0].sweep_radius_nm).toBe(12);
+    expect(geoms[0].sweep_start_azimuth).toBe(45);
+    expect(geoms[0].sweep_end_azimuth).toBe(135);
     expect(geoms[1].buffer_nm).toBe(0);
     expect(geoms[1].corridor_half_width_nm).toBeNull();
+    expect(geoms[1].corridor_clearance_nm).toBeNull();
+    expect(geoms[1].sweep_radius_nm).toBeNull();
   });
 
   it('hydrates production-shaped buffered view rows into circles after grouping', () => {
@@ -168,6 +195,16 @@ describe('bufferCirclesFromGeometries', () => {
     expect(circles[1].label).toBe('FALLBACK');
   });
 
+  it('derives one buffered circle for each MultiPoint position', () => {
+    const circles = bufferCirclesFromGeometries([
+      { type: 'MultiPoint', coordinates: [[134.6, 16.9], [135.1, 17.2]], buffer_nm: 1, label: 'MULTI' },
+    ]);
+    expect(circles).toEqual([
+      { center: [134.6, 16.9], radius_nm: 1, label: 'MULTI' },
+      { center: [135.1, 17.2], radius_nm: 1, label: 'MULTI' },
+    ]);
+  });
+
   it('never fabricates circles for unbuffered points, polygons or missing metadata', () => {
     expect(bufferCirclesFromGeometries([
       { type: 'Point', coordinates: [134.6583, 16.9017], buffer_nm: 0 },
@@ -222,6 +259,16 @@ describe('mapSupabaseRowToNavWarning (20261019/20 schema)', () => {
     expect(w.spatial.geometries).toHaveLength(1);
     expect(w.spatial.geometries[0].coordinates).toEqual([134.6583, 16.9017]);
     expect(w.triage_tier).toBe('A');
+  });
+
+  it('uses the first MultiPoint coordinate as the representative map anchor', () => {
+    const w: any = mapSupabaseRowToNavWarning({
+      ...viewRow(),
+      _geometries: [{ type: 'MultiPoint', coordinates: [[140, 35], [141, 36]], label: 'MULTI' }],
+    }, 'active');
+    expect(w.latitude).toBe(35);
+    expect(w.longitude).toBe(140);
+    expect(w.spatial.geometries[0].type).toBe('MultiPoint');
   });
 
   it('preserves every backend category without replacing the source array', () => {

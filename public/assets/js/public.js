@@ -1868,10 +1868,11 @@ function plotWarning(w) {
     geoms = w.geometries;
   } else if (w.spatial?.geometries && Array.isArray(w.spatial.geometries) && w.spatial.geometries.length > 0) {
     geoms = w.spatial.geometries.map(g => ({
-      feature_type: g.type,
+      feature_type: g.feature_type || g.type,
       geojson_blob: { type: g.type, coordinates: g.coordinates },
       buffer_nm: g.buffer_nm || 0,
-      zone_label: g.label || w.title || wid,
+      corridor_half_width_nm: g.corridor_half_width_nm,
+      zone_label: g.label || g.zone_label || w.title || wid,
     }));
   } else if (w.geojson_blob && typeof w.geojson_blob === 'object') {
     geoms = [{
@@ -1892,7 +1893,7 @@ function plotWarning(w) {
     const bufferNm = Number(geom.buffer_nm) || Number(geom.corridor_half_width_nm) || 0;
 
     // A. POLYGON / AREA
-    if (featType === 'POLYGON' || blob.type === 'Polygon' || featType === 'MULTIPOLYGON' || blob.type === 'MultiPolygon') {
+    if (blob.type === 'Polygon' || blob.type === 'MultiPolygon' || (!blob.type && (featType === 'POLYGON' || featType === 'MULTIPOLYGON'))) {
       try {
         const polygonComponents = blob.type === 'Polygon' ? [blob.coordinates] : blob.coordinates;
         polygonComponents.forEach(componentRings => {
@@ -1952,54 +1953,57 @@ function plotWarning(w) {
     }
 
     // B. SAFETY CIRCLE / CLEARANCE RADIUS
-    else if ((featType === 'POINT' || blob.type === 'Point' || featType === 'CIRCLE' || blob.type === 'Circle') && bufferNm > 0) {
+    else if ((blob.type === 'Point' || blob.type === 'MultiPoint' || blob.type === 'Circle' || (!blob.type && (featType === 'POINT' || featType === 'CIRCLE'))) && bufferNm > 0) {
       try {
-        const centerLng = blob.coordinates[0];
-        const centerLat = blob.coordinates[1];
-        if (isNaN(centerLat) || isNaN(centerLng)) continue;
+        const centers = blob.type === 'MultiPoint' ? blob.coordinates : [blob.coordinates];
+        centers.forEach(point => {
+          if (!Array.isArray(point) || point.length < 2) return;
+          const centerLng = Number(point[0]);
+          const centerLat = Number(point[1]);
+          if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) return;
 
-        const center = [centerLat, centerLng];
-        allCoordsForBounds.push(center);
-        const radiusMeters = bufferNm * 1852;
-        const isRigCircle = geom.is_rig || /RIG|PLATFORM|MODU|DRILLSHIP/i.test(label) || /RIG|PLATFORM/i.test(w.category || '');
-        const circleColor = isRigCircle ? '#059669' : color;
+          const center = [centerLat, centerLng];
+          allCoordsForBounds.push(center);
+          const radiusMeters = bufferNm * 1852;
+          const isRigCircle = geom.is_rig || /RIG|PLATFORM|MODU|DRILLSHIP/i.test(label) || /RIG|PLATFORM/i.test(w.category || '');
+          const circleColor = isRigCircle ? '#059669' : color;
 
-        const circle = L.circle(center, {
-          color: circleColor,
-          weight: 2,
-          opacity: 0.95,
-          fillColor: circleColor,
-          fillOpacity: 0.16,
-          dashArray: '4, 4',
-          radius: radiusMeters,
+          const circle = L.circle(center, {
+            color: circleColor,
+            weight: 2,
+            opacity: 0.95,
+            fillColor: circleColor,
+            fillOpacity: 0.16,
+            dashArray: '4, 4',
+            radius: radiusMeters,
+          });
+
+          const radiusStr = bufferNm >= 1 ? `${bufferNm} NM` : `${Math.round(bufferNm * 1852)}m`;
+          const summaryText = `${label} · Safety Clearance: ${radiusStr}`;
+          bindProgressiveFeatureInteractions(circle, w, summaryText, circleColor);
+
+          if (circlesLayer) circlesLayer.addLayer(circle);
+          w._layers.push(circle);
+          if (!w._primaryLayer) w._primaryLayer = circle;
+
+          const centerCrosshair = L.circleMarker(center, {
+            radius: isMobile ? 5 : 4,
+            fillColor: circleColor,
+            color: '#ffffff',
+            weight: 1.5,
+            fillOpacity: 1.0,
+          });
+          bindProgressiveFeatureInteractions(centerCrosshair, w, summaryText, circleColor);
+          if (circlesLayer) circlesLayer.addLayer(centerCrosshair);
+          w._layers.push(centerCrosshair);
         });
-
-        const radiusStr = bufferNm >= 1 ? `${bufferNm} NM` : `${Math.round(bufferNm * 1852)}m`;
-        const summaryText = `${label} · Safety Clearance: ${radiusStr}`;
-        bindProgressiveFeatureInteractions(circle, w, summaryText, circleColor);
-
-        if (circlesLayer) circlesLayer.addLayer(circle);
-        w._layers.push(circle);
-        if (!w._primaryLayer) w._primaryLayer = circle;
-
-        // Center crosshair
-        const centerCrosshair = L.circleMarker(center, {
-          radius: isMobile ? 5 : 4,
-          fillColor: circleColor,
-          color: '#ffffff',
-          weight: 1.5,
-          fillOpacity: 1.0,
-        });
-        bindProgressiveFeatureInteractions(centerCrosshair, w, summaryText, circleColor);
-        if (circlesLayer) circlesLayer.addLayer(centerCrosshair);
-        w._layers.push(centerCrosshair);
       } catch (circErr) {
         console.warn('Circle plot notice:', circErr);
       }
     }
 
     // C. CORRIDOR / LINE / TRACK
-    else if (featType === 'LINE' || blob.type === 'LineString' || featType === 'CORRIDOR' || blob.type === 'MultiLineString') {
+    else if (blob.type === 'LineString' || blob.type === 'MultiLineString' || (!blob.type && (featType === 'LINE' || featType === 'CORRIDOR'))) {
       try {
         let lines = [];
         if (blob.type === 'LineString') {
@@ -2061,24 +2065,28 @@ function plotWarning(w) {
     }
 
     // D. POINT / DISCRETE HAZARD / RIG PLATFORM
-    else if (featType === 'POINT' || blob.type === 'Point') {
+    else if (blob.type === 'Point' || blob.type === 'MultiPoint' || (!blob.type && featType === 'POINT')) {
       try {
-        const lng = blob.coordinates[0];
-        const lat = blob.coordinates[1];
-        if (isNaN(lat) || isNaN(lng)) continue;
+        const pointCoordinates = blob.type === 'MultiPoint' ? blob.coordinates : [blob.coordinates];
+        pointCoordinates.forEach(point => {
+          if (!Array.isArray(point) || point.length < 2) return;
+          const lng = Number(point[0]);
+          const lat = Number(point[1]);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-        const pos = [lat, lng];
-        allCoordsForBounds.push(pos);
+          const pos = [lat, lng];
+          allCoordsForBounds.push(pos);
 
-        const primarySymbol = getWarningPrimarySymbol(w);
-        const severity = getWarningSeverity(w);
-        const pointMarker = L.marker(pos, { icon: createWarningMarkerIcon(w) });
-        const summaryText = `${label} · ${primarySymbol} · ${severity}`;
-        bindProgressiveFeatureInteractions(pointMarker, w, summaryText, color);
+          const primarySymbol = getWarningPrimarySymbol(w);
+          const severity = getWarningSeverity(w);
+          const pointMarker = L.marker(pos, { icon: createWarningMarkerIcon(w) });
+          const summaryText = `${label} · ${primarySymbol} · ${severity}`;
+          bindProgressiveFeatureInteractions(pointMarker, w, summaryText, color);
 
-        if (pointsLayer) pointsLayer.addLayer(pointMarker);
-        w._layers.push(pointMarker);
-        if (!w._primaryLayer) w._primaryLayer = pointMarker;
+          if (pointsLayer) pointsLayer.addLayer(pointMarker);
+          w._layers.push(pointMarker);
+          if (!w._primaryLayer) w._primaryLayer = pointMarker;
+        });
       } catch (ptErr) {
         console.warn('Point plot notice:', ptErr);
       }

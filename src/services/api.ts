@@ -100,33 +100,36 @@ export function bufferCirclesFromGeometries(
   if (!Array.isArray(geometries)) return circles;
 
   geometries.forEach((g: any) => {
-    if (!g || typeof g !== 'object' || g.type !== 'Point') return;
-
-    const coordinates = g.coordinates;
-    if (!Array.isArray(coordinates) || coordinates.length !== 2) return;
-
-    const [longitude, latitude] = coordinates;
-    if (
-      typeof longitude !== 'number' ||
-      typeof latitude !== 'number' ||
-      !Number.isFinite(longitude) ||
-      !Number.isFinite(latitude) ||
-      longitude < -180 ||
-      longitude > 180 ||
-      latitude < -90 ||
-      latitude > 90
-    ) {
-      return;
-    }
+    if (!g || typeof g !== 'object') return;
+    const points = g.type === 'Point'
+      ? [g.coordinates]
+      : g.type === 'MultiPoint' && Array.isArray(g.coordinates)
+        ? g.coordinates
+        : [];
 
     // The view contract types buffer_nm as a number; reject malformed values rather than coercing them.
     const radius = g.buffer_nm;
     if (typeof radius !== 'number' || !Number.isFinite(radius) || radius <= 0) return;
 
-    circles.push({
-      center: [longitude, latitude],
-      radius_nm: radius,
-      label: g.label || fallbackLabel,
+    points.forEach((coordinates: unknown) => {
+      if (!Array.isArray(coordinates) || coordinates.length !== 2) return;
+      const [longitude, latitude] = coordinates;
+      if (
+        typeof longitude !== 'number' ||
+        typeof latitude !== 'number' ||
+        !Number.isFinite(longitude) ||
+        !Number.isFinite(latitude) ||
+        longitude < -180 ||
+        longitude > 180 ||
+        latitude < -90 ||
+        latitude > 90
+      ) return;
+
+      circles.push({
+        center: [longitude, latitude],
+        radius_nm: radius,
+        label: g.label || fallbackLabel,
+      });
     });
   });
 
@@ -175,7 +178,15 @@ export function mapSupabaseRowToNavWarning(
       type: row.geojson_blob.type,
       coordinates: row.geojson_blob.coordinates,
       label: geometryLabel,
+      feature_type: row.feature_type,
       buffer_nm: Number(row.buffer_nm) || 0,
+      corridor_half_width_nm: row.corridor_half_width_nm ?? null,
+      corridor_clearance_nm: row.corridor_clearance_nm ?? null,
+      sweep_radius_nm: row.sweep_radius_nm ?? null,
+      sweep_start_azimuth: row.sweep_start_azimuth ?? null,
+      sweep_end_azimuth: row.sweep_end_azimuth ?? null,
+      altitude_floor_m: row.altitude_floor_m ?? null,
+      altitude_ceiling_fl: row.altitude_ceiling_fl ?? null,
     };
     spatial = {
       geometries: [geometry],
@@ -228,6 +239,10 @@ export function mapSupabaseRowToNavWarning(
       if (g.type === 'Point' && Array.isArray(g.coordinates)) {
         repLng = g.coordinates[0];
         repLat = g.coordinates[1];
+        break;
+      } else if (g.type === 'MultiPoint' && Array.isArray(g.coordinates) && Array.isArray(g.coordinates[0])) {
+        repLng = g.coordinates[0][0];
+        repLat = g.coordinates[0][1];
         break;
       } else if ((g.type === 'Polygon' || g.type === 'MultiPolygon') && Array.isArray(g.coordinates)) {
         const ring = g.type === 'Polygon' ? g.coordinates[0] : g.coordinates[0]?.[0];

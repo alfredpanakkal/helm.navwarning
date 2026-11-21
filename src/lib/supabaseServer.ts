@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { NavWarning, SourceRegistryItem, IngestionGeneration, RawArtifact } from '../types.js';
+import { geojsonToEwkt } from './geojsonToEwkt.js';
 
 let supabaseClient: SupabaseClient | null = null;
 let lastUsedUrl = '';
@@ -122,39 +123,6 @@ function sanitizeDepth(val: any): number | null {
 }
 
 /**
- * Converts GeoJSON/coordinates into PostGIS EWKT geography string (SRID 4326).
- */
-function toPostGISEWKT(geom: any, defaultLat?: number | null, defaultLng?: number | null): { ewkt: string; type: string } | null {
-  if (!geom && (defaultLat == null || defaultLng == null)) return null;
-
-  if (geom?.type === 'Point' && Array.isArray(geom.coordinates) && geom.coordinates.length >= 2) {
-    const lng = Number(geom.coordinates[0]);
-    const lat = Number(geom.coordinates[1]);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      return { ewkt: `SRID=4326;POINT(${lng} ${lat})`, type: 'POINT' };
-    }
-  }
-
-  if (geom?.type === 'Polygon' && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
-    const rings = geom.coordinates.map((ring: any[]) =>
-      `(${ring.map((pt: any[]) => `${Number(pt[0])} ${Number(pt[1])}`).join(', ')})`
-    ).join(', ');
-    return { ewkt: `SRID=4326;POLYGON(${rings})`, type: 'POLYGON' };
-  }
-
-  if (geom?.type === 'LineString' && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
-    const pts = geom.coordinates.map((pt: any[]) => `${Number(pt[0])} ${Number(pt[1])}`).join(', ');
-    return { ewkt: `SRID=4326;LINESTRING(${pts})`, type: 'LINE' };
-  }
-
-  if (defaultLat != null && defaultLng != null && !isNaN(defaultLat) && !isNaN(defaultLng)) {
-    return { ewkt: `SRID=4326;POINT(${defaultLng} ${defaultLat})`, type: 'POINT' };
-  }
-
-  return null;
-}
-
-/**
  * Production Ingestion Worker: syncWarningsToSupabase
  * 1. Uses Supabase Service Role client to bypass RLS.
  * 2. Neutralizes -9999.0 depth sentinels.
@@ -224,16 +192,33 @@ export async function syncWarningsToSupabase(warnings: NavWarning[]): Promise<{
   };
 
   /** Converts a frontend spatial geometry into an RPC child-geometry object. */
-  const toRpcGeometry = (g: any): { zone_label: string; feature_type: string; buffer_nm: number; geojson: any } | null => {
-    if (!g || !g.type || g.coordinates === undefined) return null;
-    const type = String(g.type);
-    if (!['Point', 'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon'].includes(type)) return null;
-    const featureType = type === 'LineString' ? 'LINE' : type.toUpperCase();
+  const toRpcGeometry = (g: any): {
+    zone_label: string;
+    feature_type: string;
+    buffer_nm: number;
+    corridor_half_width_nm?: number | null;
+    corridor_clearance_nm?: number | null;
+    sweep_radius_nm?: number | null;
+    sweep_start_azimuth?: number | null;
+    sweep_end_azimuth?: number | null;
+    geojson: any;
+  } | null => {
+    const converted = geojsonToEwkt(g);
+    if (!converted || !g || typeof g.type !== 'string') return null;
     return {
-      zone_label: g.label || 'PRIMARY_HAZARD',
-      feature_type: featureType,
+      zone_label: g.label || g.zone_label || 'PRIMARY_HAZARD',
+      feature_type:
+        (String(g.feature_type || '').toUpperCase() === 'CORRIDOR' && converted.featureType === 'LINE') ||
+        (['SWEEP_ARC', 'BOUNDING_BOX'].includes(String(g.feature_type || '').toUpperCase()) && converted.featureType === 'POLYGON')
+          ? String(g.feature_type).toUpperCase()
+          : converted.featureType,
       buffer_nm: Number(g.buffer_nm || g.radius_nm || 0) || 0,
-      geojson: { type, coordinates: g.coordinates },
+      corridor_half_width_nm: g.corridor_half_width_nm ?? null,
+      corridor_clearance_nm: g.corridor_clearance_nm ?? null,
+      sweep_radius_nm: g.sweep_radius_nm ?? null,
+      sweep_start_azimuth: g.sweep_start_azimuth ?? null,
+      sweep_end_azimuth: g.sweep_end_azimuth ?? null,
+      geojson: { type: g.type, coordinates: g.coordinates },
     };
   };
 
@@ -241,6 +226,15 @@ export async function syncWarningsToSupabase(warnings: NavWarning[]): Promise<{
     let inserted = 0;
     let geometryCount = 0;
     const rawRows: any[] = [];
+
+    // Preflight every geometry before the first write so invalid input cannot be silently omitted
+    // or leave a partially synchronized batch.
+    for (const warning of warnings) {
+      const rawGeometries = warning.spatial?.geometries || [];
+      if (rawGeometries.some((geometry) => toRpcGeometry(geometry) === null)) {
+        throw new Error(`Invalid or unsupported GeoJSON geometry in warning ${warning.warning_id || warning.source_warning_id || 'unknown'}; refusing the batch`);
+      }
+    }
 
     for (const w of warnings) {
       const canonicalId = String((w as any).canonical_id || w.source_warning_id || w.warning_id || '').trim();
@@ -319,15 +313,27 @@ export async function syncWarningsToSupabase(warnings: NavWarning[]): Promise<{
           if (got?.id) {
             await client.from('nav_warning_geometries').delete().eq('warning_id', got.id);
             const geomRows = geometries
-              .map((g) => toPostGISEWKT(g.geojson))
-              .filter((p): p is { ewkt: string; type: string } => p !== null)
-              .map((p) => ({
-                warning_id: got.id,
-                zone_label: 'PRIMARY_HAZARD',
-                feature_type: p.type,
-                geom_postgis: p.ewkt,
-                buffer_nm: 0,
-              }));
+              .map((g) => {
+                const converted = geojsonToEwkt(g.geojson);
+                if (!converted) return null;
+                return {
+                  warning_id: got.id,
+                  zone_label: g.zone_label,
+                  feature_type:
+                    (String(g.feature_type || '').toUpperCase() === 'CORRIDOR' && converted.featureType === 'LINE') ||
+                    (['SWEEP_ARC', 'BOUNDING_BOX'].includes(String(g.feature_type || '').toUpperCase()) && converted.featureType === 'POLYGON')
+                      ? String(g.feature_type).toUpperCase()
+                      : converted.featureType,
+                  geom_postgis: converted.ewkt,
+                  buffer_nm: g.buffer_nm,
+                  corridor_half_width_nm: g.corridor_half_width_nm ?? null,
+                  corridor_clearance_nm: g.corridor_clearance_nm ?? null,
+                  sweep_radius_nm: g.sweep_radius_nm ?? null,
+                  sweep_start_azimuth: g.sweep_start_azimuth ?? null,
+                  sweep_end_azimuth: g.sweep_end_azimuth ?? null,
+                };
+              })
+              .filter((row): row is NonNullable<typeof row> => row !== null);
             if (geomRows.length > 0) {
               await client.from('nav_warning_geometries').insert(geomRows);
             }
