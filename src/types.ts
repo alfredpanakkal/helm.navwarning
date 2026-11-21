@@ -128,15 +128,22 @@ export interface RadiusSpecification {
 }
 
 export interface SpatialGeometry {
-  type: 'Point' | 'Polygon' | 'LineString' | 'Circle';
+  type: 'Point' | 'Polygon' | 'LineString' | 'MultiPoint' | 'MultiLineString' | 'MultiPolygon' | 'Circle';
   // Coordinates are [lng, lat]
-  coordinates: number[] | number[][] | number[][][];
+  coordinates: number[] | number[][] | number[][][] | number[][][][];
   radius_nm?: number;
   label?: string;
+  feature_type?: string;
   data_quality?: DataQualityRating;
   // Persisted backend metadata (nav_warning_geometries) carried through untouched.
   buffer_nm?: number;
   corridor_half_width_nm?: number | null;
+  corridor_clearance_nm?: number | null;
+  sweep_radius_nm?: number | null;
+  sweep_start_azimuth?: number | null;
+  sweep_end_azimuth?: number | null;
+  altitude_floor_m?: number | null;
+  altitude_ceiling_fl?: number | null;
 }
 
 export interface SpatialCircle {
@@ -387,6 +394,8 @@ export interface EcdisIntermediateLayer {
   editable: true;
   geometry_intent: GeometryIntent;
   features: EcdisPointFeature[];
+  zone_label?: string | null;
+  feature_type?: string;
 }
 
 export interface PipelineEvent {

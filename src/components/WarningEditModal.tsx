@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { NavWarning, EcdisIntermediateLayer, EcdisPointFeature, GeometryIntent } from '../types';
 import { EcdisFeatureEditor } from './EcdisFeatureEditor';
 import { useModalBehavior } from '../hooks/useModalBehavior';
+import { geometryEditBlockReason } from '../lib/geometryEditSafety';
 import {
   saveWarningEdit,
   WarningEditPatch,
@@ -73,7 +74,7 @@ function layerFromWarning(w: NavWarning): EcdisIntermediateLayer | null {
   const hasLine = (geoms || []).some((g: any) => g?.type === 'LineString');
   const intent: GeometryIntent = hasPoly ? 'area' : hasLine ? 'route' : 'unknown';
   if (features.length === 0) return null;
-  return { warningId: w.warning_id, navarea: w.navarea, editable: true, geometry_intent: intent, features };
+  return { warningId: w.warning_id, navarea: w.navarea, editable: true, geometry_intent: intent, features, zone_label: geoms?.[0]?.zone_label || null, feature_type: geoms?.[0]?.feature_type };
 }
 
 /** Converts the edited point layer into geometry patches (one per shape). */
@@ -83,19 +84,19 @@ function layerToGeometryPatches(layer: EcdisIntermediateLayer): WarningGeometryP
     .filter((f) => f.properties.errors.length === 0)
     .map((f) => f.geometry.coordinates as [number, number]);
   if (pts.length === 0) return [];
-  const zone = 'PRIMARY_HAZARD';
+  const zone = layer.zone_label || 'PRIMARY_HAZARD';
   if (layer.geometry_intent === 'area' && pts.length >= 3) {
     const ring = pts.slice();
     const first = ring[0];
     const last = ring[ring.length - 1];
     if (first[0] !== last[0] || first[1] !== last[1]) ring.push(first);
-    return [{ zone_label: zone, feature_type: 'POLYGON', geojson: { type: 'Polygon', coordinates: [ring] } }];
+    return [{ zone_label: zone, feature_type: layer.feature_type || 'POLYGON', geojson: { type: 'Polygon', coordinates: [ring] } }];
   }
   if (layer.geometry_intent === 'route' && pts.length >= 2) {
-    return [{ zone_label: zone, feature_type: 'LINE', geojson: { type: 'LineString', coordinates: pts } }];
+    return [{ zone_label: zone, feature_type: layer.feature_type || 'LINE', geojson: { type: 'LineString', coordinates: pts } }];
   }
   // Unknown intent: each point is its own geometry row.
-  return pts.map((p) => ({ zone_label: zone, feature_type: 'POINT', geojson: { type: 'Point', coordinates: p } }));
+  return pts.map((p) => ({ zone_label: zone, feature_type: layer.feature_type || 'POINT', geojson: { type: 'Point', coordinates: p } }));
 }
 
 const inputCls =
@@ -122,6 +123,15 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
   const [includeGeometry, setIncludeGeometry] = useState(false);
   const [unplottedReason, setUnplottedReason] = useState('');
 
+  const geometryBlockReason = warning
+    ? geometryEditBlockReason((warning.spatial?.geometries || []) as any[], {
+        allowMultiple: false,
+        allowBufferedPoints: false,
+        allowCircle: false,
+        metadataComplete: String((warning as any).triage_tier || '').toUpperCase() !== 'B',
+      })
+    : null;
+
   const dialogRef = useRef<HTMLDivElement>(null);
   useModalBehavior(dialogRef, !!warning);
 
@@ -144,10 +154,9 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
     setResult(null);
     setConflict(null);
     setSavedAt(null);
-    const layer = layerFromWarning(warning);
-    setGeometryLayer(layer);
+    setGeometryLayer(geometryBlockReason ? null : layerFromWarning(warning));
     setIncludeGeometry(false);
-  }, [warning]);
+  }, [warning, geometryBlockReason]);
 
   // Safe dismissal: Escape/X/Cancel must never discard a filled form or
   // tear the modal down while an audited write is in flight. requestClose
@@ -207,7 +216,7 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
     const nextUnplotted = unplottedReason.trim() ? unplottedReason.trim().slice(0, 500) : null;
     if (nextUnplotted !== currentUnplotted) patch.unplotted_reason = nextUnplotted;
     if (moveTarget) patch.move_to_navarea = moveTarget;
-    if (includeGeometry && geometryLayer) patch.geometry = layerToGeometryPatches(geometryLayer);
+    if (includeGeometry && geometryLayer && !geometryBlockReason) patch.geometry = layerToGeometryPatches(geometryLayer);
     if (note.trim()) patch.note = note.trim();
     return patch;
   };
@@ -432,10 +441,16 @@ export const WarningEditModal: React.FC<WarningEditModalProps> = ({ warning, onC
                   bulletin text — edit the points, tick “include”, then Save.
                 </div>
               )}
+              {geometryBlockReason && (
+                <div role="status" className="border border-amber-400 rounded bg-amber-50 text-amber-900 p-2 text-xs">
+                  Geometry editing is disabled to prevent data loss: {geometryBlockReason}
+                </div>
+              )}
               <label className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider" htmlFor="wem-include-geometry">
                 <input
                   type="checkbox"
                   id="wem-include-geometry" checked={includeGeometry}
+                  disabled={!!geometryBlockReason}
                   onChange={(e) => setIncludeGeometry(e.target.checked)}
                   className="accent-gw-primary w-4 h-4"
                 />

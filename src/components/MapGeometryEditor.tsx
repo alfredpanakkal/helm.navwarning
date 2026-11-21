@@ -3,6 +3,7 @@ import L from 'leaflet';
 import { NavWarning } from '../types';
 import { saveWarningEdit, WarningGeometryPatch } from '../services/warningEditApi';
 import { clearDraft, loadDraft, saveDraft } from '../lib/geometryDraft';
+import { geometryEditBlockReason } from '../lib/geometryEditSafety';
 import { PenTool, Save, X, RotateCcw, Loader2, MousePointerClick, Circle as CircleIcon, Square, Route, Undo2, Redo2, FileDiff } from 'lucide-react';
 
 /**
@@ -37,6 +38,8 @@ export interface EditablePart {
   latlngs: [number, number][];
   /** Circle radius in nautical miles (circle parts only). */
   bufferNm?: number;
+  zoneLabel?: string | null;
+  featureType?: string;
 }
 
 const DRAW_PANE = 'adminEditPane';
@@ -48,13 +51,11 @@ function buildPartsFromWarning(w: NavWarning | null): EditablePart[] {
   if (!w) return [];
   const parts: EditablePart[] = [];
   const geoms = (w.spatial?.geometries || []) as any[];
-  const pendingPoints: [number, number][] = [];
   for (const g of geoms) {
     if (!g || !Array.isArray(g.coordinates)) continue;
+    const zoneLabel = g.label || g.zone_label || null;
     if (g.type === 'Polygon') {
-      const ring = (Array.isArray(g.coordinates[0]) && Array.isArray(g.coordinates[0][0])
-        ? g.coordinates[0]
-        : g.coordinates) as number[][];
+      const ring = g.coordinates[0] as number[][];
       const latlngs = ring
         .filter((p) => Array.isArray(p) && p.length >= 2)
         .map((p) => [Number(p[1]), Number(p[0])] as [number, number]);
@@ -64,26 +65,38 @@ function buildPartsFromWarning(w: NavWarning | null): EditablePart[] {
         const l = latlngs[latlngs.length - 1];
         if (f[0] === l[0] && f[1] === l[1]) latlngs.pop();
       }
-      if (latlngs.length >= 3) parts.push({ kind: 'polygon', latlngs });
+      if (latlngs.length >= 3) {
+        const featureType = ['SWEEP_ARC', 'BOUNDING_BOX'].includes(String(g.feature_type).toUpperCase())
+          ? String(g.feature_type).toUpperCase() : 'POLYGON';
+        parts.push({ kind: 'polygon', latlngs, zoneLabel, featureType });
+      }
     } else if (g.type === 'LineString') {
       const latlngs = (g.coordinates as number[][])
         .filter((p) => Array.isArray(p) && p.length >= 2)
         .map((p) => [Number(p[1]), Number(p[0])] as [number, number]);
-      if (latlngs.length >= 2) parts.push({ kind: 'line', latlngs });
+      if (latlngs.length >= 2) {
+        const featureType = String(g.feature_type).toUpperCase() === 'CORRIDOR' ? 'CORRIDOR' : 'LINE';
+        parts.push({ kind: 'line', latlngs, zoneLabel, featureType });
+      }
     } else if (g.type === 'Point') {
       const p = g.coordinates as number[];
-      if (Array.isArray(p) && p.length >= 2) pendingPoints.push([Number(p[1]), Number(p[0])]);
+      if (Array.isArray(p) && p.length >= 2) {
+        const center: [number, number] = [Number(p[1]), Number(p[0])];
+        const bufferNm = Number(g.buffer_nm || g.radius_nm || 0);
+        if (bufferNm > 0) {
+          parts.push({ kind: 'circle', latlngs: [center], bufferNm, zoneLabel, featureType: 'POINT' });
+        } else {
+          parts.push({ kind: 'points', latlngs: [center], zoneLabel, featureType: 'POINT' });
+        }
+      }
     } else if (g.type === 'Circle') {
       const p = Array.isArray(g.coordinates?.[0]) ? (g.coordinates as any[])[0] : g.coordinates;
       if (Array.isArray(p) && p.length >= 2) {
-        const radiusNm = Number((g as any).radius_nm || (g as any).buffer_nm) || 1;
-        parts.push({ kind: 'circle', latlngs: [[Number(p[1]), Number(p[0])]], bufferNm: radiusNm });
+        const radiusNm = Number(g.radius_nm || g.buffer_nm) || 1;
+        parts.push({ kind: 'circle', latlngs: [[Number(p[1]), Number(p[0])]], bufferNm: radiusNm, zoneLabel, featureType: 'POINT' });
       }
     }
   }
-  // Consecutive unbuffered points from the DB are individual POINT rows —
-  // group them into one editable "points" part.
-  if (pendingPoints.length > 0) parts.push({ kind: 'points', latlngs: pendingPoints });
   return parts;
 }
 
@@ -97,21 +110,21 @@ function partsToPatches(parts: EditablePart[]): { patches: WarningGeometryPatch[
       const f = ring[0];
       const l = ring[ring.length - 1];
       if (f[0] !== l[0] || f[1] !== l[1]) ring.push(f);
-      patches.push({ zone_label: 'PRIMARY_HAZARD', feature_type: 'POLYGON', geojson: { type: 'Polygon', coordinates: [ring] } });
+      patches.push({ zone_label: p.zoneLabel || 'PRIMARY_HAZARD', feature_type: p.featureType || 'POLYGON', geojson: { type: 'Polygon', coordinates: [ring] } });
     } else if (p.kind === 'line') {
       if (p.latlngs.length < 2) { skipped++; continue; }
-      patches.push({ zone_label: 'PRIMARY_HAZARD', feature_type: 'LINE', geojson: { type: 'LineString', coordinates: p.latlngs.map(([lat, lng]) => [lng, lat]) } });
+      patches.push({ zone_label: p.zoneLabel || 'PRIMARY_HAZARD', feature_type: p.featureType || 'LINE', geojson: { type: 'LineString', coordinates: p.latlngs.map(([lat, lng]) => [lng, lat]) } });
     } else if (p.kind === 'circle') {
       if (p.latlngs.length !== 1) { skipped++; continue; }
       patches.push({
-        zone_label: 'PRIMARY_HAZARD',
-        feature_type: 'POINT',
+        zone_label: p.zoneLabel || 'PRIMARY_HAZARD',
+        feature_type: p.featureType || 'POINT',
         buffer_nm: p.bufferNm || 1,
         geojson: { type: 'Point', coordinates: [p.latlngs[0][1], p.latlngs[0][0]] },
       });
     } else {
       for (const [lat, lng] of p.latlngs) {
-        patches.push({ zone_label: 'PRIMARY_HAZARD', feature_type: 'POINT', geojson: { type: 'Point', coordinates: [lng, lat] } });
+        patches.push({ zone_label: p.zoneLabel || 'PRIMARY_HAZARD', feature_type: p.featureType || 'POINT', geojson: { type: 'Point', coordinates: [lng, lat] } });
       }
     }
   }
@@ -177,7 +190,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
 
   /** Deep copy of a parts snapshot (for undo/redo + original diff). */
   const cloneParts = useCallback((parts: EditablePart[]): EditablePart[] =>
-    parts.map((p) => ({ kind: p.kind, latlngs: p.latlngs.map((ll) => [ll[0], ll[1]] as [number, number]), bufferNm: p.bufferNm })), []);
+    parts.map((p) => ({ kind: p.kind, latlngs: p.latlngs.map((ll) => [ll[0], ll[1]] as [number, number]), bufferNm: p.bufferNm, zoneLabel: p.zoneLabel, featureType: p.featureType })), []);
 
   const syncHistState = useCallback(() => {
     setHistLen({ undo: undoStackRef.current.length, redo: redoStackRef.current.length });
@@ -465,7 +478,24 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
   // Enter/exit a mode.
   const enterMode = (next: 'off' | 'edit' | 'draw') => {
     if (!selectedWarning) return;
-    partsRef.current = buildPartsFromWarning(selectedWarning);
+    const storedGeometries = selectedWarning.spatial?.geometries || [];
+    const tierBWithStoredGeometry =
+      String((selectedWarning as any).triage_tier || '').toUpperCase() === 'B' && storedGeometries.length > 0;
+    if (next === 'edit' || (next === 'draw' && tierBWithStoredGeometry)) {
+      const reason = geometryEditBlockReason(storedGeometries, {
+        allowMultiple: true,
+        allowBufferedPoints: true,
+        allowCircle: true,
+        metadataComplete: !tierBWithStoredGeometry,
+      });
+      if (reason) {
+        setMessageKind('error');
+        setMessage(reason);
+        return;
+      }
+    }
+    // Draw-new starts empty: it must never load a partial view of unsupported shapes.
+    partsRef.current = next === 'draw' ? [] : buildPartsFromWarning(selectedWarning);
     originalPartsRef.current = cloneParts(partsRef.current);
     undoStackRef.current = [];
     redoStackRef.current = [];
@@ -702,7 +732,7 @@ export const MapGeometryEditor: React.FC<MapGeometryEditorProps> = ({ map, isAdm
               <>
                 <button
                   type="button"
-                  onClick={() => { pushHistory(); partsRef.current = buildPartsFromWarning(selectedWarning); drawPtsRef.current = []; markDirtyIfChanged(); setMessage('Draft reset to the stored geometry.'); setMessageKind('info'); renderDraft(); }}
+                  onClick={() => { pushHistory(); partsRef.current = mode === 'draw' ? [] : buildPartsFromWarning(selectedWarning); drawPtsRef.current = []; markDirtyIfChanged(); setMessage(mode === 'draw' ? 'Draw-new draft cleared.' : 'Draft reset to the stored geometry.'); setMessageKind('info'); renderDraft(); }}
                   className="flex items-center gap-1 p-2 bg-gw-panel border border-gw-secondary text-gw-accent rounded text-[10px] font-medium uppercase hover:text-gw-primary transition-colors"
                   title="Reset draft to stored geometry"
                 >

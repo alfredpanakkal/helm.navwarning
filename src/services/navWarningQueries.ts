@@ -27,7 +27,11 @@ export interface ActiveSpatialRow {
   feature_type: string;
   buffer_nm: number;
   corridor_half_width_nm: number | null;
-  altitude_floor_m: number;
+  corridor_clearance_nm: number | null;
+  sweep_radius_nm: number | null;
+  sweep_start_azimuth: number | null;
+  sweep_end_azimuth: number | null;
+  altitude_floor_m: number | null;
   altitude_ceiling_fl: number | null;
   geom_postgis: unknown;
   geojson_blob: Record<string, unknown> | null;
@@ -46,9 +50,13 @@ export interface NavWarningListFilters {
 const VIEW_COLUMNS =
   'warning_id, canonical_id, navarea, title, area_text, categories, severity, status, ' +
   'triage_tier, data_quality, valid_from, valid_to, feature_type, zone_label, ' +
-  'buffer_nm, corridor_half_width_nm, geojson_blob';
+  'buffer_nm, corridor_half_width_nm, altitude_floor_m, altitude_ceiling_fl, geojson_blob, corridor_clearance_nm, ' +
+  'sweep_radius_nm, sweep_start_azimuth, sweep_end_azimuth';
 
 const VIEW_COLUMNS_LEGACY = VIEW_COLUMNS.replace('categories, severity, status', 'categories, status');
+// The unverified view intentionally exposes a smaller metadata contract.
+const VIEW_COLUMNS_UNVERIFIED = VIEW_COLUMNS.replace(', corridor_clearance_nm, sweep_radius_nm, sweep_start_azimuth, sweep_end_azimuth', '');
+const VIEW_COLUMNS_UNVERIFIED_LEGACY = VIEW_COLUMNS_UNVERIFIED.replace('categories, severity, status', 'categories, status');
 
 const LIST_COLUMNS =
   'id, canonical_id, navarea, source_id, title, area_text, raw_text, categories, severity, ' +
@@ -122,10 +130,10 @@ export async function fetchUnverifiedSpatialRows(opts?: { serverClient?: boolean
     const to = from + PAGE_SIZE - 1;
     let { data, error } = await client
       .from('nav_warnings_unverified_spatial')
-      .select(VIEW_COLUMNS)
+      .select(VIEW_COLUMNS_UNVERIFIED)
       .range(from, to);
     if (isMissingSeverityColumn(error)) {
-      const legacy = await client.from('nav_warnings_unverified_spatial').select(VIEW_COLUMNS_LEGACY).range(from, to);
+      const legacy = await client.from('nav_warnings_unverified_spatial').select(VIEW_COLUMNS_UNVERIFIED_LEGACY).range(from, to);
       data = legacy.data;
       error = legacy.error;
     }
@@ -180,8 +188,15 @@ export function groupSpatialRowsByCanonicalId(rows: ActiveSpatialRow[]): Grouped
       // buffered-point circle derivation both read it from the geometry entry.
       (grouped._geometries as Record<string, unknown>[]).push({
         ...geom,
+        feature_type: r.feature_type,
         buffer_nm: r.buffer_nm,
-        corridor_half_width_nm: r.corridor_half_width_nm,
+        corridor_half_width_nm: r.corridor_half_width_nm ?? null,
+        corridor_clearance_nm: r.corridor_clearance_nm ?? null,
+        sweep_radius_nm: r.sweep_radius_nm ?? null,
+        sweep_start_azimuth: r.sweep_start_azimuth ?? null,
+        sweep_end_azimuth: r.sweep_end_azimuth ?? null,
+        altitude_floor_m: r.altitude_floor_m ?? null,
+        altitude_ceiling_fl: r.altitude_ceiling_fl ?? null,
       });
       if (!grouped._geojson) grouped._geojson = geom;
     }
@@ -263,12 +278,12 @@ export async function fetchSingleWarning(canonicalId: string): Promise<{
   // geometry for BOTH tiers (the post-save and realtime repaints depend on it).
   let [activeRes, unverifiedRes]: any = await Promise.all([
     anonClient.from('nav_warnings_active_spatial').select(VIEW_COLUMNS).eq('canonical_id', canonicalId),
-    anonClient.from('nav_warnings_unverified_spatial').select(VIEW_COLUMNS).eq('canonical_id', canonicalId),
+    anonClient.from('nav_warnings_unverified_spatial').select(VIEW_COLUMNS_UNVERIFIED).eq('canonical_id', canonicalId),
   ]);
   if (isMissingSeverityColumn(activeRes?.error) || isMissingSeverityColumn(unverifiedRes?.error)) {
     [activeRes, unverifiedRes] = await Promise.all([
       anonClient.from('nav_warnings_active_spatial').select(VIEW_COLUMNS_LEGACY).eq('canonical_id', canonicalId),
-      anonClient.from('nav_warnings_unverified_spatial').select(VIEW_COLUMNS_LEGACY).eq('canonical_id', canonicalId),
+      anonClient.from('nav_warnings_unverified_spatial').select(VIEW_COLUMNS_UNVERIFIED_LEGACY).eq('canonical_id', canonicalId),
     ]);
   }
   const spatial = [
@@ -281,8 +296,15 @@ export async function fetchSingleWarning(canonicalId: string): Promise<{
     if (g)
       geometries.push({
         ...g,
+        feature_type: r.feature_type,
         buffer_nm: Number(r.buffer_nm) || 0,
-        corridor_half_width_nm: r.corridor_half_width_nm,
+        corridor_half_width_nm: r.corridor_half_width_nm ?? null,
+        corridor_clearance_nm: r.corridor_clearance_nm ?? null,
+        sweep_radius_nm: r.sweep_radius_nm ?? null,
+        sweep_start_azimuth: r.sweep_start_azimuth ?? null,
+        sweep_end_azimuth: r.sweep_end_azimuth ?? null,
+        altitude_floor_m: r.altitude_floor_m ?? null,
+        altitude_ceiling_fl: r.altitude_ceiling_fl ?? null,
       });
   }
   // LIST_COLUMNS is a plain string (not a literal type), so the typed client

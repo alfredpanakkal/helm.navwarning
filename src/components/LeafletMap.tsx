@@ -229,22 +229,16 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     const map = leafletInstance.current;
 
     const points: [number, number][] = [];
+    const collectPositions = (value: unknown) => {
+      if (!Array.isArray(value)) return;
+      if (value.length >= 2 && typeof value[0] === 'number' && typeof value[1] === 'number') {
+        points.push([value[1], value[0]]);
+        return;
+      }
+      value.forEach(collectPositions);
+    };
     if (warning.spatial?.geometries) {
-      warning.spatial.geometries.forEach((geom) => {
-        if (geom.type === 'Polygon' && Array.isArray(geom.coordinates)) {
-          const ring = Array.isArray(geom.coordinates[0]) ? geom.coordinates[0] : geom.coordinates;
-          (ring as any[]).forEach((pt) => {
-            if (Array.isArray(pt) && pt.length >= 2) {
-              points.push([pt[1], pt[0]]);
-            }
-          });
-        } else if (geom.type === 'Point' && Array.isArray(geom.coordinates)) {
-          const pt = geom.coordinates as number[];
-          if (pt.length >= 2) {
-            points.push([Number(pt[1]), Number(pt[0])]);
-          }
-        }
-      });
+      warning.spatial.geometries.forEach((geom) => collectPositions(geom.coordinates));
     }
 
     if (warning.spatial?.circles) {
@@ -710,215 +704,250 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         // 1. Polygons & Polylines / Corridors
         if (w.spatial?.geometries) {
           w.spatial.geometries.forEach((geom) => {
-            if (geom.type === 'Polygon' && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
+            if ((geom.type === 'Polygon' || geom.type === 'MultiPolygon') && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
               try {
-                const latLngs = (geom.coordinates[0] as number[][]).map(([lng, lat]) => [lat, lng] as [number, number]);
-                const areaSqNm = computePolygonAreaSqNm(latLngs);
-                const centroid = computeCentroid(latLngs);
-                const zoneLabel = geom.label || (geom as any).zone_label || (geom as any).zoneLabel;
-                const isZoneSelected = (zoneLabel && selectedZoneLabel === zoneLabel) || isIsolated;
+                const polygonComponents: any[] = geom.type === 'Polygon' ? [geom.coordinates as any[]] : geom.coordinates as any[];
+                polygonComponents.forEach((rings: any[]) => {
+                  if (!Array.isArray(rings) || rings.length === 0) return;
+                  const latLngRings: [number, number][][] = rings.map((ring: number[][]) =>
+                    ring.map(([lng, lat]) => [lat, lng] as [number, number])
+                  );
+                  const latLngs = latLngRings[0];
+                  if (!latLngs || latLngs.length < 3) return;
+                  const areaSqNm = Math.max(
+                    0,
+                    computePolygonAreaSqNm(latLngs) -
+                      latLngRings.slice(1).reduce((sum, hole) => sum + computePolygonAreaSqNm(hole), 0)
+                  );
+                  const zoneLabel = geom.label || (geom as any).zone_label || (geom as any).zoneLabel;
+                  const isZoneSelected = (zoneLabel && selectedZoneLabel === zoneLabel) || isIsolated;
 
-                const severityAreaColor = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
-                // S-52-informed restricted-area boundary; severity remains encoded by the fill.
-                const polyColor = isRestrictedArea ? '#D946EF' : severityAreaColor;
-                const polyFill = severityAreaColor;
-                const borderDashArray = getBoundaryDashArray(isUnverified, dataQuality);
+                  const severityAreaColor = isUnverified ? '#8C5208' : isZoneSelected ? '#B42318' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F';
+                  // S-52-informed restricted-area boundary; severity remains encoded by the fill.
+                  const polyColor = isRestrictedArea ? '#D946EF' : severityAreaColor;
+                  const polyFill = severityAreaColor;
+                  const borderDashArray = getBoundaryDashArray(isUnverified, dataQuality);
 
-                const poly = L.polygon(latLngs, {
-                  color: polyColor,
-                  weight: isZoneSelected ? 3.5 : 2,
-                  dashArray: borderDashArray,
-                  opacity: currentZoom <= 5 ? 0.75 : 0.9,
-                  fillColor: polyFill,
-                  fillOpacity: isZoneSelected ? 0.35 : currentZoom <= 5 ? 0.12 : 0.22,
-                  pane: 'navWarnVectorPane'
-                });
+                  // Pass all rings to Leaflet so interior holes remain holes.
+                  const poly = L.polygon(latLngRings, {
+                    color: polyColor,
+                    weight: isZoneSelected ? 3.5 : 2,
+                    dashArray: borderDashArray,
+                    opacity: currentZoom <= 5 ? 0.75 : 0.9,
+                    fillColor: polyFill,
+                    fillOpacity: isZoneSelected ? 0.35 : currentZoom <= 5 ? 0.12 : 0.22,
+                    pane: 'navWarnVectorPane'
+                  });
 
-                // Anchored Map Popup with Quick Details
-                poly.bindPopup(`
-                  <div style="font-family: monospace; padding: 4px; max-width: 240px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                      <span style="font-weight: 700; font-size: 13px; color: #1e293b;">${w.source_warning_id || w.warning_id}</span>
-                      ${zoneLabel ? `<span style="background: #2F6B4F; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">${zoneLabel}</span>` : isUnverified ? '<span style="background: #8C5208; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">UNVERIFIED</span>' : '<span style="background: #2F6B4F; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">ACTIVE</span>'}
+                  poly.bindPopup(`
+                    <div style="font-family: monospace; padding: 4px; max-width: 240px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 700; font-size: 13px; color: #1e293b;">${w.source_warning_id || w.warning_id}</span>
+                        ${zoneLabel ? `<span style="background: #2F6B4F; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">${zoneLabel}</span>` : isUnverified ? '<span style="background: #8C5208; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">UNVERIFIED</span>' : '<span style="background: #2F6B4F; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">ACTIVE</span>'}
+                      </div>
+                      <div style="font-size: 11px; color: #475569; margin-bottom: 8px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${w.title || w.area_text || w.raw_text}</div>
+                      <div style="font-size: 10px; color: #0284c7; font-weight: 600;">Area: ${areaSqNm} sq NM</div>
                     </div>
-                    <div style="font-size: 11px; color: #475569; margin-bottom: 8px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${w.title || w.area_text || w.raw_text}</div>
-                    <div style="font-size: 10px; color: #0284c7; font-weight: 600;">Area: ${areaSqNm} sq NM</div>
-                  </div>
-                `);
+                  `);
 
-                poly.bindTooltip(zoneLabel ? `${zoneLabel} (${areaSqNm} sq NM)` : isUnverified ? 'Unverified (Tier B) — needs review' : `Area: ${areaSqNm} sq NM`, { direction: 'center' });
-                poly.on('click', () => {
-                  if (zoneLabel) setSelectedZoneLabel(zoneLabel);
-                  onSelectWarning(w);
-                });
-                poly.on('contextmenu', (e: L.LeafletMouseEvent) => {
-                  handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
-                });
-                vectorGroup.addLayer(poly);
+                  poly.bindTooltip(zoneLabel ? `${zoneLabel} (${areaSqNm} sq NM)` : isUnverified ? 'Unverified (Tier B) — needs review' : `Area: ${areaSqNm} sq NM`, { direction: 'center' });
+                  poly.on('click', () => {
+                    if (zoneLabel) setSelectedZoneLabel(zoneLabel);
+                    onSelectWarning(w);
+                  });
+                  poly.on('contextmenu', (e: L.LeafletMouseEvent) => {
+                    handleLayerContextMenu(e, w, [e.latlng.lat, e.latlng.lng]);
+                  });
+                  vectorGroup.addLayer(poly);
 
-                // Progressive disclosure: tooltips and selection state handle identification (no permanent clutter badge)
+                  // Vertex handles track the exterior ring; holes remain visible and immutable here.
+                  latLngs.forEach((latLng, idx) => {
+                    const dmsLabel = formatWgs84Dms(latLng[0], latLng[1]);
 
-                // Plan Spec 4.1 & Phase 4.1: Hybrid Vertex Handles
-                // Suppressed completely at global zoom (z <= 5) to eliminate chart clutter.
-                // At regional zoom (z 6..9), only show numbered pills if warning is isolated/selected.
-                // At detailed zoom (z >= 10), show numbered pills if isolated, minimal dots if unselected.
-                latLngs.forEach((latLng, idx) => {
-                  const dmsLabel = formatWgs84Dms(latLng[0], latLng[1]);
-
-                  if (shouldShowVertexPills(currentZoom, isIsolated)) {
-                    // Numbered Vertex Pill (V1, V2, V3...) when selected
-                    const pillIcon = L.divIcon({
-                      className: 'vertex-pill-marker',
-                      html: `<div style="background: #14161c; color: #fbbf24; border: 1.5px solid #f59e0b; border-radius: 9999px; padding: 1px 6px; font-family: monospace; font-size: 10px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">V${idx + 1}</div>`,
-                      iconSize: [26, 18],
-                      iconAnchor: [13, 9]
-                    });
-                    const vertexMarker = L.marker(latLng, { icon: pillIcon, pane: 'navWarnVectorPane' });
-                    vertexMarker.bindTooltip(`Vertex V${idx + 1}: ${dmsLabel} (${latLng[0].toFixed(3)}°, ${latLng[1].toFixed(3)}°)`, {
-                      direction: 'top',
-                      offset: [0, -8]
-                    });
-                    vertexMarker.on('click', (e) => {
-                      L.DomEvent.stopPropagation(e);
-                      onSelectWarning(w);
-                    });
-                    vertexMarker.on('contextmenu', (e: L.LeafletMouseEvent) => {
-                      handleLayerContextMenu(e, w, latLng);
-                    });
-                    vectorGroup.addLayer(vertexMarker);
-                  } else if (shouldShowVertexDots(currentZoom, isIsolated)) {
-                    // Minimal subtle dot marker when unselected, only visible at detailed zoom (z >= 10)
-                    const vertexMarker = L.circleMarker(latLng, {
-                      radius: 3.5,
-                      fillColor: '#fbbf24',
-                      color: '#d97706',
-                      weight: 1,
-                      fillOpacity: 0.9,
-                      pane: 'navWarnVectorPane'
-                    });
-                    vertexMarker.bindTooltip(`Vertex V${idx + 1}: ${dmsLabel}`, {
-                      direction: 'top',
-                      offset: [0, -4]
-                    });
-                    vertexMarker.on('click', (e) => {
-                      L.DomEvent.stopPropagation(e);
-                      onSelectWarning(w);
-                    });
-                    vertexMarker.on('contextmenu', (e: L.LeafletMouseEvent) => {
-                      handleLayerContextMenu(e, w, latLng);
-                    });
-                    vectorGroup.addLayer(vertexMarker);
-                  }
+                    if (shouldShowVertexPills(currentZoom, isIsolated)) {
+                      const pillIcon = L.divIcon({
+                        className: 'vertex-pill-marker',
+                        html: `<div style="background: #14161c; color: #fbbf24; border: 1.5px solid #f59e0b; border-radius: 9999px; padding: 1px 6px; font-family: monospace; font-size: 10px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">V${idx + 1}</div>`,
+                        iconSize: [26, 18],
+                        iconAnchor: [13, 9]
+                      });
+                      const vertexMarker = L.marker(latLng, { icon: pillIcon, pane: 'navWarnVectorPane' });
+                      vertexMarker.bindTooltip(`Vertex V${idx + 1}: ${dmsLabel} (${latLng[0].toFixed(3)}°, ${latLng[1].toFixed(3)}°)`, {
+                        direction: 'top',
+                        offset: [0, -8]
+                      });
+                      vertexMarker.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        onSelectWarning(w);
+                      });
+                      vertexMarker.on('contextmenu', (e: L.LeafletMouseEvent) => {
+                        handleLayerContextMenu(e, w, latLng);
+                      });
+                      vectorGroup.addLayer(vertexMarker);
+                    } else if (shouldShowVertexDots(currentZoom, isIsolated)) {
+                      const vertexMarker = L.circleMarker(latLng, {
+                        radius: 3.5,
+                        fillColor: '#fbbf24',
+                        color: '#d97706',
+                        weight: 1,
+                        fillOpacity: 0.9,
+                        pane: 'navWarnVectorPane'
+                      });
+                      vertexMarker.bindTooltip(`Vertex V${idx + 1}: ${dmsLabel}`, {
+                        direction: 'top',
+                        offset: [0, -4]
+                      });
+                      vertexMarker.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        onSelectWarning(w);
+                      });
+                      vertexMarker.on('contextmenu', (e: L.LeafletMouseEvent) => {
+                        handleLayerContextMenu(e, w, latLng);
+                      });
+                      vectorGroup.addLayer(vertexMarker);
+                    }
+                  });
                 });
               } catch {
                 // Malformed polygon fallback
               }
             } else if (
-              (geom.type === 'LineString' || (geom as any).type === 'Polyline') &&
+              (geom.type === 'LineString' || geom.type === 'MultiLineString' || (geom as any).type === 'Polyline') &&
               Array.isArray(geom.coordinates) &&
               geom.coordinates.length > 0
             ) {
-              // Plan Spec 4.3: Double-Pass LineString & Wide-Berth Corridor Rendering
+              // Render every component of a MultiLineString without joining separate tracks.
               try {
-                const latLngs: [number, number][] = (geom.coordinates as any[]).map((pt) => [pt[1], pt[0]]);
-                
-                // Pass 1: Casing Glow Line Underneath
-                const routeColor = isCableRoute ? '#D946EF' : (isUnverified ? '#d97706' : classification.displayStyle === 'critical' ? '#dc2626' : '#0284c7');
-                const casingLine = L.polyline(latLngs, {
-                  color: isCableRoute ? '#D946EF' : '#06b6d4',
-                  weight: 6,
-                  opacity: 0.35,
-                  pane: 'navWarnVectorPane',
-                }).addTo(vectorGroup);
+                const lineComponents: any[] = geom.type === 'LineString' || (geom as any).type === 'Polyline'
+                  ? [geom.coordinates as any[]]
+                  : geom.coordinates as any[];
+                lineComponents.forEach((lineCoordinates: any[]) => {
+                  const latLngs: [number, number][] = lineCoordinates.map((pt) => [pt[1], pt[0]]);
+                  if (latLngs.length < 2) return;
 
-                // Pass 2: Primary Core Track Line On Top
-                const lineDashArray = getBoundaryDashArray(isUnverified, dataQuality);
-                const coreLine = L.polyline(latLngs, {
-                  color: routeColor,
-                  weight: 3,
-                  dashArray: lineDashArray,
-                  pane: 'navWarnVectorPane',
-                }).addTo(vectorGroup);
-                if (isUnverified) coreLine.bindTooltip('Unverified (Tier B) — needs review', { direction: 'top' });
+                  // Pass 1: Casing Glow Line Underneath
+                  const routeColor = isCableRoute ? '#D946EF' : (isUnverified ? '#d97706' : classification.displayStyle === 'critical' ? '#dc2626' : '#0284c7');
+                  const casingLine = L.polyline(latLngs, {
+                    color: isCableRoute ? '#D946EF' : '#06b6d4',
+                    weight: 6,
+                    opacity: 0.35,
+                    pane: 'navWarnVectorPane',
+                  }).addTo(vectorGroup);
 
-                coreLine.on('click', () => onSelectWarning(w));
-                casingLine.on('click', () => onSelectWarning(w));
+                  // Pass 2: Primary Core Track Line On Top
+                  const lineDashArray = getBoundaryDashArray(isUnverified, dataQuality);
+                  const coreLine = L.polyline(latLngs, {
+                    color: routeColor,
+                    weight: 3,
+                    dashArray: lineDashArray,
+                    pane: 'navWarnVectorPane',
+                  }).addTo(vectorGroup);
+                  if (isUnverified) coreLine.bindTooltip('Unverified (Tier B) — needs review', { direction: 'top' });
 
-                // Termini Endpoint Markers (Point A / Point B) - only at regional/detailed scale (z >= 6)
-                if (latLngs.length >= 2 && currentZoom >= 6) {
-                  const startMarker = L.circleMarker(latLngs[0], {
-                    radius: 4,
-                    fillColor: isCableRoute ? routeColor : '#38bdf8',
-                    color: isCableRoute ? routeColor : '#0284c7',
-                    weight: 1.5,
-                    fillOpacity: 1,
-                    pane: 'navWarnVectorPane'
-                  });
-                  startMarker.bindTooltip('Point A (Route Start)', { direction: 'top' });
-                  vectorGroup.addLayer(startMarker);
+                  coreLine.on('click', () => onSelectWarning(w));
+                  casingLine.on('click', () => onSelectWarning(w));
 
-                  const endMarker = L.circleMarker(latLngs[latLngs.length - 1], {
-                    radius: 4,
-                    fillColor: isCableRoute ? routeColor : '#38bdf8',
-                    color: isCableRoute ? routeColor : '#0284c7',
-                    weight: 1.5,
-                    fillOpacity: 1,
-                    pane: 'navWarnVectorPane'
-                  });
-                  endMarker.bindTooltip('Point B (Route Terminus)', { direction: 'top' });
-                  vectorGroup.addLayer(endMarker);
-                }
-
-                // Persisted half-width wins; explicit text clearance is fallback.
-                const directive = parseClearanceDirective(w.raw_text || w.issued_text || '');
-                const persistedHalfWidthNm =
-                  typeof geom.corridor_half_width_nm === 'number' && Number.isFinite(geom.corridor_half_width_nm) && geom.corridor_half_width_nm > 0
-                    ? geom.corridor_half_width_nm
-                    : null;
-                const corridorWidthNm = persistedHalfWidthNm != null
-                  ? persistedHalfWidthNm * 2
-                  : directive
-                    ? directive.radiusNm * 2
-                    : null;
-                const corridor = corridorWidthNm != null && Number.isFinite(corridorWidthNm) && corridorWidthNm > 0
-                  ? computeLineCorridor(latLngs, corridorWidthNm)
-                  : null;
-
-                if (corridor && corridor.boundaryPolygon && corridor.boundaryPolygon.length > 2) {
-                  const corridorPoly = L.polygon(corridor.boundaryPolygon, {
-                    color: '#eab308',
-                    weight: 1.5,
-                    dashArray: isUnverified ? '3, 5' : '5, 5',
-                    opacity: currentZoom <= 5 ? 0.6 : 0.8,
-                    fillColor: '#eab308',
-                    fillOpacity: currentZoom <= 5 ? 0.08 : 0.16,
-                    pane: 'navWarnVectorPane'
-                  });
-                  corridorPoly.bindTooltip(`Swath: ${corridor.widthNm} NM Corridor · Length: ${corridor.lengthNm} NM`, {
-                    direction: 'center'
-                  });
-                  corridorPoly.on('click', () => onSelectWarning(w));
-                  vectorGroup.addLayer(corridorPoly);
-
-                  // Midpoint Metric Pill ("6 NM Swath") - shown at detailed zoom (z >= 10) or when isolated
-                  if (shouldShowSwathPill(currentZoom, isIsolated)) {
-                    const midIdx = Math.floor(latLngs.length / 2);
-                    const midPoint = latLngs[midIdx] || latLngs[0];
-                    const swathPill = L.marker(midPoint, {
-                      icon: L.divIcon({
-                        className: 'swath-metric-pill',
-                        html: `<div style="background: #eab308; color: #14161c; border: 1px solid #ca8a04; padding: 2px 8px; border-radius: 9999px; font-family: monospace; font-size: 10px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.3); pointer-events: auto; cursor: pointer;">${corridor.widthNm} NM Swath</div>`,
-                        iconSize: [0, 0],
-                        iconAnchor: [35, 10]
-                      }),
+                  // Termini Endpoint Markers (Point A / Point B) - only at regional/detailed scale (z >= 6)
+                  if (currentZoom >= 6) {
+                    const startMarker = L.circleMarker(latLngs[0], {
+                      radius: 4,
+                      fillColor: isCableRoute ? routeColor : '#38bdf8',
+                      color: isCableRoute ? routeColor : '#0284c7',
+                      weight: 1.5,
+                      fillOpacity: 1,
                       pane: 'navWarnVectorPane'
                     });
-                    swathPill.on('click', () => onSelectWarning(w));
-                    vectorGroup.addLayer(swathPill);
+                    startMarker.bindTooltip('Point A (Route Start)', { direction: 'top' });
+                    vectorGroup.addLayer(startMarker);
+
+                    const endMarker = L.circleMarker(latLngs[latLngs.length - 1], {
+                      radius: 4,
+                      fillColor: isCableRoute ? routeColor : '#38bdf8',
+                      color: isCableRoute ? routeColor : '#0284c7',
+                      weight: 1.5,
+                      fillOpacity: 1,
+                      pane: 'navWarnVectorPane'
+                    });
+                    endMarker.bindTooltip('Point B (Route Terminus)', { direction: 'top' });
+                    vectorGroup.addLayer(endMarker);
                   }
-                }
+
+                  // Persisted half-width wins; explicit text clearance is fallback.
+                  const directive = parseClearanceDirective(w.raw_text || w.issued_text || '');
+                  const persistedHalfWidthNm =
+                    typeof geom.corridor_half_width_nm === 'number' && Number.isFinite(geom.corridor_half_width_nm) && geom.corridor_half_width_nm > 0
+                      ? geom.corridor_half_width_nm
+                      : null;
+                  const corridorWidthNm = persistedHalfWidthNm != null
+                    ? persistedHalfWidthNm * 2
+                    : directive
+                      ? directive.radiusNm * 2
+                      : null;
+                  const corridor = corridorWidthNm != null && Number.isFinite(corridorWidthNm) && corridorWidthNm > 0
+                    ? computeLineCorridor(latLngs, corridorWidthNm)
+                    : null;
+
+                  if (corridor && corridor.boundaryPolygon && corridor.boundaryPolygon.length > 2) {
+                    const corridorPoly = L.polygon(corridor.boundaryPolygon, {
+                      color: '#eab308',
+                      weight: 1.5,
+                      dashArray: isUnverified ? '3, 5' : '5, 5',
+                      opacity: currentZoom <= 5 ? 0.6 : 0.8,
+                      fillColor: '#eab308',
+                      fillOpacity: currentZoom <= 5 ? 0.08 : 0.16,
+                      pane: 'navWarnVectorPane'
+                    });
+                    corridorPoly.bindTooltip(`Swath: ${corridor.widthNm} NM Corridor · Length: ${corridor.lengthNm} NM`, {
+                      direction: 'center'
+                    });
+                    corridorPoly.on('click', () => onSelectWarning(w));
+                    vectorGroup.addLayer(corridorPoly);
+
+                    if (shouldShowSwathPill(currentZoom, isIsolated)) {
+                      const midIdx = Math.floor(latLngs.length / 2);
+                      const midPoint = latLngs[midIdx] || latLngs[0];
+                      const swathPill = L.marker(midPoint, {
+                        icon: L.divIcon({
+                          className: 'swath-metric-pill',
+                          html: `<div style="background: #eab308; color: #14161c; border: 1px solid #ca8a04; padding: 2px 8px; border-radius: 9999px; font-family: monospace; font-size: 10px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.3); pointer-events: auto; cursor: pointer;">${corridor.widthNm} NM Swath</div>`,
+                          iconSize: [0, 0],
+                          iconAnchor: [35, 10]
+                        }),
+                        pane: 'navWarnVectorPane'
+                      });
+                      swathPill.on('click', () => onSelectWarning(w));
+                      vectorGroup.addLayer(swathPill);
+                    }
+                  }
+                });
               } catch {
                 // Malformed polyline fallback
+              }
+            } else if ((geom.type === 'Point' || geom.type === 'MultiPoint') && !(Number(geom.buffer_nm) > 0)) {
+              const pointComponents = geom.type === 'Point' ? [geom.coordinates] : geom.coordinates;
+              if (Array.isArray(pointComponents)) {
+                pointComponents.forEach((point: unknown) => {
+                  if (!Array.isArray(point) || point.length < 2 ||
+                      typeof point[0] !== 'number' || typeof point[1] !== 'number') return;
+                  const pointLatLng: [number, number] = [point[1], point[0]];
+                  const isPrimary = Array.isArray(coords) &&
+                    Math.abs(coords[0] - pointLatLng[0]) < 1e-7 &&
+                    Math.abs(coords[1] - pointLatLng[1]) < 1e-7;
+                  if (isPrimary) return;
+
+                  const pointMarker = L.circleMarker(pointLatLng, {
+                    radius: 5,
+                    fillColor: isUnverified ? '#8C5208' : classification.displayStyle === 'critical' ? '#B42318' : '#2F6B4F',
+                    color: isUnverified ? '#78350f' : '#1f2937',
+                    weight: 1.5,
+                    fillOpacity: 0.95,
+                    pane: 'navWarnVectorPane',
+                  });
+                  pointMarker.bindTooltip(geom.label || (geom as any).zone_label || 'Point geometry', { direction: 'top' });
+                  pointMarker.on('click', () => onSelectWarning(w));
+                  pointMarker.on('contextmenu', (e: L.LeafletMouseEvent) => handleLayerContextMenu(e, w, pointLatLng));
+                  vectorGroup.addLayer(pointMarker);
+                });
               }
             }
           });
